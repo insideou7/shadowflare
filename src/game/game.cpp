@@ -52,6 +52,13 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     // Every level has a ground file; use those to enumerate maps.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
     playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
+        try {
+            ai_ = AiControl::parse(*raw);
+        } catch (const FormatError& e) {
+            log::warn("Control.aid: {}", e.what());
+        }
+    }
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     if (mapNames_.empty()) {
@@ -167,6 +174,7 @@ void Game::spawnActors() {
         actor.character.y = p.y;
         actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
         actor.hp = actor.maxHp = std::max(1, p.stats.hp);
+        if (ai_ && actor.hostile()) actor.aiList = ai_->find(p.stats.ai);
         // Non-player characters wear what their animation file shows.
         actor.character.visibleLayers.clear();
         if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
@@ -175,7 +183,9 @@ void Game::spawnActors() {
         }
         actors_.push_back(std::move(actor));
     }
-    log::info("{}: {} \"{}\" with {} characters", mapNames_[mapIndex_], scenarioDir_, control_.title, actors_.size());
+    const auto withAi = std::ranges::count_if(actors_, [](const Actor& a) { return a.aiList >= 0; });
+    log::info("{}: {} \"{}\" with {} characters, {} with game AI", mapNames_[mapIndex_], scenarioDir_, control_.title,
+              actors_.size(), withAi);
 }
 
 // Puts the player at the scenario's first entry point, or else in the
@@ -325,7 +335,13 @@ void Game::tick() {
     ++ticks_;
     if (!map_) return;
     for (auto& actor : actors_) {
-        if (actor.hostile() && player_) tickEnemy(actor);
+        if (actor.hostile() && player_) {
+            if (actor.aiList >= 0) {
+                tickEnemyAi(actor);
+            } else {
+                tickEnemy(actor);
+            }
+        }
         actor.character.tick();
     }
     if (!player_) return;
@@ -591,6 +607,8 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
     } else {
         enemy.state = Actor::State::Hit;
         enemy.character.restart(chart::kEnemyHit);
+        enemy.action = -1;
+        enemy.event = AiControl::kHit;
     }
 }
 
@@ -602,6 +620,8 @@ void Game::hurtPlayer(int damage) {
         for (auto& actor : actors_) {
             if (actor.alive()) {
                 actor.state = Actor::State::Idle;
+                actor.action = -1;
+                actor.event = AiControl::kDecide;
                 actor.character.x = actor.placement.x;
                 actor.character.y = actor.placement.y;
             }

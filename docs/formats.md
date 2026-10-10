@@ -240,9 +240,10 @@ from the exe, so treat them as likely rather than certain:
 | 11 | defense |
 | 13 | experience given |
 | 14 | level |
-| 15-21 | looks like a Japanese name |
+| 1-4 | area it wanders in: left, top, right, bottom around its position |
+| 15-30 | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
 | 50, 51 | gold dropped, min and max |
-| 77 | 800-3200, unknown (speed or sight range?) |
+| 77 | movement speed, per mille (usually 1000) |
 
 Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
 
@@ -285,6 +286,52 @@ Opcodes identified so far: 0 `IF a op b sentence` (runs the sentence,
 then carries on), 1 `SETFLAG flag value`, 17 `CHANGESCENARIO scenario
 entry`. The other events and opcodes are not mapped yet.
 
+## Monster behaviour: `System/Game/Parameter/Control.aid` (`RKC_RPG_AICONTROL::ReadFile`)
+
+```
+char magic[16]   "RKC_AIDATA v001\x1a"
+i32  listCount, eventCount       64 lists, 18 events
+list[listCount]:
+    i32 nameLength; char name[nameLength]   e.g. "goblin normal attack" in Japanese
+    if version >= 1: i32 walkSpeed
+    event[eventCount]: i32 n; entry[n]:
+        i32 action
+        i32 param[9]     [0] priority, [1] duration in ticks, [2] weight,
+                         [3] movement speed, [4], [5] wander pause and random extra
+        i32 cond[6]      [0] = 1: own health within [1]..[2] percent;
+                         [3] = 1: a target within [4]..[5] world units (-1 = open)
+```
+
+Every monster names its list in its scenario record. How ShadowFlare.exe
+runs it (selection at 0x45c9f0, actions dispatched at 0x459340): each
+tick the monster's latest event picks an action from that event's
+entries. Entries whose conditions hold are collected, a higher `param[0]`
+throws away what was collected before it, and one is drawn at random
+weighted by `param[2]`. Events 1-10, 16 and 17 with no matching entry fall
+back to event 0. Distances are gaps between the two collision boxes.
+
+| event | when |
+|---|---|
+| 0 | an action finished |
+| 1, 9, 10 | wander, retreat or approach finished |
+| 11, 12, 14, 15 | every tick while waiting, wandering, retreating or approaching |
+| 16 | an attack or spell animation finished |
+| 17 | hit |
+| 2-7 | used by some lists, not seen being raised yet |
+
+| action | does |
+|---|---|
+| 0 | wait for `param[1]` ticks |
+| 1 | wander inside the home area |
+| 2-4 | melee attacks |
+| 5-7 | spells |
+| 8 | stop |
+| 9 | move away from the target |
+| 10 | move towards the target |
+| 11 | walk home |
+
+Speeds are multiplied by the monster's speed (word 77) / 1000.
+
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
 
 ```
@@ -309,6 +356,5 @@ not identified yet.
 | --- | --- | --- |
 | `MAPED_FILE v000` | `.map` | 36 bytes; small header read by `RKC_RPGSCRN::ReadMapFile` |
 | `SFItemDataV0000` | `Item.Ibn` | Item table; RCLIB-wrapped with an extra layer |
-| `RKC_AIDATA v001` | `Control.aid` | Enemy AI (`RKC_RPG_AICONTROL.dll`) |
 | `VoiceData  V003` | `.Voc` | Music and voice (`RKC_DSOUND.dll`) |
 | `ShadowFlare0005` | `Save/*.Ssv` | Save games |

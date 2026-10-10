@@ -41,9 +41,15 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
     in.skip(4);
     if (group == ScenarioControl::Group::Enemy) {
         // Offsets are in 32-bit words into the 0x13c-byte enemy block.
-        BinaryReader block(in.bytes(extraSize));
+        const auto raw = in.bytes(extraSize);
+        BinaryReader block(raw);
         std::int32_t words[0x13c / 4];
         for (auto& w : words) w = block.i32();
+        for (int k = 0; k < 4; ++k) p.stats.area[k] = words[1 + k];
+        p.stats.speed = words[77];
+        // Bytes 0x3c to 0x7b: the AI list name, NUL-terminated.
+        const std::string_view name(reinterpret_cast<const char*>(raw.data()) + 0x3c, 0x40);
+        p.stats.ai = std::string(name.substr(0, name.find('\0')));
         p.stats.element = words[6];
         p.stats.hp = words[8];
         p.stats.attack = words[9];

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "formats/ai_control.h"
 #include "formats/animation.h"
 #include "formats/binary_reader.h"
 #include "formats/map_layers.h"
@@ -186,7 +187,7 @@ void testScenario() {
     i32(0);  // no list
     i32(0);  // no table
     i32(-1);
-    for (int w = 0; w < 0x13c / 4; ++w) i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : 0);
+    for (int w = 0; w < 0x13c / 4; ++w) i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : w == 15 ? 0x0041474f : w == 77 ? 1100 : 0);
     i32(0);  // items
     i32(1);  // entry points
     for (int v : {4, 90000, 5000, 7}) i32(v);
@@ -196,11 +197,36 @@ void testScenario() {
     const auto& e = s.placements[1];
     check(e.group == sf::ScenarioControl::Group::Enemy && e.kind == 2 && e.x == 500, "scenario enemy");
     check(e.stats.hp == 40 && e.stats.attack == 10 && e.stats.level == 3, "scenario enemy stats");
+    check(e.stats.ai == "OGA" && e.stats.speed == 1100, "scenario enemy AI");
     const auto& p = s.placements[0];
     check(p.group == sf::ScenarioControl::Group::Person && p.id == 5 && p.kind == 1000002 && p.name == "Dune",
           "scenario person");
     check(p.x == 1200 && p.y == -300 && p.direction == 3 && p.rect[2] == 79, "scenario position");
     check(s.entryPoints.size() == 1 && s.entryPoints[0].id == 4 && s.entryPoints[0].y == 5000, "scenario entry point");
+}
+
+void testAi() {
+    std::vector<std::uint8_t> d;
+    auto i32 = [&](std::int32_t v) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(v >> (8 * k)));
+    };
+    const std::string magic = "RKC_AIDATA v001\x1a";
+    d.insert(d.end(), magic.begin(), magic.end());
+    i32(1);  // lists
+    i32(2);  // events
+    i32(3);
+    d.insert(d.end(), {'B', 'a', 't'});
+    i32(40);  // walk speed
+    i32(1);   // event 0: one entry
+    i32(10);  // approach
+    for (int k = 0; k < 9; ++k) i32(k == 1 ? 150 : 0);
+    for (int k = 0; k < 6; ++k) i32(k == 3 ? 1 : k == 5 ? 2500 : 0);
+    i32(0);  // event 1: none
+    const auto ai = sf::AiControl::parse(d);
+    check(ai.lists.size() == 1 && ai.find("Bat") == 0 && ai.lists[0].walkSpeed == 40, "AI list");
+    const auto& e = ai.lists[0].events.at(0).at(0);
+    check(e.action == sf::AiControl::kApproach && e.param[1] == 150 && e.cond[5] == 2500, "AI entry");
+    check(ai.lists[0].events.at(1).empty(), "AI empty event");
 }
 
 void testScript() {
@@ -278,6 +304,7 @@ int main() {
     testGroundJudge();
     testScenario();
     testScript();
+    testAi();
     testTables();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
