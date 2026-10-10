@@ -110,6 +110,32 @@ void testProjection() {
     check(std::abs(wx) < 1e-6 && std::abs(wy - 1000) < 1e-6, "screen to world");
 }
 
+void testGroundJudge() {
+    // A 1x1 chip map (64x48 pixels, magnification 160) has a 4x5 judge grid
+    // starting at cell (-1, -3).
+    std::vector<std::uint8_t> d;
+    auto i32 = [&](std::int32_t v) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(v >> (8 * k)));
+    };
+    auto i16 = [&](std::int16_t v) {
+        d.push_back(static_cast<std::uint8_t>(v));
+        d.push_back(static_cast<std::uint8_t>(v >> 8));
+    };
+    const std::string magic = "RPGSCRN_GNDv000";
+    d.insert(d.end(), magic.begin(), magic.end());
+    d.push_back(0);
+    for (int v : {1, 1, 64, 48, 160, 160}) i32(v);
+    d.push_back(0);  // area planes not packed
+    for (int v : {0, 2, 7}) i16(static_cast<std::int16_t>(v));
+    d.push_back(0);  // judge not packed
+    for (int k = 0; k < 20; ++k) i16(k == 1 + 3 * 4 ? 0 : 1);  // only cell (0, 0) open
+    const auto g = sf::GroundLayer::parse(d);
+    check(g.judgeX == -1 && g.judgeY == -3, "judge origin");
+    check(g.judgeWidth == 4 && g.judgeHeight == 5, "judge size");
+    check(g.walkable(10, 150) && !g.walkable(170, 10) && !g.walkable(-10, 10), "judge lookup");
+    check(!g.walkable(100000, 0), "outside the judge grid is blocked");
+}
+
 }  // namespace
 
 int main() {
@@ -120,6 +146,7 @@ int main() {
     testTruncated();
     testAnimation();
     testProjection();
+    testGroundJudge();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

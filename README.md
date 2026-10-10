@@ -11,13 +11,13 @@ engine elsewhere with `--data`.
 
 A walkable map viewer. The engine loads any level from the original game
 (ground tiles, walls, trees and props) and puts the player character in
-it, animated in all eight directions. Collision, monsters, items, sound
-and menus are not in yet. See [docs/formats.md](docs/formats.md)
+it, animated in all eight directions, and walls and trees block the way.
+Monsters, items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor, or use
 the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
-map, Home returns to the start point, Esc quits.
+map, Home returns to the start point, J shows the walkability grid, Esc quits.
 
 ## Building
 
@@ -35,6 +35,7 @@ Options:
 - `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
 - `--frames <n>` quit after n frames, for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--show-judge` start with the walkability grid shown
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 
 Run the unit tests with `ctest --test-dir build`.

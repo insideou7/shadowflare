@@ -93,10 +93,34 @@ u8   compressed, then RCLIB-L block (or raw) of width*height*6 bytes:
        plane 0: flags (always 0 so far)
        plane 1: bank index into the .Lst (-1 = empty)
        plane 2: pattern within that bank
-u8   compressed, then the walkability grid (not decoded yet)
+u8   compressed, then RCLIB-L block (or raw) of judgeWidth*judgeHeight i16:
+     the walkability ("area judge") grid, row-major
 ```
 
 Chip `(cx, cy)` is drawn at screen pixel `(cx * 64, cy * 48)`.
+
+The judge grid is laid out in world space, not chips: cell `(jx, jy)`
+covers world `x` in `[jx*magX, (jx+1)*magX)` and the same for `y`, so on
+screen each cell is a diamond. Its size is not stored; it is derived from
+the map size (`RKC_RPGSCRN_GROUNDBLOCK::CalcAreaJudgeFromMap`):
+
+```
+CalcGroundPos(sx, sy):        map pixel -> judge cell
+    p1 = 15*magX/100, p2 = 10*magY/100
+    jx = floor((p1*sy + p2*sx) / (2*p1*p2))
+    jy = floor((p1*sy - p2*sx) / (2*p1*p2))
+take the four map corners (0,0) (W,0) (0,H) (W,H) in pixels:
+    judgeX = jx(0,0) - 1           judgeWidth  = jx(W,H) - judgeX + 1
+    judgeY = jy(W,0) - 1           judgeHeight = jy(0,H) - judgeY + 1
+```
+
+This matches the stored data exactly for all 165 maps. Values seen:
+
+| bits | meaning |
+|---|---|
+| 0x0001 | blocked (walls, tree trunks, everything outside the map) |
+| 0x0002 | unknown, rare (a few maps) |
+| 0x8000 | exit; usually a row of three cells at a map edge. Destinations are not decoded yet |
 
 ### Objects: `.Obl` (`RKC_RPGSCRN_OBJECTBLOCK::ReadFile`)
 

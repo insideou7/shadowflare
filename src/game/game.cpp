@@ -81,12 +81,63 @@ void Game::placePlayer() {
         cy = (minY + maxY) / 2.0;
     }
     walkTarget_.reset();
-    if (player_) {
-        screenToWorld(cx, cy, player_->x, player_->y);
-        player_->setAction(Action::Idle);
+    double wx, wy;
+    screenToWorld(cx, cy, wx, wy);
+
+    // Move to the walkable cell nearest that point, searching outwards ring by ring.
+    if (!g.walkable(wx, wy)) {
+        const int jx = static_cast<int>(std::floor(wx / g.magX));
+        const int jy = static_cast<int>(std::floor(wy / g.magY));
+        const int maxRadius = std::max(g.judgeWidth, g.judgeHeight);
+        bool found = false;
+        for (int r = 1; r < maxRadius && !found; ++r) {
+            for (int dy = -r; dy <= r && !found; ++dy) {
+                for (int dx = -r; dx <= r && !found; ++dx) {
+                    if (std::max(std::abs(dx), std::abs(dy)) != r) continue;
+                    const double tx = (jx + dx + 0.5) * g.magX, ty = (jy + dy + 0.5) * g.magY;
+                    if (g.walkable(tx, ty)) {
+                        wx = tx;
+                        wy = ty;
+                        found = true;
+                    }
+                }
+            }
+        }
     }
-    cameraX_ = cx - kScreenWidth / 2.0;
-    cameraY_ = cy - kScreenHeight / 2.0;
+    if (player_) {
+        player_->x = wx;
+        player_->y = wy;
+        player_->setAction(Action::Idle);
+        updateCamera();
+    } else {
+        cameraX_ = cx - kScreenWidth / 2.0;
+        cameraY_ = cy - kScreenHeight / 2.0;
+    }
+}
+
+// Moves the player by a world-space step unless that would leave walkable
+// ground. A blocked diagonal step slides along whichever axis is still free,
+// so walking into a wall at an angle follows the wall.
+bool Game::tryMove(double dx, double dy) {
+    const auto& g = map_->ground();
+    const double x = player_->x, y = player_->y;
+    const bool xFree = g.walkable(x + dx, y), yFree = g.walkable(x, y + dy);
+    // The diagonal needs both sides free, or it could slip between two
+    // blocked cells that only touch at a corner.
+    if (xFree && yFree && g.walkable(x + dx, y + dy)) {
+        player_->x += dx;
+        player_->y += dy;
+        return true;
+    }
+    if (xFree && dx != 0) {
+        player_->x += dx;
+        return true;
+    }
+    if (yFree && dy != 0) {
+        player_->y += dy;
+        return true;
+    }
+    return false;
 }
 
 void Game::walkBy(int screenDx, int screenDy) {
@@ -118,6 +169,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_p:
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
+                case SDLK_j: showJudge_ = !showJudge_; break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
@@ -136,7 +188,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::tick() {
     ++ticks_;
-    if (!player_) return;
+    if (!player_ || !map_) return;
 
     // Holding the left button walks towards the cursor, like the original.
     if (mouseHeld_) {
@@ -170,11 +222,15 @@ void Game::tick() {
     const double length = std::hypot(dx, dy);
     if (length > 1.0) {
         const double step = std::min(kWalkSpeed, walkTarget_ ? length : kWalkSpeed);
-        player_->x += dx / length * step;
-        player_->y += dy / length * step;
         player_->faceTowards(dx, dy);
-        player_->setAction(Action::Walk);
-        if (walkTarget_ && length <= kWalkSpeed) walkTarget_.reset();
+        if (tryMove(dx / length * step, dy / length * step)) {
+            player_->setAction(Action::Walk);
+            if (walkTarget_ && length <= kWalkSpeed) walkTarget_.reset();
+        } else {
+            // Ran into a wall: give up on the target rather than pushing against it.
+            walkTarget_.reset();
+            player_->setAction(Action::Idle);
+        }
     } else {
         walkTarget_.reset();
         player_->setAction(Action::Idle);
@@ -250,6 +306,42 @@ void Game::renderMap() {
         }
         if (!playerDrawn) player_->draw(renderer_, sprites_, camX, camY);
     }
+    if (showJudge_) renderJudge(camX, camY);
+}
+
+// Each judge cell is a world-space square, so it shows up as a diamond.
+// Blocked cells are tinted red, exits yellow.
+void Game::renderJudge(int camX, int camY) {
+    const auto& g = map_->ground();
+    // Judge cells touching the view: invert the view corners.
+    int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+    for (const auto& [px, py] : {std::pair{0, 0}, {kScreenWidth, 0}, {0, kScreenHeight}, {kScreenWidth, kScreenHeight}}) {
+        double wx, wy;
+        screenToWorld(camX + px, camY + py, wx, wy);
+        minX = std::min(minX, static_cast<int>(std::floor(wx / g.magX)));
+        maxX = std::max(maxX, static_cast<int>(std::floor(wx / g.magX)));
+        minY = std::min(minY, static_cast<int>(std::floor(wy / g.magY)));
+        maxY = std::max(maxY, static_cast<int>(std::floor(wy / g.magY)));
+    }
+    std::vector<SDL_Vertex> vertices;
+    for (int jy = minY; jy <= maxY; ++jy) {
+        for (int jx = minX; jx <= maxX; ++jx) {
+            const std::int16_t v = g.judgeAt((jx + 0.5) * g.magX, (jy + 0.5) * g.magY);
+            if (v == 0) continue;
+            const SDL_Color color = (v & 0x8000) ? SDL_Color{255, 220, 0, 140} : SDL_Color{255, 0, 0, 80};
+            SDL_FPoint corners[4];
+            const int wx[4] = {jx * g.magX, (jx + 1) * g.magX, (jx + 1) * g.magX, jx * g.magX};
+            const int wy[4] = {jy * g.magY, jy * g.magY, (jy + 1) * g.magY, (jy + 1) * g.magY};
+            for (int k = 0; k < 4; ++k) {
+                int sx, sy;
+                worldToScreen(wx[k], wy[k], sx, sy);
+                corners[k] = {static_cast<float>(sx - camX), static_cast<float>(sy - camY)};
+            }
+            for (int k : {0, 1, 2, 0, 2, 3}) vertices.push_back({corners[k], color, {0, 0}});
+        }
+    }
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+    if (!vertices.empty()) SDL_RenderGeometry(renderer_, nullptr, vertices.data(), static_cast<int>(vertices.size()), nullptr, 0);
 }
 
 void Game::renderPlaceholder(double interpolation) {

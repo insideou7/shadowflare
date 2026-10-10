@@ -38,13 +38,18 @@ public:
     // Starts walking towards a point given relative to the player on screen
     // (used for scripted smoke tests).
     void walkBy(int screenDx, int screenDy);
+
+    // Draws the walkability grid over the map (toggled with J).
+    void setShowJudge(bool show) { showJudge_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
 private:
     void loadMap(std::size_t index);
     void placePlayer();
     void updateCamera();
+    bool tryMove(double dx, double dy);
     void renderMap();
+    void renderJudge(int camX, int camY);
     void renderPlaceholder(double interpolation);
 
     SDL_Renderer* renderer_;
@@ -59,6 +64,7 @@ private:
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     bool mouseHeld_ = false;
+    bool showJudge_ = false;
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;
