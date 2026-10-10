@@ -20,6 +20,9 @@ bool isBlock(std::span<const std::uint8_t> data) {
 }
 
 std::vector<std::uint8_t> lzDecode(std::span<const std::uint8_t> packed, std::size_t unpackedSize) {
+    // Every 17 packed bytes expand to at most 8 * 18, so a larger claimed
+    // size means a corrupt header.
+    if (unpackedSize > packed.size() * 9 + 64) throw FormatError("LZ size larger than its data allows");
     std::array<std::uint8_t, kRingSize> ring{};
     std::size_t r = kRingStart;
     std::vector<std::uint8_t> out;

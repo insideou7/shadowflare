@@ -24,8 +24,9 @@ struct GroundLayer {
     // Walkability grid ("area judge"). It is laid out in world space, one
     // cell per magX x magY world units, so cell (jx, jy) covers world
     // x in [jx*magX, (jx+1)*magX). judgeX/judgeY is the cell stored first.
-    // Bit 0 set = blocked (walls, trees, outside the map); bit 15 marks
-    // exits, decoded later with map links.
+    // Bit 0 set = blocked (walls, trees, outside the map). Bit 15 is set
+    // near some map edges but its meaning is unknown; exits are script
+    // triggers (see ScenarioScript).
     int judgeX = 0, judgeY = 0;
     int judgeWidth = 0, judgeHeight = 0;
     std::vector<std::int16_t> judge;  // row-major

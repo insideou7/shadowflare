@@ -52,6 +52,9 @@ GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
     g.magX = in.i32();
     g.magY = in.i32();
     if (g.width <= 0 || g.height <= 0 || g.width > 4096 || g.height > 4096) throw FormatError("bad ground size");
+    if (g.chipWidth <= 0 || g.chipHeight <= 0 || g.chipWidth > 1024 || g.chipHeight > 1024) {
+        throw FormatError("bad ground chip size");
+    }
 
     const std::size_t n = static_cast<std::size_t>(g.width) * g.height;
     const auto area = readMaybePacked(in, n * 6);
@@ -65,7 +68,7 @@ GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
 
     // The judge grid covers the bounding box of the map's corners in
     // judge cells, plus a cell of margin (CalcAreaJudgeFromMap).
-    if (g.magX <= 0 || g.magY <= 0) throw FormatError("bad ground magnification");
+    if (g.magX < 10 || g.magY < 10 || g.magX > 10000 || g.magY > 10000) throw FormatError("bad ground magnification");
     const long long pw = static_cast<long long>(g.width) * g.chipWidth;
     const long long ph = static_cast<long long>(g.height) * g.chipHeight;
     int x00, y00, xw0, yw0, x0h, y0h, xwh, ywh;
@@ -92,7 +95,7 @@ ObjectLayer ObjectLayer::parse(std::span<const std::uint8_t> data) {
     if (!magic.starts_with("RPGSCRN_OBJv")) throw FormatError("not an object file");
     const int version = magic[14] - '0';
     const std::int32_t count = in.i32();
-    if (count < 0) throw FormatError("bad object count");
+    if (count < 0 || static_cast<std::size_t>(count) > in.remaining() / 36) throw FormatError("bad object count");
     ObjectLayer layer;
     layer.objects.reserve(count);
     for (std::int32_t i = 0; i < count; ++i) {

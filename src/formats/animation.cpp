@@ -13,7 +13,9 @@ AnimationSet AnimationSet::parse(std::span<const std::uint8_t> data) {
     AnimationSet set;
     set.version = (magic[12] - '0') * 100 + (magic[13] - '0') * 10 + (magic[14] - '0');
 
+    // Each chart needs at least its status and nine empty directions.
     const std::uint32_t chartCount = in.u32();
+    if (chartCount > in.remaining() / (2 + kDirections * 6)) throw FormatError("bad chart count");
     set.charts.resize(chartCount);
     for (auto& chart : set.charts) {
         chart.status = in.i16();
@@ -21,11 +23,11 @@ AnimationSet AnimationSet::parse(std::span<const std::uint8_t> data) {
         for (auto& dir : chart.directions) {
             const std::uint32_t layerCount = in.u32();
             dir.frameCount = in.i16();
-            if (layerCount > 256) throw FormatError("too many animation layers");
+            if (layerCount > 256 || layerCount * 4 > in.remaining()) throw FormatError("too many animation layers");
             dir.layers.resize(layerCount);
             for (auto& layer : dir.layers) {
                 const std::uint32_t frames = in.u32();
-                if (frames > 4096) throw FormatError("too many animation frames");
+                if (frames > 4096 || frames * 8 > in.remaining()) throw FormatError("too many animation frames");
                 layer.resize(frames);
                 for (auto& cell : layer) {
                     cell.status = in.i16();
