@@ -12,10 +12,12 @@ engine elsewhere with `--data`.
 A walkable map viewer. The engine loads any level from the original game
 (ground tiles, walls, trees and props) and puts the player character in
 it, animated in all eight directions, and walls and trees block the way.
-Townspeople and monsters stand where the game's scenario files put them.
+Townspeople and monsters stand where the game's scenario files put them,
+and walking into an exit takes you to the next area, following the
+game's own scripts, so the world can be explored on foot.
 Monsters notice you, chase you and fight; click a monster to punch it.
 Monster health and attack come from the scenario files; the player's
-stats, the damage formula and monster AI are still placeholders. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+stats, the damage formula and monster AI are still placeholders. Story events, items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to

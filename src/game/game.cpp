@@ -65,7 +65,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadMap(start);
 }
 
-void Game::loadMap(std::size_t index) {
+void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -79,8 +79,43 @@ void Game::loadMap(std::size_t index) {
     std::ranges::stable_sort(drawOrder_, [&](std::size_t a, std::size_t b) {
         return objects[a].x + objects[a].y < objects[b].x + objects[b].y;
     });
-    placePlayer();
+    if (!scenarioDir.empty()) {
+        loadScenario(scenarioDir);
+    } else {
+        const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
+        loadScenario(found == scenarioByMap_.end() ? std::string() : found->second);
+    }
+}
+
+void Game::loadScenario(const std::string& dir) {
+    scenarioDir_ = dir;
+    control_ = {};
+    script_.reset();
+    triggers_.clear();
+    pendingScenario_.reset();
+    // TEMP flags last for one visit; the others persist.
+    std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp; });
+    if (!dir.empty()) {
+        try {
+            if (auto raw = data_->read(dir + "/Scenario.Mct")) control_ = ScenarioControl::parse(*raw);
+            if (auto raw = data_->read(dir + "/Scenario.Scs")) script_ = ScenarioScript::parse(*raw);
+        } catch (const FormatError& e) {
+            log::warn("{}: {}", dir, e.what());
+        }
+    }
     spawnActors();
+    placePlayer();
+    if (!script_) return;
+    for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
+    for (const auto& t : script_->triggers) {
+        if (t.event != ScenarioScript::kOnJudge) continue;
+        for (const auto& p : control_.placements) {
+            if (ScenarioControl::idBase(p.group) + p.id != t.character) continue;
+            triggers_.push_back({static_cast<double>(p.x + p.rect[0]), static_cast<double>(p.y + p.rect[1]),
+                                 static_cast<double>(p.x + p.rect[2]), static_cast<double>(p.y + p.rect[3]), t.sentence});
+        }
+    }
+    checkTriggers(false);  // arriving inside an area does not set it off
 }
 
 // Several scenarios can share a map (the same place at different points in
@@ -113,18 +148,8 @@ const CharacterModel* Game::model(const std::string& stem) {
 void Game::spawnActors() {
     actors_.clear();
     attackTarget_.reset();
-    const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
-    if (found == scenarioByMap_.end()) return;
-    auto raw = data_->read(found->second + "/Scenario.Mct");
-    if (!raw) return;
-    ScenarioControl control;
-    try {
-        control = ScenarioControl::parse(*raw);
-    } catch (const FormatError& e) {
-        log::warn("{}: {}", found->second, e.what());
-        return;
-    }
-    for (const auto& p : control.placements) {
+    if (scenarioDir_.empty()) return;
+    for (const auto& p : control_.placements) {
         // Map objects (chests, doors) and items come later.
         if (p.kind < 0 || p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
         const char* folder = p.group == ScenarioControl::Group::Enemy ? "ENEMY" : "PEOPLE";
@@ -150,11 +175,19 @@ void Game::spawnActors() {
         }
         actors_.push_back(std::move(actor));
     }
-    log::info("{}: {} \"{}\" with {} characters", mapNames_[mapIndex_], found->second, control.title, actors_.size());
+    log::info("{}: {} \"{}\" with {} characters", mapNames_[mapIndex_], scenarioDir_, control_.title, actors_.size());
 }
 
-// Puts the player in the middle of the map's scenery and points the camera at them.
+// Puts the player at the scenario's first entry point, or else in the
+// middle of the map's scenery, and points the camera at them.
 void Game::placePlayer() {
+    for (const auto& e : control_.entryPoints) {
+        if (e.id != 0) continue;
+        int sx, sy;
+        worldToScreen(e.x, e.y, sx, sy);
+        placePlayerAt(sx, sy);
+        return;
+    }
     const auto& objects = map_->objects().objects;
     const auto& g = map_->ground();
     double cx = g.width * g.chipWidth / 2.0, cy = g.height * g.chipHeight / 2.0;
@@ -298,6 +331,93 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    checkTriggers();
+    if (pendingScenario_) {
+        const auto [number, entry] = *pendingScenario_;
+        changeScenario(number, entry);
+    }
+    updateCamera();
+}
+
+// Runs the script of each trigger area the player has just stepped into.
+void Game::checkTriggers(bool fire) {
+    if (!player_) return;
+    for (auto& t : triggers_) {
+        const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
+        if (fire && inside && !t.inside) runSentence(t.sentence);
+        t.inside = inside;
+    }
+}
+
+std::int32_t Game::operandValue(const ScenarioScript::Operand& op) const {
+    if (op.type == ScenarioScript::kConstant) return op.value;
+    const auto found = flags_.find({op.type, op.value});
+    return found == flags_.end() ? 0 : found->second;
+}
+
+// A small subset of the script interpreter: enough to follow exits, which
+// are often guarded by story flags. Other commands are skipped.
+void Game::runSentence(std::int32_t index, int depth) {
+    if (!script_ || index < 0 || static_cast<std::size_t>(index) >= script_->sentences.size() || depth > 16) return;
+    for (const auto& c : script_->sentences[index]) {
+        if (pendingScenario_) return;
+        const auto& ops = c.operands;
+        switch (c.opcode) {
+            case ScenarioScript::kIf: {
+                if (ops.size() < 4) break;
+                const std::int32_t a = operandValue(ops[0]), b = operandValue(ops[2]);
+                const bool holds = ops[1].value == 0 ? a == b : ops[1].value == 1 ? a != b : ops[1].value == 2 ? a > b : a < b;
+                if (holds) runSentence(ops[3].value, depth + 1);
+                break;
+            }
+            case ScenarioScript::kSetFlag:
+                if (ops.size() >= 2 && ops[0].type != ScenarioScript::kConstant) flags_[{ops[0].type, ops[0].value}] = operandValue(ops[1]);
+                break;
+            case ScenarioScript::kChangeScenario:
+                if (ops.size() >= 2) pendingScenario_.emplace(operandValue(ops[0]), operandValue(ops[1]));
+                break;
+            default: break;
+        }
+    }
+}
+
+// Loads another scenario's map and puts the party at one of its entry points.
+void Game::changeScenario(int number, int entry) {
+    pendingScenario_.reset();
+    char dir[32];
+    std::snprintf(dir, sizeof dir, "Scenario/%08d", number);
+    auto raw = data_->read(std::string(dir) + "/Scenario.Mct");
+    if (!raw) {
+        log::warn("Exit to scenario {} leads nowhere: {} is missing", number, dir);
+        return;
+    }
+    ScenarioControl target;
+    try {
+        target = ScenarioControl::parse(*raw);
+    } catch (const FormatError& e) {
+        log::warn("{}: {}", dir, e.what());
+        return;
+    }
+    std::string map = target.mapPath;
+    if (const auto slash = map.find_last_of("\\/"); slash != std::string::npos) map = map.substr(slash + 1);
+    map = stem(map);
+    const auto found = std::ranges::find_if(mapNames_, [&](const std::string& m) { return equalsIgnoreCase(m, map); });
+    if (found == mapNames_.end()) {
+        log::warn("{}: map {} not found", dir, map);
+        return;
+    }
+    log::info("Going to {} \"{}\", entry {}", dir, target.title, entry);
+    loadMap(static_cast<std::size_t>(found - mapNames_.begin()), dir);
+    // The player is the first of the four party members.
+    for (const auto& e : target.entryPoints) {
+        if (e.id != entry * 4 || !player_) continue;
+        player_->x = e.x;
+        player_->y = e.y;
+        if (e.direction >= 0 && e.direction < 8) player_->direction = e.direction;
+        log::info("Player enters at world ({}, {})", e.x, e.y);
+        break;
+    }
+    checkTriggers(false);
     updateCamera();
 }
 
@@ -593,7 +713,7 @@ void Game::renderHealthBars(int camX, int camY) {
 }
 
 // Each judge cell is a world-space square, so it shows up as a diamond.
-// Blocked cells are tinted red, exits yellow.
+// Blocked cells are tinted red, cells with the unknown 0x8000 bit yellow.
 void Game::renderJudge(int camX, int camY) {
     const auto& g = map_->ground();
     // Judge cells touching the view: invert the view corners.

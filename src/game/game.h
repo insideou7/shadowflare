@@ -11,6 +11,7 @@
 
 #include "game/character.h"
 #include "formats/scenario.h"
+#include "formats/scenario_script.h"
 #include "game/map.h"
 #include "render/sprite_cache.h"
 
@@ -64,9 +65,21 @@ private:
         bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
         bool alive() const { return state != State::Dead; }
     };
-    void loadMap(std::size_t index);
+    // An area whose script runs when the player walks into it, such as an
+    // exit to the next map.
+    struct TriggerArea {
+        double left, top, right, bottom;  // world units
+        std::int32_t sentence;
+        bool inside = false;  // only entering fires it
+    };
+    void loadMap(std::size_t index, const std::string& scenarioDir = {});
+    void loadScenario(const std::string& dir);
     void indexScenarios();
     void spawnActors();
+    void changeScenario(int number, int entry);
+    void checkTriggers(bool fire = true);
+    void runSentence(std::int32_t index, int depth = 0);
+    std::int32_t operandValue(const ScenarioScript::Operand& op) const;
     const CharacterModel* model(const std::string& stem);
     void placePlayer();
     void updateCamera();
@@ -92,6 +105,12 @@ private:
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
     std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
     std::vector<Actor> actors_;
+    std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
+    ScenarioControl control_;
+    std::optional<ScenarioScript> script_;
+    std::vector<TriggerArea> triggers_;
+    std::map<std::pair<std::int32_t, std::int32_t>, std::int32_t> flags_;  // (operand type, id) -> value
+    std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
 
     std::optional<CharacterModel> playerModel_;
     std::optional<Character> player_;

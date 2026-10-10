@@ -11,6 +11,7 @@
 #include "formats/map_layers.h"
 #include "formats/rclib.h"
 #include "formats/scenario.h"
+#include "formats/scenario_script.h"
 #include "formats/table_data.h"
 
 namespace {
@@ -187,6 +188,8 @@ void testScenario() {
     i32(-1);
     for (int w = 0; w < 0x13c / 4; ++w) i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : 0);
     i32(0);  // items
+    i32(1);  // entry points
+    for (int v : {4, 90000, 5000, 7}) i32(v);
     const auto s = sf::ScenarioControl::parse(d);
     check(s.mapPath == "Map\\c02_00.map" && s.title == "Kanfore", "scenario header");
     check(s.placements.size() == 2, "scenario placement count");
@@ -197,6 +200,40 @@ void testScenario() {
     check(p.group == sf::ScenarioControl::Group::Person && p.id == 5 && p.kind == 1000002 && p.name == "Dune",
           "scenario person");
     check(p.x == 1200 && p.y == -300 && p.direction == 3 && p.rect[2] == 79, "scenario position");
+    check(s.entryPoints.size() == 1 && s.entryPoints[0].id == 4 && s.entryPoints[0].y == 5000, "scenario entry point");
+}
+
+void testScript() {
+    std::vector<std::uint8_t> d;
+    auto i32 = [&](std::int32_t v) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(v >> (8 * k)));
+    };
+    const std::string magic = "ScenaScriptV000";
+    d.insert(d.end(), magic.begin(), magic.end());
+    d.push_back(0);
+    i32(1);  // temp flags
+    i32(1000000);
+    i32(0);
+    i32(0);  // network flags
+    i32(1);  // messages
+    i32(1000000);
+    i32(2);
+    d.push_back(static_cast<std::uint8_t>(~'H'));
+    d.push_back(static_cast<std::uint8_t>(~'i'));
+    i32(1);  // triggers
+    for (int v : {0, 3, 10000000, 0}) i32(v);
+    i32(1);  // sentences
+    i32(1);  // commands
+    i32(17);
+    i32(2);
+    for (int v : {1, 3, 1, 5}) i32(v);
+    const auto s = sf::ScenarioScript::parse(d);
+    check(s.messages.at(1000000) == "Hi", "script message");
+    check(s.triggers.size() == 1 && s.triggers[0].event == sf::ScenarioScript::kOnJudge && s.triggers[0].character == 10000000,
+          "script trigger");
+    const auto& c = s.sentences.at(0).at(0);
+    check(c.opcode == sf::ScenarioScript::kChangeScenario && c.operands.size() == 2 && c.operands[1].value == 5,
+          "script command");
 }
 
 void testTables() {
@@ -240,6 +277,7 @@ int main() {
     testProjection();
     testGroundJudge();
     testScenario();
+    testScript();
     testTables();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
