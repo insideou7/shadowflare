@@ -36,6 +36,9 @@ struct ScenarioControl {
             std::int32_t experience = 0;
             std::int32_t level = 0;
             std::int32_t goldMin = 0, goldMax = 0;
+            std::int32_t speed = 1000;    // per mille, scales the AI's movement speeds
+            std::int32_t area[4] = {};    // where it wanders: left, top, right, bottom around (x, y)
+            std::string ai;               // name of its list in Control.aid (Shift-JIS)
         } stats;
     };
 

@@ -13,6 +13,7 @@ add_library(sf_formats STATIC
     src/formats/rclib.cpp
     src/formats/sprite_bank.cpp
     src/formats/map_layers.cpp
+    src/formats/ai_control.cpp
     src/formats/animation.cpp
     src/formats/scenario.cpp
     src/formats/scenario_script.cpp
@@ -28,6 +29,7 @@ add_executable(shadowflare
     src/game/map.cpp
     src/game/character.cpp
     src/game/game.cpp
+    src/game/enemy_ai.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_formats)
 

@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "game/character.h"
+#include "formats/ai_control.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "game/map.h"
@@ -58,10 +59,21 @@ private:
     // People and monsters placed by the map's scenario file.
     struct Actor {
         enum class State { Idle, Chase, Attack, Hit, Dead };
+        Actor(ScenarioControl::Placement p, Character c) : placement(std::move(p)), character(std::move(c)) {}
         ScenarioControl::Placement placement;
         Character character;
         State state = State::Idle;
         int hp = 0, maxHp = 0;
+
+        // Control.aid state; aiList -1 = no list, use the simple chase.
+        int aiList = -1;
+        int action = -1;
+        int actionTicks = 0;
+        int event = AiControl::kDecide;
+        AiControl::Entry entry;
+        bool struck = false;  // the current attack has landed
+        double wanderX = 0, wanderY = 0;
+        int wanderPause = 0;
         bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
         bool alive() const { return state != State::Dead; }
     };
@@ -86,6 +98,11 @@ private:
     bool tryMove(Character& who, double dx, double dy);
     void tickPlayer();
     void tickEnemy(Actor& enemy);
+    // Monster behaviour from Control.aid (enemy_ai.cpp).
+    void tickEnemyAi(Actor& enemy);
+    bool chooseAiAction(Actor& enemy, int event);
+    void runAiAction(Actor& enemy);
+    double gapToPlayer(const Actor& enemy) const;
     void hurtEnemy(Actor& enemy, int damage);
     void hurtPlayer(int damage);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
@@ -105,6 +122,9 @@ private:
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
     std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
     std::vector<Actor> actors_;
+    std::optional<AiControl> ai_;
+    std::uint32_t random_ = 12345;  // deterministic, so runs can be replayed
+    int random(int bound);  // 0 <= result < bound
     std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
     ScenarioControl control_;
     std::optional<ScenarioScript> script_;
