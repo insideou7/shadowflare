@@ -40,7 +40,9 @@ Options:
 - `--data <path>` folder with the original game files (default `game`). It can be
   the install folder itself or any folder above it.
 - `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
-- `--frames <n>` quit after n frames, for smoke tests
+- `--frames <n>` quit after n frames
+- `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
+  the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--show-judge` start with the walkability grid shown
