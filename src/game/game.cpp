@@ -4,8 +4,10 @@
 #include <cctype>
 #include <climits>
 #include <cmath>
+#include <cstdio>
 
 #include "core/log.h"
+#include "formats/binary_reader.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -14,6 +16,11 @@ namespace {
 
 // Walking speed in world units per tick. Not yet taken from the original.
 constexpr double kWalkSpeed = 70.0;
+
+std::string lower(std::string s) {
+    for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return s;
+}
 
 std::string stem(const std::string& file) {
     const auto dot = file.rfind('.');
@@ -33,6 +40,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     // Every level has a ground file; use those to enumerate maps.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
     playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     if (mapNames_.empty()) {
         log::warn("No maps found in the game data; showing a placeholder screen");
@@ -60,6 +68,75 @@ void Game::loadMap(std::size_t index) {
         return objects[a].x + objects[a].y < objects[b].x + objects[b].y;
     });
     placePlayer();
+    spawnActors();
+}
+
+// Several scenarios can share a map (the same place at different points in
+// the story); until story progress exists, use the first one.
+void Game::indexScenarios() {
+    for (const auto& dir : data_->list("Scenario")) {
+        auto raw = data_->read("Scenario/" + dir + "/Scenario.Mct");
+        if (!raw) continue;
+        try {
+            const auto control = ScenarioControl::parse(*raw);
+            std::string map = control.mapPath;
+            const auto slash = map.find_last_of("\\/");
+            if (slash != std::string::npos) map = map.substr(slash + 1);
+            scenarioByMap_.emplace(lower(stem(map)), "Scenario/" + dir);
+        } catch (const FormatError& e) {
+            log::warn("Scenario {}: {}", dir, e.what());
+        }
+    }
+    log::info("Indexed {} scenario maps", scenarioByMap_.size());
+}
+
+const CharacterModel* Game::model(const std::string& stem) {
+    auto [it, inserted] = models_.try_emplace(stem);
+    if (inserted) {
+        if (auto loaded = CharacterModel::load(*data_, stem)) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
+    }
+    return it->second.get();
+}
+
+void Game::spawnActors() {
+    actors_.clear();
+    const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
+    if (found == scenarioByMap_.end()) return;
+    auto raw = data_->read(found->second + "/Scenario.Mct");
+    if (!raw) return;
+    ScenarioControl control;
+    try {
+        control = ScenarioControl::parse(*raw);
+    } catch (const FormatError& e) {
+        log::warn("{}: {}", found->second, e.what());
+        return;
+    }
+    for (const auto& p : control.placements) {
+        // Map objects (chests, doors) and items come later.
+        if (p.kind < 0 || p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
+        const char* folder = p.group == ScenarioControl::Group::Enemy ? "ENEMY" : "PEOPLE";
+        int kind = p.kind;
+        if (p.group == ScenarioControl::Group::Person && kind >= ScenarioControl::kPartnerBase) {
+            folder = "PARTNER";
+            kind -= ScenarioControl::kPartnerBase;
+        }
+        char stemBuf[64];
+        std::snprintf(stemBuf, sizeof stemBuf, "Character/%s/%08d/Animation", folder, kind);
+        const CharacterModel* m = model(stemBuf);
+        if (!m) continue;
+        Actor actor{p, Character(m)};
+        actor.character.x = p.x;
+        actor.character.y = p.y;
+        actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
+        // Non-player characters wear what their animation file shows.
+        actor.character.visibleLayers.clear();
+        if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
+            for (std::size_t i = 0; i < m->animations.charts[0].directions[0].layers.size(); ++i)
+                actor.character.visibleLayers.push_back(static_cast<int>(i));
+        }
+        actors_.push_back(std::move(actor));
+    }
+    log::info("{}: {} \"{}\" with {} characters", mapNames_[mapIndex_], found->second, control.title, actors_.size());
 }
 
 // Puts the player in the middle of the map's scenery and points the camera at them.
@@ -109,6 +186,7 @@ void Game::placePlayer() {
         player_->y = wy;
         player_->setAction(Action::Idle);
         updateCamera();
+        log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
         cameraX_ = cx - kScreenWidth / 2.0;
         cameraY_ = cy - kScreenHeight / 2.0;
@@ -188,6 +266,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::tick() {
     ++ticks_;
+    for (auto& actor : actors_) actor.character.tick();
     if (!player_ || !map_) return;
 
     // Holding the left button walks towards the cursor, like the original.
@@ -273,18 +352,26 @@ void Game::renderMap() {
         }
     }
 
-    // Objects, back to front. Shadows go first so nothing stands under one.
-    // The player is drawn in the second pass at their place in the order.
+    // Objects and characters, back to front. Shadows go first so nothing
+    // stands under one; characters draw their own shadows.
+    std::vector<const Character*> characters;
+    if (player_) characters.push_back(&*player_);
+    for (const auto& actor : actors_) {
+        int sx, sy;
+        worldToScreen(static_cast<int>(actor.character.x), static_cast<int>(actor.character.y), sx, sy);
+        if (sx - camX < -256 || sy - camY < -256 || sx - camX > kScreenWidth + 256 || sy - camY > kScreenHeight + 256) continue;
+        characters.push_back(&actor.character);
+    }
+    std::ranges::stable_sort(characters, [](const Character* a, const Character* b) { return a->x + a->y < b->x + b->y; });
+
     const auto& objects = map_->objects().objects;
-    const double playerDepth = player_ ? player_->x + player_->y : 0;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
-        bool playerDrawn = !player_ || shadows;
+        std::size_t nextCharacter = shadows ? characters.size() : 0;
         for (std::size_t i : drawOrder_) {
             const MapObject& o = objects[i];
-            if (!playerDrawn && o.x + o.y > playerDepth) {
-                player_->draw(renderer_, sprites_, camX, camY);
-                playerDrawn = true;
+            while (nextCharacter < characters.size() && characters[nextCharacter]->x + characters[nextCharacter]->y < o.x + o.y) {
+                characters[nextCharacter++]->draw(renderer_, sprites_, camX, camY);
             }
             if (map_->isShadowBank(o.bank) != shadows) continue;
             const SpriteBank* bank = map_->bank(o.bank);
@@ -304,7 +391,7 @@ void Game::renderMap() {
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
-        if (!playerDrawn) player_->draw(renderer_, sprites_, camX, camY);
+        while (nextCharacter < characters.size()) characters[nextCharacter++]->draw(renderer_, sprites_, camX, camY);
     }
     if (showJudge_) renderJudge(camX, camY);
 }

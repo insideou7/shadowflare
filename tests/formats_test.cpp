@@ -10,6 +10,7 @@
 #include "formats/binary_reader.h"
 #include "formats/map_layers.h"
 #include "formats/rclib.h"
+#include "formats/scenario.h"
 
 namespace {
 
@@ -136,6 +137,52 @@ void testGroundJudge() {
     check(!g.walkable(100000, 0), "outside the judge grid is blocked");
 }
 
+void testScenario() {
+    std::vector<std::uint8_t> d;
+    auto i32 = [&](std::int32_t v) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(v >> (8 * k)));
+    };
+    auto text = [&](const std::string& s, std::size_t size) {
+        d.insert(d.end(), s.begin(), s.end());
+        d.resize(d.size() + size - s.size());
+    };
+    text("MCED DATA v0000\x1a", 16);
+    text("System\\Game\\Parameter\\Control.aid", 0x104);
+    text("Map\\c02_00.map", 0x104);
+    for (int k = 0; k < 3; ++k) i32(0);
+    text("Kanfore", 0x100);
+    for (int k = 0; k < 3; ++k) i32(0);  // character type lists
+    i32(0);                              // objects
+    i32(1);                              // people
+    i32(5);
+    i32(1000002);
+    i32(4);
+    text("Dune", 4);
+    i32(0xe0e0e0);
+    i32(80);
+    i32(1200);
+    i32(-300);
+    for (int v : {-80, -80, 79, 79}) i32(v);
+    i32(3);  // direction
+    i32(2);
+    i32(1);
+    i32(1);
+    i32(1);  // has a table
+    i32(2);
+    d.resize(d.size() + 2 * 10);
+    i32(-1);
+    d.resize(d.size() + 0x2c);
+    i32(0);  // enemies
+    i32(0);  // items
+    const auto s = sf::ScenarioControl::parse(d);
+    check(s.mapPath == "Map\\c02_00.map" && s.title == "Kanfore", "scenario header");
+    check(s.placements.size() == 1, "scenario placement count");
+    const auto& p = s.placements[0];
+    check(p.group == sf::ScenarioControl::Group::Person && p.id == 5 && p.kind == 1000002 && p.name == "Dune",
+          "scenario person");
+    check(p.x == 1200 && p.y == -300 && p.direction == 3 && p.rect[2] == 79, "scenario position");
+}
+
 }  // namespace
 
 int main() {
@@ -147,6 +194,7 @@ int main() {
     testAnimation();
     testProjection();
     testGroundJudge();
+    testScenario();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -175,6 +175,46 @@ layers (shadow and body). The player has 23: shadow, body, then one per
 equipment slot. A pattern is drawn with its anchor at the character's
 feet.
 
+## Scenarios: `Scenario/<id>/Scenario.Mct`
+
+Each scenario folder (`Scenario.Mct`, `.Scs` script, `.Njp` portraits) is
+one place at one point in the story. Several can share a map. Read by
+ShadowFlare.exe at 0x427b50. All 209 files parse with 12 bytes left over.
+
+```
+char magic[16]          "MCED DATA v0000\x1a"
+char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
+char mapPath[0x104]     e.g. Map\c02_00.map
+i32  unknown[3]
+char title[0x100]       area name, e.g. "Kanfore, Mining Town"
+3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
+4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
+i32  n; 16-byte entries[n]   unknown (areas?)
+12 more bytes, unknown
+```
+
+Record (same layout in every group; only the trailing block size differs):
+
+```
+i32  id                 plus 10,000,000 (objects), 12,000,000 (people),
+                        20,000,000 (enemies) or 30,000,000 (items) gives
+                        the in-game object id
+i32  kind               Character/<OBJECT|PEOPLE|ENEMY>/<kind as %08d>;
+                        people with kind >= 1,000,000 are PARTNER/<kind-1000000>;
+                        -1 = no sprite (spawners, trigger areas)
+i32  nameLength; if > 0: char name[nameLength], u32 nameColour (0x00BBGGRR)
+i32  unknown
+i32  x, y               world position
+i32  rect[4]            left, top, right, bottom around (x, y)
+i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
+i32  n; i32 unknown[n]
+i32  hasTable; if 1: i32 m; i32 a[m]; i16 b[m], c[m], d[m]
+i32  unknown
+u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
+```
+
+Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |
@@ -184,6 +224,5 @@ feet.
 | `TABLE DATA V000` | `Table.Tbd` | Parameter tables (`RKC_RPG_TABLE.dll`) |
 | `RKC_AIDATA v001` | `Control.aid` | Enemy AI (`RKC_RPG_AICONTROL.dll`) |
 | `ScenaScriptV000` | `.Scs` | Quest scripts (`RKC_RPG_SCRIPT.dll`) |
-| `MCED DATA v0000` | `.Mct` | Map control data, read by ShadowFlare.exe |
 | `VoiceData  V003` | `.Voc` | Music and voice (`RKC_DSOUND.dll`) |
 | `ShadowFlare0005` | `Save/*.Ssv` | Save games |

@@ -21,7 +21,7 @@ public:
     virtual bool exists(std::string_view path) const = 0;
     virtual std::optional<std::vector<std::uint8_t>> read(std::string_view path) const = 0;
 
-    // File names (not paths) directly inside a directory, sorted.
+    // Names (not paths) of the files and folders directly inside a directory, sorted.
     virtual std::vector<std::string> list(std::string_view directory) const = 0;
 };
 
