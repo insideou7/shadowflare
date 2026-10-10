@@ -39,11 +39,27 @@ struct ScenarioControl {
         } stats;
     };
 
+    // Where the party appears when the scenario is entered. Each entry
+    // number used by CHANGESCENARIO has four points, one per party member,
+    // with ids entry * 4 to entry * 4 + 3.
+    struct EntryPoint {
+        std::int32_t id = 0;
+        std::int32_t x = 0, y = 0;  // world units
+        std::int32_t direction = 0;
+    };
+
     static constexpr std::int32_t kPartnerBase = 1000000;
+
+    // Offsets that turn a placement id into the in-game id scripts use.
+    static constexpr std::int32_t idBase(Group group) {
+        constexpr std::int32_t bases[] = {10000000, 12000000, 20000000, 30000000};
+        return bases[static_cast<int>(group)];
+    }
 
     std::string mapPath;  // e.g. "Map\\c02_00.map"
     std::string title;    // area name shown to the player
     std::vector<Placement> placements;
+    std::vector<EntryPoint> entryPoints;
 
     static ScenarioControl parse(std::span<const std::uint8_t> data);
 };

@@ -25,8 +25,8 @@ struct Options {
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
     bool showJudge = false;  // overlay the walkability grid
-    bool autoFight = false;
-    std::optional<std::pair<int, int>> at;  // start position in map pixels  // player attacks nearby monsters by itself
+    bool autoFight = false;  // player attacks nearby monsters by itself
+    std::optional<std::pair<int, int>> at;  // start position in map pixels
 };
 
 Options parseArgs(int argc, char** argv) {

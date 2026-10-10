@@ -120,7 +120,7 @@ This matches the stored data exactly for all 165 maps. Values seen:
 |---|---|
 | 0x0001 | blocked (walls, tree trunks, everything outside the map) |
 | 0x0002 | unknown, rare (a few maps) |
-| 0x8000 | exit; usually a row of three cells at a map edge. Destinations are not decoded yet |
+| 0x8000 | unknown; set on some cells near map edges, often together with 0x0001. ShadowFlare.exe does not seem to test it; exits are script triggers instead (see `Scenario.Scs`) |
 
 ### Objects: `.Obl` (`RKC_RPGSCRN_OBJECTBLOCK::ReadFile`)
 
@@ -203,7 +203,7 @@ i32  unknown[3]
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"
 3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
 4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
-i32  n; 16-byte entries[n]   unknown (areas?)
+i32  n; EntryPoint[n]   where the party appears: i32 id, x, y, direction
 12 more bytes, unknown
 ```
 
@@ -246,6 +246,45 @@ from the exe, so treat them as likely rather than certain:
 
 Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
 
+Entry point ids come in fours, one per party member: entering a
+scenario at entry `e` (see `CHANGESCENARIO` below) puts the player at the
+point with id `e * 4` and the others at `e * 4 + 1` to `+ 3`. Towns also
+have entries 50 and 100 (ids 200 and 400), probably for warp gates.
+
+## Scenario scripts: `Scenario/<id>/Scenario.Scs` (`RKC_RPG_SCRIPT::ReadBinary`)
+
+The event script for a scenario, compiled from a text language whose
+keywords are still in RKC_RPG_SCRIPT.dll (`CHANGESCENARIO %s %s`,
+`TALK`, `IF`, `[ONJUDGE ...]`...). All 209 files parse.
+
+```
+char magic[16]   "ScenaScriptV000"
+i32  n; { i32 id, value }[n]            TEMP flags and their starting values
+i32  n; { i32 id, value }[n]            network flags
+i32  n; { i32 id; i32 len; u8 text[len] }[n]   messages, each byte bitwise inverted
+i32  n; Trigger[n]: i32 network, event, character, sentence
+i32  n; Sentence[n]: i32 commands; Command[commands]:
+         i32 opcode; i32 operands; { i32 type, value }[operands]
+```
+
+A trigger runs a sentence when `event` happens to `character` (an
+in-game id, placement id plus the group offset above). Event 3 is
+`ONJUDGE`: the player walks into the character's rectangle. Map exits
+are invisible objects with a rectangle and an `ONJUDGE` trigger whose
+sentence runs `CHANGESCENARIO scenario entry`; 462 of them lead to a
+real entry point with a fresh save. The scenario number is the folder
+name (`Scenario/%08d`); scenario 2 is referenced but missing, probably
+cut content.
+
+Operand types (`AnalyzeOPERAND`): 0 operator or sentence number, 1
+constant, 2 `MSG`, 3 `ELIV`, 4 `TEMP`, 5 `NET`, 6 `CPOSX`, 7 `CPOSY`, 8
+`PLAYMODE`, 9 `CCHECK`, 10 `WARP`, 11 `SAVE`, 12 `QUEST`, 13 `EXSTRG`.
+`IF` operators (`AnalyzeOperator`): 0 `=`, 1 `!`, 2 `>`, 3 `<`.
+
+Opcodes identified so far: 0 `IF a op b sentence` (runs the sentence,
+then carries on), 1 `SETFLAG flag value`, 17 `CHANGESCENARIO scenario
+entry`. The other events and opcodes are not mapped yet.
+
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
 
 ```
@@ -271,6 +310,5 @@ not identified yet.
 | `MAPED_FILE v000` | `.map` | 36 bytes; small header read by `RKC_RPGSCRN::ReadMapFile` |
 | `SFItemDataV0000` | `Item.Ibn` | Item table; RCLIB-wrapped with an extra layer |
 | `RKC_AIDATA v001` | `Control.aid` | Enemy AI (`RKC_RPG_AICONTROL.dll`) |
-| `ScenaScriptV000` | `.Scs` | Quest scripts (`RKC_RPG_SCRIPT.dll`) |
 | `VoiceData  V003` | `.Voc` | Music and voice (`RKC_DSOUND.dll`) |
 | `ShadowFlare0005` | `Save/*.Ssv` | Save games |

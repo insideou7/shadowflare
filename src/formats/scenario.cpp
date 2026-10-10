@@ -78,6 +78,14 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
         const std::int32_t n = count(in);
         for (std::int32_t i = 0; i < n; ++i) s.placements.push_back(readPlacement(in, group, extraSize));
     }
+    for (std::int32_t i = 0, n = count(in); i < n; ++i) {
+        EntryPoint e;
+        e.id = in.i32();
+        e.x = in.i32();
+        e.y = in.i32();
+        e.direction = in.i32();
+        s.entryPoints.push_back(e);
+    }
     return s;
 }
 
