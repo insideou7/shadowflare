@@ -12,51 +12,120 @@ import sys
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 
-BARK = dict(colour=(0.15, 0.10, 0.06), dark=(0.05, 0.035, 0.02), scale=14, bump=0.6)
-LEAVES = dict(colour=(0.33, 0.43, 0.11), dark=(0.07, 0.13, 0.03), scale=30, detail=8, bump=1.0,
-              spot=0.3, spot_colour=(0.52, 0.58, 0.18))
 ROCK = dict(colour=(0.46, 0.43, 0.37), dark=(0.20, 0.19, 0.16), scale=5, bump=0.9,
             spot=0.2, spot_colour=(0.30, 0.36, 0.15))
 WOOD = dict(colour=(0.47, 0.35, 0.21), dark=(0.20, 0.14, 0.08), scale=9, bump=0.5)
 
 
+BARK = dict(colour=(0.40, 0.24, 0.25), dark=(0.13, 0.07, 0.08), scale=14, bump=0.6)
+LEAF_LIGHT = (0.58, 0.66, 0.14)
+LEAF_DARK = (0.10, 0.17, 0.04)
+
+
+def branch(points, radius, mat):
+    """A tapering tube through points, as a bevelled curve."""
+    curve = bpy.data.curves.new("branch", "CURVE")
+    curve.dimensions = "3D"
+    curve.bevel_depth = radius
+    curve.bevel_resolution = 1
+    spline = curve.splines.new("POLY")
+    spline.points.add(len(points) - 1)
+    for i, p in enumerate(points):
+        spline.points[i].co = (*p, 1)
+        spline.points[i].radius = 1 - 0.85 * i / (len(points) - 1)
+    obj = bpy.data.objects.new("branch", curve)
+    bpy.context.scene.collection.objects.link(obj)
+    curve.materials.append(mat)
+    return obj
+
+
+def leaf_material():
+    """Leaves coloured per leaf from a random attribute, lit through from behind a little."""
+    mat = bpy.data.materials.new("leaves")
+    mat.use_nodes = True
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.8
+    attr = nodes.new("ShaderNodeAttribute")
+    attr.attribute_name = "shade"
+    ramp = nodes.new("ShaderNodeValToRGB")
+    ramp.color_ramp.elements[0].color = (*studio.linear(LEAF_DARK), 1)
+    ramp.color_ramp.elements[1].color = (*studio.linear(LEAF_LIGHT), 1)
+    links.new(attr.outputs["Fac"], ramp.inputs["Fac"])
+    links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+    return mat
+
+
 def tree(seed):
+    """A birch-like tree in the original's manner: a thin dark trunk, arching
+    branches and drooping sprays of small leaves with the ground showing
+    through."""
+    import bmesh
     rng = random.Random(seed)
     bark = studio.material("bark", **BARK)
-    leaves = studio.material("leaves", **LEAVES)
-    height = rng.uniform(9.0, 11.0)
-    bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=0.38, radius2=0.10, depth=height, location=(0, 0, height / 2))
-    studio.smooth(studio.assign(bpy.context.object, bark))
-    # Branches up the trunk with clumps of leaves along their outer half.
-    for i in range(16):
-        angle = rng.uniform(0, 2 * math.pi)
-        z = rng.uniform(height * 0.28, height * 0.85)
-        length = rng.uniform(2.8, 4.4) * (1.25 - z / height)
-        tip = (math.cos(angle) * length, math.sin(angle) * length, z + length * 0.45)
-        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.09, radius2=0.02, depth=length * 1.1,
-                                        location=(tip[0] / 2, tip[1] / 2, z + length * 0.22),
-                                        rotation=(0, math.radians(64), angle))
-        studio.assign(bpy.context.object, bark)
-        for j in range(5):
-            k = rng.uniform(0.35, 1.05)
-            size = rng.uniform(0.5, 0.9)
-            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=size, location=(
-                tip[0] * k + rng.uniform(-0.3, 0.3), tip[1] * k + rng.uniform(-0.3, 0.3),
-                z + (tip[2] - z) * k + rng.uniform(-0.1, 0.4)))
-            clump = bpy.context.object
-            clump.scale = (1, 1, 0.6)
-            studio.displace(clump, 0.9, 0.18, seed * 100 + i * 5 + j)
-            studio.smooth(studio.assign(clump, leaves))
-    for j in range(4):
-        size = rng.uniform(0.6, 0.9)
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=size, location=(
-            rng.uniform(-0.4, 0.4), rng.uniform(-0.4, 0.4), height - 0.3 + rng.uniform(-0.4, 0.4)))
-        studio.displace(bpy.context.object, 0.45, 0.25, seed * 100 + 50 + j)
-        studio.smooth(studio.assign(bpy.context.object, leaves))
+    height = rng.uniform(7.0, 8.5)
+    lean = (rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3))
+    trunk = [(lean[0] * (i / 6) ** 2, lean[1] * (i / 6) ** 2, height * i / 6) for i in range(7)]
+    branch(trunk, 0.22, bark)
+    leaves = bmesh.new()
+    shade = leaves.faces.layers.float.new("shade")
+
+    def leaf(at):
+        s = rng.uniform(0.09, 0.15)
+        a, b = rng.uniform(0, math.pi), rng.uniform(0, 2 * math.pi)
+        u = Vector((math.cos(b), math.sin(b), 0)) * s
+        v = Vector((-math.sin(b) * math.cos(a), math.cos(b) * math.cos(a), math.sin(a))) * s * 0.7
+        c = Vector(at)
+        verts = [leaves.verts.new(c + u), leaves.verts.new(c + v), leaves.verts.new(c - u), leaves.verts.new(c - v)]
+        face = leaves.faces.new(verts)
+        # Leaves on top catch more light than those hanging below.
+        face[shade] = min(1.0, max(0.0, rng.random() ** 1.5 * 0.85 + (at[2] / height) * 0.25))
+
+    def droop(start, direction, length, n):
+        """A twig hanging from start, curving down, with leaves along it."""
+        p, d = Vector(start), Vector(direction).normalized()
+        pts = [tuple(p)]
+        for i in range(n):
+            d = (d + Vector((0, 0, -0.35))).normalized()
+            p = p + d * (length / n)
+            pts.append(tuple(p))
+            for _ in range(7):
+                leaf(p + Vector((rng.gauss(0, 0.16), rng.gauss(0, 0.16), rng.gauss(0, 0.12))))
+        return pts
+
+    n_branches = rng.randint(11, 14)
+    for i in range(n_branches):
+        angle = 2 * math.pi * i / n_branches + rng.uniform(-0.3, 0.3)
+        k = rng.uniform(0.38, 0.95)
+        base = Vector((lean[0] * k ** 2, lean[1] * k ** 2, height * k))
+        out = Vector((math.cos(angle), math.sin(angle), 0))
+        reach = rng.uniform(2.0, 3.0) * (1.2 - k * 0.55)
+        # Up and out, then arching over.
+        pts = []
+        for j in range(6):
+            t = j / 5
+            pts.append(tuple(base + out * reach * t + Vector((0, 0, reach * (0.9 * t - 0.75 * t * t)))))
+        branch(pts, 0.09, bark)
+        for j in range(1, 6):
+            p = Vector(pts[j])
+            side = out.cross(Vector((0, 0, 1))) * rng.uniform(-0.6, 0.6)
+            twig = droop(p, out + side + Vector((0, 0, 0.2)), rng.uniform(1.2, 2.2), 6)
+            branch(twig, 0.02, bark)
+    # A few sprays at the crown.
+    for _ in range(5):
+        a = rng.uniform(0, 2 * math.pi)
+        droop(trunk[-1], (math.cos(a), math.sin(a), 0.6), rng.uniform(0.7, 1.2), 4)
+
+    mesh = bpy.data.meshes.new("leaves")
+    leaves.to_mesh(mesh)
+    obj = bpy.data.objects.new("leaves", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    mesh.materials.append(leaf_material())
 
 
 def rock(seed):
@@ -97,9 +166,9 @@ def palisade(seed, along_y):
 
 
 PROPS = {
-    "tree1": (lambda: tree(1), 448, 448),
-    "tree2": (lambda: tree(2), 448, 448),
-    "tree3": (lambda: tree(3), 448, 448),
+    "tree1": (lambda: tree(1), 320, 320),
+    "tree2": (lambda: tree(2), 320, 320),
+    "tree3": (lambda: tree(3), 320, 320),
     "rock1": (lambda: rock(1), 128, 128),
     "rock2": (lambda: rock(2), 128, 128),
     "fence_x": (lambda: palisade(1, False), 192, 192),
