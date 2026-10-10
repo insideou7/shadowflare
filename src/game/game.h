@@ -10,6 +10,8 @@
 #include <vector>
 
 #include "game/character.h"
+#include "logic/ai_select.h"
+#include "logic/script_runner.h"
 #include "formats/ai_control.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
@@ -90,8 +92,6 @@ private:
     void spawnActors();
     void changeScenario(int number, int entry);
     void checkTriggers(bool fire = true);
-    void runSentence(std::int32_t index, int depth = 0);
-    std::int32_t operandValue(const ScenarioScript::Operand& op) const;
     const CharacterModel* model(const std::string& stem);
     void placePlayer();
     void updateCamera();
@@ -123,13 +123,12 @@ private:
     std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
     std::vector<Actor> actors_;
     std::optional<AiControl> ai_;
-    std::uint32_t random_ = 12345;  // deterministic, so runs can be replayed
-    int random(int bound);  // 0 <= result < bound
+    Random random_;
     std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
     ScenarioControl control_;
     std::optional<ScenarioScript> script_;
     std::vector<TriggerArea> triggers_;
-    std::map<std::pair<std::int32_t, std::int32_t>, std::int32_t> flags_;  // (operand type, id) -> value
+    ScriptFlags flags_;
     std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
 
     std::optional<CharacterModel> playerModel_;

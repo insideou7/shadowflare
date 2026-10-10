@@ -8,6 +8,7 @@
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
+#include "logic/movement.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -260,30 +261,7 @@ void Game::placePlayerAt(double screenX, double screenY) {
     }
 }
 
-// Moves the player by a world-space step unless that would leave walkable
-// ground. A blocked diagonal step slides along whichever axis is still free,
-// so walking into a wall at an angle follows the wall.
-bool Game::tryMove(Character& who, double dx, double dy) {
-    const auto& g = map_->ground();
-    const double x = who.x, y = who.y;
-    const bool xFree = g.walkable(x + dx, y), yFree = g.walkable(x, y + dy);
-    // The diagonal needs both sides free, or it could slip between two
-    // blocked cells that only touch at a corner.
-    if (xFree && yFree && g.walkable(x + dx, y + dy)) {
-        who.x += dx;
-        who.y += dy;
-        return true;
-    }
-    if (xFree && dx != 0) {
-        who.x += dx;
-        return true;
-    }
-    if (yFree && dy != 0) {
-        who.y += dy;
-        return true;
-    }
-    return false;
-}
+bool Game::tryMove(Character& who, double dx, double dy) { return sf::tryMove(map_->ground(), who.x, who.y, dx, dy); }
 
 void Game::walkBy(int screenDx, int screenDy) {
     if (!player_) return;
@@ -360,40 +338,10 @@ void Game::checkTriggers(bool fire) {
     if (!player_) return;
     for (auto& t : triggers_) {
         const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
-        if (fire && inside && !t.inside) runSentence(t.sentence);
-        t.inside = inside;
-    }
-}
-
-std::int32_t Game::operandValue(const ScenarioScript::Operand& op) const {
-    if (op.type == ScenarioScript::kConstant) return op.value;
-    const auto found = flags_.find({op.type, op.value});
-    return found == flags_.end() ? 0 : found->second;
-}
-
-// A small subset of the script interpreter: enough to follow exits, which
-// are often guarded by story flags. Other commands are skipped.
-void Game::runSentence(std::int32_t index, int depth) {
-    if (!script_ || index < 0 || static_cast<std::size_t>(index) >= script_->sentences.size() || depth > 16) return;
-    for (const auto& c : script_->sentences[index]) {
-        if (pendingScenario_) return;
-        const auto& ops = c.operands;
-        switch (c.opcode) {
-            case ScenarioScript::kIf: {
-                if (ops.size() < 4) break;
-                const std::int32_t a = operandValue(ops[0]), b = operandValue(ops[2]);
-                const bool holds = ops[1].value == 0 ? a == b : ops[1].value == 1 ? a != b : ops[1].value == 2 ? a > b : a < b;
-                if (holds) runSentence(ops[3].value, depth + 1);
-                break;
-            }
-            case ScenarioScript::kSetFlag:
-                if (ops.size() >= 2 && ops[0].type != ScenarioScript::kConstant) flags_[{ops[0].type, ops[0].value}] = operandValue(ops[1]);
-                break;
-            case ScenarioScript::kChangeScenario:
-                if (ops.size() >= 2) pendingScenario_.emplace(operandValue(ops[0]), operandValue(ops[1]));
-                break;
-            default: break;
+        if (fire && inside && !t.inside && script_ && !pendingScenario_) {
+            if (const auto change = ScriptRunner(*script_, flags_).run(t.sentence)) pendingScenario_.emplace(change->scenario, change->entry);
         }
+        t.inside = inside;
     }
 }
 

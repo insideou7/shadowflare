@@ -21,6 +21,14 @@ add_library(sf_formats STATIC
 )
 target_include_directories(sf_formats PUBLIC src)
 
+# Game rules that need no window: scripts, AI choice, movement.
+add_library(sf_logic STATIC
+    src/logic/script_runner.cpp
+    src/logic/ai_select.cpp
+    src/logic/movement.cpp
+)
+target_link_libraries(sf_logic PUBLIC sf_formats)
+
 add_executable(shadowflare
     src/main.cpp
     src/core/log.cpp
@@ -31,9 +39,9 @@ add_executable(shadowflare
     src/game/game.cpp
     src/game/enemy_ai.cpp
 )
-target_link_libraries(shadowflare PRIVATE sf_formats)
+target_link_libraries(shadowflare PRIVATE sf_logic)
 
-foreach(target sf_formats shadowflare)
+foreach(target sf_formats sf_logic shadowflare)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
     else()
@@ -46,6 +54,9 @@ if(BUILD_TESTING)
     add_executable(formats_test tests/formats_test.cpp)
     target_link_libraries(formats_test PRIVATE sf_formats)
     add_test(NAME formats COMMAND formats_test)
+    add_executable(logic_test tests/logic_test.cpp)
+    target_link_libraries(logic_test PRIVATE sf_logic)
+    add_test(NAME logic COMMAND logic_test)
 endif()
 
 if(EMSCRIPTEN)

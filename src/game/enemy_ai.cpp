@@ -1,11 +1,9 @@
 // Monster behaviour driven by the game's own AI lists (Control.aid).
 //
 // Each tick, the monster's latest event (an action finishing, being hit, a
-// timer running) picks a new action from its AI list: entries whose
-// conditions hold are collected, only the highest priority among them
-// survives, and one is drawn at random weighted by param[2]. This follows
-// ShadowFlare.exe (selection at 0x45c9f0, actions dispatched at 0x459340);
-// the movement and attack details are simplified.
+// timer running) picks a new action from its AI list (selectAiEntry), and
+// the action runs. Actions follow ShadowFlare.exe (dispatched at
+// 0x459340); the movement and attack details are simplified.
 #include <algorithm>
 #include <cmath>
 #include <climits>
@@ -22,11 +20,6 @@ bool isAttack(int action) { return action >= AiControl::kAttack && action < AiCo
 
 }  // namespace
 
-int Game::random(int bound) {
-    random_ = random_ * 1103515245u + 12345u;
-    return bound > 0 ? static_cast<int>((random_ >> 16) % static_cast<std::uint32_t>(bound)) : 0;
-}
-
 // Distance between the two collision boxes, 0 when they touch.
 double Game::gapToPlayer(const Actor& enemy) const {
     const auto& r = enemy.placement.rect;
@@ -39,43 +32,14 @@ double Game::gapToPlayer(const Actor& enemy) const {
 
 bool Game::chooseAiAction(Actor& enemy, int event) {
     const auto& list = ai_->lists[static_cast<std::size_t>(enemy.aiList)];
-    if (event < 0 || static_cast<std::size_t>(event) >= list.events.size()) return false;
-    std::vector<const AiControl::Entry*> candidates;
-    int best = -1;
-    for (const auto& e : list.events[static_cast<std::size_t>(event)]) {
-        bool ok = true;
-        if (e.cond[3] == 1) {
-            const double gap = gapToPlayer(enemy);
-            ok = (e.cond[4] == -1 || gap >= e.cond[4]) && (e.cond[5] == -1 || gap <= e.cond[5]);
-        }
-        if (e.cond[0] == 1) {
-            const int percent = enemy.hp * 100 / std::max(1, enemy.maxHp);
-            if (e.cond[1] != -1 && e.cond[1] > percent) ok = false;
-            if (e.cond[2] != -1 && e.cond[2] < percent) ok = false;
-        }
-        if (!ok) continue;
-        // As in the original, a higher priority throws away what was
-        // collected so far, but later lower ones are still added.
-        if (best < e.param[0]) {
-            candidates.clear();
-            best = e.param[0];
-        }
-        candidates.push_back(&e);
-    }
-    int total = 0;
-    for (const auto* e : candidates) total += e->param[2];
-    if (total <= 0) return false;
-    int pick = random(total);
-    for (const auto* e : candidates) {
-        pick -= e->param[2];
-        if (pick >= 0) continue;
-        enemy.action = e->action;
-        enemy.entry = *e;
-        enemy.actionTicks = 0;
-        enemy.struck = false;
-        return true;
-    }
-    return false;
+    const AiSituation situation{gapToPlayer(enemy), enemy.hp * 100 / std::max(1, enemy.maxHp)};
+    const AiControl::Entry* e = selectAiEntry(list, event, situation, random_);
+    if (!e) return false;
+    enemy.action = e->action;
+    enemy.entry = *e;
+    enemy.actionTicks = 0;
+    enemy.struck = false;
+    return true;
 }
 
 void Game::tickEnemyAi(Actor& enemy) {
@@ -119,12 +83,7 @@ void Game::runAiAction(Actor& enemy) {
         return step >= length;
     };
     // The target has to stay within the entry's range for moves that need one.
-    auto targetInRange = [&] {
-        const auto& cond = enemy.entry.cond;
-        if (cond[3] != 1) return true;
-        const double gap = gapToPlayer(enemy);
-        return (cond[4] == -1 || gap >= cond[4]) && (cond[5] == -1 || gap <= cond[5]);
-    };
+    auto inRange = [&] { return targetInRange(enemy.entry, gapToPlayer(enemy)); };
 
     switch (enemy.action) {
         case AiControl::kWait:
@@ -138,11 +97,11 @@ void Game::runAiAction(Actor& enemy) {
                 c.play(chart::kIdle);
                 if (enemy.wanderPause == 0) {
                     const auto& a = enemy.placement.stats.area;
-                    enemy.wanderX = enemy.placement.x + a[0] + random(std::max(1, a[2] - a[0]));
-                    enemy.wanderY = enemy.placement.y + a[1] + random(std::max(1, a[3] - a[1]));
+                    enemy.wanderX = enemy.placement.x + a[0] + random_.next(std::max(1, a[2] - a[0]));
+                    enemy.wanderY = enemy.placement.y + a[1] + random_.next(std::max(1, a[3] - a[1]));
                 }
             } else if (enemy.actionTicks == 1 || moveTowards(enemy.wanderX, enemy.wanderY, p[3] * scale)) {
-                enemy.wanderPause = std::max(1, p[4] + random(p[5] + 1));
+                enemy.wanderPause = std::max(1, p[4] + random_.next(p[5] + 1));
             }
             enemy.event = enemy.actionTicks >= p[1] ? AiControl::kWanderDone : AiControl::kWandering;
             break;
@@ -152,7 +111,7 @@ void Game::runAiAction(Actor& enemy) {
             enemy.event = AiControl::kDecide;
             break;
         case AiControl::kRetreat:
-            if (!targetInRange()) {
+            if (!inRange()) {
                 c.play(chart::kIdle);
                 enemy.event = AiControl::kRetreatDone;
                 break;
@@ -161,7 +120,7 @@ void Game::runAiAction(Actor& enemy) {
             enemy.event = enemy.actionTicks >= p[1] ? AiControl::kRetreatDone : AiControl::kRetreating;
             break;
         case AiControl::kApproach:
-            if (!targetInRange()) {
+            if (!inRange()) {
                 c.play(chart::kIdle);
                 enemy.event = AiControl::kApproachDone;
                 break;

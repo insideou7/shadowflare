@@ -66,6 +66,7 @@ Players will still need to supply their own game files.
     src/platform/   OS boundary: file access (all data goes through FileSystem)
     src/formats/    readers for the original data files (no SDL dependency)
     src/render/     turning decoded sprites into textures
+    src/logic/      game rules without SDL: scripts, AI choice, movement
     src/game/       maps, game state, simulation tick and drawing
     tests/          unit tests that run without game data
     tools/          inventory script and reverse engineering helpers (Python)
