@@ -31,10 +31,32 @@ std::optional<CharacterModel> CharacterModel::load(const FileSystem& data, const
     }
 }
 
-void Character::setAction(Action action) {
-    if (action == action_) return;
-    action_ = action;
+void Character::play(int chart) {
+    if (chart != chart_) restart(chart);
+}
+
+void Character::restart(int chart) {
+    chart_ = chart;
     frame_ = 0;
+}
+
+bool Character::hasChart(int chart) const {
+    const auto& charts = model_->animations.charts;
+    if (chart < 0 || static_cast<std::size_t>(chart) >= charts.size()) return false;
+    const auto& dirs = charts[chart].directions;
+    return !dirs.empty() && dirs[0].frameCount > 0;
+}
+
+int Character::frameCount() const {
+    const auto* dir = currentDirection();
+    return dir ? dir->frameCount : 0;
+}
+
+bool Character::finished() const {
+    const auto* dir = currentDirection();
+    if (!dir || dir->frameCount <= 0) return true;
+    if (model_->animations.charts[chart_].status == 1) return false;
+    return frame_ >= dir->frameCount - 1;
 }
 
 void Character::faceTowards(double dx, double dy) {
@@ -50,7 +72,7 @@ void Character::faceTowards(double dx, double dy) {
 
 const AnimationSet::Direction* Character::currentDirection() const {
     const auto& charts = model_->animations.charts;
-    const auto chart = static_cast<std::size_t>(action_);
+    const auto chart = static_cast<std::size_t>(chart_);
     if (chart >= charts.size()) return nullptr;
     const auto& dirs = charts[chart].directions;
     if (direction < 0 || static_cast<std::size_t>(direction) >= dirs.size()) return nullptr;
@@ -60,7 +82,11 @@ const AnimationSet::Direction* Character::currentDirection() const {
 void Character::tick() {
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return;
-    frame_ = (frame_ + 1) % dir->frameCount;
+    if (model_->animations.charts[chart_].status == 1) {
+        frame_ = (frame_ + 1) % dir->frameCount;
+    } else {
+        frame_ = std::min(frame_ + 1, dir->frameCount - 1);
+    }
 }
 
 void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY) const {

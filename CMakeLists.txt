@@ -15,6 +15,7 @@ add_library(sf_formats STATIC
     src/formats/map_layers.cpp
     src/formats/animation.cpp
     src/formats/scenario.cpp
+    src/formats/table_data.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 

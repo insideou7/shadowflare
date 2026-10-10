@@ -11,6 +11,7 @@
 #include "formats/map_layers.h"
 #include "formats/rclib.h"
 #include "formats/scenario.h"
+#include "formats/table_data.h"
 
 namespace {
 
@@ -183,6 +184,35 @@ void testScenario() {
     check(p.x == 1200 && p.y == -300 && p.direction == 3 && p.rect[2] == 79, "scenario position");
 }
 
+void testTables() {
+    std::vector<std::uint8_t> d;
+    auto i32 = [&](std::int32_t v) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(v >> (8 * k)));
+    };
+    const std::string magic = "TABLE DATA V000\x1a";
+    d.insert(d.end(), magic.begin(), magic.end());
+    i32(0);  // not packed
+    const std::size_t sizeAt = d.size();
+    i32(0);  // size, patched below
+    i32(1);  // one table
+    i32(40);
+    i32(1);  // rows
+    i32(2);  // cols
+    i32(7);
+    i32(-3);
+    i32(2);
+    d.push_back(static_cast<std::uint8_t>(~'O'));
+    d.push_back(static_cast<std::uint8_t>(~'k'));
+    i32(0);
+    const auto size = static_cast<std::int32_t>(d.size() - sizeAt - 4);
+    for (int k = 0; k < 4; ++k) d[sizeAt + k] = static_cast<std::uint8_t>(size >> (8 * k));
+    const auto tables = sf::GameTables::parse(d);
+    const auto* t = tables.find(40);
+    check(t && t->rows == 1 && t->cols == 2, "table shape");
+    check(t && t->value(0, 0) == 7 && t->value(0, 1) == -3, "table values");
+    check(t && t->string(0, 0) == "Ok" && t->string(0, 1).empty(), "table strings are inverted");
+}
+
 }  // namespace
 
 int main() {
@@ -195,6 +225,7 @@ int main() {
     testProjection();
     testGroundJudge();
     testScenario();
+    testTables();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

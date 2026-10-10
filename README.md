@@ -12,11 +12,14 @@ engine elsewhere with `--data`.
 A walkable map viewer. The engine loads any level from the original game
 (ground tiles, walls, trees and props) and puts the player character in
 it, animated in all eight directions, and walls and trees block the way.
-Townspeople and monsters stand where the game's scenario files put them,
-but don't move, talk or fight yet. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+Townspeople and monsters stand where the game's scenario files put them.
+Monsters notice you, chase you and fight; click a monster to punch it.
+Health, damage and monster behaviour are placeholders until the game's
+stat and AI data is decoded. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
-Controls: hold the left mouse button to walk towards the cursor, or use
+Controls: hold the left mouse button to walk towards the cursor (or to
+attack the monster under it), or use
 the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
 map, Home returns to the start point, J shows the walkability grid, Esc quits.
 
@@ -36,6 +39,7 @@ Options:
 - `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
 - `--frames <n>` quit after n frames, for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--show-judge` start with the walkability grid shown
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 

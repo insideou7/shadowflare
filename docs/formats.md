@@ -175,6 +175,20 @@ layers (shadow and body). The player has 23: shadow, body, then one per
 equipment slot. A pattern is drawn with its anchor at the character's
 feet.
 
+Chart numbers, worked out by rendering each chart:
+
+| chart | monsters (`Character/ENEMY`) | player (`Player/Male`) |
+|---|---|---|
+| 0 | idle | idle |
+| 1 | walk | walk |
+| 2 | hit | run |
+| 3 | death | hit |
+| 4 | attack | ? (44 frames; its patterns are empty in `Animation00.Njp`) |
+| 5 | unused | bare-handed attack |
+| 7, 8 | special attacks (some monsters) | other attacks, not identified |
+
+Townspeople have three charts: idle, walk and one more.
+
 ## Scenarios: `Scenario/<id>/Scenario.Mct`
 
 Each scenario folder (`Scenario.Mct`, `.Scs` script, `.Njp` portraits) is
@@ -215,13 +229,30 @@ u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, it
 
 Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
 
+## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
+
+```
+char magic[16]   "TABLE DATA V000\x1a"
+i32  packed      non-zero: an RCLIB block follows; 0: i32 size, then raw bytes
+body:
+    i32 tableCount
+    table[tableCount]:
+        i32 number, rows, cols
+        i32 values[rows * cols]
+        string[rows * cols]: i32 length, then length bytes, each bitwise inverted
+```
+
+138 tables. Identified so far: 40 area names, 41 quest titles,
+60 partner names, 600-621 spell descriptions and 700-747 quest
+descriptions. The numeric tables (experience curves, shops, drops...) are
+not identified yet.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |
 | --- | --- | --- |
 | `MAPED_FILE v000` | `.map` | 36 bytes; small header read by `RKC_RPGSCRN::ReadMapFile` |
 | `SFItemDataV0000` | `Item.Ibn` | Item table; RCLIB-wrapped with an extra layer |
-| `TABLE DATA V000` | `Table.Tbd` | Parameter tables (`RKC_RPG_TABLE.dll`) |
 | `RKC_AIDATA v001` | `Control.aid` | Enemy AI (`RKC_RPG_AICONTROL.dll`) |
 | `ScenaScriptV000` | `.Scs` | Quest scripts (`RKC_RPG_SCRIPT.dll`) |
 | `VoiceData  V003` | `.Voc` | Music and voice (`RKC_DSOUND.dll`) |

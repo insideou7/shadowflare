@@ -25,8 +25,20 @@ struct CharacterModel {
     static std::optional<CharacterModel> load(const FileSystem& data, const std::string& stem);
 };
 
-// Action charts as used by every character file seen so far.
+// Animation chart numbers. Idle and walk are the same for everyone; the
+// rest differ between the player and monsters (worked out by rendering
+// each chart; see docs/formats.md).
 enum class Action { Idle = 0, Walk = 1 };
+
+namespace chart {
+inline constexpr int kIdle = 0;
+inline constexpr int kWalk = 1;
+inline constexpr int kPlayerHit = 3;
+inline constexpr int kPlayerPunch = 5;
+inline constexpr int kEnemyHit = 2;
+inline constexpr int kEnemyDeath = 3;
+inline constexpr int kEnemyAttack = 4;
+}  // namespace chart
 
 // A character standing in the world: position, facing and animation state.
 class Character {
@@ -40,8 +52,18 @@ public:
     // stay hidden until items are decoded.
     std::vector<int> visibleLayers = {0};
 
-    void setAction(Action action);
-    Action action() const { return action_; }
+    void setAction(Action action) { play(static_cast<int>(action)); }
+
+    // Starts a chart from its first frame unless it is already playing.
+    // Looping charts (idle, walk) wrap around; the others stop on their
+    // last frame.
+    void play(int chart);
+    void restart(int chart);
+    int chart() const { return chart_; }
+    int frame() const { return frame_; }
+    int frameCount() const;
+    bool finished() const;  // a non-looping chart reached its last frame
+    bool hasChart(int chart) const;
 
     // Face towards a world-space movement vector.
     void faceTowards(double dx, double dy);
@@ -53,7 +75,7 @@ private:
     const AnimationSet::Direction* currentDirection() const;
 
     const CharacterModel* model_;
-    Action action_ = Action::Idle;
+    int chart_ = chart::kIdle;
     int frame_ = 0;
 };
 

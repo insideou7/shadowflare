@@ -17,6 +17,19 @@ namespace {
 // Walking speed in world units per tick. Not yet taken from the original.
 constexpr double kWalkSpeed = 70.0;
 
+// Combat placeholders until the stat tables are decoded: every monster
+// has the same health and damage, and the player fights bare-handed.
+constexpr int kPlayerMaxHp = 100;
+constexpr int kPlayerDamage = 10;
+constexpr int kEnemyMaxHp = 30;
+constexpr int kEnemyDamage = 4;
+constexpr double kEnemySpeed = 35.0;
+constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
+constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
+constexpr double kGiveUpRange = 3200.0;    // and stop chasing beyond this one
+
+double distance(const Character& a, const Character& b) { return std::hypot(a.x - b.x, a.y - b.y); }
+
 std::string lower(std::string s) {
     for (char& c : s) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return s;
@@ -100,6 +113,7 @@ const CharacterModel* Game::model(const std::string& stem) {
 
 void Game::spawnActors() {
     actors_.clear();
+    attackTarget_.reset();
     const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
     if (found == scenarioByMap_.end()) return;
     auto raw = data_->read(found->second + "/Scenario.Mct");
@@ -128,6 +142,7 @@ void Game::spawnActors() {
         actor.character.x = p.x;
         actor.character.y = p.y;
         actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
+        actor.hp = actor.maxHp = kEnemyMaxHp;
         // Non-player characters wear what their animation file shows.
         actor.character.visibleLayers.clear();
         if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
@@ -185,6 +200,7 @@ void Game::placePlayer() {
         player_->x = wx;
         player_->y = wy;
         player_->setAction(Action::Idle);
+        playerHp_ = kPlayerMaxHp;
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
@@ -196,23 +212,23 @@ void Game::placePlayer() {
 // Moves the player by a world-space step unless that would leave walkable
 // ground. A blocked diagonal step slides along whichever axis is still free,
 // so walking into a wall at an angle follows the wall.
-bool Game::tryMove(double dx, double dy) {
+bool Game::tryMove(Character& who, double dx, double dy) {
     const auto& g = map_->ground();
-    const double x = player_->x, y = player_->y;
+    const double x = who.x, y = who.y;
     const bool xFree = g.walkable(x + dx, y), yFree = g.walkable(x, y + dy);
     // The diagonal needs both sides free, or it could slip between two
     // blocked cells that only touch at a corner.
     if (xFree && yFree && g.walkable(x + dx, y + dy)) {
-        player_->x += dx;
-        player_->y += dy;
+        who.x += dx;
+        who.y += dy;
         return true;
     }
     if (xFree && dx != 0) {
-        player_->x += dx;
+        who.x += dx;
         return true;
     }
     if (yFree && dy != 0) {
-        player_->y += dy;
+        who.y += dy;
         return true;
     }
     return false;
@@ -266,18 +282,76 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::tick() {
     ++ticks_;
-    for (auto& actor : actors_) actor.character.tick();
-    if (!player_ || !map_) return;
+    if (!map_) return;
+    for (auto& actor : actors_) {
+        if (actor.hostile() && player_) tickEnemy(actor);
+        actor.character.tick();
+    }
+    if (!player_) return;
+    tickPlayer();
+    player_->tick();
+    updateCamera();
+}
 
-    // Holding the left button walks towards the cursor, like the original.
+std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
+    // Characters stand on their feet; aim at the middle of the body.
+    std::optional<std::size_t> best;
+    double bestDistance = 48;
+    for (std::size_t i = 0; i < actors_.size(); ++i) {
+        const auto& a = actors_[i];
+        if (!a.hostile() || !a.alive()) continue;
+        int sx, sy;
+        worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
+        const double d = std::hypot(sx - cameraX_ - screenX, sy - 40 - cameraY_ - screenY);
+        if (d < bestDistance) {
+            bestDistance = d;
+            best = i;
+        }
+    }
+    return best;
+}
+
+void Game::tickPlayer() {
+    // A hit or a punch plays out before anything else happens.
+    const int current = player_->chart();
+    if (current == chart::kPlayerHit && !player_->finished()) return;
+    if (current == chart::kPlayerPunch) {
+        // The blow lands halfway through the swing.
+        if (player_->frame() == 4 && attackTarget_) {
+            Actor& target = actors_[*attackTarget_];
+            if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) hurtEnemy(target, kPlayerDamage);
+        }
+        if (!player_->finished()) return;
+        player_->play(chart::kIdle);
+    }
+
+    // Holding the left button walks towards the cursor, or attacks the
+    // monster under it, like the original.
     if (mouseHeld_) {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
         float lx, ly;
         SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
-        double wx, wy;
-        screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
-        walkTarget_.emplace(wx, wy);
+        attackTarget_ = enemyAt(lx, ly);
+        if (attackTarget_) {
+            walkTarget_.reset();
+        } else {
+            double wx, wy;
+            screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
+            walkTarget_.emplace(wx, wy);
+        }
+    }
+    if (attackTarget_ && !actors_[*attackTarget_].alive()) attackTarget_.reset();
+    if (autoFight_ && !attackTarget_) {
+        double best = kAggroRange;
+        for (std::size_t i = 0; i < actors_.size(); ++i) {
+            if (!actors_[i].hostile() || !actors_[i].alive()) continue;
+            const double d = distance(*player_, actors_[i].character);
+            if (d < best) {
+                best = d;
+                attackTarget_ = i;
+            }
+        }
     }
 
     // Keyboard movement in screen directions.
@@ -291,8 +365,20 @@ void Game::tick() {
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
         walkTarget_.reset();
+        attackTarget_.reset();
         // A screen-space step converted to world space.
         screenToWorld(kx * 0.15, ky * 0.10, dx, dy);
+    } else if (attackTarget_) {
+        const Character& enemy = actors_[*attackTarget_].character;
+        dx = enemy.x - player_->x;
+        dy = enemy.y - player_->y;
+        if (std::hypot(dx, dy) <= kMeleeRange) {
+            player_->faceTowards(dx, dy);
+            player_->restart(chart::kPlayerPunch);
+            // Keep punching only while the button is held.
+            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            return;
+        }
     } else if (walkTarget_) {
         dx = walkTarget_->first - player_->x;
         dy = walkTarget_->second - player_->y;
@@ -302,20 +388,99 @@ void Game::tick() {
     if (length > 1.0) {
         const double step = std::min(kWalkSpeed, walkTarget_ ? length : kWalkSpeed);
         player_->faceTowards(dx, dy);
-        if (tryMove(dx / length * step, dy / length * step)) {
+        if (tryMove(*player_, dx / length * step, dy / length * step)) {
             player_->setAction(Action::Walk);
             if (walkTarget_ && length <= kWalkSpeed) walkTarget_.reset();
         } else {
-            // Ran into a wall: give up on the target rather than pushing against it.
+            // Ran into a wall: give up rather than pushing against it.
             walkTarget_.reset();
+            attackTarget_.reset();
             player_->setAction(Action::Idle);
         }
     } else {
         walkTarget_.reset();
         player_->setAction(Action::Idle);
     }
-    player_->tick();
-    updateCamera();
+}
+
+// Placeholder behaviour: notice the player when close, walk up to them,
+// swing, and wander back home when they get away.
+void Game::tickEnemy(Actor& enemy) {
+    using State = Actor::State;
+    Character& c = enemy.character;
+    switch (enemy.state) {
+        case State::Dead: return;
+        case State::Hit:
+            if (!c.finished()) return;
+            enemy.state = State::Chase;
+            break;
+        case State::Attack:
+            if (c.frame() == c.frameCount() / 2 && distance(c, *player_) <= kMeleeRange * 1.2) hurtPlayer(kEnemyDamage);
+            if (!c.finished()) return;
+            enemy.state = State::Chase;
+            break;
+        default: break;
+    }
+
+    const double toPlayer = distance(c, *player_);
+    const bool chasing = enemy.state == State::Chase ? toPlayer < kGiveUpRange : toPlayer < kAggroRange;
+    double tx = enemy.placement.x, ty = enemy.placement.y;
+    if (chasing) {
+        enemy.state = State::Chase;
+        if (toPlayer <= kMeleeRange && c.hasChart(chart::kEnemyAttack)) {
+            c.faceTowards(player_->x - c.x, player_->y - c.y);
+            c.restart(chart::kEnemyAttack);
+            enemy.state = State::Attack;
+            return;
+        }
+        tx = player_->x;
+        ty = player_->y;
+    } else {
+        enemy.state = State::Idle;
+    }
+
+    const double dx = tx - c.x, dy = ty - c.y;
+    const double length = std::hypot(dx, dy);
+    const double stopAt = chasing ? kMeleeRange * 0.8 : 1.0;
+    if (length > stopAt) {
+        const double step = std::min(kEnemySpeed, length - stopAt);
+        c.faceTowards(dx, dy);
+        c.play(tryMove(c, dx / length * step, dy / length * step) ? chart::kWalk : chart::kIdle);
+    } else {
+        c.play(chart::kIdle);
+    }
+}
+
+void Game::hurtEnemy(Actor& enemy, int damage) {
+    if (!enemy.alive()) return;
+    enemy.hp -= damage;
+    if (enemy.hp <= 0) {
+        enemy.hp = 0;
+        enemy.state = Actor::State::Dead;
+        enemy.character.restart(chart::kEnemyDeath);
+    } else {
+        enemy.state = Actor::State::Hit;
+        enemy.character.restart(chart::kEnemyHit);
+    }
+}
+
+void Game::hurtPlayer(int damage) {
+    playerHp_ -= damage;
+    if (playerHp_ <= 0) {
+        // No death animation or game over yet: start the map again.
+        log::info("The player was defeated");
+        for (auto& actor : actors_) {
+            if (actor.alive()) {
+                actor.state = Actor::State::Idle;
+                actor.character.x = actor.placement.x;
+                actor.character.y = actor.placement.y;
+            }
+        }
+        placePlayer();
+        return;
+    }
+    player_->restart(chart::kPlayerHit);
+    walkTarget_.reset();
 }
 
 void Game::render(double interpolation) {
@@ -394,6 +559,27 @@ void Game::renderMap() {
         while (nextCharacter < characters.size()) characters[nextCharacter++]->draw(renderer_, sprites_, camX, camY);
     }
     if (showJudge_) renderJudge(camX, camY);
+    renderHealthBars(camX, camY);
+}
+
+// Simple bars until the original status panel is drawn: the player's
+// health in the corner and a bar over each wounded monster.
+void Game::renderHealthBars(int camX, int camY) {
+    auto bar = [&](int x, int y, int w, int h, double fraction) {
+        SDL_Rect back{x, y, w, h};
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderFillRect(renderer_, &back);
+        SDL_Rect fill{x + 1, y + 1, static_cast<int>((w - 2) * std::clamp(fraction, 0.0, 1.0)), h - 2};
+        SDL_SetRenderDrawColor(renderer_, 200, 30, 30, 255);
+        SDL_RenderFillRect(renderer_, &fill);
+    };
+    for (const auto& a : actors_) {
+        if (!a.hostile() || !a.alive() || a.hp == a.maxHp) continue;
+        int sx, sy;
+        worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
+        bar(sx - camX - 20, sy - camY - 100, 40, 5, static_cast<double>(a.hp) / a.maxHp);
+    }
+    if (player_) bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / kPlayerMaxHp);
 }
 
 // Each judge cell is a world-space square, so it shows up as a diamond.
