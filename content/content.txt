@@ -1,0 +1,4 @@
+# The open content pack: see docs/content.md and content/README.md.
+name=Flare demo
+start=goblin_camp
+projection=20,10

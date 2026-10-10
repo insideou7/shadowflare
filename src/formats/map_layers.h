@@ -21,6 +21,11 @@ struct GroundLayer {
     int magX = 160, magY = 160;
     std::vector<Cell> cells;  // row-major
 
+    // Open content only: the cells are isometric tiles in world space, each
+    // isoTile world units square and drawn with its sprite's anchor at the
+    // tile's centre. 0 (the original) = chips on a screen-aligned grid.
+    int isoTile = 0;
+
     // Walkability grid ("area judge"). It is laid out in world space, one
     // cell per magX x magY world units, so cell (jx, jy) covers world
     // x in [jx*magX, (jx+1)*magX). judgeX/judgeY is the cell stored first.
@@ -38,6 +43,9 @@ struct GroundLayer {
     // Judge value of the cell containing a world position; blocked off the grid.
     std::int16_t judgeAt(double worldX, double worldY) const;
     bool walkable(double worldX, double worldY) const { return !(judgeAt(worldX, worldY) & kBlocked); }
+
+    // The area the ground covers on screen, in map pixels.
+    void screenBounds(int& left, int& top, int& right, int& bottom) const;
 
     static GroundLayer parse(std::span<const std::uint8_t> data);
 };
@@ -61,17 +69,26 @@ struct ObjectLayer {
     static ObjectLayer parse(std::span<const std::uint8_t> data);
 };
 
-// World to screen projection used by RKC_RPGSCRN::CalcRealPos
-// (default base parameters 15/10).
+// Screen pixels per 100 world units along each axis: RKC_RPGSCRN's "base
+// parameters". The original game uses 15/10 (a 3:2 diamond); an open content
+// pack can choose its own, e.g. 20/10 for 2:1 isometric art. Set once at
+// startup, before any map is loaded.
+struct Projection {
+    int x = 15;
+    int y = 10;
+};
+inline Projection projection;
+
+// World to screen projection used by RKC_RPGSCRN::CalcRealPos.
 inline void worldToScreen(int wx, int wy, int& sx, int& sy) {
-    sx = (wx - wy) * 15 / 100;
-    sy = (wx + wy) * 10 / 100;
+    sx = (wx - wy) * projection.x / 100;
+    sy = (wx + wy) * projection.y / 100;
 }
 
 // Inverse of worldToScreen (RKC_RPGSCRN::CalcWorldPos).
 inline void screenToWorld(double sx, double sy, double& wx, double& wy) {
-    const double a = sx * 100 / 15;  // wx - wy
-    const double b = sy * 100 / 10;  // wx + wy
+    const double a = sx * 100 / projection.x;  // wx - wy
+    const double b = sy * 100 / projection.y;  // wx + wy
     wx = (a + b) / 2;
     wy = (b - a) / 2;
 }

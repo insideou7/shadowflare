@@ -16,10 +16,13 @@ using Palette = std::array<Rgb, 256>;
 // One bitmap inside a sprite bank. Pixels are palette indices,
 // one byte per pixel, top row first (the files store rows bottom-up).
 struct SpritePart {
-    int bpp = 8;  // 1, 4 or 8 in the file
+    int bpp = 8;  // 1, 4 or 8 in the file; 32 for open content (see argb)
     int width = 0;
     int height = 0;
     std::vector<std::uint8_t> pixels;
+    // Full-colour pixels with alpha, 0xAARRGGBB, used instead of `pixels`
+    // and the palette when bpp is 32.
+    std::vector<std::uint32_t> argb;
 };
 
 // A placed part within a pattern. Field names follow the original

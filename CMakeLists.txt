@@ -18,8 +18,15 @@ add_library(sf_formats STATIC
     src/formats/scenario.cpp
     src/formats/scenario_script.cpp
     src/formats/table_data.cpp
+    src/formats/open_content.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
+
+# stb_image decodes the open content pack's PNGs. Third-party code is built
+# on its own so it keeps its own warnings.
+add_library(sf_stb STATIC src/formats/stb_image.cpp)
+target_include_directories(sf_stb PUBLIC third_party/stb)
+target_link_libraries(sf_formats PRIVATE sf_stb)
 
 # Game rules that need no window: scripts, AI choice, movement.
 add_library(sf_logic STATIC
@@ -34,6 +41,7 @@ add_executable(shadowflare
     src/core/log.cpp
     src/platform/filesystem.cpp
     src/render/sprite_cache.cpp
+    src/game/content.cpp
     src/game/map.cpp
     src/game/character.cpp
     src/game/game.cpp
@@ -57,6 +65,9 @@ if(BUILD_TESTING)
     add_executable(logic_test tests/logic_test.cpp)
     target_link_libraries(logic_test PRIVATE sf_logic)
     add_test(NAME logic COMMAND logic_test)
+    add_executable(open_content_test tests/open_content_test.cpp)
+    target_link_libraries(open_content_test PRIVATE sf_formats)
+    add_test(NAME open_content COMMAND open_content_test)
 endif()
 
 if(EMSCRIPTEN)

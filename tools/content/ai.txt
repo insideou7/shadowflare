@@ -1,0 +1,29 @@
+# Monster behaviour for the open content pack, standing in for the
+# original's Control.aid. Our own numbers, not taken from either game.
+#
+# [list <name>] starts a list; walk= is the speed it walks home at.
+# on=<event> <action> key=value ... adds a choice for that event:
+#   events: decide, wander-done, retreat-done, approach-done, waiting,
+#           wandering, retreating, approaching, animation-done, hit
+#   actions: wait, wander, attack, attack2, attack3, magic, magic2, magic3,
+#            stop, retreat, approach, home
+#   keys: priority (a higher one rules out lower ones), weight (odds),
+#         duration (ticks), speed (world units a tick), pause and extra
+#         (wander pause and random extra), hp=<min>..<max> (percent),
+#         range=<min>..<max> (gap to the player in world units)
+# Distances: a map tile is 480 world units; the player walks 70 a tick.
+
+[list goblin]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide approach weight=4 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+[list skeleton]
+walk=30
+on=decide attack priority=2 range=..80
+on=decide approach weight=6 duration=40 speed=35 range=..2000
+on=decide wait weight=1 duration=20
+on=approaching attack priority=2 range=..80
