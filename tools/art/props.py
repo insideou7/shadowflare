@@ -68,8 +68,8 @@ def tree(seed):
     import bmesh
     rng = random.Random(seed)
     bark = studio.material("bark", **BARK)
-    height = rng.uniform(6.5, 7.5)
-    fork = height * rng.uniform(0.45, 0.55)
+    height = rng.uniform(7.5, 8.5)
+    fork = height * rng.uniform(0.25, 0.32)
     lean = Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0))
     trunk = [tuple(lean * (i / 6) ** 2 + Vector((0, 0, height * i / 6))) for i in range(7)]
     branch(trunk, 0.2, bark)
@@ -87,7 +87,7 @@ def tree(seed):
         # Mostly dark leaves with bright ones speckled through, more on top.
         face[shade] = min(1.0, rng.random() ** 2.2 + light * 0.25)
 
-    def hang(start, direction, length, n, spread=0.07, per=7):
+    def hang(start, direction, length, n, spread=0.07, per=11):
         """A twig hanging from start, curving down, with leaves along it."""
         p, d = Vector(start), Vector(direction).normalized()
         pts = [tuple(p)]
@@ -111,7 +111,7 @@ def tree(seed):
         branch([tuple(q) for q in pts], radius, bark)
         side = direction.cross(Vector((0, 0, 1)))
         for j in range(1, 7):
-            for _ in range(2 if depth else 3):
+            for _ in range(1 if depth else 2):
                 d = direction + side * rng.uniform(-1.0, 1.0) + Vector((0, 0, 0.3))
                 hang(pts[j], d, rng.uniform(0.6, 1.4) * (0.6 + 0.4 * j / 6), 6)
             if depth and j in (2, 4):
@@ -120,15 +120,16 @@ def tree(seed):
                 limb(pts[j], sub, length * 0.45, rise * 0.8, radius * 0.5, depth - 1)
         return pts
 
-    # Limbs fork off the upper trunk, longer lower down, and arch out and down.
-    n = rng.randint(7, 9)
+    # Limbs spiral up the trunk from low down to the top, longer lower
+    # down, each arching out and over.
+    n = rng.randint(12, 15)
     for i in range(n):
-        angle = 2 * math.pi * i / n + rng.uniform(-0.35, 0.35)
-        z = rng.uniform(fork, height * 0.95)
+        angle = i * 2.4 + rng.uniform(-0.3, 0.3)
+        z = fork + (height * 0.97 - fork) * (i + rng.uniform(0.1, 0.9)) / n
         k = (z - fork) / (height - fork)
         at = lean * (z / height) ** 2 + Vector((0, 0, z))
-        limb(at, (math.cos(angle), math.sin(angle), 0), rng.uniform(2.0, 2.8) * (1.15 - 0.55 * k),
-             rng.uniform(0.9, 1.3), 0.11, 1)
+        limb(at, (math.cos(angle), math.sin(angle), 0), rng.uniform(2.1, 2.9) * (1.1 - 0.6 * k),
+             rng.uniform(0.9, 1.3), 0.12, 1)
     for _ in range(4):
         a = rng.uniform(0, 2 * math.pi)
         hang(trunk[-1], (math.cos(a), math.sin(a), 0.8), rng.uniform(0.6, 1.0), 5)
