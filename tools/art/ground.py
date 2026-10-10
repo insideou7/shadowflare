@@ -55,11 +55,11 @@ class Field:
                 (d[y1, x0] * (1 - fx) + d[y1, x1] * fx) * fy)
 
 
-def colour(base, dark, light, t, fine):
+def colour(base, dark, light, t, fine, grain):
     """Mix a base colour towards dark or light by noise t, plus grain."""
     t = np.clip(t, -1, 1)[..., None]
     c = np.where(t < 0, base + (base - dark) * t, base + (light - base) * t)
-    return c * (1 + 0.10 * fine[..., None])
+    return c * (1 + grain * fine[..., None])
 
 
 class Ground:
@@ -68,15 +68,20 @@ class Ground:
         self.fine = Field([(0.03, 1.0), (0.012, 0.8)], seed + 1)  # grain
         self.edge = Field([(0.25, 1.0), (0.08, 0.5)], seed + 2)  # ragged borders
         self.tuft = Field([(0.06, 1.0)], seed + 3)               # grass tufts
+        self.rng = np.random.default_rng(seed + 4)               # per-pixel speckle
 
     def texture(self, u, v):
         """Grass and dirt colours and the edge noise at tile coordinates."""
-        big, fine = self.big(u, v), self.fine(u, v)
-        dirt = colour(np.array([96, 72, 48.0]), np.array([58, 42, 28.0]), np.array([120, 96, 66.0]),
-                      0.45 * big, fine)
+        big = self.big(u, v)
+        # Speckle: mostly per-pixel noise, with a little of the finest field.
+        fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
+        # Dark earth with a strong speckle and only faint patches.
+        dirt = colour(np.array([47, 35, 19.0]), np.array([32, 23, 12.0]), np.array([62, 48, 27.0]),
+                      0.08 * big, fine, 0.22)
         tuft = np.clip(self.tuft(u, v) * 0.8, -1, 1)
-        grass = colour(np.array([56, 72, 30.0]), np.array([30, 43, 16.0]), np.array([78, 94, 40.0]),
-                       0.35 * big + 0.35 * tuft, fine * 1.3)
+        # Olive grass, finely grained, with gentle lighter and darker patches.
+        grass = colour(np.array([50, 55, 16.0]), np.array([32, 37, 9.0]), np.array([68, 73, 25.0]),
+                       0.15 * big + 0.15 * tuft, fine, 0.24)
         return grass, dirt, self.edge(u, v)
 
     def tile(self, tx, ty, corners):

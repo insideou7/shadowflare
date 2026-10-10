@@ -19,13 +19,13 @@ import studio  # noqa: E402
 
 ROCK = dict(colour=(0.46, 0.43, 0.37), dark=(0.20, 0.19, 0.16), scale=5, bump=0.9,
             spot=0.2, spot_colour=(0.30, 0.36, 0.15))
-WOOD = dict(colour=(0.66, 0.46, 0.22), dark=(0.14, 0.09, 0.05), scale=14, detail=3, bump=1.2, stretch=(4, 4, 0.08), band=(0.42, 0.56))
+WOOD = dict(colour=(0.86, 0.60, 0.30), dark=(0.13, 0.08, 0.04), scale=14, detail=3, bump=1.2, stretch=(4, 4, 0.08), band=(0.40, 0.58))
 
 
 BARK = dict(colour=(0.58, 0.40, 0.42), dark=(0.16, 0.09, 0.10), scale=14, bump=0.6)
 TRUNK = dict(colour=(0.34, 0.22, 0.24), dark=(0.10, 0.06, 0.07), scale=14, bump=0.6)
-LEAF_LIGHT = (0.42, 0.56, 0.11)
-LEAF_DARK = (0.025, 0.05, 0.015)
+LEAF_LIGHT = (0.48, 0.60, 0.08)
+LEAF_DARK = (0.04, 0.06, 0.01)
 
 
 def branch(points, radius, mat):
@@ -86,7 +86,7 @@ def tree(seed):
         face = leaves.faces.new([leaves.verts.new(c + u), leaves.verts.new(c + v),
                                  leaves.verts.new(c - u), leaves.verts.new(c - v)])
         # Mostly dark leaves with bright ones speckled through, more on top.
-        face[shade] = min(1.0, rng.random() ** 4 + light * 0.25)
+        face[shade] = min(1.0, rng.random() ** 3 + light * 0.25)
 
     def hang(start, direction, length, n, spread=0.07, per=14):
         """A twig hanging from start, curving down, with leaves along it."""
@@ -158,27 +158,43 @@ def rock(seed):
 
 
 def palisade(seed, along_y):
-    """One tile's length of thick, flat-topped logs, along game x or y."""
+    """One tile's length of rough logs, along game x or y, set unevenly:
+    each leans a little, stands a little forward or back, and has its
+    own height."""
     rng = random.Random(seed)
+    # Less fill light, so each log's shaded side reads against the next.
+    bpy.context.scene.world.node_tree.nodes["Background"].inputs[1].default_value = 0.55
     mat = studio.material("logs", **WOOD)
-    end_mat = studio.material("cut", colour=(0.62, 0.55, 0.42), dark=(0.36, 0.30, 0.22), scale=20, bump=0.3)
+    end_mat = studio.material("cut", colour=(0.60, 0.50, 0.36), dark=(0.30, 0.24, 0.16), scale=20, bump=0.4)
     length = 3.2
     n = 6
     for i in range(n):
-        h = rng.uniform(4.0, 4.8)
-        r = rng.uniform(0.25, 0.3)
-        t = (i + 0.5) / n * length - length / 2
-        x, y = (0, -t) if along_y else (t, 0)
-        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=r, depth=h, location=(x, y, h / 2))
+        h = rng.uniform(3.2, 4.4)
+        r = rng.uniform(0.23, 0.27)
+        t = (i + 0.5) / n * length - length / 2 + rng.uniform(-0.04, 0.04)
+        off = rng.uniform(-0.12, 0.12)
+        x, y = (off, -t) if along_y else (t, off)
+        tilt = (rng.uniform(-0.035, 0.035), rng.uniform(-0.035, 0.035), rng.uniform(0, 6))
+        bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=r, depth=h, location=(0, 0, h / 2))
         log = bpy.context.object
-        log.rotation_euler = (rng.uniform(-0.05, 0.05), rng.uniform(-0.05, 0.05), rng.uniform(0, 6))
-        studio.displace(log, 0.05, 0.3, seed * 50 + i)
         studio.smooth(studio.assign(log, mat))
-        # A pale sawn top, slightly slanted.
-        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=r * 0.98, depth=0.04, location=(x, y, h + 0.02))
+        # A rough, slightly domed top.
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=10, ring_count=6, radius=r * 0.97, location=(0, 0, h))
         top = bpy.context.object
-        top.rotation_euler = log.rotation_euler
+        top.scale = (1, 1, 0.3)
+        studio.displace(top, 0.04, 0.1, seed * 50 + i + 25)
         studio.assign(top, end_mat)
+        # Lean the log and its top together about the foot.
+        for obj in (log, top):
+            obj.rotation_euler = tilt
+            obj.location = mathutils_rotate(obj.location, tilt) + Vector((x, y, 0))
+
+
+def mathutils_rotate(v, euler):
+    from mathutils import Euler
+    v = Vector(v)
+    v.rotate(Euler(euler))
+    return v
 
 
 PROPS = {
