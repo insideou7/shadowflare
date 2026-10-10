@@ -13,6 +13,7 @@ add_library(sf_formats STATIC
     src/formats/rclib.cpp
     src/formats/sprite_bank.cpp
     src/formats/map_layers.cpp
+    src/formats/animation.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -22,6 +23,7 @@ add_executable(shadowflare
     src/platform/filesystem.cpp
     src/render/sprite_cache.cpp
     src/game/map.cpp
+    src/game/character.cpp
     src/game/game.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_formats)

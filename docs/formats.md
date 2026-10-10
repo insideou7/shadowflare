@@ -120,11 +120,41 @@ screenY = (worldX + worldY) * 10 / 100
 15 and 10 are the defaults set in the `RKC_RPGSCRN` constructor. The
 result shares its origin with the ground chip grid.
 
+## Character animation: `.Caf` (`RKC_RPGSCRN_CHARANIM::ReadCafFile`)
+
+Each character folder has `Animation.Caf` (charts), `Animation.Njp`
+(body sprites) and `Animation.Sdw` (shadows). The player uses
+`Animation00.*`.
+
+```
+char magic[16]   "CHRAnimation002"
+u32  chartCount            one chart per action: 0 idle, 1 walk, then attacks, hits, death...
+chart[chartCount]:
+    i16 status             1 on looping actions
+    direction[9]:          0 = south, then counter-clockwise on screen
+                           (south-east, east, ...); slot 8 is empty
+        u32 layerCount
+        i16 frameCount
+        layer[layerCount]:
+            u32 frames
+            cell[frames]:
+                i16 status     8 = shadow, pattern is in the .Sdw bank
+                i16 trans      per mille
+                pattern        i16 if version <= 1, else i32
+                i16 priority   draw order, low first
+if version >= 1: i32, i32 (unknown)
+```
+
+Body and shadow patterns share one numbering. The `.Njp`'s first
+patterns are empty placeholders for the shadow slots. Monsters have two
+layers (shadow and body). The player has 23: shadow, body, then one per
+equipment slot. A pattern is drawn with its anchor at the character's
+feet.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |
 | --- | --- | --- |
-| `CHRAnimation002` | `.Caf` | Character animation charts (`RKC_RPGSCRN_CHARANIM::ReadCafFile`) |
 | `MAPED_FILE v000` | `.map` | 36 bytes; small header read by `RKC_RPGSCRN::ReadMapFile` |
 | `SFItemDataV0000` | `Item.Ibn` | Item table; RCLIB-wrapped with an extra layer |
 | `TABLE DATA V000` | `Table.Tbd` | Parameter tables (`RKC_RPG_TABLE.dll`) |

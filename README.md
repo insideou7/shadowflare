@@ -9,13 +9,15 @@ engine elsewhere with `--data`.
 
 ## Status
 
-A map viewer. The engine loads any level from the original game (ground
-tiles, walls, trees and props) and lets you scroll around it. Characters,
-gameplay, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+A walkable map viewer. The engine loads any level from the original game
+(ground tiles, walls, trees and props) and puts the player character in
+it, animated in all eight directions. Collision, monsters, items, sound
+and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
-Controls: arrow keys or WASD to scroll, drag with the mouse, N/P (or
-Page Down/Up) for the next/previous map, Home to recenter, Esc to quit.
+Controls: hold the left mouse button to walk towards the cursor, or use
+the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
+map, Home returns to the start point, Esc quits.
 
 ## Building
 
@@ -33,6 +35,7 @@ Options:
 - `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
 - `--frames <n>` quit after n frames, for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 
 Run the unit tests with `ctest --test-dir build`.
 
