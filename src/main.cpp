@@ -18,7 +18,9 @@ namespace {
 
 struct Options {
     std::filesystem::path dataDir = "game";
-    long maxFrames = -1;  // -1 runs until quit; used for smoke tests
+    std::string map = "c02_00";
+    std::string screenshot;  // saved as BMP when the run ends
+    long maxFrames = -1;     // -1 runs until quit; used for smoke tests
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -27,6 +29,10 @@ Options parseArgs(int argc, char** argv) {
         std::string_view arg = argv[i];
         if (arg == "--data" && i + 1 < argc) {
             options.dataDir = argv[++i];
+        } else if (arg == "--map" && i + 1 < argc) {
+            options.map = argv[++i];
+        } else if (arg == "--screenshot" && i + 1 < argc) {
+            options.screenshot = argv[++i];
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
         } else {
@@ -34,6 +40,34 @@ Options parseArgs(int argc, char** argv) {
         }
     }
     return options;
+}
+
+// The data folder may be the install folder itself or a folder that
+// contains it (e.g. game/Shadowflare/ShadowFlare). Look for Map/ a few levels down.
+std::filesystem::path findInstallRoot(const std::filesystem::path& root) {
+    sf::DirectoryFileSystem probe(root);
+    if (probe.exists("Map") && probe.exists("System")) return root;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(root, ec)) {
+        if (!entry.is_directory(ec)) continue;
+        auto found = findInstallRoot(entry.path());
+        if (!found.empty()) return found;
+    }
+    return {};
+}
+
+void saveScreenshot(SDL_Renderer* renderer, const std::string& path) {
+    SDL_Surface* surface =
+        SDL_CreateRGBSurfaceWithFormat(0, sf::kScreenWidth, sf::kScreenHeight, 32, SDL_PIXELFORMAT_ARGB8888);
+    if (!surface) return;
+    SDL_Rect area{0, 0, sf::kScreenWidth, sf::kScreenHeight};
+    if (SDL_RenderReadPixels(renderer, &area, SDL_PIXELFORMAT_ARGB8888, surface->pixels, surface->pitch) == 0 &&
+        SDL_SaveBMP(surface, path.c_str()) == 0) {
+        sf::log::info("Saved screenshot to {}", path);
+    } else {
+        sf::log::warn("Screenshot failed: {}", SDL_GetError());
+    }
+    SDL_FreeSurface(surface);
 }
 
 struct App {
@@ -106,14 +140,16 @@ int main(int argc, char** argv) {
     }
     SDL_RenderSetLogicalSize(app.renderer, sf::kScreenWidth, sf::kScreenHeight);
 
-    auto dataFs = std::make_unique<sf::DirectoryFileSystem>(options.dataDir);
-    if (!std::filesystem::is_directory(dataFs->root())) {
-        sf::log::warn("Game data folder not found: {} (use --data <path>)", dataFs->root().string());
+    std::filesystem::path installRoot;
+    if (std::filesystem::is_directory(options.dataDir)) installRoot = findInstallRoot(options.dataDir);
+    if (installRoot.empty()) {
+        sf::log::warn("ShadowFlare data not found under {} (use --data <path>)", options.dataDir.string());
+        installRoot = options.dataDir;
     } else {
-        sf::log::info("Using game data from {}", dataFs->root().string());
+        sf::log::info("Using game data from {}", installRoot.string());
     }
-    app.data = std::move(dataFs);
-    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get());
+    app.data = std::make_unique<sf::DirectoryFileSystem>(installRoot);
+    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), options.map);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__
@@ -122,6 +158,10 @@ int main(int argc, char** argv) {
     while (app.running) frame(&app);
 #endif
 
+    if (!options.screenshot.empty()) {
+        app.game->render(0.0);
+        saveScreenshot(app.renderer, options.screenshot);
+    }
     sf::log::info("Exited after {} frames, {} ticks", app.frames, app.game->tickCount());
     app.game.reset();
     SDL_DestroyRenderer(app.renderer);

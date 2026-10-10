@@ -15,6 +15,7 @@ MAGIC = [
     (b"MZ", "DOS/Windows executable"),
     (b"RIFF", "RIFF (WAV/AVI)"),
     (b"BM", "Windows bitmap"),
+    (b"GIF8", "GIF image"),
     (b"\x89PNG", "PNG image"),
     (b"\xff\xd8\xff", "JPEG image"),
     (b"OggS", "Ogg audio"),

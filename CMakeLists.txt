@@ -8,18 +8,37 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
 
+# Data file readers: no SDL dependency, so they can be tested on their own.
+add_library(sf_formats STATIC
+    src/formats/rclib.cpp
+    src/formats/sprite_bank.cpp
+    src/formats/map_layers.cpp
+)
+target_include_directories(sf_formats PUBLIC src)
+
 add_executable(shadowflare
     src/main.cpp
     src/core/log.cpp
     src/platform/filesystem.cpp
+    src/render/sprite_cache.cpp
+    src/game/map.cpp
     src/game/game.cpp
 )
-target_include_directories(shadowflare PRIVATE src)
+target_link_libraries(shadowflare PRIVATE sf_formats)
 
-if(MSVC)
-    target_compile_options(shadowflare PRIVATE /W4)
-else()
-    target_compile_options(shadowflare PRIVATE -Wall -Wextra -Wpedantic)
+foreach(target sf_formats shadowflare)
+    if(MSVC)
+        target_compile_options(${target} PRIVATE /W4)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endforeach()
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(formats_test tests/formats_test.cpp)
+    target_link_libraries(formats_test PRIVATE sf_formats)
+    add_test(NAME formats COMMAND formats_test)
 endif()
 
 if(EMSCRIPTEN)

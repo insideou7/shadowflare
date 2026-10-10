@@ -9,8 +9,13 @@ engine elsewhere with `--data`.
 
 ## Status
 
-Skeleton only: a window, a fixed-rate game loop and a case-insensitive data
-loader. Nothing from the original game is decoded yet.
+A map viewer. The engine loads any level from the original game (ground
+tiles, walls, trees and props) and lets you scroll around it. Characters,
+gameplay, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+for what has been decoded so far.
+
+Controls: arrow keys or WASD to scroll, drag with the mouse, N/P (or
+Page Down/Up) for the next/previous map, Home to recenter, Esc to quit.
 
 ## Building
 
@@ -23,8 +28,13 @@ CMake downloads and builds it.
 
 Options:
 
-- `--data <path>` folder with the original game files (default `game`)
+- `--data <path>` folder with the original game files (default `game`). It can be
+  the install folder itself or any folder above it.
+- `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
 - `--frames <n>` quit after n frames, for smoke tests
+- `--screenshot <file.bmp>` save the last frame when quitting
+
+Run the unit tests with `ctest --test-dir build`.
 
 ### Browser build (later)
 
@@ -39,14 +49,23 @@ Players will still need to supply their own game files.
 
     src/core/       logging and shared helpers
     src/platform/   OS boundary: file access (all data goes through FileSystem)
-    src/game/       game state, simulation tick and rendering
-    tools/          reverse engineering helpers (Python)
+    src/formats/    readers for the original data files (no SDL dependency)
+    src/render/     turning decoded sprites into textures
+    src/game/       maps, game state, simulation tick and drawing
+    tests/          unit tests that run without game data
+    tools/          inventory script and reverse engineering helpers (Python)
+    docs/           file format notes
 
 ## Surveying the original files
 
     python3 tools/inventory.py /path/to/Shadowflare
 
-lists every file with its size and detected type.
+lists every file with its size and detected type. `tools/re/` has Python
+decoders for the formats in `docs/formats.md`, for example
+
+    python3 tools/re/drawscene.py /path/to/ShadowFlare/Map c02_00 town.png 0 0 2
+
+renders a whole map to an image.
 
 ## Legal
 

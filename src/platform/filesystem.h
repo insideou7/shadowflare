@@ -20,6 +20,9 @@ public:
     // like the original game expects on Windows.
     virtual bool exists(std::string_view path) const = 0;
     virtual std::optional<std::vector<std::uint8_t>> read(std::string_view path) const = 0;
+
+    // File names (not paths) directly inside a directory, sorted.
+    virtual std::vector<std::string> list(std::string_view directory) const = 0;
 };
 
 // Reads from the player's own copy of the game on disk.
@@ -29,6 +32,7 @@ public:
 
     bool exists(std::string_view path) const override;
     std::optional<std::vector<std::uint8_t>> read(std::string_view path) const override;
+    std::vector<std::string> list(std::string_view directory) const override;
 
     const std::filesystem::path& root() const { return root_; }
 
