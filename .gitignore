@@ -1,0 +1,12 @@
+# Original game files are copyrighted. Never commit them.
+/game/
+/Shadowflare/
+/data/
+*.exe
+*.dll
+
+/build*/
+/out/
+.vscode/
+.idea/
+compile_commands.json
