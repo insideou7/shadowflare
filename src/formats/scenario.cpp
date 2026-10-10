@@ -39,7 +39,22 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         in.skip(10 * static_cast<std::size_t>(count(in)));
     }
     in.skip(4);
-    in.skip(extraSize);
+    if (group == ScenarioControl::Group::Enemy) {
+        // Offsets are in 32-bit words into the 0x13c-byte enemy block.
+        BinaryReader block(in.bytes(extraSize));
+        std::int32_t words[0x13c / 4];
+        for (auto& w : words) w = block.i32();
+        p.stats.element = words[6];
+        p.stats.hp = words[8];
+        p.stats.attack = words[9];
+        p.stats.defense = words[11];
+        p.stats.experience = words[13];
+        p.stats.level = words[14];
+        p.stats.goldMin = words[50];
+        p.stats.goldMax = words[51];
+    } else {
+        in.skip(extraSize);
+    }
     return p;
 }
 

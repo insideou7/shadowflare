@@ -25,7 +25,8 @@ struct Options {
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
     bool showJudge = false;  // overlay the walkability grid
-    bool autoFight = false;  // player attacks nearby monsters by itself
+    bool autoFight = false;
+    std::optional<std::pair<int, int>> at;  // start position in map pixels  // player attacks nearby monsters by itself
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -41,6 +42,9 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--walk" && i + 1 < argc) {
             int dx = 0, dy = 0;
             if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) options.walk.emplace(dx, dy);
+        } else if (arg == "--at" && i + 1 < argc) {
+            int x = 0, y = 0;
+            if (std::sscanf(argv[++i], "%d,%d", &x, &y) == 2) options.at.emplace(x, y);
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -165,6 +169,7 @@ int main(int argc, char** argv) {
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), options.map);
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
+    if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     app.lastCounter = SDL_GetPerformanceCounter();
 

@@ -42,6 +42,9 @@ public:
     // (used for scripted smoke tests).
     void walkBy(int screenDx, int screenDy);
 
+    // Puts the player on the walkable spot nearest a map pixel.
+    void placePlayerAt(double screenX, double screenY);
+
     // Makes the player attack the nearest monster on their own (for
     // scripted smoke tests of combat).
     void setAutoFight(bool on) { autoFight_ = on; }

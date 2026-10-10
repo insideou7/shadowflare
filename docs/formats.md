@@ -227,6 +227,23 @@ i32  unknown
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
 ```
 
+The enemy block (0x13c bytes) holds the monster's stats. Read as i32
+words, these meanings were inferred by comparing 18,754 placements
+(goblins near Kanfore have 40 HP, Cold Ruins goblins 400), not taken
+from the exe, so treat them as likely rather than certain:
+
+| word | meaning |
+|---|---|
+| 6 | element |
+| 8 | hit points |
+| 9 | attack |
+| 11 | defense |
+| 13 | experience given |
+| 14 | level |
+| 15-21 | looks like a Japanese name |
+| 50, 51 | gold dropped, min and max |
+| 77 | 800-3200, unknown (speed or sight range?) |
+
 Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
 
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
