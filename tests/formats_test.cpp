@@ -173,11 +173,26 @@ void testScenario() {
     d.resize(d.size() + 2 * 10);
     i32(-1);
     d.resize(d.size() + 0x2c);
-    i32(0);  // enemies
+    i32(1);  // enemies
+    i32(7);
+    i32(2);
+    i32(0);  // no name
+    i32(0);
+    i32(500);
+    i32(600);
+    for (int v : {-80, -80, 79, 79}) i32(v);
+    i32(1);
+    i32(0);  // no list
+    i32(0);  // no table
+    i32(-1);
+    for (int w = 0; w < 0x13c / 4; ++w) i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : 0);
     i32(0);  // items
     const auto s = sf::ScenarioControl::parse(d);
     check(s.mapPath == "Map\\c02_00.map" && s.title == "Kanfore", "scenario header");
-    check(s.placements.size() == 1, "scenario placement count");
+    check(s.placements.size() == 2, "scenario placement count");
+    const auto& e = s.placements[1];
+    check(e.group == sf::ScenarioControl::Group::Enemy && e.kind == 2 && e.x == 500, "scenario enemy");
+    check(e.stats.hp == 40 && e.stats.attack == 10 && e.stats.level == 3, "scenario enemy stats");
     const auto& p = s.placements[0];
     check(p.group == sf::ScenarioControl::Group::Person && p.id == 5 && p.kind == 1000002 && p.name == "Dune",
           "scenario person");

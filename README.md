@@ -14,8 +14,8 @@ A walkable map viewer. The engine loads any level from the original game
 it, animated in all eight directions, and walls and trees block the way.
 Townspeople and monsters stand where the game's scenario files put them.
 Monsters notice you, chase you and fight; click a monster to punch it.
-Health, damage and monster behaviour are placeholders until the game's
-stat and AI data is decoded. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+Monster health and attack come from the scenario files; the player's
+stats, the damage formula and monster AI are still placeholders. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to
@@ -41,6 +41,7 @@ Options:
 - `--screenshot <file.bmp>` save the last frame when quitting
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--show-judge` start with the walkability grid shown
+- `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 
 Run the unit tests with `ctest --test-dir build`.

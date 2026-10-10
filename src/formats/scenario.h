@@ -24,6 +24,19 @@ struct ScenarioControl {
         std::int32_t x = 0, y = 0;  // world units
         std::int32_t direction = 0;  // 0 = south, counter-clockwise; 8 = none
         std::int32_t rect[4] = {};   // left, top, right, bottom around (x, y)
+
+        // Enemies only. Field meanings are inferred from how the values
+        // scale across all 18,754 enemy placements (weak early monsters
+        // up to late bosses), not yet confirmed in the executable.
+        struct EnemyStats {
+            std::int32_t element = 0;  // 0 none, 1 water, 2 earth, 3 thunder, 5 fire? (bats)
+            std::int32_t hp = 0;
+            std::int32_t attack = 0;
+            std::int32_t defense = 0;
+            std::int32_t experience = 0;
+            std::int32_t level = 0;
+            std::int32_t goldMin = 0, goldMax = 0;
+        } stats;
     };
 
     static constexpr std::int32_t kPartnerBase = 1000000;

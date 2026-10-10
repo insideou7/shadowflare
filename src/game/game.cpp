@@ -17,12 +17,11 @@ namespace {
 // Walking speed in world units per tick. Not yet taken from the original.
 constexpr double kWalkSpeed = 70.0;
 
-// Combat placeholders until the stat tables are decoded: every monster
-// has the same health and damage, and the player fights bare-handed.
+// Monsters take their health and attack from the scenario file. The
+// player's stats and the damage formula are still placeholders: the player
+// fights bare-handed and a monster's blow takes off its attack value.
 constexpr int kPlayerMaxHp = 100;
 constexpr int kPlayerDamage = 10;
-constexpr int kEnemyMaxHp = 30;
-constexpr int kEnemyDamage = 4;
 constexpr double kEnemySpeed = 35.0;
 constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
 constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
@@ -142,7 +141,7 @@ void Game::spawnActors() {
         actor.character.x = p.x;
         actor.character.y = p.y;
         actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
-        actor.hp = actor.maxHp = kEnemyMaxHp;
+        actor.hp = actor.maxHp = std::max(1, p.stats.hp);
         // Non-player characters wear what their animation file shows.
         actor.character.visibleLayers.clear();
         if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
@@ -172,7 +171,16 @@ void Game::placePlayer() {
         cx = (minX + maxX) / 2.0;
         cy = (minY + maxY) / 2.0;
     }
+    placePlayerAt(cx, cy);
+}
+
+void Game::placePlayerAt(double screenX, double screenY) {
+    const auto& g = map_->ground();
+    // A few maps have stray objects far outside the ground; stay on the map.
+    const double cx = std::clamp(screenX, 0.0, static_cast<double>(g.width * g.chipWidth));
+    const double cy = std::clamp(screenY, 0.0, static_cast<double>(g.height * g.chipHeight));
     walkTarget_.reset();
+    attackTarget_.reset();
     double wx, wy;
     screenToWorld(cx, cy, wx, wy);
 
@@ -415,7 +423,9 @@ void Game::tickEnemy(Actor& enemy) {
             enemy.state = State::Chase;
             break;
         case State::Attack:
-            if (c.frame() == c.frameCount() / 2 && distance(c, *player_) <= kMeleeRange * 1.2) hurtPlayer(kEnemyDamage);
+            if (c.frame() == c.frameCount() / 2 && distance(c, *player_) <= kMeleeRange * 1.2) {
+                hurtPlayer(std::max(1, enemy.placement.stats.attack));
+            }
             if (!c.finished()) return;
             enemy.state = State::Chase;
             break;
