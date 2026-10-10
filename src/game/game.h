@@ -89,6 +89,7 @@ private:
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadScenario(const std::string& dir);
     void indexScenarios();
+    bool readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const;
     void spawnActors();
     void changeScenario(int number, int entry);
     void checkTriggers(bool fire = true);
@@ -108,6 +109,8 @@ private:
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
     void renderHealthBars(int camX, int camY);
     void renderMap();
+    void renderChips(int camX, int camY);
+    void renderIsoGround(int camX, int camY);
     void renderJudge(int camX, int camY);
     void renderPlaceholder(double interpolation);
 

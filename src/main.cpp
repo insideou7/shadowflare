@@ -11,16 +11,19 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include "core/log.h"
+#include "formats/binary_reader.h"
+#include "formats/open_content.h"
 #include "game/game.h"
 #include "platform/filesystem.h"
 
 namespace {
 
 struct Options {
-    std::filesystem::path dataDir = "game";
-    std::string map = "c02_00";
+    std::optional<std::filesystem::path> dataDir;  // default: game/, else the open content in content/
+    std::string map;  // default: c02_00, or the content pack's start map
     std::string screenshot;  // saved as BMP when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
@@ -62,10 +65,11 @@ Options parseArgs(int argc, char** argv) {
 }
 
 // The data folder may be the install folder itself or a folder that
-// contains it (e.g. game/Shadowflare/ShadowFlare). Look for Map/ a few levels down.
+// contains it (e.g. game/Shadowflare/ShadowFlare). Look for Map/ a few levels
+// down. An open content pack is recognised by its content.txt.
 std::filesystem::path findInstallRoot(const std::filesystem::path& root) {
     sf::DirectoryFileSystem probe(root);
-    if (probe.exists("Map") && probe.exists("System")) return root;
+    if ((probe.exists("Map") && probe.exists("System")) || probe.exists("content.txt")) return root;
     std::error_code ec;
     for (const auto& entry : std::filesystem::directory_iterator(root, ec)) {
         if (!entry.is_directory(ec)) continue;
@@ -170,16 +174,38 @@ int main(int argc, char** argv) {
     }
     SDL_RenderSetLogicalSize(app.renderer, sf::kScreenWidth, sf::kScreenHeight);
 
+    // The player's own copy of the game if there is one, otherwise the
+    // open replacement content that ships with the engine.
     std::filesystem::path installRoot;
-    if (std::filesystem::is_directory(options.dataDir)) installRoot = findInstallRoot(options.dataDir);
+    std::vector<std::filesystem::path> candidates;
+    if (options.dataDir) {
+        candidates.push_back(*options.dataDir);
+    } else {
+        candidates = {"game", "content"};
+    }
+    for (const auto& dir : candidates) {
+        if (std::filesystem::is_directory(dir)) installRoot = findInstallRoot(dir);
+        if (!installRoot.empty()) break;
+    }
     if (installRoot.empty()) {
-        sf::log::warn("ShadowFlare data not found under {} (use --data <path>)", options.dataDir.string());
-        installRoot = options.dataDir;
+        installRoot = candidates.front();
+        sf::log::warn("No game data found under {} (use --data <path>)", installRoot.string());
     } else {
         sf::log::info("Using game data from {}", installRoot.string());
     }
     app.data = std::make_unique<sf::DirectoryFileSystem>(installRoot);
-    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), options.map);
+    std::string startMap = options.map.empty() ? "c02_00" : options.map;
+    if (auto info = app.data->read("content.txt")) {
+        try {
+            const auto pack = sf::open::parsePackInfo(*info);
+            sf::projection = pack.projection;
+            if (options.map.empty() && !pack.startMap.empty()) startMap = pack.startMap;
+            sf::log::info("Open content pack \"{}\"", pack.name);
+        } catch (const sf::FormatError& e) {
+            sf::log::warn("content.txt: {}", e.what());
+        }
+    }
+    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap);
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);

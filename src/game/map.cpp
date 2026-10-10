@@ -6,6 +6,8 @@
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
+#include "formats/open_content.h"
+#include "game/content.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -37,6 +39,27 @@ bool endsWithIgnoreCase(const std::string& s, std::string_view suffix) {
 }  // namespace
 
 std::optional<Map> Map::load(const FileSystem& data, const std::string& name) {
+    // An open content pack keeps the whole map in one text file.
+    if (auto text = data.read("Map/" + name + ".txt")) {
+        Map map;
+        map.data_ = &data;
+        map.name_ = name;
+        map.open_ = true;
+        try {
+            auto parsed = open::parseMap(*text);
+            map.bankFiles_ = std::move(parsed.banks);
+            map.ground_ = std::move(parsed.ground);
+            map.objects_ = std::move(parsed.objects);
+        } catch (const FormatError& e) {
+            log::error("Map {}: {}", name, e.what());
+            return std::nullopt;
+        }
+        map.banks_.resize(map.bankFiles_.size());
+        map.bankTried_.assign(map.bankFiles_.size(), false);
+        log::info("Loaded map {}: {}x{} chips, {} objects, {} sheets", name, map.ground_.width, map.ground_.height,
+                  map.objects_.objects.size(), map.bankFiles_.size());
+        return map;
+    }
     auto lst = data.read("Map/Pattern/" + name + ".lst");
     auto gnd = data.read("Map/Ground/" + name + ".gnd");
     auto obl = data.read("Map/Object/" + name + ".obl");
@@ -68,7 +91,9 @@ const SpriteBank* Map::bank(int index) const {
     if (!bankTried_[index]) {
         bankTried_[index] = true;
         const std::string& file = bankFiles_[index];
-        if (!file.empty() && file != "?") {
+        if (open_) {
+            if (auto sheet = loadSheet(*data_, file)) banks_[index] = std::make_unique<SpriteBank>(std::move(*sheet));
+        } else if (!file.empty() && file != "?") {
             if (auto raw = data_->read("Map/Pattern/" + file)) {
                 try {
                     banks_[index] = std::make_unique<SpriteBank>(SpriteBank::parse(*raw));

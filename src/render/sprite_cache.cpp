@@ -44,6 +44,11 @@ const SpriteTexture* SpriteCache::get(const SpriteBank& bank, int pattern, bool 
                 for (int x = 0; x < part.width; ++x) {
                     const int tx = placed.x - x0 + x;
                     if (tx < 0 || tx >= w) continue;
+                    if (part.bpp == 32) {
+                        const std::uint32_t c = part.argb[static_cast<std::size_t>(y) * part.width + x];
+                        if (c >> 24) pixels[static_cast<std::size_t>(ty) * w + tx] = c;
+                        continue;
+                    }
                     const std::uint8_t index = part.pixels[static_cast<std::size_t>(y) * part.width + x];
                     if (index == 0 && !opaque) continue;
                     const Rgb c = palette[index];

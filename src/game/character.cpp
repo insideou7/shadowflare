@@ -7,12 +7,29 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/map_layers.h"
+#include "formats/open_content.h"
+#include "game/content.h"
 #include "platform/filesystem.h"
 #include "render/sprite_cache.h"
 
 namespace sf {
 
 std::optional<CharacterModel> CharacterModel::load(const FileSystem& data, const std::string& stem) {
+    // Open content pack: a .anim file and the sheet it names.
+    if (auto text = data.read(stem + ".anim")) {
+        try {
+            auto anim = open::parseAnimation(*text);
+            auto body = loadSheet(data, folderOf(stem) + anim.sheet);
+            if (!body) return std::nullopt;
+            CharacterModel model;
+            model.animations = std::move(anim.set);
+            model.body = std::move(*body);
+            return model;
+        } catch (const FormatError& e) {
+            log::error("Character {}: {}", stem, e.what());
+            return std::nullopt;
+        }
+    }
     auto caf = data.read(stem + ".caf");
     auto njp = data.read(stem + ".njp");
     if (!caf || !njp) {
@@ -62,8 +79,8 @@ bool Character::finished() const {
 void Character::faceTowards(double dx, double dy) {
     if (dx == 0 && dy == 0) return;
     // Work in screen space so "south" means down on screen.
-    const double sx = (dx - dy) * 0.15;
-    const double sy = (dx + dy) * 0.10;
+    const double sx = (dx - dy) * projection.x;
+    const double sy = (dx + dy) * projection.y;
     // Angle measured from screen-down, increasing towards screen-right (east).
     double angle = std::atan2(sx, sy);
     if (angle < 0) angle += 2 * std::numbers::pi;

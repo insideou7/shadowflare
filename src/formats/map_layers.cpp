@@ -41,6 +41,22 @@ std::int16_t GroundLayer::judgeAt(double worldX, double worldY) const {
     return judge[static_cast<std::size_t>(jy) * judgeWidth + jx];
 }
 
+void GroundLayer::screenBounds(int& left, int& top, int& right, int& bottom) const {
+    if (isoTile <= 0) {
+        left = top = 0;
+        right = width * chipWidth;
+        bottom = height * chipHeight;
+        return;
+    }
+    // The corners of the tile grid; the far left one is (0, height).
+    const int w = width * isoTile, h = height * isoTile;
+    int unused = 0;
+    worldToScreen(0, h, left, unused);
+    worldToScreen(w, 0, right, unused);
+    worldToScreen(0, 0, unused, top);
+    worldToScreen(w, h, unused, bottom);
+}
+
 GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
     BinaryReader in(data);
     if (!in.chars(16).starts_with("RPGSCRN_GNDv000")) throw FormatError("not a ground file");

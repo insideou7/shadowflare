@@ -8,6 +8,7 @@
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
+#include "formats/open_content.h"
 #include "logic/movement.h"
 #include "platform/filesystem.h"
 
@@ -50,15 +51,23 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 
 Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap)
     : renderer_(renderer), data_(data), sprites_(renderer) {
-    // Every level has a ground file; use those to enumerate maps.
+    // Every level has a ground file; use those to enumerate maps. An open
+    // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
-    playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
-    if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
-        try {
-            ai_ = AiControl::parse(*raw);
-        } catch (const FormatError& e) {
-            log::warn("Control.aid: {}", e.what());
+    if (mapNames_.empty()) {
+        for (const auto& file : data_->list("Map")) {
+            if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
+    }
+    playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    try {
+        if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
+            ai_ = AiControl::parse(*raw);
+        } else if (auto text = data_->read("ai.txt")) {
+            ai_ = open::parseAi(*text);
+        }
+    } catch (const FormatError& e) {
+        log::warn("Monster AI: {}", e.what());
     }
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
@@ -103,14 +112,7 @@ void Game::loadScenario(const std::string& dir) {
     pendingScenario_.reset();
     // TEMP flags last for one visit; the others persist.
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp; });
-    if (!dir.empty()) {
-        try {
-            if (auto raw = data_->read(dir + "/Scenario.Mct")) control_ = ScenarioControl::parse(*raw);
-            if (auto raw = data_->read(dir + "/Scenario.Scs")) script_ = ScenarioScript::parse(*raw);
-        } catch (const FormatError& e) {
-            log::warn("{}: {}", dir, e.what());
-        }
-    }
+    if (!dir.empty()) readScenario(dir, control_, &script_);
     spawnActors();
     placePlayer();
     if (!script_) return;
@@ -130,19 +132,37 @@ void Game::loadScenario(const std::string& dir) {
 // the story); until story progress exists, use the first one.
 void Game::indexScenarios() {
     for (const auto& dir : data_->list("Scenario")) {
-        auto raw = data_->read("Scenario/" + dir + "/Scenario.Mct");
-        if (!raw) continue;
-        try {
-            const auto control = ScenarioControl::parse(*raw);
-            std::string map = control.mapPath;
-            const auto slash = map.find_last_of("\\/");
-            if (slash != std::string::npos) map = map.substr(slash + 1);
-            scenarioByMap_.emplace(lower(stem(map)), "Scenario/" + dir);
-        } catch (const FormatError& e) {
-            log::warn("Scenario {}: {}", dir, e.what());
-        }
+        ScenarioControl control;
+        if (!readScenario("Scenario/" + dir, control, nullptr)) continue;
+        std::string map = control.mapPath;
+        const auto slash = map.find_last_of("\\/");
+        if (slash != std::string::npos) map = map.substr(slash + 1);
+        scenarioByMap_.emplace(lower(stem(map)), "Scenario/" + dir);
     }
     log::info("Indexed {} scenario maps", scenarioByMap_.size());
+}
+
+// Scenario.Mct and Scenario.Scs from the original, or scenario.txt from an
+// open content pack. False when the scenario is missing or broken.
+bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const {
+    try {
+        if (auto text = data_->read(dir + "/scenario.txt")) {
+            auto parsed = open::parseScenario(*text);
+            control = std::move(parsed.control);
+            if (script) *script = std::move(parsed.script);
+            return true;
+        }
+        auto raw = data_->read(dir + "/Scenario.Mct");
+        if (!raw) return false;
+        control = ScenarioControl::parse(*raw);
+        if (script) {
+            if (auto scs = data_->read(dir + "/Scenario.Scs")) *script = ScenarioScript::parse(*scs);
+        }
+        return true;
+    } catch (const FormatError& e) {
+        log::warn("{}: {}", dir, e.what());
+        return false;
+    }
 }
 
 const CharacterModel* Game::model(const std::string& stem) {
@@ -201,7 +221,9 @@ void Game::placePlayer() {
     }
     const auto& objects = map_->objects().objects;
     const auto& g = map_->ground();
-    double cx = g.width * g.chipWidth / 2.0, cy = g.height * g.chipHeight / 2.0;
+    int left, top, right, bottom;
+    g.screenBounds(left, top, right, bottom);
+    double cx = (left + right) / 2.0, cy = (top + bottom) / 2.0;
     if (!objects.empty()) {
         int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
         for (const auto& o : objects) {
@@ -221,8 +243,10 @@ void Game::placePlayer() {
 void Game::placePlayerAt(double screenX, double screenY) {
     const auto& g = map_->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
-    const double cx = std::clamp(screenX, 0.0, static_cast<double>(g.width * g.chipWidth));
-    const double cy = std::clamp(screenY, 0.0, static_cast<double>(g.height * g.chipHeight));
+    int left, top, right, bottom;
+    g.screenBounds(left, top, right, bottom);
+    const double cx = std::clamp(screenX, static_cast<double>(left), static_cast<double>(right));
+    const double cy = std::clamp(screenY, static_cast<double>(top), static_cast<double>(bottom));
     walkTarget_.reset();
     attackTarget_.reset();
     double wx, wy;
@@ -350,16 +374,9 @@ void Game::changeScenario(int number, int entry) {
     pendingScenario_.reset();
     char dir[32];
     std::snprintf(dir, sizeof dir, "Scenario/%08d", number);
-    auto raw = data_->read(std::string(dir) + "/Scenario.Mct");
-    if (!raw) {
-        log::warn("Exit to scenario {} leads nowhere: {} is missing", number, dir);
-        return;
-    }
     ScenarioControl target;
-    try {
-        target = ScenarioControl::parse(*raw);
-    } catch (const FormatError& e) {
-        log::warn("{}: {}", dir, e.what());
+    if (!readScenario(dir, target, nullptr)) {
+        log::warn("Exit to scenario {} leads nowhere: {} is missing", number, dir);
         return;
     }
     std::string map = target.mapPath;
@@ -459,7 +476,7 @@ void Game::tickPlayer() {
         walkTarget_.reset();
         attackTarget_.reset();
         // A screen-space step converted to world space.
-        screenToWorld(kx * 0.15, ky * 0.10, dx, dy);
+        screenToWorld(kx * projection.x, ky * projection.y, dx, dy);
     } else if (attackTarget_) {
         const Character& enemy = actors_[*attackTarget_].character;
         dx = enemy.x - player_->x;
@@ -598,21 +615,10 @@ void Game::renderMap() {
     const int camY = static_cast<int>(std::floor(cameraY_));
     const auto& g = map_->ground();
 
-    // Ground chips: only the ones overlapping the view.
-    const int x0 = std::max(0, camX / g.chipWidth - 1);
-    const int y0 = std::max(0, camY / g.chipHeight - 1);
-    const int x1 = std::min(g.width, (camX + kScreenWidth) / g.chipWidth + 2);
-    const int y1 = std::min(g.height, (camY + kScreenHeight) / g.chipHeight + 2);
-    for (int cy = y0; cy < y1; ++cy) {
-        for (int cx = x0; cx < x1; ++cx) {
-            const auto& cell = g.at(cx, cy);
-            const SpriteBank* bank = map_->bank(cell.bank);
-            if (!bank) continue;
-            const SpriteTexture* sprite = sprites_.get(*bank, cell.pattern, true);
-            if (!sprite) continue;
-            SDL_Rect dst{cx * g.chipWidth - camX, cy * g.chipHeight - camY, sprite->width, sprite->height};
-            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
-        }
+    if (g.isoTile > 0) {
+        renderIsoGround(camX, camY);
+    } else {
+        renderChips(camX, camY);
     }
 
     // Objects and characters, back to front. Shadows go first so nothing
@@ -658,6 +664,60 @@ void Game::renderMap() {
     }
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
+}
+
+// The original's ground: pre-drawn chips on a screen-aligned grid.
+void Game::renderChips(int camX, int camY) {
+    const auto& g = map_->ground();
+    const int x0 = std::max(0, camX / g.chipWidth - 1);
+    const int y0 = std::max(0, camY / g.chipHeight - 1);
+    const int x1 = std::min(g.width, (camX + kScreenWidth) / g.chipWidth + 2);
+    const int y1 = std::min(g.height, (camY + kScreenHeight) / g.chipHeight + 2);
+    for (int cy = y0; cy < y1; ++cy) {
+        for (int cx = x0; cx < x1; ++cx) {
+            const auto& cell = g.at(cx, cy);
+            const SpriteBank* bank = map_->bank(cell.bank);
+            if (!bank) continue;
+            const SpriteTexture* sprite = sprites_.get(*bank, cell.pattern, true);
+            if (!sprite) continue;
+            SDL_Rect dst{cx * g.chipWidth - camX, cy * g.chipHeight - camY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+        }
+    }
+}
+
+// Open content ground: isometric tiles, drawn back to front so taller
+// tiles overlap the ones behind them.
+void Game::renderIsoGround(int camX, int camY) {
+    const auto& g = map_->ground();
+    // Tiles touching the view, with a margin for sprites that stick out.
+    int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
+    for (const auto& [px, py] : {std::pair{0, 0}, {kScreenWidth, 0}, {0, kScreenHeight}, {kScreenWidth, kScreenHeight}}) {
+        double wx, wy;
+        screenToWorld(camX + px, camY + py, wx, wy);
+        minX = std::min(minX, static_cast<int>(std::floor(wx / g.isoTile)));
+        maxX = std::max(maxX, static_cast<int>(std::floor(wx / g.isoTile)));
+        minY = std::min(minY, static_cast<int>(std::floor(wy / g.isoTile)));
+        maxY = std::max(maxY, static_cast<int>(std::floor(wy / g.isoTile)));
+    }
+    minX = std::max(0, minX - 2);
+    minY = std::max(0, minY - 2);
+    maxX = std::min(g.width - 1, maxX + 2);
+    maxY = std::min(g.height - 1, maxY + 2);
+    for (int sum = minX + minY; sum <= maxX + maxY; ++sum) {
+        for (int tx = std::max(minX, sum - maxY); tx <= std::min(maxX, sum - minY); ++tx) {
+            const int ty = sum - tx;
+            const auto& cell = g.at(tx, ty);
+            const SpriteBank* bank = map_->bank(cell.bank);
+            if (!bank) continue;
+            const SpriteTexture* sprite = sprites_.get(*bank, cell.pattern, false);
+            if (!sprite) continue;
+            int sx, sy;
+            worldToScreen(tx * g.isoTile + g.isoTile / 2, ty * g.isoTile + g.isoTile / 2, sx, sy);
+            SDL_Rect dst{sx - camX + sprite->originX, sy - camY + sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+        }
+    }
 }
 
 // Simple bars until the original status panel is drawn: the player's

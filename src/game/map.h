@@ -13,7 +13,8 @@ namespace sf {
 class FileSystem;
 
 // One playable area: Map/<name>.map plus its ground, object and
-// pattern-list files. Sprite banks are loaded on first use.
+// pattern-list files, or Map/<name>.txt from an open content pack. Sprite
+// banks are loaded on first use.
 class Map {
 public:
     static std::optional<Map> load(const FileSystem& data, const std::string& name);
@@ -31,6 +32,7 @@ public:
 private:
     const FileSystem* data_ = nullptr;
     std::string name_;
+    bool open_ = false;  // from an open content pack: banks are .sheet files
     std::vector<std::string> bankFiles_;
     mutable std::vector<std::unique_ptr<SpriteBank>> banks_;
     mutable std::vector<bool> bankTried_;
