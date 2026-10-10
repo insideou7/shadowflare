@@ -37,6 +37,14 @@ std::vector<std::uint8_t> expand(std::span<const std::uint8_t> src, int bpp, int
     return out;
 }
 
+// Reads a count and checks the file has room for that many items of at
+// least `minSize` bytes, so a corrupt count cannot trigger a huge allocation.
+std::uint32_t count(BinaryReader& in, std::size_t minSize) {
+    const std::uint32_t n = in.u32();
+    if (n > in.remaining() / minSize) throw FormatError("bad count in sprite bank");
+    return n;
+}
+
 }  // namespace
 
 SpriteBank SpriteBank::parse(std::span<const std::uint8_t> data) {
@@ -55,7 +63,7 @@ SpriteBank SpriteBank::parse(std::span<const std::uint8_t> data) {
     bank.version = (magic[12] - '0') * 100 + (magic[13] - '0') * 10 + (magic[14] - '0');
     if (bank.version < 0 || bank.version > 3) throw FormatError("unsupported sprite bank version");
 
-    const std::uint32_t partCount = in.u32();
+    const std::uint32_t partCount = count(in, 16);
     if (bank.version >= 3) in.u32();  // total pixel bytes, only used for allocation
     bank.parts.reserve(partCount);
     for (std::uint32_t i = 0; i < partCount; ++i) {
@@ -65,7 +73,9 @@ SpriteBank SpriteBank::parse(std::span<const std::uint8_t> data) {
         part.height = in.i32();
         const bool compressed = in.u32() != 0;
         if (bank.kind == SpriteBankKind::Shadow) part.bpp = 1;
-        if (part.width < 0 || part.height < 0) throw FormatError("bad sprite part size");
+        if (part.width < 0 || part.height < 0 || part.width > 4096 || part.height > 4096) {
+            throw FormatError("bad sprite part size");
+        }
         const std::size_t size = static_cast<std::size_t>(rowStride(part.bpp, part.width)) * part.height;
         if (compressed) {
             auto raw = rclib::readBlock(in);
@@ -76,16 +86,19 @@ SpriteBank SpriteBank::parse(std::span<const std::uint8_t> data) {
         bank.parts.push_back(std::move(part));
     }
 
-    const std::uint32_t patternCount = in.u32();
+    const std::uint32_t patternCount = count(in, 20);
     if (bank.version >= 3) in.u32();  // total part list entries
     bank.patterns.reserve(patternCount);
     for (std::uint32_t i = 0; i < patternCount; ++i) {
         Pattern pattern;
-        const std::uint32_t listCount = in.u32();
+        const std::uint32_t listCount = count(in, 28);
         pattern.x = in.i32();
         pattern.y = in.i32();
         pattern.width = in.i32();
         pattern.height = in.i32();
+        if (pattern.width < 0 || pattern.height < 0 || pattern.width > 4096 || pattern.height > 4096) {
+            throw FormatError("bad pattern size");
+        }
         if (bank.kind == SpriteBankKind::WithJudge) in.skip(0xa8);  // collision data, not decoded yet
         if (bank.version >= 1) pattern.palette = in.i32();
         pattern.parts.reserve(listCount);
@@ -103,7 +116,7 @@ SpriteBank SpriteBank::parse(std::span<const std::uint8_t> data) {
         bank.patterns.push_back(std::move(pattern));
     }
 
-    const std::uint32_t paletteCount = in.u32();
+    const std::uint32_t paletteCount = count(in, 1024);
     bank.palettes.resize(paletteCount);
     for (auto& palette : bank.palettes) {
         for (auto& c : palette) {

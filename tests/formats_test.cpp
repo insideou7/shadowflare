@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <initializer_list>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,7 @@
 #include "formats/rclib.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
+#include "formats/sprite_bank.h"
 #include "formats/table_data.h"
 
 namespace {
@@ -229,6 +231,51 @@ void testAi() {
     check(ai.lists[0].events.at(1).empty(), "AI empty event");
 }
 
+// Corrupt files must be rejected with FormatError, never crash or try to
+// allocate gigabytes because of a garbage count.
+template <typename Parse>
+void expectRejected(const char* what, const std::string& magic, std::initializer_list<std::uint32_t> words, Parse parse) {
+    std::vector<std::uint8_t> d(magic.begin(), magic.end());
+    d.resize(16);
+    for (std::uint32_t w : words) {
+        for (int k = 0; k < 4; ++k) d.push_back(static_cast<std::uint8_t>(w >> (8 * k)));
+    }
+    try {
+        parse(d);
+        check(false, what);
+    } catch (const sf::FormatError&) {
+    } catch (...) {
+        check(false, what);
+    }
+}
+
+void testCorruptFiles() {
+    const std::uint32_t huge = 0xffffffffu;
+    expectRejected("corrupt animation", "CHRAnimation002", {huge}, [](auto& d) { sf::AnimationSet::parse(d); });
+    expectRejected("corrupt sprite parts", "NJudgeUniPat003", {huge}, [](auto& d) { sf::SpriteBank::parse(d); });
+    expectRejected("corrupt sprite patterns", "NJudgeUniPat000", {0, huge}, [](auto& d) { sf::SpriteBank::parse(d); });
+    expectRejected("corrupt sprite size", "NJudgeUniPat000", {1, 8, 100000, 100000, 0}, [](auto& d) { sf::SpriteBank::parse(d); });
+    expectRejected("corrupt objects", "RPGSCRN_OBJv001", {0x7fffffff}, [](auto& d) { sf::ObjectLayer::parse(d); });
+    expectRejected("corrupt ground", "RPGSCRN_GNDv000", {4, 4, 64, 48, 0, 0, 0}, [](auto& d) { sf::GroundLayer::parse(d); });
+    expectRejected("corrupt scenario script", "ScenaScriptV000", {huge}, [](auto& d) { sf::ScenarioScript::parse(d); });
+    expectRejected("corrupt AI", "RKC_AIDATA v001", {huge, 18}, [](auto& d) { sf::AiControl::parse(d); });
+    expectRejected("corrupt table", "TABLE DATA V000", {0, huge}, [](auto& d) { sf::GameTables::parse(d); });
+    // An LZ header claiming far more output than its data can hold.
+    std::vector<std::uint8_t> lz = {'R', 'C', 'L', 'I', 'B', '-', 'L', 0x1a};
+    for (std::uint32_t w : {0x7fffffffu, 1u}) {
+        for (int k = 0; k < 4; ++k) lz.push_back(static_cast<std::uint8_t>(w >> (8 * k)));
+    }
+    lz.push_back(0);
+    try {
+        sf::BinaryReader in(lz);
+        sf::rclib::readBlock(in);
+        check(false, "corrupt LZ size");
+    } catch (const sf::FormatError&) {
+    } catch (...) {
+        check(false, "corrupt LZ size");
+    }
+}
+
 void testScript() {
     std::vector<std::uint8_t> d;
     auto i32 = [&](std::int32_t v) {
@@ -305,6 +352,7 @@ int main() {
     testScenario();
     testScript();
     testAi();
+    testCorruptFiles();
     testTables();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
