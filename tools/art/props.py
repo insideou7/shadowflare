@@ -23,8 +23,9 @@ WOOD = dict(colour=(0.66, 0.46, 0.22), dark=(0.14, 0.09, 0.05), scale=14, detail
 
 
 BARK = dict(colour=(0.58, 0.40, 0.42), dark=(0.16, 0.09, 0.10), scale=14, bump=0.6)
-LEAF_LIGHT = (0.50, 0.64, 0.13)
-LEAF_DARK = (0.05, 0.10, 0.03)
+TRUNK = dict(colour=(0.34, 0.22, 0.24), dark=(0.10, 0.06, 0.07), scale=14, bump=0.6)
+LEAF_LIGHT = (0.56, 0.74, 0.14)
+LEAF_DARK = (0.04, 0.08, 0.02)
 
 
 def branch(points, radius, mat):
@@ -68,11 +69,11 @@ def tree(seed):
     import bmesh
     rng = random.Random(seed)
     bark = studio.material("bark", **BARK)
-    height = rng.uniform(7.5, 8.5)
-    fork = height * rng.uniform(0.25, 0.32)
+    height = rng.uniform(10.0, 11.0)
+    fork = height * rng.uniform(0.36, 0.42)
     lean = Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0))
     trunk = [tuple(lean * (i / 6) ** 2 + Vector((0, 0, height * i / 6))) for i in range(7)]
-    branch(trunk, 0.2, bark)
+    branch(trunk, 0.26, studio.material("trunk", **TRUNK))
     leaves = bmesh.new()
     shade = leaves.faces.layers.float.new("shade")
 
@@ -85,9 +86,9 @@ def tree(seed):
         face = leaves.faces.new([leaves.verts.new(c + u), leaves.verts.new(c + v),
                                  leaves.verts.new(c - u), leaves.verts.new(c - v)])
         # Mostly dark leaves with bright ones speckled through, more on top.
-        face[shade] = min(1.0, rng.random() ** 2.2 + light * 0.25)
+        face[shade] = min(1.0, rng.random() ** 4 + light * 0.25)
 
-    def hang(start, direction, length, n, spread=0.07, per=11):
+    def hang(start, direction, length, n, spread=0.07, per=14):
         """A twig hanging from start, curving down, with leaves along it."""
         p, d = Vector(start), Vector(direction).normalized()
         pts = [tuple(p)]
@@ -113,23 +114,23 @@ def tree(seed):
         for j in range(1, 7):
             for _ in range(1 if depth else 2):
                 d = direction + side * rng.uniform(-1.0, 1.0) + Vector((0, 0, 0.3))
-                hang(pts[j], d, rng.uniform(0.6, 1.4) * (0.6 + 0.4 * j / 6), 6)
+                hang(pts[j], d, rng.uniform(0.4, 0.9) * (0.6 + 0.4 * j / 6), 5)
             if depth and j in (2, 4):
                 a = rng.choice((-1, 1)) * rng.uniform(0.5, 0.9)
                 sub = direction * math.cos(a) + side * math.sin(a)
                 limb(pts[j], sub, length * 0.45, rise * 0.8, radius * 0.5, depth - 1)
         return pts
 
-    # Limbs spiral up the trunk from low down to the top, longer lower
-    # down, each arching out and over.
-    n = rng.randint(12, 15)
+    # Limbs spiral up the trunk from low down to the top, shorter towards
+    # the top for a conical outline, each reaching out and drooping.
+    n = rng.randint(16, 19)
     for i in range(n):
         angle = i * 2.4 + rng.uniform(-0.3, 0.3)
         z = fork + (height * 0.97 - fork) * (i + rng.uniform(0.1, 0.9)) / n
         k = (z - fork) / (height - fork)
         at = lean * (z / height) ** 2 + Vector((0, 0, z))
-        limb(at, (math.cos(angle), math.sin(angle), 0), rng.uniform(2.1, 2.9) * (1.1 - 0.6 * k),
-             rng.uniform(0.9, 1.3), 0.12, 1)
+        limb(at, (math.cos(angle), math.sin(angle), 0), rng.uniform(2.8, 3.3) * (1.0 - 0.85 * k) + 0.2,
+             rng.uniform(0.45, 0.75), 0.12, 1)
     for _ in range(4):
         a = rng.uniform(0, 2 * math.pi)
         hang(trunk[-1], (math.cos(a), math.sin(a), 0.8), rng.uniform(0.6, 1.0), 5)
