@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "game/character.h"
 #include "game/map.h"
 #include "render/sprite_cache.h"
 
@@ -22,8 +23,8 @@ inline constexpr int kScreenHeight = 480;
 // can later be matched tick-for-tick against the original executable.
 inline constexpr int kTicksPerSecond = 20;
 
-// For now the game is a map viewer: it loads a level from the original
-// data and lets you scroll around it.
+// For now the game is a map viewer with a walking player: it loads a level
+// from the original data and lets you walk around it.
 class Game {
 public:
     Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap);
@@ -33,11 +34,16 @@ public:
     void render(double interpolation);
 
     bool wantsQuit() const { return quit_; }
+
+    // Starts walking towards a point given relative to the player on screen
+    // (used for scripted smoke tests).
+    void walkBy(int screenDx, int screenDy);
     std::uint64_t tickCount() const { return ticks_; }
 
 private:
     void loadMap(std::size_t index);
-    void centerCamera();
+    void placePlayer();
+    void updateCamera();
     void renderMap();
     void renderPlaceholder(double interpolation);
 
@@ -49,8 +55,12 @@ private:
     std::optional<Map> map_;
     std::vector<std::size_t> drawOrder_;  // objects sorted back to front
 
+    std::optional<CharacterModel> playerModel_;
+    std::optional<Character> player_;
+    std::optional<std::pair<double, double>> walkTarget_;  // world units
+    bool mouseHeld_ = false;
+
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
-    bool dragging_ = false;
     std::uint64_t ticks_ = 0;
     bool quit_ = false;
 };

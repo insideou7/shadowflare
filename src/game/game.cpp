@@ -12,7 +12,8 @@ namespace sf {
 
 namespace {
 
-constexpr double kScrollPixelsPerTick = 24.0;
+// Walking speed in world units per tick. Not yet taken from the original.
+constexpr double kWalkSpeed = 70.0;
 
 std::string stem(const std::string& file) {
     const auto dot = file.rfind('.');
@@ -31,6 +32,8 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     : renderer_(renderer), data_(data), sprites_(renderer) {
     // Every level has a ground file; use those to enumerate maps.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
+    playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    if (playerModel_) player_.emplace(&*playerModel_);
     if (mapNames_.empty()) {
         log::warn("No maps found in the game data; showing a placeholder screen");
         return;
@@ -56,10 +59,11 @@ void Game::loadMap(std::size_t index) {
     std::ranges::stable_sort(drawOrder_, [&](std::size_t a, std::size_t b) {
         return objects[a].x + objects[a].y < objects[b].x + objects[b].y;
     });
-    centerCamera();
+    placePlayer();
 }
 
-void Game::centerCamera() {
+// Puts the player in the middle of the map's scenery and points the camera at them.
+void Game::placePlayer() {
     const auto& objects = map_->objects().objects;
     const auto& g = map_->ground();
     double cx = g.width * g.chipWidth / 2.0, cy = g.height * g.chipHeight / 2.0;
@@ -76,8 +80,28 @@ void Game::centerCamera() {
         cx = (minX + maxX) / 2.0;
         cy = (minY + maxY) / 2.0;
     }
+    walkTarget_.reset();
+    if (player_) {
+        screenToWorld(cx, cy, player_->x, player_->y);
+        player_->setAction(Action::Idle);
+    }
     cameraX_ = cx - kScreenWidth / 2.0;
     cameraY_ = cy - kScreenHeight / 2.0;
+}
+
+void Game::walkBy(int screenDx, int screenDy) {
+    if (!player_) return;
+    double dx, dy;
+    screenToWorld(screenDx, screenDy, dx, dy);
+    walkTarget_.emplace(player_->x + dx, player_->y + dy);
+}
+
+void Game::updateCamera() {
+    if (!player_) return;
+    int sx, sy;
+    worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
+    cameraX_ = sx - kScreenWidth / 2.0;
+    cameraY_ = sy - kScreenHeight / 2.0;
 }
 
 void Game::handleEvent(const SDL_Event& event) {
@@ -95,23 +119,16 @@ void Game::handleEvent(const SDL_Event& event) {
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
                 case SDLK_HOME:
-                    if (map_) centerCamera();
+                    if (map_) placePlayer();
                     break;
                 default: break;
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
-            if (event.button.button == SDL_BUTTON_LEFT) dragging_ = true;
+            if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = true;
             break;
         case SDL_MOUSEBUTTONUP:
-            if (event.button.button == SDL_BUTTON_LEFT) dragging_ = false;
-            break;
-        case SDL_MOUSEMOTION:
-            if (dragging_) {
-                // Motion is reported in logical (640x480) coordinates.
-                cameraX_ -= event.motion.xrel;
-                cameraY_ -= event.motion.yrel;
-            }
+            if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = false;
             break;
         default: break;
     }
@@ -119,11 +136,51 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::tick() {
     ++ticks_;
+    if (!player_) return;
+
+    // Holding the left button walks towards the cursor, like the original.
+    if (mouseHeld_) {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        float lx, ly;
+        SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
+        double wx, wy;
+        screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
+        walkTarget_.emplace(wx, wy);
+    }
+
+    // Keyboard movement in screen directions.
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
-    if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A]) cameraX_ -= kScrollPixelsPerTick;
-    if (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D]) cameraX_ += kScrollPixelsPerTick;
-    if (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W]) cameraY_ -= kScrollPixelsPerTick;
-    if (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S]) cameraY_ += kScrollPixelsPerTick;
+    double kx = 0, ky = 0;
+    if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A]) kx -= 1;
+    if (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D]) kx += 1;
+    if (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W]) ky -= 1;
+    if (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S]) ky += 1;
+
+    double dx = 0, dy = 0;
+    if (kx != 0 || ky != 0) {
+        walkTarget_.reset();
+        // A screen-space step converted to world space.
+        screenToWorld(kx * 0.15, ky * 0.10, dx, dy);
+    } else if (walkTarget_) {
+        dx = walkTarget_->first - player_->x;
+        dy = walkTarget_->second - player_->y;
+    }
+
+    const double length = std::hypot(dx, dy);
+    if (length > 1.0) {
+        const double step = std::min(kWalkSpeed, walkTarget_ ? length : kWalkSpeed);
+        player_->x += dx / length * step;
+        player_->y += dy / length * step;
+        player_->faceTowards(dx, dy);
+        player_->setAction(Action::Walk);
+        if (walkTarget_ && length <= kWalkSpeed) walkTarget_.reset();
+    } else {
+        walkTarget_.reset();
+        player_->setAction(Action::Idle);
+    }
+    player_->tick();
+    updateCamera();
 }
 
 void Game::render(double interpolation) {
@@ -161,11 +218,18 @@ void Game::renderMap() {
     }
 
     // Objects, back to front. Shadows go first so nothing stands under one.
+    // The player is drawn in the second pass at their place in the order.
     const auto& objects = map_->objects().objects;
+    const double playerDepth = player_ ? player_->x + player_->y : 0;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
+        bool playerDrawn = !player_ || shadows;
         for (std::size_t i : drawOrder_) {
             const MapObject& o = objects[i];
+            if (!playerDrawn && o.x + o.y > playerDepth) {
+                player_->draw(renderer_, sprites_, camX, camY);
+                playerDrawn = true;
+            }
             if (map_->isShadowBank(o.bank) != shadows) continue;
             const SpriteBank* bank = map_->bank(o.bank);
             if (!bank) continue;
@@ -184,6 +248,7 @@ void Game::renderMap() {
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
+        if (!playerDrawn) player_->draw(renderer_, sprites_, camX, camY);
     }
 }
 

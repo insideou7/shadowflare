@@ -4,9 +4,11 @@
 #include <emscripten.h>
 #endif
 
+#include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -20,6 +22,7 @@ struct Options {
     std::filesystem::path dataDir = "game";
     std::string map = "c02_00";
     std::string screenshot;  // saved as BMP when the run ends
+    std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
 };
 
@@ -33,6 +36,9 @@ Options parseArgs(int argc, char** argv) {
             options.map = argv[++i];
         } else if (arg == "--screenshot" && i + 1 < argc) {
             options.screenshot = argv[++i];
+        } else if (arg == "--walk" && i + 1 < argc) {
+            int dx = 0, dy = 0;
+            if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) options.walk.emplace(dx, dy);
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
         } else {
@@ -57,11 +63,12 @@ std::filesystem::path findInstallRoot(const std::filesystem::path& root) {
 }
 
 void saveScreenshot(SDL_Renderer* renderer, const std::string& path) {
-    SDL_Surface* surface =
-        SDL_CreateRGBSurfaceWithFormat(0, sf::kScreenWidth, sf::kScreenHeight, 32, SDL_PIXELFORMAT_ARGB8888);
+    // Reads the whole window, which is the 640x480 view scaled up.
+    int w = 0, h = 0;
+    if (SDL_GetRendererOutputSize(renderer, &w, &h) != 0) return;
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, w, h, 32, SDL_PIXELFORMAT_ARGB8888);
     if (!surface) return;
-    SDL_Rect area{0, 0, sf::kScreenWidth, sf::kScreenHeight};
-    if (SDL_RenderReadPixels(renderer, &area, SDL_PIXELFORMAT_ARGB8888, surface->pixels, surface->pitch) == 0 &&
+    if (SDL_RenderReadPixels(renderer, nullptr, SDL_PIXELFORMAT_ARGB8888, surface->pixels, surface->pitch) == 0 &&
         SDL_SaveBMP(surface, path.c_str()) == 0) {
         sf::log::info("Saved screenshot to {}", path);
     } else {
@@ -150,6 +157,7 @@ int main(int argc, char** argv) {
     }
     app.data = std::make_unique<sf::DirectoryFileSystem>(installRoot);
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), options.map);
+    if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

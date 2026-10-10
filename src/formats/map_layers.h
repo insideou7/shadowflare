@@ -52,4 +52,12 @@ inline void worldToScreen(int wx, int wy, int& sx, int& sy) {
     sy = (wx + wy) * 10 / 100;
 }
 
+// Inverse of worldToScreen (RKC_RPGSCRN::CalcWorldPos).
+inline void screenToWorld(double sx, double sy, double& wx, double& wy) {
+    const double a = sx * 100 / 15;  // wx - wy
+    const double b = sy * 100 / 10;  // wx + wy
+    wx = (a + b) / 2;
+    wy = (b - a) / 2;
+}
+
 }  // namespace sf

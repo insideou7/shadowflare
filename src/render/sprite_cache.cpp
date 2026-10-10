@@ -26,11 +26,14 @@ const SpriteTexture* SpriteCache::get(const SpriteBank& bank, int pattern, bool 
     SpriteTexture sprite;
     const Pattern& pat = bank.patterns[pattern];
     int x0, y0, w, h;
-    if (bank.bounds(pat, x0, y0, w, h) && !bank.palettes.empty()) {
-        const int paletteIndex = pat.palette >= 0 && static_cast<std::size_t>(pat.palette) < bank.palettes.size()
-                                     ? pat.palette
-                                     : 0;
-        const Palette& palette = bank.palettes[paletteIndex];
+    if (bank.bounds(pat, x0, y0, w, h)) {
+        // Some shadow banks carry no palette; any non-zero index is then drawn black.
+        static const Palette kFallback{};
+        const Palette& palette =
+            bank.palettes.empty() ? kFallback
+            : pat.palette >= 0 && static_cast<std::size_t>(pat.palette) < bank.palettes.size()
+                ? bank.palettes[pat.palette]
+                : bank.palettes[0];
         std::vector<std::uint32_t> pixels(static_cast<std::size_t>(w) * h, 0);
         for (const auto& placed : pat.parts) {
             if (placed.part < 0 || static_cast<std::size_t>(placed.part) >= bank.parts.size()) continue;
