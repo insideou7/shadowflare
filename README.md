@@ -80,7 +80,11 @@ decoders for the formats in `docs/formats.md`, for example
 
 renders a whole map to an image.
 
-## Legal
+## Licence
 
-The original game is copyrighted. Do not commit its files, extracted
-assets or decompiled code to this repository.
+The engine is free software under the GNU General Public License,
+version 3 or later; see [LICENSE](LICENSE).
+
+The original game is copyrighted and is not covered by this licence. Do
+not commit its files, extracted assets or decompiled code to this
+repository.
