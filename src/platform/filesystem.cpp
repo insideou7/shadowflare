@@ -67,4 +67,16 @@ std::optional<std::vector<std::uint8_t>> DirectoryFileSystem::read(std::string_v
     return data;
 }
 
+std::vector<std::string> DirectoryFileSystem::list(std::string_view directory) const {
+    std::vector<std::string> names;
+    auto resolved = resolve(directory);
+    if (!resolved) return names;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(*resolved, ec)) {
+        if (entry.is_regular_file(ec)) names.push_back(entry.path().filename().string());
+    }
+    std::ranges::sort(names);
+    return names;
+}
+
 }  // namespace sf
