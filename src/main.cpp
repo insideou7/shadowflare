@@ -24,6 +24,7 @@ struct Options {
     std::string screenshot;  // saved as BMP when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
+    long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
     std::optional<std::pair<int, int>> at;  // start position in map pixels
@@ -51,6 +52,8 @@ Options parseArgs(int argc, char** argv) {
             options.showJudge = true;
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
+        } else if (arg == "--ticks" && i + 1 < argc) {
+            options.ticks = std::strtol(argv[++i], nullptr, 10);
         } else {
             sf::log::warn("Unknown argument: {}", arg);
         }
@@ -96,6 +99,7 @@ struct App {
     double accumulator = 0.0;
     long frames = 0;
     long maxFrames = -1;
+    long ticks = -1;  // fixed-step mode: one tick per frame, then quit
     bool running = true;
 };
 
@@ -112,15 +116,23 @@ void frame(void* userData) {
     app.lastCounter = now;
 
     constexpr double kTickSeconds = 1.0 / sf::kTicksPerSecond;
-    app.accumulator += SDL_min(elapsed, 0.25);
-    while (app.accumulator >= kTickSeconds) {
-        app.game->tick();
-        app.accumulator -= kTickSeconds;
+    if (app.ticks >= 0) {
+        // Repeatable runs for tests: the simulation advances one tick per
+        // frame whatever the clock says.
+        if (static_cast<long>(app.game->tickCount()) < app.ticks) app.game->tick();
+        app.game->render(0.0);
+    } else {
+        app.accumulator += SDL_min(elapsed, 0.25);
+        while (app.accumulator >= kTickSeconds) {
+            app.game->tick();
+            app.accumulator -= kTickSeconds;
+        }
+        app.game->render(app.accumulator / kTickSeconds);
     }
-    app.game->render(app.accumulator / kTickSeconds);
 
     ++app.frames;
-    if (app.game->wantsQuit() || (app.maxFrames >= 0 && app.frames >= app.maxFrames)) {
+    const bool ticksDone = app.ticks >= 0 && static_cast<long>(app.game->tickCount()) >= app.ticks;
+    if (app.game->wantsQuit() || ticksDone || (app.maxFrames >= 0 && app.frames >= app.maxFrames)) {
         app.running = false;
 #ifdef __EMSCRIPTEN__
         emscripten_cancel_main_loop();
@@ -140,6 +152,7 @@ int main(int argc, char** argv) {
 
     App app;
     app.maxFrames = options.maxFrames;
+    app.ticks = options.ticks;
     app.window = SDL_CreateWindow("ShadowFlare", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   sf::kScreenWidth * 2, sf::kScreenHeight * 2, SDL_WINDOW_RESIZABLE);
     if (!app.window) {
