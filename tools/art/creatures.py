@@ -88,9 +88,9 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
 
 
 def build_goblin():
-    skin = studio.material("skin", (0.42, 0.58, 0.20), (0.18, 0.28, 0.08), scale=12, bump=0.4)
+    skin = studio.material("skin", (0.50, 0.64, 0.24), (0.22, 0.32, 0.09), scale=12, bump=0.5)
     cloth = studio.material("cloth", (0.40, 0.30, 0.18), (0.18, 0.12, 0.07), scale=20, bump=0.3)
-    iron = studio.material("iron", (0.55, 0.55, 0.55), (0.25, 0.25, 0.27), scale=30, rough=0.4, bump=0.2)
+    iron = studio.material("iron", (0.80, 0.80, 0.82), (0.35, 0.35, 0.38), scale=30, rough=0.3, bump=0.2)
     wood = studio.material("handle", (0.40, 0.28, 0.16), scale=25)
     rig = Rig()
     rig.joint("hips", "root", (0, 0, 0.85))
@@ -116,15 +116,15 @@ def build_goblin():
     limb(rig, "leg_r", 0.80, 0.10, skin, "box", skin, (0.18, 0.09, 0.05))
     # An axe in the right hand, pointing forward.
     rig.joint("weapon", "arm_r", (0, 0, -0.75))
-    rig.attach(shape("cylinder", (0.035, 0.035, 0.55), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.3, 0, 0))
-    rig.attach(shape("box", (0.13, 0.025, 0.2), iron), "weapon", (0.72, 0, 0.12))
+    rig.attach(shape("cylinder", (0.045, 0.045, 0.65), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.35, 0, 0))
+    rig.attach(shape("box", (0.18, 0.035, 0.30), iron), "weapon", (0.85, 0, 0.16))
     return rig
 
 
 def build_hero():
     skin = studio.material("skin", (0.80, 0.60, 0.45), (0.50, 0.33, 0.22), scale=12, bump=0.1)
     hair = studio.material("hair", (0.22, 0.14, 0.08), scale=40, bump=0.5)
-    tunic = studio.material("tunic", (0.32, 0.38, 0.50), (0.14, 0.16, 0.22), scale=18, bump=0.3)
+    tunic = studio.material("tunic", (0.38, 0.45, 0.58), (0.15, 0.18, 0.25), scale=18, bump=0.3)
     trousers = studio.material("trousers", (0.30, 0.24, 0.18), (0.12, 0.10, 0.07), scale=18)
     leather = studio.material("leather", (0.36, 0.22, 0.12), (0.15, 0.09, 0.05), scale=25, rough=0.6)
     steel = studio.material("steel", (0.78, 0.78, 0.80), (0.40, 0.40, 0.44), scale=40, rough=0.3, bump=0.1)
@@ -145,6 +145,12 @@ def build_hero():
     limb(rig, "arm_r", 0.95, 0.075, tunic, "ball", skin, (0.09, 0.09, 0.09))
     limb(rig, "leg_l", 1.20, 0.10, trousers, "box", leather, (0.20, 0.09, 0.07))
     limb(rig, "leg_r", 1.20, 0.10, trousers, "box", leather, (0.20, 0.09, 0.07))
+    # Shoulder guards, boots and a belt buckle.
+    for side in ("arm_l", "arm_r"):
+        rig.attach(shape("ball", (0.17, 0.16, 0.12), leather), side, (0, 0, 0.0))
+    for side in ("leg_l", "leg_r"):
+        rig.attach(shape("cylinder", (0.12, 0.12, 0.2), leather), side, (0, 0, -1.0))
+    rig.attach(shape("box", (0.03, 0.07, 0.06), steel), "hips", (0.29, 0, 0.02))
     # A short sword in the right hand.
     rig.joint("weapon", "arm_r", (0, 0, -0.95))
     rig.attach(shape("cylinder", (0.03, 0.03, 0.12), leather, rotation=(0, math.radians(90), 0)), "weapon", (0.05, 0, 0))

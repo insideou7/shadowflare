@@ -31,23 +31,25 @@ def tree(seed):
     height = rng.uniform(9.0, 11.0)
     bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=0.38, radius2=0.10, depth=height, location=(0, 0, height / 2))
     studio.smooth(studio.assign(bpy.context.object, bark))
-    # Branches up the trunk, each ending in a few clumps of leaves.
-    for i in range(14):
+    # Branches up the trunk with clumps of leaves along their outer half.
+    for i in range(16):
         angle = rng.uniform(0, 2 * math.pi)
-        z = rng.uniform(height * 0.30, height * 0.88)
-        length = rng.uniform(1.6, 3.0) * (1.15 - z / height)
-        tip = (math.cos(angle) * length, math.sin(angle) * length, z + length * 0.5)
-        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.08, radius2=0.02, depth=length * 1.1,
-                                        location=(tip[0] / 2, tip[1] / 2, z + length * 0.25),
-                                        rotation=(0, math.radians(62), angle))
+        z = rng.uniform(height * 0.28, height * 0.85)
+        length = rng.uniform(2.8, 4.4) * (1.25 - z / height)
+        tip = (math.cos(angle) * length, math.sin(angle) * length, z + length * 0.45)
+        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.09, radius2=0.02, depth=length * 1.1,
+                                        location=(tip[0] / 2, tip[1] / 2, z + length * 0.22),
+                                        rotation=(0, math.radians(64), angle))
         studio.assign(bpy.context.object, bark)
-        for j in range(3):
-            size = rng.uniform(0.55, 0.95)
+        for j in range(5):
+            k = rng.uniform(0.35, 1.05)
+            size = rng.uniform(0.5, 0.9)
             bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=size, location=(
-                tip[0] + rng.uniform(-0.5, 0.5), tip[1] + rng.uniform(-0.5, 0.5), tip[2] + rng.uniform(-0.3, 0.5)))
+                tip[0] * k + rng.uniform(-0.3, 0.3), tip[1] * k + rng.uniform(-0.3, 0.3),
+                z + (tip[2] - z) * k + rng.uniform(-0.1, 0.4)))
             clump = bpy.context.object
-            clump.scale = (1, 1, 0.75)
-            studio.displace(clump, 0.8, 0.22, seed * 100 + i * 3 + j)
+            clump.scale = (1, 1, 0.6)
+            studio.displace(clump, 0.9, 0.18, seed * 100 + i * 5 + j)
             studio.smooth(studio.assign(clump, leaves))
     for j in range(4):
         size = rng.uniform(0.6, 0.9)

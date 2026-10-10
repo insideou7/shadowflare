@@ -75,7 +75,7 @@ class Ground:
         dirt = colour(np.array([96, 72, 48.0]), np.array([58, 42, 28.0]), np.array([120, 96, 66.0]),
                       0.45 * big, fine)
         tuft = np.clip(self.tuft(u, v) * 0.8, -1, 1)
-        grass = colour(np.array([58, 82, 30.0]), np.array([34, 54, 18.0]), np.array([84, 108, 44.0]),
+        grass = colour(np.array([56, 72, 30.0]), np.array([30, 43, 16.0]), np.array([78, 94, 40.0]),
                        0.35 * big + 0.35 * tuft, fine * 1.3)
         return grass, dirt, self.edge(u, v)
 
