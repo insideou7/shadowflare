@@ -3,11 +3,14 @@
 #include <SDL.h>
 
 #include <cstdint>
+#include <map>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 #include "game/character.h"
+#include "formats/scenario.h"
 #include "game/map.h"
 #include "render/sprite_cache.h"
 
@@ -45,6 +48,9 @@ public:
 
 private:
     void loadMap(std::size_t index);
+    void indexScenarios();
+    void spawnActors();
+    const CharacterModel* model(const std::string& stem);
     void placePlayer();
     void updateCamera();
     bool tryMove(double dx, double dy);
@@ -59,6 +65,15 @@ private:
     std::size_t mapIndex_ = 0;
     std::optional<Map> map_;
     std::vector<std::size_t> drawOrder_;  // objects sorted back to front
+
+    // People and monsters placed by the map's scenario file.
+    struct Actor {
+        ScenarioControl::Placement placement;
+        Character character;
+    };
+    std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
+    std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
+    std::vector<Actor> actors_;
 
     std::optional<CharacterModel> playerModel_;
     std::optional<Character> player_;

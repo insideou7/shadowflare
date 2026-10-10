@@ -12,7 +12,8 @@ engine elsewhere with `--data`.
 A walkable map viewer. The engine loads any level from the original game
 (ground tiles, walls, trees and props) and puts the player character in
 it, animated in all eight directions, and walls and trees block the way.
-Monsters, items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+Townspeople and monsters stand where the game's scenario files put them,
+but don't move, talk or fight yet. Items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor, or use

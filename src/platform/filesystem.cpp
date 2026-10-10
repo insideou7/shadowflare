@@ -73,7 +73,7 @@ std::vector<std::string> DirectoryFileSystem::list(std::string_view directory) c
     if (!resolved) return names;
     std::error_code ec;
     for (const auto& entry : std::filesystem::directory_iterator(*resolved, ec)) {
-        if (entry.is_regular_file(ec)) names.push_back(entry.path().filename().string());
+        names.push_back(entry.path().filename().string());
     }
     std::ranges::sort(names);
     return names;

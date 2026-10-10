@@ -14,6 +14,7 @@ add_library(sf_formats STATIC
     src/formats/sprite_bank.cpp
     src/formats/map_layers.cpp
     src/formats/animation.cpp
+    src/formats/scenario.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
