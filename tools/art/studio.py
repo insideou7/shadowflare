@@ -88,7 +88,8 @@ def linear(c):
     return tuple(x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in c)
 
 
-def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.3, spot=0.0, spot_colour=None):
+def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.3, spot=0.0, spot_colour=None,
+             stretch=None, band=(0.3, 0.75)):
     """A matte material whose colour wobbles with noise, like the
     textured models of late-90s pre-rendered games. Colours are sRGB."""
     colour = linear(colour)
@@ -102,10 +103,17 @@ def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.
     noise = nodes.new("ShaderNodeTexNoise")
     noise.inputs["Scale"].default_value = scale
     noise.inputs["Detail"].default_value = detail
+    if stretch:
+        # Squash the noise along some axes, for grain and streaks.
+        coords = nodes.new("ShaderNodeTexCoord")
+        mapping = nodes.new("ShaderNodeMapping")
+        mapping.inputs["Scale"].default_value = stretch
+        links.new(coords.outputs["Object"], mapping.inputs["Vector"])
+        links.new(mapping.outputs["Vector"], noise.inputs["Vector"])
     ramp = nodes.new("ShaderNodeValToRGB")
-    ramp.color_ramp.elements[0].position = 0.3
+    ramp.color_ramp.elements[0].position = band[0]
     ramp.color_ramp.elements[0].color = (*(dark or [c * 0.55 for c in colour]), 1)
-    ramp.color_ramp.elements[1].position = 0.75
+    ramp.color_ramp.elements[1].position = band[1]
     ramp.color_ramp.elements[1].color = (*colour, 1)
     links.new(noise.outputs["Fac"], ramp.inputs["Fac"])
     out = ramp.outputs["Color"]

@@ -19,12 +19,12 @@ import studio  # noqa: E402
 
 ROCK = dict(colour=(0.46, 0.43, 0.37), dark=(0.20, 0.19, 0.16), scale=5, bump=0.9,
             spot=0.2, spot_colour=(0.30, 0.36, 0.15))
-WOOD = dict(colour=(0.47, 0.35, 0.21), dark=(0.20, 0.14, 0.08), scale=9, bump=0.5)
+WOOD = dict(colour=(0.66, 0.46, 0.22), dark=(0.14, 0.09, 0.05), scale=14, detail=3, bump=1.2, stretch=(4, 4, 0.08), band=(0.42, 0.56))
 
 
-BARK = dict(colour=(0.40, 0.24, 0.25), dark=(0.13, 0.07, 0.08), scale=14, bump=0.6)
-LEAF_LIGHT = (0.58, 0.66, 0.14)
-LEAF_DARK = (0.10, 0.17, 0.04)
+BARK = dict(colour=(0.58, 0.40, 0.42), dark=(0.16, 0.09, 0.10), scale=14, bump=0.6)
+LEAF_LIGHT = (0.50, 0.64, 0.13)
+LEAF_DARK = (0.05, 0.10, 0.03)
 
 
 def branch(points, radius, mat):
@@ -62,69 +62,83 @@ def leaf_material():
 
 
 def tree(seed):
-    """A birch-like tree in the original's manner: a thin dark trunk, arching
-    branches and drooping sprays of small leaves with the ground showing
-    through."""
+    """A weeping, birch-like tree in the original's manner: a thin dark
+    trunk that forks into long arching limbs, hanging twigs and a haze of
+    tiny leaves with the branches and ground showing through."""
     import bmesh
     rng = random.Random(seed)
     bark = studio.material("bark", **BARK)
-    height = rng.uniform(7.0, 8.5)
-    lean = (rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3))
-    trunk = [(lean[0] * (i / 6) ** 2, lean[1] * (i / 6) ** 2, height * i / 6) for i in range(7)]
-    branch(trunk, 0.22, bark)
+    height = rng.uniform(6.5, 7.5)
+    fork = height * rng.uniform(0.45, 0.55)
+    lean = Vector((rng.uniform(-0.25, 0.25), rng.uniform(-0.25, 0.25), 0))
+    trunk = [tuple(lean * (i / 6) ** 2 + Vector((0, 0, height * i / 6))) for i in range(7)]
+    branch(trunk, 0.2, bark)
     leaves = bmesh.new()
     shade = leaves.faces.layers.float.new("shade")
 
-    def leaf(at):
-        s = rng.uniform(0.09, 0.15)
+    def leaf(at, light):
+        s = rng.uniform(0.035, 0.06)
         a, b = rng.uniform(0, math.pi), rng.uniform(0, 2 * math.pi)
         u = Vector((math.cos(b), math.sin(b), 0)) * s
-        v = Vector((-math.sin(b) * math.cos(a), math.cos(b) * math.cos(a), math.sin(a))) * s * 0.7
+        v = Vector((-math.sin(b) * math.cos(a), math.cos(b) * math.cos(a), math.sin(a))) * s * 0.6
         c = Vector(at)
-        verts = [leaves.verts.new(c + u), leaves.verts.new(c + v), leaves.verts.new(c - u), leaves.verts.new(c - v)]
-        face = leaves.faces.new(verts)
-        # Leaves on top catch more light than those hanging below.
-        face[shade] = min(1.0, max(0.0, rng.random() ** 1.5 * 0.85 + (at[2] / height) * 0.25))
+        face = leaves.faces.new([leaves.verts.new(c + u), leaves.verts.new(c + v),
+                                 leaves.verts.new(c - u), leaves.verts.new(c - v)])
+        # Mostly dark leaves with bright ones speckled through, more on top.
+        face[shade] = min(1.0, rng.random() ** 2.2 + light * 0.25)
 
-    def droop(start, direction, length, n):
+    def hang(start, direction, length, n, spread=0.07, per=7):
         """A twig hanging from start, curving down, with leaves along it."""
         p, d = Vector(start), Vector(direction).normalized()
         pts = [tuple(p)]
         for i in range(n):
-            d = (d + Vector((0, 0, -0.35))).normalized()
+            d = (d + Vector((0, 0, -0.45))).normalized()
             p = p + d * (length / n)
             pts.append(tuple(p))
-            for _ in range(7):
-                leaf(p + Vector((rng.gauss(0, 0.16), rng.gauss(0, 0.16), rng.gauss(0, 0.12))))
+            for _ in range(per):
+                leaf(p + Vector((rng.gauss(0, spread), rng.gauss(0, spread), rng.gauss(0, spread * 1.5))),
+                     (i == 0) * 1.0)
+        branch(pts, 0.012, bark)
         return pts
 
-    n_branches = rng.randint(11, 14)
-    for i in range(n_branches):
-        angle = 2 * math.pi * i / n_branches + rng.uniform(-0.3, 0.3)
-        k = rng.uniform(0.38, 0.95)
-        base = Vector((lean[0] * k ** 2, lean[1] * k ** 2, height * k))
-        out = Vector((math.cos(angle), math.sin(angle), 0))
-        reach = rng.uniform(2.0, 3.0) * (1.2 - k * 0.55)
-        # Up and out, then arching over.
+    def limb(base, direction, length, rise, radius, depth):
+        """A limb that rises and arches over, with twigs hanging along it."""
+        base, direction = Vector(base), Vector(direction).normalized()
         pts = []
-        for j in range(6):
-            t = j / 5
-            pts.append(tuple(base + out * reach * t + Vector((0, 0, reach * (0.9 * t - 0.75 * t * t)))))
-        branch(pts, 0.09, bark)
-        for j in range(1, 6):
-            p = Vector(pts[j])
-            side = out.cross(Vector((0, 0, 1))) * rng.uniform(-0.6, 0.6)
-            twig = droop(p, out + side + Vector((0, 0, 0.2)), rng.uniform(1.2, 2.2), 6)
-            branch(twig, 0.02, bark)
-    # A few sprays at the crown.
-    for _ in range(5):
+        for j in range(7):
+            t = j / 6
+            pts.append(base + direction * length * t + Vector((0, 0, length * (rise * t - (rise + 0.5) * t * t))))
+        branch([tuple(q) for q in pts], radius, bark)
+        side = direction.cross(Vector((0, 0, 1)))
+        for j in range(1, 7):
+            for _ in range(2 if depth else 3):
+                d = direction + side * rng.uniform(-1.0, 1.0) + Vector((0, 0, 0.3))
+                hang(pts[j], d, rng.uniform(0.6, 1.4) * (0.6 + 0.4 * j / 6), 6)
+            if depth and j in (2, 4):
+                a = rng.choice((-1, 1)) * rng.uniform(0.5, 0.9)
+                sub = direction * math.cos(a) + side * math.sin(a)
+                limb(pts[j], sub, length * 0.45, rise * 0.8, radius * 0.5, depth - 1)
+        return pts
+
+    # Limbs fork off the upper trunk, longer lower down, and arch out and down.
+    n = rng.randint(7, 9)
+    for i in range(n):
+        angle = 2 * math.pi * i / n + rng.uniform(-0.35, 0.35)
+        z = rng.uniform(fork, height * 0.95)
+        k = (z - fork) / (height - fork)
+        at = lean * (z / height) ** 2 + Vector((0, 0, z))
+        limb(at, (math.cos(angle), math.sin(angle), 0), rng.uniform(2.0, 2.8) * (1.15 - 0.55 * k),
+             rng.uniform(0.9, 1.3), 0.11, 1)
+    for _ in range(4):
         a = rng.uniform(0, 2 * math.pi)
-        droop(trunk[-1], (math.cos(a), math.sin(a), 0.6), rng.uniform(0.7, 1.2), 4)
+        hang(trunk[-1], (math.cos(a), math.sin(a), 0.8), rng.uniform(0.6, 1.0), 5)
 
     mesh = bpy.data.meshes.new("leaves")
     leaves.to_mesh(mesh)
     obj = bpy.data.objects.new("leaves", mesh)
     bpy.context.scene.collection.objects.link(obj)
+    # The original's trees cast almost no shadow; let the leaves skip it.
+    obj.visible_shadow = False
     mesh.materials.append(leaf_material())
 
 
@@ -142,27 +156,27 @@ def rock(seed):
 
 
 def palisade(seed, along_y):
-    """One tile's length of sharpened logs, along game x or y."""
+    """One tile's length of thick, flat-topped logs, along game x or y."""
     rng = random.Random(seed)
     mat = studio.material("logs", **WOOD)
+    end_mat = studio.material("cut", colour=(0.62, 0.55, 0.42), dark=(0.36, 0.30, 0.22), scale=20, bump=0.3)
     length = 3.2
-    n = 9
+    n = 6
     for i in range(n):
-        h = rng.uniform(3.0, 3.6)
+        h = rng.uniform(4.0, 4.8)
+        r = rng.uniform(0.25, 0.3)
         t = (i + 0.5) / n * length - length / 2
         x, y = (0, -t) if along_y else (t, 0)
-        bpy.ops.mesh.primitive_cylinder_add(vertices=8, radius=0.17, depth=h, location=(x, y, h / 2))
+        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=r, depth=h, location=(x, y, h / 2))
         log = bpy.context.object
-        log.rotation_euler = (rng.uniform(-0.04, 0.04), rng.uniform(-0.04, 0.04), rng.uniform(0, 6))
+        log.rotation_euler = (rng.uniform(-0.05, 0.05), rng.uniform(-0.05, 0.05), rng.uniform(0, 6))
+        studio.displace(log, 0.05, 0.3, seed * 50 + i)
         studio.smooth(studio.assign(log, mat))
-        bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=0.17, depth=0.45, location=(x, y, h + 0.22))
-        studio.smooth(studio.assign(bpy.context.object, mat))
-    # Two cross beams holding them together.
-    for z in (0.9, 2.4):
-        bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=0.07, depth=length,
-                                            location=(0.2 if along_y else 0, 0 if along_y else 0.2, z),
-                                            rotation=(math.radians(90), 0, 0) if along_y else (0, math.radians(90), 0))
-        studio.assign(bpy.context.object, mat)
+        # A pale sawn top, slightly slanted.
+        bpy.ops.mesh.primitive_cylinder_add(vertices=12, radius=r * 0.98, depth=0.04, location=(x, y, h + 0.02))
+        top = bpy.context.object
+        top.rotation_euler = log.rotation_euler
+        studio.assign(top, end_mat)
 
 
 PROPS = {
@@ -171,8 +185,8 @@ PROPS = {
     "tree3": (lambda: tree(3), 320, 320),
     "rock1": (lambda: rock(1), 128, 128),
     "rock2": (lambda: rock(2), 128, 128),
-    "fence_x": (lambda: palisade(1, False), 192, 192),
-    "fence_y": (lambda: palisade(2, True), 192, 192),
+    "fence_x": (lambda: palisade(1, False), 256, 256),
+    "fence_y": (lambda: palisade(2, True), 256, 256),
 }
 
 
