@@ -1,5 +1,6 @@
 #include "formats/map_layers.h"
 
+#include <cmath>
 #include <string_view>
 
 #include "formats/binary_reader.h"
@@ -16,7 +17,29 @@ std::vector<std::uint8_t> readMaybePacked(BinaryReader& in, std::size_t size) {
     return {raw.begin(), raw.end()};
 }
 
+int floorDiv(long long a, long long b) {
+    long long q = a / b;
+    if ((a % b != 0) && ((a < 0) != (b < 0))) --q;
+    return static_cast<int>(q);
+}
+
+// RKC_RPGSCRN_GROUNDBLOCK::CalcGroundPos: map pixel to judge cell, using
+// the screen base parameters (15, 10) scaled by the ground magnification.
+void calcGroundPos(const GroundLayer& g, long long sx, long long sy, int& jx, int& jy) {
+    const long long p1 = 15LL * g.magX / 100, p2 = 10LL * g.magY / 100;
+    const long long d = 2 * p1 * p2;
+    jx = floorDiv(p1 * sy + p2 * sx, d);
+    jy = floorDiv(p1 * sy - p2 * sx, d);
+}
+
 }  // namespace
+
+std::int16_t GroundLayer::judgeAt(double worldX, double worldY) const {
+    const int jx = static_cast<int>(std::floor(worldX / magX)) - judgeX;
+    const int jy = static_cast<int>(std::floor(worldY / magY)) - judgeY;
+    if (jx < 0 || jy < 0 || jx >= judgeWidth || jy >= judgeHeight) return kBlocked;
+    return judge[static_cast<std::size_t>(jy) * judgeWidth + jx];
+}
 
 GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
     BinaryReader in(data);
@@ -39,7 +62,27 @@ GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
     for (auto& c : g.cells) c.flags = planes.i16();
     for (auto& c : g.cells) c.bank = planes.i16();
     for (auto& c : g.cells) c.pattern = planes.i16();
-    // A walkability grid follows; decoded later with collision.
+
+    // The judge grid covers the bounding box of the map's corners in
+    // judge cells, plus a cell of margin (CalcAreaJudgeFromMap).
+    if (g.magX <= 0 || g.magY <= 0) throw FormatError("bad ground magnification");
+    const long long pw = static_cast<long long>(g.width) * g.chipWidth;
+    const long long ph = static_cast<long long>(g.height) * g.chipHeight;
+    int x00, y00, xw0, yw0, x0h, y0h, xwh, ywh;
+    calcGroundPos(g, 0, 0, x00, y00);
+    calcGroundPos(g, pw, 0, xw0, yw0);
+    calcGroundPos(g, 0, ph, x0h, y0h);
+    calcGroundPos(g, pw, ph, xwh, ywh);
+    g.judgeX = x00 - 1;
+    g.judgeY = yw0 - 1;
+    g.judgeWidth = xwh - g.judgeX + 1;
+    g.judgeHeight = y0h - g.judgeY + 1;
+    const std::size_t jn = static_cast<std::size_t>(g.judgeWidth) * g.judgeHeight;
+    const auto judge = readMaybePacked(in, jn * 2);
+    if (judge.size() < jn * 2) throw FormatError("judge data too small");
+    BinaryReader j(judge);
+    g.judge.resize(jn);
+    for (auto& v : g.judge) v = j.i16();
     return g;
 }
 

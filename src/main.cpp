@@ -24,6 +24,7 @@ struct Options {
     std::string screenshot;  // saved as BMP when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
+    bool showJudge = false;  // overlay the walkability grid
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -39,6 +40,8 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--walk" && i + 1 < argc) {
             int dx = 0, dy = 0;
             if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) options.walk.emplace(dx, dy);
+        } else if (arg == "--show-judge") {
+            options.showJudge = true;
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
         } else {
@@ -157,6 +160,7 @@ int main(int argc, char** argv) {
     }
     app.data = std::make_unique<sf::DirectoryFileSystem>(installRoot);
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), options.map);
+    app.game->setShowJudge(options.showJudge);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     app.lastCounter = SDL_GetPerformanceCounter();
 

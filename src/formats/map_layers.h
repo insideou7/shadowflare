@@ -21,7 +21,22 @@ struct GroundLayer {
     int magX = 160, magY = 160;
     std::vector<Cell> cells;  // row-major
 
+    // Walkability grid ("area judge"). It is laid out in world space, one
+    // cell per magX x magY world units, so cell (jx, jy) covers world
+    // x in [jx*magX, (jx+1)*magX). judgeX/judgeY is the cell stored first.
+    // Bit 0 set = blocked (walls, trees, outside the map); bit 15 marks
+    // exits, decoded later with map links.
+    int judgeX = 0, judgeY = 0;
+    int judgeWidth = 0, judgeHeight = 0;
+    std::vector<std::int16_t> judge;  // row-major
+
+    static constexpr std::int16_t kBlocked = 0x0001;
+
     const Cell& at(int x, int y) const { return cells[static_cast<std::size_t>(y) * width + x]; }
+
+    // Judge value of the cell containing a world position; blocked off the grid.
+    std::int16_t judgeAt(double worldX, double worldY) const;
+    bool walkable(double worldX, double worldY) const { return !(judgeAt(worldX, worldY) & kBlocked); }
 
     static GroundLayer parse(std::span<const std::uint8_t> data);
 };
