@@ -24,8 +24,8 @@ WOOD = dict(colour=(0.66, 0.46, 0.22), dark=(0.14, 0.09, 0.05), scale=14, detail
 
 BARK = dict(colour=(0.58, 0.40, 0.42), dark=(0.16, 0.09, 0.10), scale=14, bump=0.6)
 TRUNK = dict(colour=(0.34, 0.22, 0.24), dark=(0.10, 0.06, 0.07), scale=14, bump=0.6)
-LEAF_LIGHT = (0.56, 0.74, 0.14)
-LEAF_DARK = (0.04, 0.08, 0.02)
+LEAF_LIGHT = (0.42, 0.56, 0.11)
+LEAF_DARK = (0.025, 0.05, 0.015)
 
 
 def branch(points, radius, mat):
