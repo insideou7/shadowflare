@@ -2,10 +2,16 @@
 
 An open source reimplementation of the ShadowFlare engine in C++20 and SDL2.
 
-This repository contains **no game data**. To play, you need your own copy of
-the original game; the engine reads the files from it at runtime. Copy them
-into a `game/` folder at the repository root (git ignores it), or point the
-engine elsewhere with `--data`.
+This repository contains **none of the original game's data**. There are two
+ways to play:
+
+- With your own copy of ShadowFlare: copy its files into a `game/` folder at
+  the repository root (git ignores it), or point the engine elsewhere with
+  `--data`. The engine reads them at runtime.
+- Without it: the engine falls back to the open replacement content in
+  [content/](content/), a small demo built from
+  [Flare](https://github.com/flareteam/flare-game)'s CC-BY-SA art (a goblin
+  camp and its cave). See [docs/content.md](docs/content.md).
 
 ## Status
 
@@ -33,13 +39,15 @@ CMake downloads and builds it.
 
     cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug
     cmake --build build
-    ./build/shadowflare            # reads ./game by default
+    ./build/shadowflare            # reads ./game, or ./content if there is no game
 
 Options:
 
-- `--data <path>` folder with the original game files (default `game`). It can be
-  the install folder itself or any folder above it.
-- `--map <name>` map to open first, e.g. `c02_00` (default) or `d02_01`
+- `--data <path>` folder with the original game files (default `game`, then
+  `content`). It can be the install folder itself or any folder above it, or
+  an open content pack.
+- `--map <name>` map to open first, e.g. `c02_00` (the default with the original
+  game) or `d02_01`
 - `--frames <n>` quit after n frames
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests
@@ -68,8 +76,11 @@ Players will still need to supply their own game files.
     src/render/     turning decoded sprites into textures
     src/logic/      game rules without SDL: scripts, AI choice, movement
     src/game/       maps, game state, simulation tick and drawing
+    third_party/    stb_image (PNG decoding for the open content)
+    content/        open replacement content (CC-BY-SA 3.0)
     tests/          unit tests that run without game data
-    tools/          inventory script and reverse engineering helpers (Python)
+    tools/          inventory script, reverse engineering helpers and the
+                    Flare content importer (Python)
     docs/           file format notes
 
 ## Surveying the original files
@@ -86,7 +97,10 @@ renders a whole map to an image.
 ## Licence
 
 The engine is free software under the GNU General Public License,
-version 3 or later; see [LICENSE](LICENSE).
+version 3 or later; see [LICENSE](LICENSE). The open content in
+[content/](content/) is CC-BY-SA 3.0, from Flare: Empyrean Campaign; see
+[content/README.md](content/README.md) for its credits. stb_image is
+public domain (or MIT).
 
 The original game is copyrighted and is not covered by this licence. Do
 not commit its files, extracted assets or decompiled code to this
