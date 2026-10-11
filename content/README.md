@@ -9,7 +9,7 @@ monster and their behaviour. The formats are described in
 
 Everything in this folder is licensed under the Creative Commons
 Attribution-ShareAlike 3.0 licence ([LICENSE-CC-BY-SA-3.0.txt](LICENSE-CC-BY-SA-3.0.txt)),
-separately from the engine's code, which is GPL-3.0-or-later.
+separately from the engine's code, which is MIT.
 
 The art and maps come from
 [Flare: Empyrean Campaign](https://github.com/flareteam/flare-game),
