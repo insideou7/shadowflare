@@ -93,6 +93,9 @@ def main():
     # Bank 0: ground tiles. Bank 1: props.
     size = 40
     terrain, (cx, cy, r) = meadow(rng, size)
+    # A bare, trodden square in the village round the well.
+    yy, xx = np.mgrid[0:size + 1, 0:size + 1]
+    terrain[(xx - 11) ** 2 + ((yy - 17) * 1.2) ** 2 < 10] = 0
     tiles = Atlas()
     for t in ground.build_tiles():
         tiles.add(len(tiles.frames), t)
@@ -100,10 +103,13 @@ def main():
     tiles.write(out / "Map" / "ground.sheet", "ground.png")
     props = Atlas()
     anchors = {}
-    for line in (art / "props" / "props.txt").read_text().split("\n"):
-        if line:
-            name, ax, ay = line.split()
-            anchors[name] = props.add(name, cropped(art / "props" / f"{name}.png", int(ax), int(ay)))
+    for folder, listing in (("props", "props.txt"), ("town", "town.txt")):
+        if not (art / folder / listing).exists():
+            continue
+        for line in (art / folder / listing).read_text().split("\n"):
+            if line:
+                name, ax, ay = line.split()
+                anchors[name] = props.add(name, cropped(art / folder / f"{name}.png", int(ax), int(ay)))
     props.write(out / "Map" / "props.sheet", "props.png")
 
     blocked = np.zeros((size * PER, size * PER), dtype=bool)
@@ -116,6 +122,50 @@ def main():
             blocked[min(size * PER - 1, wy // CELL), min(size * PER - 1, wx // CELL)] = True
 
     occupied = set()
+
+    def building(name, tx, ty, x0, x1, y0, y1):
+        """Place a large prop at a tile centre and block its footprint, given
+        in Blender units (hundreds of world units) around that point."""
+        wx, wy = int(tx * TILE), int(ty * TILE)
+        place(name, wx, wy, block=False)
+        for gy in range(int((wy + y0 * 100) // CELL), int((wy + y1 * 100) // CELL) + 1):
+            for gx in range(int((wx + x0 * 100) // CELL), int((wx + x1 * 100) // CELL) + 1):
+                if 0 <= gx < size * PER and 0 <= gy < size * PER:
+                    blocked[gy, gx] = True
+        for oy in range(int(ty + y0 / 3.2) - 1, int(ty + y1 / 3.2) + 2):
+            for ox in range(int(tx + x0 / 3.2) - 1, int(tx + x1 / 3.2) + 2):
+                occupied.add((ox, oy))
+
+    if "cottage" in anchors:
+        # The village, north of the path near where the player starts.
+        building("cottage", 7.5, 13.5, -4.8, 6.6, -8.5, 4.0)
+        building("hall", 15.0, 12.5, -7.6, 8.8, -9.0, 5.6)
+        building("well", 11.0, 17.0, -1.4, 1.4, -1.4, 1.4)
+        building("stall", 6.5, 18.0, -1.9, 1.9, -1.2, 1.2)
+        building("stall", 8.7, 18.6, -1.9, 1.9, -1.2, 1.2)
+        building("crate_yellow", 5.6, 19.2, -0.8, 0.8, -0.8, 0.8)
+        building("crate_red", 9.8, 19.7, -0.8, 0.8, -0.8, 0.8)
+        building("cart", 13.6, 17.5, -1.6, 4.0, -1.2, 1.2)
+        building("signpost", 4.4, 19.6, -0.2, 0.2, -0.2, 0.2)
+        building("barrel", 11.5, 10.6, -0.4, 0.4, -0.4, 0.4)
+        building("barrel", 11.8, 10.9, -0.4, 0.4, -0.4, 0.4)
+        building("sacks", 10.2, 11.0, -1.0, 1.0, -0.6, 0.6)
+        building("firewood", 4.6, 12.0, -0.6, 0.6, -0.6, 0.6)
+        building("tank", 18.8, 15.8, -1.5, 2.6, -1.0, 1.0)
+        for tx, ty in ((3.5, 9.5), (19.5, 9.0), (12.0, 7.5), (21.0, 13.0)):
+            building("oak", tx, ty, -0.5, 0.5, -0.5, 0.5)
+        # Old ruins in the meadow south of the path.
+        building("pillar", 9.0, 30.0, -1.0, 1.0, -1.0, 1.0)
+        building("pillar_broken", 12.0, 30.0, -1.0, 1.0, -1.0, 1.0)
+        building("pillar", 9.0, 33.0, -1.0, 1.0, -1.0, 1.0)
+        building("standing_stone", 15.0, 31.5, -1.2, 1.2, -0.9, 0.9)
+        for tx in range(7, 11):
+            building("wall_x", tx + 0.5, 35.0, -1.6, 1.6, -0.3, 0.3)
+        building("wall_broken", 11.5, 35.0, -1.6, 1.6, -0.3, 0.3)
+        for ty in range(31, 35):
+            building("wall_y", 6.0, ty + 0.5, -0.3, 0.3, -1.6, 1.6)
+        building("log", 13.5, 27.5, -2.5, 2.5, -0.3, 0.3)
+        building("stones", 16.5, 28.0, -0.3, 0.3, -0.3, 0.3)
     # The camp: a ring of palisade along tile edges, open towards the path.
     for tx in range(cx - 4, cx + 4):
         for ty, gap in ((cy - 4, False), (cy + 4, tx in (cx - 1, cx))):
