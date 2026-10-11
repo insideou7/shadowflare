@@ -92,10 +92,9 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     const auto& objects = map_->objects().objects;
     drawOrder_.resize(objects.size());
     for (std::size_t i = 0; i < objects.size(); ++i) drawOrder_[i] = i;
-    // Painter's order: things lower on screen are drawn later.
-    std::ranges::stable_sort(drawOrder_, [&](std::size_t a, std::size_t b) {
-        return objects[a].x + objects[a].y < objects[b].x + objects[b].y;
-    });
+    // Painter's order by where each object stands, not where its sprite's
+    // corner is: things nearer the bottom of the screen are drawn later.
+    std::ranges::stable_sort(drawOrder_, [&](std::size_t a, std::size_t b) { return objects[a].depth() < objects[b].depth(); });
     if (!scenarioDir.empty()) {
         loadScenario(scenarioDir);
     } else {
@@ -636,11 +635,19 @@ void Game::renderMap() {
     const auto& objects = map_->objects().objects;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
-        std::size_t nextCharacter = shadows ? characters.size() : 0;
+        // Characters not drawn yet this pass, back to front.
+        std::vector<const Character*> pending = shadows ? std::vector<const Character*>{} : characters;
         for (std::size_t i : drawOrder_) {
             const MapObject& o = objects[i];
-            while (nextCharacter < characters.size() && characters[nextCharacter]->x + characters[nextCharacter]->y < o.x + o.y) {
-                characters[nextCharacter++]->draw(renderer_, sprites_, camX, camY);
+            // Everyone this object hides goes first, even if someone nearer
+            // the front is still waiting for a later object.
+            for (auto it = pending.begin(); it != pending.end();) {
+                if (o.hides((*it)->x, (*it)->y)) {
+                    (*it)->draw(renderer_, sprites_, camX, camY);
+                    it = pending.erase(it);
+                } else {
+                    ++it;
+                }
             }
             if (map_->isShadowBank(o.bank) != shadows) continue;
             const SpriteBank* bank = map_->bank(o.bank);
@@ -660,7 +667,7 @@ void Game::renderMap() {
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
-        while (nextCharacter < characters.size()) characters[nextCharacter++]->draw(renderer_, sprites_, camX, camY);
+        for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY);
     }
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
