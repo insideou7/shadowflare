@@ -4,7 +4,8 @@
     python3 tools/art/build_pack.py <rendered art folder> <output pack>
 
 The art folder holds what props.py and creatures.py rendered:
-props/, goblin/ and hero/. This script adds the ground tiles
+props/, town/, hero/, the monsters (goblin/, fly/, ghoul/,
+golem/, shaman/) and townspeople (person<N>/). This script adds the ground tiles
 (ground.py), lays out a test map, a meadow with a goblin camp, and writes
 the pack's text files. Needs Pillow and numpy.
 """
@@ -29,6 +30,9 @@ PER = TILE // CELL
 
 PLAYER_CHARTS = [(0, "idle"), (1, "walk"), (3, "hit"), (5, "attack")]
 ENEMY_CHARTS = [(0, "idle"), (1, "walk"), (2, "hit"), (3, "death"), (4, "attack")]
+PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
+# Monster art and the Character/ENEMY folder each one fills.
+ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "golem": 4, "shaman": 5}
 
 
 def cropped(path, ax, ay):
@@ -85,14 +89,24 @@ def main():
 
     (out / "Player" / "Male" / "Animation00.anim").parent.mkdir(parents=True, exist_ok=True)
     (out / "Player" / "Male" / "Animation00.anim").write_text(character(art / "hero", out / "Player" / "Male", PLAYER_CHARTS))
-    goblin_dir = out / "Character" / "ENEMY" / "00000001"
-    (goblin_dir / "Animation.anim").parent.mkdir(parents=True, exist_ok=True)
-    (goblin_dir / "Animation.anim").write_text(character(art / "goblin", goblin_dir, ENEMY_CHARTS))
+    for name, kind in ENEMIES.items():
+        if (art / name / "frames.txt").exists():
+            folder = out / "Character" / "ENEMY" / f"{kind:08d}"
+            (folder / "Animation.anim").parent.mkdir(parents=True, exist_ok=True)
+            (folder / "Animation.anim").write_text(character(art / name, folder, ENEMY_CHARTS))
+    people = sorted(int(p.name[6:]) for p in art.glob("person*") if (p / "frames.txt").exists())
+    for kind in people:
+        folder = out / "Character" / "PEOPLE" / f"{kind:08d}"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "Animation.anim").write_text(character(art / f"person{kind}", folder, PEOPLE_CHARTS))
     print("characters done")
 
     # Bank 0: ground tiles. Bank 1: props.
     size = 40
     terrain, (cx, cy, r) = meadow(rng, size)
+    # A bare, trodden square in the village round the well.
+    yy, xx = np.mgrid[0:size + 1, 0:size + 1]
+    terrain[(xx - 11) ** 2 + ((yy - 17) * 1.2) ** 2 < 10] = 0
     tiles = Atlas()
     for t in ground.build_tiles():
         tiles.add(len(tiles.frames), t)
@@ -100,10 +114,13 @@ def main():
     tiles.write(out / "Map" / "ground.sheet", "ground.png")
     props = Atlas()
     anchors = {}
-    for line in (art / "props" / "props.txt").read_text().split("\n"):
-        if line:
-            name, ax, ay = line.split()
-            anchors[name] = props.add(name, cropped(art / "props" / f"{name}.png", int(ax), int(ay)))
+    for folder, listing in (("props", "props.txt"), ("town", "town.txt")):
+        if not (art / folder / listing).exists():
+            continue
+        for line in (art / folder / listing).read_text().split("\n"):
+            if line:
+                name, ax, ay = line.split()
+                anchors[name] = props.add(name, cropped(art / folder / f"{name}.png", int(ax), int(ay)))
     props.write(out / "Map" / "props.sheet", "props.png")
 
     blocked = np.zeros((size * PER, size * PER), dtype=bool)
@@ -116,6 +133,50 @@ def main():
             blocked[min(size * PER - 1, wy // CELL), min(size * PER - 1, wx // CELL)] = True
 
     occupied = set()
+
+    def building(name, tx, ty, x0, x1, y0, y1):
+        """Place a large prop at a tile centre and block its footprint, given
+        in Blender units (hundreds of world units) around that point."""
+        wx, wy = int(tx * TILE), int(ty * TILE)
+        place(name, wx, wy, block=False)
+        for gy in range(int((wy + y0 * 100) // CELL), int((wy + y1 * 100) // CELL) + 1):
+            for gx in range(int((wx + x0 * 100) // CELL), int((wx + x1 * 100) // CELL) + 1):
+                if 0 <= gx < size * PER and 0 <= gy < size * PER:
+                    blocked[gy, gx] = True
+        for oy in range(int(ty + y0 / 3.2) - 1, int(ty + y1 / 3.2) + 2):
+            for ox in range(int(tx + x0 / 3.2) - 1, int(tx + x1 / 3.2) + 2):
+                occupied.add((ox, oy))
+
+    if "cottage" in anchors:
+        # The village, north of the path near where the player starts.
+        building("cottage", 7.5, 13.5, -4.8, 6.6, -8.5, 4.0)
+        building("hall", 15.0, 12.5, -7.6, 8.8, -9.0, 5.6)
+        building("well", 11.0, 17.0, -1.4, 1.4, -1.4, 1.4)
+        building("stall", 6.5, 18.0, -1.9, 1.9, -1.2, 1.2)
+        building("stall", 8.7, 18.6, -1.9, 1.9, -1.2, 1.2)
+        building("crate_yellow", 5.6, 19.2, -0.8, 0.8, -0.8, 0.8)
+        building("crate_red", 9.8, 19.7, -0.8, 0.8, -0.8, 0.8)
+        building("cart", 13.6, 17.5, -1.6, 4.0, -1.2, 1.2)
+        building("signpost", 4.4, 19.6, -0.2, 0.2, -0.2, 0.2)
+        building("barrel", 11.5, 10.6, -0.4, 0.4, -0.4, 0.4)
+        building("barrel", 11.8, 10.9, -0.4, 0.4, -0.4, 0.4)
+        building("sacks", 10.2, 11.0, -1.0, 1.0, -0.6, 0.6)
+        building("firewood", 4.6, 12.0, -0.6, 0.6, -0.6, 0.6)
+        building("tank", 18.8, 15.8, -1.5, 2.6, -1.0, 1.0)
+        for tx, ty in ((3.5, 9.5), (19.5, 9.0), (12.0, 7.5), (21.0, 13.0)):
+            building("oak", tx, ty, -0.5, 0.5, -0.5, 0.5)
+        # Old ruins in the meadow south of the path.
+        building("pillar", 9.0, 30.0, -1.0, 1.0, -1.0, 1.0)
+        building("pillar_broken", 12.0, 30.0, -1.0, 1.0, -1.0, 1.0)
+        building("pillar", 9.0, 33.0, -1.0, 1.0, -1.0, 1.0)
+        building("standing_stone", 15.0, 31.5, -1.2, 1.2, -0.9, 0.9)
+        for tx in range(7, 11):
+            building("wall_x", tx + 0.5, 35.0, -1.6, 1.6, -0.3, 0.3)
+        building("wall_broken", 11.5, 35.0, -1.6, 1.6, -0.3, 0.3)
+        for ty in range(31, 35):
+            building("wall_y", 6.0, ty + 0.5, -0.3, 0.3, -1.6, 1.6)
+        building("log", 13.5, 27.5, -2.5, 2.5, -0.3, 0.3)
+        building("stones", 16.5, 28.0, -0.3, 0.3, -0.3, 0.3)
     # The camp: a ring of palisade along tile edges, open towards the path.
     for tx in range(cx - 4, cx + 4):
         for ty, gap in ((cy - 4, False), (cy + 4, tx in (cx - 1, cx))):
@@ -165,6 +226,23 @@ def main():
     for _ in range(4):
         gx, gy = rng.randint(8, size - 8), rng.randint(8, size - 8)
         lines.append(f"enemy=1,{gx * TILE + TILE // 2},{gy * TILE + TILE // 2},{rng.randrange(8)},30,4,{3 * TILE},goblin")
+    def enemy(name, tx, ty, hp, attack, wander):
+        if (out / "Character" / "ENEMY" / f"{ENEMIES[name]:08d}").exists():
+            lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                         f"{wander * TILE},goblin")
+
+    # The camp's shaman, flies and ghouls in the woods, a golem by the ruins.
+    enemy("shaman", cx + 0.5, cy - 1.5, 45, 6, 1)
+    for _ in range(5):
+        enemy("fly", rng.randint(24, size - 4), rng.randint(4, 14), 12, 2, 3)
+    for _ in range(4):
+        enemy("ghoul", rng.randint(22, size - 6), rng.randint(26, size - 4), 35, 5, 3)
+    enemy("golem", 18.5, 33.5, 90, 9, 2)
+    # Villagers stand about the square, the stalls and the houses.
+    spots = [(10.0, 15.5), (12.6, 16.0), (7.2, 19.4), (9.6, 18.9), (6.0, 16.5), (13.5, 15.0), (16.0, 16.5),
+             (9.0, 14.8), (11.9, 18.6), (5.5, 14.8), (17.2, 14.6), (14.8, 18.8), (8.2, 16.2), (3.8, 17.6)]
+    for kind, (tx, ty) in zip(people, spots):
+        lines.append(f"person={kind},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)}")
     (out / "Scenario" / "00000001").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000001" / "scenario.txt").write_text("\n".join(lines) + "\n")
     shutil.copy(HERE.parent / "content" / "ai.txt", out / "ai.txt")

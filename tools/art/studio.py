@@ -26,6 +26,9 @@ def reset(samples=24):
     scene.cycles.device = "CPU"
     scene.cycles.samples = samples
     scene.cycles.use_denoising = False
+    # A narrow pixel filter keeps small details (leaves, edges) crisp, like
+    # the original's unfiltered sprites.
+    scene.cycles.filter_width = 0.7
     scene.render.film_transparent = True
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
@@ -78,6 +81,11 @@ def anchor(scene, point=(0, 0, 0)):
     return co.x * scene.render.resolution_x, (1 - co.y) * scene.render.resolution_y
 
 
+def save_blend(path):
+    """Save the scene as a .blend file, to open and change by hand in Blender."""
+    bpy.ops.wm.save_as_mainfile(filepath=str(path), check_existing=False)
+
+
 def render(scene, path):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)
@@ -89,7 +97,7 @@ def linear(c):
 
 
 def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.3, spot=0.0, spot_colour=None,
-             stretch=None, band=(0.3, 0.75)):
+             stretch=None, band=(0.3, 0.75), bricks=None, grime=0.0):
     """A matte material whose colour wobbles with noise, like the
     textured models of late-90s pre-rendered games. Colours are sRGB."""
     colour = linear(colour)
@@ -131,11 +139,69 @@ def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.
         links.new(ramp2.outputs["Color"], mix.inputs["Factor"])
         links.new(out, mix.inputs["A"])
         out = mix.outputs["Result"]
+    height = noise.outputs["Fac"]
+    if bricks:
+        # Courses of blocks or roof tiles: a brick pattern laid out on
+        # (x + y, z) in object space, so rows run level on every wall and
+        # roof slope. Each block gets its own shade; the joints are dark.
+        coords = nodes.new("ShaderNodeTexCoord")
+        sep = nodes.new("ShaderNodeSeparateXYZ")
+        links.new(coords.outputs["Object"], sep.inputs[0])
+        add = nodes.new("ShaderNodeMath")
+        links.new(sep.outputs["X"], add.inputs[0])
+        links.new(sep.outputs["Y"], add.inputs[1])
+        comb = nodes.new("ShaderNodeCombineXYZ")
+        links.new(add.outputs[0], comb.inputs["X"])
+        links.new(sep.outputs["Z"], comb.inputs["Y"])
+        brick = nodes.new("ShaderNodeTexBrick")
+        brick.inputs["Scale"].default_value = 1.0
+        brick.inputs["Brick Width"].default_value = bricks.get("width", 0.6)
+        brick.inputs["Row Height"].default_value = bricks.get("height", 0.3)
+        brick.inputs["Mortar Size"].default_value = bricks.get("mortar", 0.03)
+        brick.inputs["Color1"].default_value = (1, 1, 1, 1)
+        brick.inputs["Color2"].default_value = (*([bricks.get("vary", 0.7)] * 3), 1)
+        brick.inputs["Mortar"].default_value = (*([bricks.get("joint", 0.25)] * 3), 1)
+        links.new(comb.outputs[0], brick.inputs["Vector"])
+        mul = nodes.new("ShaderNodeMix")
+        mul.data_type = "RGBA"
+        mul.blend_type = "MULTIPLY"
+        mul.inputs["Factor"].default_value = 1.0
+        links.new(out, mul.inputs["A"])
+        links.new(brick.outputs["Color"], mul.inputs["B"])
+        out = mul.outputs["Result"]
+        inv = nodes.new("ShaderNodeMath")
+        inv.operation = "SUBTRACT"
+        inv.inputs[0].default_value = 1.0
+        links.new(brick.outputs["Fac"], inv.inputs[1])
+        mix_h = nodes.new("ShaderNodeMath")
+        mix_h.operation = "MULTIPLY_ADD"
+        links.new(noise.outputs["Fac"], mix_h.inputs[0])
+        mix_h.inputs[1].default_value = 0.3
+        links.new(inv.outputs[0], mix_h.inputs[2])
+        height = mix_h.outputs[0]
+    if grime > 0:
+        # Large dark stains, like weathering and soot.
+        stain = nodes.new("ShaderNodeTexNoise")
+        stain.inputs["Scale"].default_value = 1.5
+        stain.inputs["Detail"].default_value = 4
+        ramp3 = nodes.new("ShaderNodeValToRGB")
+        ramp3.color_ramp.elements[0].position = 0.35
+        ramp3.color_ramp.elements[0].color = (*([1 - grime] * 3), 1)
+        ramp3.color_ramp.elements[1].position = 0.65
+        ramp3.color_ramp.elements[1].color = (1, 1, 1, 1)
+        links.new(stain.outputs["Fac"], ramp3.inputs["Fac"])
+        mul2 = nodes.new("ShaderNodeMix")
+        mul2.data_type = "RGBA"
+        mul2.blend_type = "MULTIPLY"
+        mul2.inputs["Factor"].default_value = 1.0
+        links.new(out, mul2.inputs["A"])
+        links.new(ramp3.outputs["Color"], mul2.inputs["B"])
+        out = mul2.outputs["Result"]
     links.new(out, bsdf.inputs["Base Color"])
     if bump > 0:
         b = nodes.new("ShaderNodeBump")
         b.inputs["Strength"].default_value = bump
-        links.new(noise.outputs["Fac"], b.inputs["Height"])
+        links.new(height, b.inputs["Height"])
         links.new(b.outputs["Normal"], bsdf.inputs["Normal"])
     return mat
 
