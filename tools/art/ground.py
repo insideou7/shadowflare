@@ -105,6 +105,53 @@ class Ground:
         return Image.fromarray(np.concatenate([rgb, alpha], axis=2).astype(np.uint8), "RGBA")
 
 
+class Floor(Ground):
+    """A dungeon floor: worn bricks laid in a herringbone, with patches of
+    dusty rubble where the corners are 0 (instead of grass and dirt)."""
+
+    BRICK = 0.09  # the short side of a brick, in tiles
+
+    def __init__(self, seed=1):
+        super().__init__(seed)
+        self.wear = Field([(0.5, 1.0), (0.15, 0.7)], seed + 5)  # dust and damp
+
+    def bricks(self, u, v):
+        """Brick shade (-1 to 1) and a 0-1 mortar mask, laid in herringbone:
+        pairs of cells form bricks, alternating flat and upright."""
+        x, y = np.asarray(u) / self.BRICK, np.asarray(v) / self.BRICK
+        i, j = np.floor(x).astype(int), np.floor(y).astype(int)
+        fx, fy = x - i, y - j
+        t = (i + j) % 4
+        flat = t < 2
+        # Each brick gets an id from its first cell, and a shade from that.
+        bi = np.where(flat, i - t, i)
+        bj = np.where(flat, j, j - (t - 2))
+        h = (bi * 73856093 ^ bj * 19349663 ^ flat.astype(int) * 83492791) & 0xFFFF
+        shade = h / 0x7FFF - 1
+        m = 0.09
+        mortar = np.where(flat, (fy < m) | (fy > 1 - m) | ((t == 0) & (fx < m)) | ((t == 1) & (fx > 1 - m)),
+                          (fx < m) | (fx > 1 - m) | ((t == 2) & (fy < m)) | ((t == 3) & (fy > 1 - m)))
+        return shade, mortar.astype(float)
+
+    def texture(self, u, v):
+        big = self.big(u, v)
+        wear = self.wear(u, v)
+        fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
+        shade, mortar = self.bricks(u, v)
+        brick = colour(np.array([104, 88, 60.0]), np.array([60, 50, 34.0]), np.array([146, 128, 96.0]),
+                       0.45 * shade + 0.15 * big, fine, 0.12)
+        # Dust lightens some stretches and damp darkens others.
+        brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
+        joint = np.array([34, 28, 18.0]) * (1 + 0.2 * fine[..., None])
+        floor = brick * (1 - mortar[..., None]) + joint * mortar[..., None]
+        # Pits and chips: scattered near-black specks, thicker where it is damp.
+        pits = self.rng.random(np.shape(u)) < 0.07 + 0.05 * np.clip(-wear, 0, 1)
+        floor = np.where(pits[..., None], floor * 0.3, floor)
+        rubble = colour(np.array([96, 84, 58.0]), np.array([58, 50, 34.0]), np.array([132, 118, 86.0]),
+                        0.25 * big, fine, 0.32)
+        return floor, rubble, self.edge(u, v)
+
+
 def corner_patterns():
     """All 16 corner combinations, as (top-left, top-right, bottom-left, bottom-right)."""
     return [((k >> 0) & 1, (k >> 1) & 1, (k >> 2) & 1, (k >> 3) & 1) for k in range(16)]
@@ -116,9 +163,10 @@ def pattern_index(corners, tx, ty):
     return (k * PERIOD + ty % PERIOD) * PERIOD + tx % PERIOD
 
 
-def build_tiles(seed=1):
-    """Every tile, in pattern_index order: (image, anchor x, anchor y)."""
-    g = Ground(seed)
+def build_tiles(seed=1, kind="meadow"):
+    """Every tile, in pattern_index order: (image, anchor x, anchor y).
+    kind is "meadow" (grass and dirt) or "dungeon" (brick floor and rubble)."""
+    g = Floor(seed) if kind == "dungeon" else Ground(seed)
     tiles = []
     for corners in corner_patterns():
         for ty in range(PERIOD):
@@ -134,7 +182,7 @@ if __name__ == "__main__":
     corner = np.ones((size + 1, size + 1), dtype=int)
     corner[3:8, 2:7] = 0
     corner[5:7, 6:10] = 0
-    tiles = build_tiles()
+    tiles = build_tiles(kind=sys.argv[2] if len(sys.argv) > 2 else "meadow")
     out = Image.new("RGBA", ((size + 2) * 2 * HALF_W, (size + 2) * 2 * HALF_H), (0, 0, 0, 255))
     ox = (size + 1) * HALF_W
     for ty in range(size):

@@ -50,7 +50,7 @@ def character(src, dst, charts):
             _, name, frames, loop = line.split()
             anims[name] = (int(frames), loop == "loop")
     dst.mkdir(parents=True, exist_ok=True)
-    atlas = Atlas()
+    atlas = Atlas(width=4096)  # big characters (the golem) overflow a narrower sheet
     out = ["# Rendered by tools/art/creatures.py.", "sheet=Animation.sheet"]
     for chart, name in charts:
         frames, loop = anims[name]
@@ -114,7 +114,7 @@ def main():
     tiles.write(out / "Map" / "ground.sheet", "ground.png")
     props = Atlas()
     anchors = {}
-    for folder, listing in (("props", "props.txt"), ("town", "town.txt")):
+    for folder, listing in (("props", "props.txt"), ("town", "town.txt"), ("dungeon", "dungeon.txt")):
         if not (art / folder / listing).exists():
             continue
         for line in (art / folder / listing).read_text().split("\n"):
@@ -177,6 +177,9 @@ def main():
             building("wall_y", 6.0, ty + 0.5, -0.3, 0.3, -1.6, 1.6)
         building("log", 13.5, 27.5, -2.5, 2.5, -0.3, 0.3)
         building("stones", 16.5, 28.0, -0.3, 0.3, -0.3, 0.3)
+    if "stairs_down" in anchors:
+        # Steps down into the old waterworks, east of the ruins.
+        building("stairs_down", 21.0, 36.0, -2.3, 2.3, -2.0, -1.0)
     # The camp: a ring of palisade along tile edges, open towards the path.
     for tx in range(cx - 4, cx + 4):
         for ty, gap in ((cy - 4, False), (cy + 4, tx in (cx - 1, cx))):
@@ -243,12 +246,125 @@ def main():
              (9.0, 14.8), (11.9, 18.6), (5.5, 14.8), (17.2, 14.6), (14.8, 18.8), (8.2, 16.2), (3.8, 17.6)]
     for kind, (tx, ty) in zip(people, spots):
         lines.append(f"person={kind},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)}")
+    if "stairs_down" in anchors:
+        lines.append(f"entry=1,{21 * TILE},{int(37.2 * TILE)},0")
+        lines.append(f"exit={int(20.4 * TILE)},{int(35.4 * TILE)},{int(21.6 * TILE)},{int(36.4 * TILE)},2,1")
+        waterworks(out, anchors, rng)
     (out / "Scenario" / "00000001").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000001" / "scenario.txt").write_text("\n".join(lines) + "\n")
     shutil.copy(HERE.parent / "content" / "ai.txt", out / "ai.txt")
     (out / "content.txt").write_text("# Art made for this project: see tools/art.\nname=ShadowFlare-style test\n"
                                      "start=meadow\nprojection=15,10\n")
     print(f"meadow: {len(objects)} objects")
+
+
+def waterworks(out, anchors, rng):
+    """A small dungeon under the meadow: four rooms of mossy block walls
+    joined by corridors, with copper pipes, vats and gates, reached by the
+    steps by the ruins. Writes Map/waterworks.txt and Scenario/00000002."""
+    size = 24
+    floor = Atlas()
+    for t in ground.build_tiles(seed=3, kind="dungeon"):
+        floor.add(len(floor.frames), t)
+    floor.write(out / "Map" / "floor.sheet", "floor.png")
+    rooms = [(2, 2, 10, 10), (14, 2, 22, 10), (2, 14, 10, 22), (14, 14, 22, 22)]
+    # Corridors: (x0, y0, x1, y1) in tiles, two tiles wide.
+    halls = [(10, 6, 14, 8), (16, 10, 18, 14), (6, 10, 8, 14), (10, 16, 14, 18)]
+    open_ = np.zeros((size, size), dtype=bool)
+    for x0, y0, x1, y1 in rooms + halls:
+        open_[y0:y1, x0:x1] = True
+    # Corner terrain: 1 = brick floor, 0 = rubble, in a few patches.
+    n = size + 1
+    terrain = np.ones((n, n), dtype=int)
+    yy, xx = np.mgrid[0:n, 0:n]
+    for _ in range(9):
+        px, py, pr = rng.randrange(n), rng.randrange(n), rng.uniform(1.0, 2.0)
+        terrain[(xx - px) ** 2 + (yy - py) ** 2 < pr * pr] = 0
+    rows = []
+    for ty in range(size):
+        row = []
+        for tx in range(size):
+            if not open_[ty, tx]:
+                row.append(".")
+                continue
+            corners = (terrain[ty, tx], terrain[ty, tx + 1], terrain[ty + 1, tx], terrain[ty + 1, tx + 1])
+            row.append(f"0:{ground.pattern_index(corners, tx, ty)}")
+        rows.append(" ".join(row))
+    blocked = ~np.repeat(np.repeat(open_, PER, axis=0), PER, axis=1)
+    objects = []
+
+    def place(name, tx, ty, block=None):
+        objects.append(f"{int(tx * TILE)},{int(ty * TILE)},1,{anchors[name]}")
+        if block:
+            x0, y0, x1, y1 = block
+            blocked[int(y0 * PER):int(y1 * PER), int(x0 * PER):int(x1 * PER)] = True
+
+    # Walls along every edge between open floor and solid rock, in two-tile
+    # pieces; a few carry pipes or a grate.
+    def fitting(k):
+        return "" if k % 5 else rng.choice(["_pipes", "_grate", "_pipes"])
+
+    k = 0
+    for ty in range(size + 1):
+        for tx in range(0, size, 2):
+            above = ty > 0 and open_[ty - 1, tx:tx + 2].all()
+            below = ty < size and open_[ty, tx:tx + 2].all()
+            if above != below:
+                place(f"dwall{fitting(k)}_x", tx + 1, ty, (tx, ty - 0.15, tx + 2, ty + 0.15))
+                k += 1
+    for tx in range(size + 1):
+        for ty in range(0, size, 2):
+            left = tx > 0 and open_[ty:ty + 2, tx - 1].all()
+            right = tx < size and open_[ty:ty + 2, tx].all()
+            if left != right:
+                place(f"dwall{fitting(k)}_y", tx, ty + 1, (tx - 0.15, ty, tx + 0.15, ty + 2))
+                k += 1
+    # Fittings in the rooms.
+    place("stairs_down", 4.0, 3.5, (2.5, 2, 5.5, 3.2))
+    place("brazier", 2.7, 9.3, (2.4, 9, 3, 9.6))
+    place("brazier", 9.3, 2.7, (9, 2.4, 9.6, 3))
+    place("pipe_hub", 18.0, 6.0, (16.6, 4.6, 19.4, 7.4))
+    place("pipe_x", 15.6, 3.2, (14.8, 2.8, 16.4, 3.6))
+    place("pipe_valve", 20.4, 3.2, (19.6, 2.8, 21.2, 3.6))
+    place("pipe_y", 21.0, 8.4, (20.6, 7.6, 21.4, 9.2))
+    place("pipe_elbow", 15.2, 9.0, (14.6, 8.4, 15.8, 9.6))
+    for vx, vy in ((3.0, 15.0), (3.0, 16.4), (9.0, 21.0)):
+        place("vat", vx, vy, (vx - 0.35, vy - 0.35, vx + 0.35, vy + 0.35))
+    place("gate_y", 9.9, 18.0, (9.8, 17, 10, 19))
+    place("gate_x", 6.0, 21.9, (5, 21.8, 7, 22))
+    place("hatch", 6.0, 6.0)
+    place("hatch_big", 18.0, 18.0)
+    place("hatch", 7.5, 17.0)
+    place("obelisk", 18.0, 15.4, (17.6, 15, 18.4, 15.8))
+    place("dpillar", 16.0, 20.0, (15.7, 19.7, 16.3, 20.3))
+    place("dpillar", 20.0, 20.0, (19.7, 19.7, 20.3, 20.3))
+    place("chest", 21.2, 21.2, (20.9, 20.9, 21.5, 21.5))
+    place("chest", 3.0, 21.0, (2.7, 20.7, 3.3, 21.3))
+    judge = ["".join("x" if b else "." for b in line) for line in blocked]
+    with open(out / "Map" / "waterworks.txt", "w", newline="\n") as f:
+        f.write("# The old waterworks: generated by tools/art/build_pack.py\n")
+        f.write(f"size={size},{size}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{size * PER},{size * PER}\n")
+        f.write("bank=Map/floor.sheet\nbank=Map/props.sheet\n\n[ground]\n" + "\n".join(rows))
+        f.write("\n\n[judge]\n" + "\n".join(judge) + "\n\n[objects]\n" + "\n".join(objects) + "\n")
+    lines = ["# generated by tools/art/build_pack.py", "title=Old Waterworks", "map=waterworks",
+             f"entry=0,{4 * TILE},{int(4.6 * TILE)},0", f"entry=1,{4 * TILE},{int(4.6 * TILE)},0",
+             f"exit={int(3.2 * TILE)},{int(2.3 * TILE)},{int(4.8 * TILE)},{int(3.2 * TILE)},1,1"]
+
+    def enemy(name, tx, ty, hp, attack, wander):
+        lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                     f"{wander * TILE},goblin")
+
+    for tx, ty in ((16, 4), (20, 8), (17, 9), (12, 7)):
+        enemy("goblin", tx, ty, 30, 4, 2)
+    for tx, ty in ((5, 16), (8, 19), (4, 20)):
+        enemy("ghoul", tx, ty, 35, 5, 2)
+    for tx, ty in ((7, 7), (17, 12), (12, 17)):
+        enemy("fly", tx, ty, 12, 2, 3)
+    enemy("shaman", 19, 17, 45, 6, 1)
+    enemy("golem", 17, 19.5, 90, 9, 1)
+    (out / "Scenario" / "00000002").mkdir(parents=True, exist_ok=True)
+    (out / "Scenario" / "00000002" / "scenario.txt").write_text("\n".join(lines) + "\n")
+    print(f"waterworks: {len(objects)} objects")
 
 
 if __name__ == "__main__":
