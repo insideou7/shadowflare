@@ -61,7 +61,20 @@ struct MapObject {
     std::int16_t height = 0;
     std::int16_t palette = 0;
     std::int16_t r = 1000, g = 1000, b = 1000;  // per mille tint
-    std::int32_t judge[4] = {};                  // collision box
+    // Footprint: left, top, right, bottom in world units from x, y. x, y is
+    // where the sprite's top left corner lands, so for a tall sprite (a wall
+    // or a tree) this box, near the sprite's bottom, is where it stands.
+    std::int32_t judge[4] = {};
+
+    // Draw order key, smaller first: the footprint's back corner, as
+    // RKC_RPGSCRN_OBJECTDISP::InsertSort uses.
+    long long depth() const { return static_cast<long long>(x) + judge[0] + y + judge[1]; }
+
+    // True when something standing at a world position is behind this
+    // object and must be drawn before it. Compares against the footprint
+    // point nearest that position, so a long wall hides what is behind any
+    // part of it, not just behind one corner.
+    bool hides(double worldX, double worldY) const;
 };
 
 struct ObjectLayer {

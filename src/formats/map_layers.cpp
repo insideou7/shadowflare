@@ -1,5 +1,6 @@
 #include "formats/map_layers.h"
 
+#include <algorithm>
 #include <cmath>
 #include <string_view>
 
@@ -103,6 +104,16 @@ GroundLayer GroundLayer::parse(std::span<const std::uint8_t> data) {
     g.judge.resize(jn);
     for (auto& v : g.judge) v = j.i16();
     return g;
+}
+
+bool MapObject::hides(double worldX, double worldY) const {
+    const double left = static_cast<double>(x) + judge[0], top = static_cast<double>(y) + judge[1];
+    const double right = static_cast<double>(x) + judge[2], bottom = static_cast<double>(y) + judge[3];
+    // Not std::clamp: a corrupt file may store left > right.
+    const double nearX = std::max(left, std::min(worldX, right)), nearY = std::max(top, std::min(worldY, bottom));
+    // Standing inside the footprint: compare with its centre instead.
+    if (nearX == worldX && nearY == worldY) return worldX + worldY < (left + right + top + bottom) / 2;
+    return worldX + worldY < nearX + nearY;
 }
 
 ObjectLayer ObjectLayer::parse(std::span<const std::uint8_t> data) {
