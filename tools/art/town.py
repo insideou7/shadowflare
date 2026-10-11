@@ -1,6 +1,6 @@
 """Town and forest props in ShadowFlare's style, rendered with studio.py.
 
-    python tools/art/town.py <output folder> [prop ...]
+    python tools/art/town.py [--blend] <output folder> [prop ...]
 
 (run with a Python that has the `bpy` module). Writes one PNG per prop plus
 town.txt listing each file's anchor point; with prop names, renders only
@@ -515,6 +515,8 @@ PROPS = {
 
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else sys.argv[1:]
+    blend = "--blend" in args
+    args = [a for a in args if a != "--blend"]
     out = Path(args[0])
     names = args[1:] or list(PROPS)
     out.mkdir(parents=True, exist_ok=True)
@@ -527,6 +529,8 @@ def main():
         build()
         studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
         ax, ay = studio.anchor(scene)
+        if blend:
+            studio.save_blend(out / f"{name}.blend")
         studio.render(scene, str(out / f"{name}.png"))
         anchors[name] = f"{ax:.0f} {ay:.0f}"
         print(name, "done", flush=True)

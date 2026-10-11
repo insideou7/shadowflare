@@ -81,6 +81,11 @@ def anchor(scene, point=(0, 0, 0)):
     return co.x * scene.render.resolution_x, (1 - co.y) * scene.render.resolution_y
 
 
+def save_blend(path):
+    """Save the scene as a .blend file, to open and change by hand in Blender."""
+    bpy.ops.wm.save_as_mainfile(filepath=str(path), check_existing=False)
+
+
 def render(scene, path):
     scene.render.filepath = path
     bpy.ops.render.render(write_still=True)

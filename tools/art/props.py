@@ -1,6 +1,6 @@
 """Trees, rocks and fences, rendered with studio.py.
 
-    python tools/art/props.py <output folder>
+    python tools/art/props.py [--blend] <output folder>
 
 (run with a Python that has the `bpy` module). Writes one PNG per prop
 plus props.txt listing each file's anchor point.
@@ -209,7 +209,8 @@ PROPS = {
 
 
 def main():
-    out = Path(sys.argv[-1])
+    blend = "--blend" in sys.argv
+    out = Path([a for a in sys.argv if a != "--blend"][-1])
     out.mkdir(parents=True, exist_ok=True)
     lines = []
     for name, (build, w, h) in PROPS.items():
@@ -218,6 +219,8 @@ def main():
         # Frame the camera so the prop's base sits low in the image.
         studio.camera(scene, w, h, target=(0, 0, h / studio.PIXELS_PER_UNIT * 0.32))
         ax, ay = studio.anchor(scene)
+        if blend:
+            studio.save_blend(out / f"{name}.blend")
         studio.render(scene, str(out / f"{name}.png"))
         lines.append(f"{name} {ax:.0f} {ay:.0f}")
         print(name, "done")

@@ -4,7 +4,8 @@
     python3 tools/art/build_pack.py <rendered art folder> <output pack>
 
 The art folder holds what props.py and creatures.py rendered:
-props/, goblin/ and hero/. This script adds the ground tiles
+props/, town/, hero/, the monsters (goblin/, fly/, ghoul/,
+golem/, shaman/) and townspeople (person<N>/). This script adds the ground tiles
 (ground.py), lays out a test map, a meadow with a goblin camp, and writes
 the pack's text files. Needs Pillow and numpy.
 """
@@ -29,6 +30,9 @@ PER = TILE // CELL
 
 PLAYER_CHARTS = [(0, "idle"), (1, "walk"), (3, "hit"), (5, "attack")]
 ENEMY_CHARTS = [(0, "idle"), (1, "walk"), (2, "hit"), (3, "death"), (4, "attack")]
+PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
+# Monster art and the Character/ENEMY folder each one fills.
+ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "golem": 4, "shaman": 5}
 
 
 def cropped(path, ax, ay):
@@ -85,9 +89,16 @@ def main():
 
     (out / "Player" / "Male" / "Animation00.anim").parent.mkdir(parents=True, exist_ok=True)
     (out / "Player" / "Male" / "Animation00.anim").write_text(character(art / "hero", out / "Player" / "Male", PLAYER_CHARTS))
-    goblin_dir = out / "Character" / "ENEMY" / "00000001"
-    (goblin_dir / "Animation.anim").parent.mkdir(parents=True, exist_ok=True)
-    (goblin_dir / "Animation.anim").write_text(character(art / "goblin", goblin_dir, ENEMY_CHARTS))
+    for name, kind in ENEMIES.items():
+        if (art / name / "frames.txt").exists():
+            folder = out / "Character" / "ENEMY" / f"{kind:08d}"
+            (folder / "Animation.anim").parent.mkdir(parents=True, exist_ok=True)
+            (folder / "Animation.anim").write_text(character(art / name, folder, ENEMY_CHARTS))
+    people = sorted(int(p.name[6:]) for p in art.glob("person*") if (p / "frames.txt").exists())
+    for kind in people:
+        folder = out / "Character" / "PEOPLE" / f"{kind:08d}"
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / "Animation.anim").write_text(character(art / f"person{kind}", folder, PEOPLE_CHARTS))
     print("characters done")
 
     # Bank 0: ground tiles. Bank 1: props.
@@ -215,6 +226,23 @@ def main():
     for _ in range(4):
         gx, gy = rng.randint(8, size - 8), rng.randint(8, size - 8)
         lines.append(f"enemy=1,{gx * TILE + TILE // 2},{gy * TILE + TILE // 2},{rng.randrange(8)},30,4,{3 * TILE},goblin")
+    def enemy(name, tx, ty, hp, attack, wander):
+        if (out / "Character" / "ENEMY" / f"{ENEMIES[name]:08d}").exists():
+            lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                         f"{wander * TILE},goblin")
+
+    # The camp's shaman, flies and ghouls in the woods, a golem by the ruins.
+    enemy("shaman", cx + 0.5, cy - 1.5, 45, 6, 1)
+    for _ in range(5):
+        enemy("fly", rng.randint(24, size - 4), rng.randint(4, 14), 12, 2, 3)
+    for _ in range(4):
+        enemy("ghoul", rng.randint(22, size - 6), rng.randint(26, size - 4), 35, 5, 3)
+    enemy("golem", 18.5, 33.5, 90, 9, 2)
+    # Villagers stand about the square, the stalls and the houses.
+    spots = [(10.0, 15.5), (12.6, 16.0), (7.2, 19.4), (9.6, 18.9), (6.0, 16.5), (13.5, 15.0), (16.0, 16.5),
+             (9.0, 14.8), (11.9, 18.6), (5.5, 14.8), (17.2, 14.6), (14.8, 18.8), (8.2, 16.2), (3.8, 17.6)]
+    for kind, (tx, ty) in zip(people, spots):
+        lines.append(f"person={kind},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)}")
     (out / "Scenario" / "00000001").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000001" / "scenario.txt").write_text("\n".join(lines) + "\n")
     shutil.copy(HERE.parent / "content" / "ai.txt", out / "ai.txt")
