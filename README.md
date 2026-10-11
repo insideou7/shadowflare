@@ -23,14 +23,22 @@ and walking into an exit takes you to the next area, following the
 game's own scripts, so the world can be explored on foot.
 Monsters behave as the game's own AI data tells them: they wander, close
 in, back off and strike or cast; click a monster to punch it.
-Monster health and attack come from the scenario files; the player's
-stats, the damage formula and spell effects are still placeholders. Story events, items, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+Monster health and attack come from the scenario files. Items come from
+the game's item table (`Item.Ibn`, read with the help of the player's own
+`ShadowFlare.exe`): they lie where the scenarios put them, monsters drop
+gold and items, and what the hero wears shows on them and adds to attack
+and defense. The damage formula and spell effects are still placeholders.
+Story events, levels, shops, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to
 attack the monster under it), or use
 the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
 map, Home returns to the start point, J shows the walkability grid, Esc quits.
+Walk onto an item to pick it up. I opens the inventory: click an item to
+pick it up and click again to put it in the bag or an equipment slot;
+right-click a potion to drink it; an item dropped outside the panel lands
+at the hero's feet.
 
 ## Building
 
@@ -56,6 +64,11 @@ Options:
 - `--show-judge` start with the walkability grid shown
 - `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
+- `--give <class>:<code>[:<count>]` start with an item in the bag (class 0 weapon,
+  1 armour, 2 accessory, 3 consumable, 4 special; `--give 4:0:500` is 500 gold)
+- `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
+- `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
+- `--inventory` start with the inventory panel open
 
 Run the unit tests with `ctest --test-dir build`.
 

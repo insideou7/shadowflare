@@ -19,11 +19,9 @@ namespace {
 // Walking speed in world units per tick. Not yet taken from the original.
 constexpr double kWalkSpeed = 70.0;
 
-// Monsters take their health and attack from the scenario file. The
-// player's stats and the damage formula are still placeholders: the player
-// fights bare-handed and a monster's blow takes off its attack value.
-constexpr int kPlayerMaxHp = 100;
-constexpr int kPlayerDamage = 10;
+// Monsters take their health, attack and defense from the scenario file.
+// The player's damage is the attack of what they wear (see playerDamage);
+// the damage formula is a placeholder (reduceDamage).
 constexpr double kEnemySpeed = 35.0;
 constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
 constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
@@ -69,8 +67,11 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     } catch (const FormatError& e) {
         log::warn("Monster AI: {}", e.what());
     }
+    loadItems();
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
+    giveStartingKit();
+    updateEquipment();
     if (mapNames_.empty()) {
         log::warn("No maps found in the game data; showing a placeholder screen");
         return;
@@ -113,6 +114,7 @@ void Game::loadScenario(const std::string& dir) {
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp; });
     if (!dir.empty()) readScenario(dir, control_, &script_);
     spawnActors();
+    spawnGroundItems();
     placePlayer();
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
@@ -316,6 +318,17 @@ void Game::handleEvent(const SDL_Event& event) {
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
+                case SDLK_i:
+                    showInventory_ = !showInventory_;
+                    // Closing the panel puts a held item back, or drops it.
+                    if (!showInventory_ && hand_) {
+                        if (inventory_.add(*hand_)) {
+                            hand_.reset();
+                        } else {
+                            dropHand();
+                        }
+                    }
+                    break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
@@ -323,6 +336,9 @@ void Game::handleEvent(const SDL_Event& event) {
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
+            // Mouse events arrive in logical (640x480) coordinates.
+            if (event.button.button != SDL_BUTTON_LEFT && event.button.button != SDL_BUTTON_RIGHT) break;
+            if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = true;
             break;
         case SDL_MOUSEBUTTONUP:
@@ -348,6 +364,11 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    pickUpItems();
+    for (auto& g : groundItems_) {
+        if (g.sprite) g.sprite->tick();
+    }
+    if (messageTicks_ > 0) --messageTicks_;
     checkTriggers();
     if (pendingScenario_) {
         const auto [number, entry] = *pendingScenario_;
@@ -427,7 +448,7 @@ void Game::tickPlayer() {
         // The blow lands halfway through the swing.
         if (player_->frame() == 4 && attackTarget_) {
             Actor& target = actors_[*attackTarget_];
-            if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) hurtEnemy(target, kPlayerDamage);
+            if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) hurtEnemy(target, playerDamage());
         }
         if (!player_->finished()) return;
         player_->play(chart::kIdle);
@@ -443,6 +464,9 @@ void Game::tickPlayer() {
         attackTarget_ = enemyAt(lx, ly);
         if (attackTarget_) {
             walkTarget_.reset();
+        } else if (const auto item = groundItemAt(lx, ly)) {
+            // Walking onto an item picks it up.
+            walkTarget_.emplace(groundItems_[*item].x, groundItems_[*item].y);
         } else {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
@@ -458,6 +482,17 @@ void Game::tickPlayer() {
             if (d < best) {
                 best = d;
                 attackTarget_ = i;
+            }
+        }
+        // With nothing to fight, collect what is lying around.
+        if (!attackTarget_ && !walkTarget_) {
+            double nearest = kAggroRange;
+            for (const auto& g : groundItems_) {
+                const double d = std::hypot(g.x - player_->x, g.y - player_->y);
+                if (!g.waitForLeave && d < nearest) {
+                    nearest = d;
+                    walkTarget_.emplace(g.x, g.y);
+                }
             }
         }
     }
@@ -563,11 +598,12 @@ void Game::tickEnemy(Actor& enemy) {
 
 void Game::hurtEnemy(Actor& enemy, int damage) {
     if (!enemy.alive()) return;
-    enemy.hp -= damage;
+    enemy.hp -= reduceDamage(damage, enemy.placement.stats.defense);
     if (enemy.hp <= 0) {
         enemy.hp = 0;
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
+        dropLoot(enemy);
     } else {
         enemy.state = Actor::State::Hit;
         enemy.character.restart(chart::kEnemyHit);
@@ -577,7 +613,7 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
 }
 
 void Game::hurtPlayer(int damage) {
-    playerHp_ -= damage;
+    playerHp_ -= reduceDamage(damage, inventory_.stats()[ItemDef::kDefense]);
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
@@ -619,6 +655,7 @@ void Game::renderMap() {
     } else {
         renderChips(camX, camY);
     }
+    renderGroundItems(camX, camY);
 
     // Objects and characters, back to front. Shadows go first so nothing
     // stands under one; characters draw their own shadows.
@@ -671,6 +708,8 @@ void Game::renderMap() {
     }
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
+    renderInventory();
+    renderHud();
 }
 
 // The original's ground: pre-drawn chips on a screen-aligned grid.

@@ -31,6 +31,12 @@ struct Options {
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
     std::optional<std::pair<int, int>> at;  // start position in map pixels
+    struct Gift {
+        int itemClass = 0, code = 0, count = 1;
+        sf::Game::GiveTo to = sf::Game::GiveTo::Bag;
+    };
+    std::vector<Gift> gifts;  // items to start with, for testing
+    bool inventory = false;   // start with the inventory panel open
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -49,6 +55,18 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--at" && i + 1 < argc) {
             int x = 0, y = 0;
             if (std::sscanf(argv[++i], "%d,%d", &x, &y) == 2) options.at.emplace(x, y);
+        } else if ((arg == "--give" || arg == "--equip" || arg == "--drop") && i + 1 < argc) {
+            // class:code[:count], e.g. --give 0:0 (Short Sword), --give 4:0:500 (gold)
+            Options::Gift gift;
+            if (arg == "--equip") gift.to = sf::Game::GiveTo::Wear;
+            if (arg == "--drop") gift.to = sf::Game::GiveTo::Ground;
+            if (std::sscanf(argv[++i], "%d:%d:%d", &gift.itemClass, &gift.code, &gift.count) >= 2) {
+                options.gifts.push_back(gift);
+            } else {
+                sf::log::warn("{} expects class:code[:count]", arg);
+            }
+        } else if (arg == "--inventory") {
+            options.inventory = true;
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -223,6 +241,8 @@ int main(int argc, char** argv) {
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap);
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
+    app.game->setInventoryOpen(options.inventory);
+    for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     app.lastCounter = SDL_GetPerformanceCounter();

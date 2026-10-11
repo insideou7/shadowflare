@@ -48,8 +48,8 @@ public:
     double x = 0, y = 0;  // world units
     int direction = 0;    // 0 = south, then counter-clockwise: south-east, east, ...
 
-    // Which layers to draw besides the shadow; the player's equipment layers
-    // stay hidden until items are decoded.
+    // Which layers to draw besides the shadow. The player's follow what
+    // they wear (Inventory::heroLayers).
     std::vector<int> visibleLayers = {0};
 
     void setAction(Action action) { play(static_cast<int>(action)); }
