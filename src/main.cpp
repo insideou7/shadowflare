@@ -181,7 +181,22 @@ int main(int argc, char** argv) {
     if (options.dataDir) {
         candidates.push_back(*options.dataDir);
     } else {
-        candidates = {"game", "content"};
+        // Relative to the working folder first, then next to the executable
+        // and the folders above it, so it also starts when launched from
+        // build/Debug or by double-clicking. The player's game comes before
+        // the open content wherever either is found.
+        std::vector<std::filesystem::path> bases = {"."};
+        if (char* exe = SDL_GetBasePath()) {
+            std::filesystem::path dir = std::filesystem::path(exe).parent_path();
+            SDL_free(exe);
+            for (int up = 0; up < 4 && !dir.empty(); ++up, dir = dir.parent_path()) {
+                bases.push_back(dir);
+                if (dir == dir.parent_path()) break;
+            }
+        }
+        for (const char* name : {"game", "content"}) {
+            for (const auto& base : bases) candidates.push_back(base == "." ? name : base / name);
+        }
     }
     for (const auto& dir : candidates) {
         if (std::filesystem::is_directory(dir)) installRoot = findInstallRoot(dir);
