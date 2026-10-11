@@ -110,9 +110,16 @@ class Floor(Ground):
     dusty rubble where the corners are 0 (instead of grass and dirt)."""
 
     BRICK = 0.09  # the short side of a brick, in tiles
+    # Brick colour (mid, dark, light), mortar and rubble for each kind.
+    KINDS = {"dungeon": ((104, 88, 60), (60, 50, 34), (146, 128, 96), (34, 28, 18), (96, 84, 58)),
+             "fort": ((106, 100, 84), (64, 60, 50), (138, 132, 112), (36, 34, 28), (80, 76, 64))}
 
-    def __init__(self, seed=1):
+    def __init__(self, seed=1, kind="dungeon"):
         super().__init__(seed)
+        self.palette = [np.array(c, dtype=float) for c in self.KINDS[kind]]
+        self.pitting = 0.07
+        if kind == "fort":
+            self.pitting = 0.12  # more pitted paving stones
         self.wear = Field([(0.5, 1.0), (0.15, 0.7)], seed + 5)  # dust and damp
 
     def bricks(self, u, v):
@@ -138,17 +145,16 @@ class Floor(Ground):
         wear = self.wear(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
         shade, mortar = self.bricks(u, v)
-        brick = colour(np.array([104, 88, 60.0]), np.array([60, 50, 34.0]), np.array([146, 128, 96.0]),
-                       0.45 * shade + 0.15 * big, fine, 0.12)
+        mid, dark, light, joint_colour, rubble_colour = self.palette
+        brick = colour(mid, dark, light, 0.45 * shade + 0.15 * big, fine, 0.12)
         # Dust lightens some stretches and damp darkens others.
         brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
-        joint = np.array([34, 28, 18.0]) * (1 + 0.2 * fine[..., None])
+        joint = joint_colour * (1 + 0.2 * fine[..., None])
         floor = brick * (1 - mortar[..., None]) + joint * mortar[..., None]
         # Pits and chips: scattered near-black specks, thicker where it is damp.
-        pits = self.rng.random(np.shape(u)) < 0.07 + 0.05 * np.clip(-wear, 0, 1)
+        pits = self.rng.random(np.shape(u)) < self.pitting + 0.05 * np.clip(-wear, 0, 1)
         floor = np.where(pits[..., None], floor * 0.3, floor)
-        rubble = colour(np.array([96, 84, 58.0]), np.array([58, 50, 34.0]), np.array([132, 118, 86.0]),
-                        0.25 * big, fine, 0.32)
+        rubble = colour(rubble_colour, rubble_colour * 0.6, rubble_colour * 1.38, 0.25 * big, fine, 0.32)
         return floor, rubble, self.edge(u, v)
 
 
@@ -230,8 +236,9 @@ def pattern_index(corners, tx, ty):
 def build_tiles(seed=1, kind="meadow"):
     """Every tile, in pattern_index order: (image, anchor x, anchor y).
     kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
+    "fort" (grey stone paving and grit),
     "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
-    g = {"dungeon": lambda: Floor(seed), "cave": lambda: Cave(seed, "cave"),
+    g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "cave": lambda: Cave(seed, "cave"),
          "mine": lambda: Cave(seed, "mine")}.get(kind, lambda: Ground(seed))()
     tiles = []
     for corners in corner_patterns():

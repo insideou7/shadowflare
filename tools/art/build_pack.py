@@ -4,10 +4,11 @@
     python3 tools/art/build_pack.py <rendered art folder> <output pack>
 
 The art folder holds what props.py and creatures.py rendered:
-props/, town/, dungeon/, cave/, hero/, the monsters (one folder per
+props/, town/, dungeon/, cave/, fort/, hero/, the monsters (one folder per
 ENEMIES entry) and townspeople (person<N>/). This script adds the ground
 tiles (ground.py), lays out the test maps (a meadow with a goblin camp, the
-waterworks under it and the caves and coal mine below that) and writes the
+waterworks under it, the caves and coal mine below that and the fort above
+the mine) and writes the
 pack's text files. Needs Pillow and numpy.
 """
 
@@ -117,7 +118,7 @@ def main():
     props = Atlas()
     anchors = {}
     for folder, listing in (("props", "props.txt"), ("town", "town.txt"), ("dungeon", "dungeon.txt"),
-                            ("cave", "cave.txt")):
+                            ("cave", "cave.txt"), ("fort", "fort.txt")):
         if not (art / folder / listing).exists():
             continue
         for line in (art / folder / listing).read_text().split("\n"):
@@ -501,9 +502,136 @@ def caves(out, anchors, rng):
         enemy("archer", tx, ty, 35, 6, 1)
     enemy("ogre", 14, 21, 80, 10, 1)
     enemy("dragon", 21.5, 22.5, 300, 16, 1)
+    if "fwall_x" in anchors:
+        # The mine's wooden stairs climb up into the fort.
+        lines += [f"entry=2,{int(22.0 * TILE)},{int(19.5 * TILE)},0",
+                  f"exit={int(22.4 * TILE)},{int(18.6 * TILE)},{int(23.0 * TILE)},{int(20.4 * TILE)},4,1"]
+        fort(out, anchors, rng)
     (out / "Scenario" / "00000003").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000003" / "scenario.txt").write_text("\n".join(lines) + "\n")
     print(f"caves: {len(objects)} objects")
+
+
+
+def fort(out, anchors, rng):
+    """The thieves' fort above the coal mine and the wizard's tower room
+    beside it: grey stone halls with iron doors and torch brackets, a
+    teleport dais and levers, and the tower's boiler behind iron railings.
+    Writes Map/fort.txt and Scenario/00000004."""
+    size = 26
+    floor = Atlas()
+    for t in ground.build_tiles(seed=8, kind="fort"):
+        floor.add(len(floor.frames), t)
+    floor.write(out / "Map" / "fortfloor.sheet", "fortfloor.png")
+    halls = [(2, 2, 12, 12), (14, 2, 24, 10), (2, 14, 24, 24)]
+    passages = [(12, 6, 14, 8), (6, 12, 8, 14), (18, 10, 20, 14)]
+    open_ = np.zeros((size, size), dtype=bool)
+    for x0, y0, x1, y1 in halls + passages:
+        open_[y0:y1, x0:x1] = True
+    n = size + 1
+    terrain = np.ones((n, n), dtype=int)
+    yy, xx = np.mgrid[0:n, 0:n]
+    for _ in range(10):
+        px, py, pr = rng.randrange(n), rng.randrange(n), rng.uniform(1.0, 2.0)
+        terrain[(xx - px) ** 2 + (yy - py) ** 2 < pr * pr] = 0
+    rows = []
+    for ty in range(size):
+        row = []
+        for tx in range(size):
+            if not open_[ty, tx]:
+                row.append(".")
+                continue
+            corners = (terrain[ty, tx], terrain[ty, tx + 1], terrain[ty + 1, tx], terrain[ty + 1, tx + 1])
+            row.append(f"0:{ground.pattern_index(corners, tx, ty)}")
+        rows.append(" ".join(row))
+    blocked = ~np.repeat(np.repeat(open_, PER, axis=0), PER, axis=1)
+    objects = []
+
+    def place(name, tx, ty, block=None):
+        objects.append(f"{int(tx * TILE)},{int(ty * TILE)},1,{anchors[name]}")
+        if block:
+            x0, y0, x1, y1 = block
+            blocked[int(y0 * PER):int(y1 * PER), int(x0 * PER):int(x1 * PER)] = True
+
+    # Walls on every edge between floor and solid stone; every so often a
+    # torch bracket, an old bloodstain or a shut iron door.
+    def variant(k):
+        return ["", "", "_torch", "", "_blood", "", "door"][k % 7]
+
+    k = 0
+    for ty in range(size + 1):
+        for tx in range(0, size, 2):
+            above = ty > 0 and open_[ty - 1, tx:tx + 2].all()
+            below = ty < size and open_[ty, tx:tx + 2].all()
+            if above != below:
+                v = variant(k)
+                name = "fdoor_x" if v == "door" else f"fwall{v}_x"
+                place(name, tx + 1, ty, (tx, ty - 0.15, tx + 2, ty + 0.15))
+                k += 1
+    for tx in range(size + 1):
+        for ty in range(0, size, 2):
+            left = tx > 0 and open_[ty:ty + 2, tx - 1].all()
+            right = tx < size and open_[ty:ty + 2, tx].all()
+            if left != right:
+                v = variant(k)
+                name = "fdoor_y" if v == "door" else f"fwall{v}_y"
+                place(name, tx, ty + 1, (tx - 0.15, ty, tx + 0.15, ty + 2))
+                k += 1
+    # The entrance hall: the stairway down to the mine, and pillars.
+    place("fstairs", 7.0, 2.9, (5.9, 2, 8.1, 3.3))
+    for px, py in ((4.0, 6.0), (10.0, 6.0), (4.0, 10.0), (10.0, 10.0)):
+        place("fpillar", px, py, (px - 0.4, py - 0.4, px + 0.4, py + 0.4))
+    place("chest", 2.8, 11.2, (2.5, 10.9, 3.1, 11.5))
+    # The east hall: a teleport dais worked by two levers.
+    place("teleporter", 19.0, 6.0, (18.4, 5.4, 19.6, 6.6))
+    place("switch_up", 15.0, 2.8, (14.8, 2.6, 15.2, 3.0))
+    place("switch_down", 23.0, 2.8, (22.8, 2.6, 23.2, 3.0))
+    place("fpillar", 16.0, 8.5, (15.6, 8.1, 16.4, 8.9))
+    place("fpillar", 22.0, 8.5, (21.6, 8.1, 22.4, 8.9))
+    # The tower room: the boiler fenced off with railings, pipes along the
+    # floor, glowing pads and a broken ring of slabs.
+    place("boiler", 20.5, 18.5, (19.4, 17.4, 21.6, 19.6))
+    for tx in (18, 21):
+        place("railing_x", tx + 0.75, 16.5, (tx, 16.4, tx + 1.5, 16.6))
+    place("railing_plain_y", 17.5, 18.75, (17.4, 17.5, 17.6, 20))
+    place("railing_plain_y", 23.5, 18.75, (23.4, 17.5, 23.6, 20))
+    for px, py in ((17.5, 16.5), (23.5, 16.5), (17.5, 20.5), (23.5, 20.5)):
+        place("iron_post", px, py, (px - 0.15, py - 0.15, px + 0.15, py + 0.15))
+    place("floor_pipe_x", 12.0, 22.6)
+    place("floor_pipe_x", 14.0, 22.6)
+    place("pipe_bend", 15.0, 22.6)
+    place("floor_pipe_y", 15.2, 20.6)
+    place("portal_blue", 5.0, 17.0)
+    place("portal_red", 9.0, 17.0)
+    place("broken_ring", 6.0, 21.0)
+    place("obelisk", 3.4, 22.6, (3.0, 22.2, 3.8, 23.0))
+    judge = ["".join("x" if b else "." for b in line) for line in blocked]
+    with open(out / "Map" / "fort.txt", "w", newline="\n") as f:
+        f.write("# The thieves' fort and the tower room: generated by tools/art/build_pack.py\n")
+        f.write(f"size={size},{size}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{size * PER},{size * PER}\n")
+        f.write("bank=Map/fortfloor.sheet\nbank=Map/props.sheet\n\n[ground]\n" + "\n".join(rows))
+        f.write("\n\n[judge]\n" + "\n".join(judge) + "\n\n[objects]\n" + "\n".join(objects) + "\n")
+    lines = ["# generated by tools/art/build_pack.py", "title=Fort of Thieves", "map=fort",
+             f"entry=0,{7 * TILE},{int(4.6 * TILE)},0", f"entry=1,{7 * TILE},{int(4.6 * TILE)},0",
+             f"exit={int(6.4 * TILE)},{int(3.3 * TILE)},{int(7.6 * TILE)},{int(3.9 * TILE)},3,2"]
+
+    def enemy(name, tx, ty, hp, attack, wander):
+        if (out / "Character" / "ENEMY" / f"{ENEMIES[name]:08d}").exists():
+            lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                         f"{wander * TILE},goblin")
+
+    # The thieves hold the halls; the wizard's creatures haunt the tower room.
+    for tx, ty in ((5, 8), (9, 4), (16, 4), (22, 6), (19, 9)):
+        enemy("archer", tx, ty, 35, 6, 1)
+    for tx, ty in ((8, 9), (17, 7), (21, 4)):
+        enemy("ogre", tx, ty, 80, 10, 1)
+    for tx, ty in ((7, 19), (12, 17)):
+        enemy("demon", tx, ty, 40, 6, 3)
+    enemy("golem", 14, 20, 90, 9, 1)
+    enemy("shaman", 10, 21, 45, 6, 1)
+    (out / "Scenario" / "00000004").mkdir(parents=True, exist_ok=True)
+    (out / "Scenario" / "00000004" / "scenario.txt").write_text("\n".join(lines) + "\n")
+    print(f"fort: {len(objects)} objects")
 
 
 if __name__ == "__main__":
