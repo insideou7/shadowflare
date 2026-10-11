@@ -56,7 +56,7 @@ def character(src, dst, charts):
             _, name, frames, loop = line.split()
             anims[name] = (int(frames), loop == "loop")
     dst.mkdir(parents=True, exist_ok=True)
-    atlas = Atlas(width=4096)  # big characters (the golem) overflow a narrower sheet
+    atlas = Atlas(width=8192)  # big characters (the golem, the winged bosses) overflow a narrower sheet
     out = ["# Rendered by tools/art/creatures.py.", "sheet=Animation.sheet"]
     for chart, name in charts:
         frames, loop = anims[name]
