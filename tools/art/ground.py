@@ -197,7 +197,8 @@ class Wild(Ground):
 class Cave(Ground):
     """A cave or mine floor. "cave": packed earth broken into flat cracked
     slabs, with loose gravel where the corners are 0. "mine": dark trodden
-    earth with patches of coal dust."""
+    earth with patches of coal dust. "deep": the same lumpy relief in a deep
+    cavern's dark brown earth, with patches of mossy ground."""
 
     def __init__(self, seed=1, kind="cave"):
         super().__init__(seed)
@@ -250,6 +251,13 @@ class Cave(Ground):
                           0.3 * big, fine, 0.35)
             return earth, coal, self.edge(u, v)
         lump, light = self.sample(self.lump, u, v), self.sample(self.light, u, v)
+        if self.kind == "deep":
+            earth = colour(np.array([38, 26, 18.0]), np.array([12, 8, 6.0]), np.array([72, 52, 38.0]),
+                           np.clip(2.0 * light, -1, 1) * 0.6 + 0.15 * big, fine, 0.18)
+            earth = earth * (0.7 + 0.3 * lump)[..., None]
+            moss = colour(np.array([32, 31, 21.0]), np.array([13, 13, 9.0]), np.array([50, 50, 34.0]),
+                          np.clip(2.0 * light, -1, 1) * 0.5 + 0.2 * big, fine, 0.3)
+            return earth, moss * (0.75 + 0.25 * lump)[..., None], self.edge(u, v)
         rock = colour(np.array([90, 75, 58.0]), np.array([46, 37, 28.0]), np.array([136, 118, 94.0]),
                       np.clip(2.0 * light, -1, 1) * 0.55 + 0.15 * big, fine, 0.14)
         rock = rock * (0.8 + 0.2 * lump)[..., None]
@@ -274,12 +282,12 @@ def build_tiles(seed=1, kind="meadow"):
     kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
     "fort" (grey stone paving and grit), "shore" (sand and water),
     "desert" (sand and brown earth), "heath" (grass and dark soil),
-    "coast" (grass and sand),
+    "coast" (grass and sand), "deep" (dark cavern earth and moss),
     "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
     g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "cave": lambda: Cave(seed, "cave"),
          "mine": lambda: Cave(seed, "mine"), "shore": lambda: Wild(seed, "shore"),
          "desert": lambda: Wild(seed, "desert"), "heath": lambda: Wild(seed, "heath"),
-         "coast": lambda: Wild(seed, "coast")}.get(kind, lambda: Ground(seed))()
+         "coast": lambda: Wild(seed, "coast"), "deep": lambda: Cave(seed, "deep")}.get(kind, lambda: Ground(seed))()
     tiles = []
     for corners in corner_patterns():
         for ty in range(PERIOD):
