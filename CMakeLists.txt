@@ -18,6 +18,7 @@ add_library(sf_formats STATIC
     src/formats/scenario.cpp
     src/formats/scenario_script.cpp
     src/formats/table_data.cpp
+    src/formats/item_data.cpp
     src/formats/open_content.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
@@ -33,6 +34,7 @@ add_library(sf_logic STATIC
     src/logic/script_runner.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
+    src/logic/inventory.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -46,6 +48,8 @@ add_executable(shadowflare
     src/game/character.cpp
     src/game/game.cpp
     src/game/enemy_ai.cpp
+    src/game/items.cpp
+    src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
 
@@ -65,6 +69,9 @@ if(BUILD_TESTING)
     add_executable(logic_test tests/logic_test.cpp)
     target_link_libraries(logic_test PRIVATE sf_logic)
     add_test(NAME logic COMMAND logic_test)
+    add_executable(inventory_test tests/inventory_test.cpp)
+    target_link_libraries(inventory_test PRIVATE sf_logic)
+    add_test(NAME inventory COMMAND inventory_test)
     add_executable(open_content_test tests/open_content_test.cpp)
     target_link_libraries(open_content_test PRIVATE sf_formats)
     add_test(NAME open_content COMMAND open_content_test)

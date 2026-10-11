@@ -323,10 +323,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             c.entryPoints.push_back({v[0] * 4, v[1], v[2], v[3]});
         } else if (key == "enemy" || key == "person") {
             // enemy=kind,x,y,direction,hp,attack,wander radius,ai list name
+            //       [,level,gold chance,gold min,gold max]
             // person=kind,x,y,direction
             const bool enemy = key == "enemy";
             auto fields = Lines::split(value, ',');
-            if (fields.size() != (enemy ? 8u : 4u)) lines.fail(enemy ? "enemy needs 8 fields" : "person needs 4 fields");
+            if (enemy ? fields.size() != 8u && fields.size() != 12u : fields.size() != 4u) {
+                lines.fail(enemy ? "enemy needs 8 or 12 fields" : "person needs 4 fields");
+            }
             ScenarioControl::Placement p;
             p.group = enemy ? Group::Enemy : Group::Person;
             p.id = nextId[static_cast<int>(p.group)]++;
@@ -344,7 +347,25 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                 p.stats.area[0] = p.stats.area[1] = -r;
                 p.stats.area[2] = p.stats.area[3] = r;
                 p.stats.ai = fields[7];
+                if (fields.size() == 12) {
+                    p.stats.level = lines.toInt(fields[8]);
+                    p.stats.goldChance = lines.toInt(fields[9]);
+                    p.stats.goldMin = lines.toInt(fields[10]);
+                    p.stats.goldMax = lines.toInt(fields[11]);
+                }
             }
+            c.placements.push_back(std::move(p));
+        } else if (key == "item") {
+            // item=class,code,x,y: an item lying on the ground
+            const auto v = lines.ints(value, 4);
+            ScenarioControl::Placement p;
+            p.group = Group::Item;
+            p.id = nextId[3]++;
+            p.itemClass = v[0];
+            p.itemCode = v[1];
+            p.x = v[2];
+            p.y = v[3];
+            p.direction = 8;
             c.placements.push_back(std::move(p));
         } else if (key == "exit") {
             // exit=left,top,right,bottom,scenario,entry: walking into the
@@ -369,6 +390,78 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
         }
     }
     return s;
+}
+
+// [item <class> <code>] sections of key=value lines; see docs/content.md.
+ItemTable parseItems(std::span<const std::uint8_t> text) {
+    static const std::map<std::string_view, ItemDef::Class, std::less<>> kClasses = {
+        {"weapon", ItemDef::Class::Weapon},         {"armour", ItemDef::Class::Armour},
+        {"accessory", ItemDef::Class::Accessory}, {"consumable", ItemDef::Class::Consumable},
+        {"special", ItemDef::Class::Special},
+    };
+    Lines lines(text);
+    ItemTable table;
+    ItemDef* item = nullptr;
+    // Up to `max` comma-separated numbers into `out`; the rest stay 0.
+    auto numbers = [&](std::string_view value, std::span<std::int32_t> out) {
+        const auto v = lines.ints(value);
+        if (v.size() > out.size()) lines.fail(std::format("at most {} numbers", out.size()));
+        std::ranges::copy(v, out.begin());
+    };
+    auto pair = [&](std::string_view value, std::int32_t& a, std::int32_t& b) {
+        const auto v = lines.ints(value, 2);
+        a = v[0];
+        b = v[1];
+    };
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 3 || words[0] != "item") lines.fail("expected [item <class> <code>]");
+            const auto cls = kClasses.find(words[1]);
+            if (cls == kClasses.end()) lines.fail(std::format("unknown item class '{}'", words[1]));
+            const int code = lines.toInt(words[2]);
+            if (table.find(cls->second, code)) lines.fail("item defined twice");
+            item = &table.items.emplace_back();
+            item->cls = cls->second;
+            item->code = code;
+            continue;
+        }
+        std::string_view key, value;
+        if (!item || !keyValue(*line, key, value)) lines.fail("expected [item <class> <code>] then key=value lines");
+        if (key == "name") {
+            item->name = value;
+        } else if (key == "subtype") {
+            item->subtype = lines.toInt(value);
+        } else if (key == "quality") {
+            item->quality = lines.toInt(value);
+        } else if (key == "size") {
+            pair(value, item->width, item->height);
+            if (item->width < 1 || item->height < 1 || item->width > 9 || item->height > 4) lines.fail("bad item size");
+        } else if (key == "price") {
+            item->price = lines.toInt(value);
+        } else if (key == "icon") {
+            pair(value, item->invBank, item->invPattern);
+        } else if (key == "ground") {
+            pair(value, item->groundFolder, item->groundPicture);
+        } else if (key == "level") {
+            pair(value, item->itemLevel, item->requiredLevel);
+        } else if (key == "weight") {
+            item->dropWeight = lines.toInt(value);
+        } else if (key == "stats") {
+            numbers(value, item->stats);
+        } else if (key == "layer") {
+            item->heroLayer = lines.toInt(value);
+        } else if (key == "glow") {
+            item->glowLayer = lines.toInt(value);
+        } else if (key == "two-handed") {
+            item->twoHandedFlag = lines.toInt(value) != 0;
+        } else if (key == "effect") {
+            numbers(value, item->effect);
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    return table;
 }
 
 namespace {

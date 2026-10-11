@@ -35,11 +35,15 @@ struct ScenarioControl {
             std::int32_t defense = 0;
             std::int32_t experience = 0;
             std::int32_t level = 0;
+            std::int32_t goldChance = 0;  // percent; word 49, read by the exe at 0x45a030
             std::int32_t goldMin = 0, goldMax = 0;
             std::int32_t speed = 1000;    // per mille, scales the AI's movement speeds
             std::int32_t area[4] = {};    // where it wanders: left, top, right, bottom around (x, y)
             std::string ai;               // name of its list in Control.aid (Shift-JIS)
         } stats;
+
+        // Items lying on the map: which one, as an Item.Ibn (class, code).
+        std::int32_t itemClass = -1, itemCode = 0;
     };
 
     // Where the party appears when the scenario is entered. Each entry
