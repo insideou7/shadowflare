@@ -3,7 +3,8 @@
     python tools/art/creatures.py [--preview] [--blend] <kind> <output folder>
 
 where kind is goblin, hero, fly, ghoul, shaman, golem, spider, bigspider,
-swordsman, archer, ogre, demon, dragon or person<N> (a townsperson from the
+swordsman, archer, ogre, demon, dragon, boar, boarrider, skeleton,
+barbarian, lizard or person<N> (a townsperson from the
 PEOPLE table).
 
 (run with a Python that has the `bpy` module). Characters are built from
@@ -927,6 +928,322 @@ BUILDERS["swordsman"] = lambda: build_bandit("swordsman")
 BUILDERS["archer"] = lambda: build_bandit("archer")
 HEIGHT["swordsman"] = HEIGHT["archer"] = 3.6
 
+def build_boar(rider=False):
+    """A huge wild boar: a heavy grey-brown body with a ridge of bristles,
+    a long snout with upcurved tusks, thin legs and a tufted tail. With a
+    rider, an orc in a horned helm and iron pauldrons sits astride it,
+    holding a long halberd."""
+    hide = studio.material("hide", (0.40, 0.37, 0.34), (0.12, 0.11, 0.10), scale=50, detail=10, rough=0.8, bump=1.2,
+                           band=(0.35, 0.70))
+    bristle = studio.material("bristle", (0.22, 0.20, 0.19), (0.06, 0.05, 0.05), scale=60, rough=0.9, bump=0.8)
+    tusk = studio.material("tusk", (0.90, 0.86, 0.74), (0.55, 0.50, 0.40), scale=30, rough=0.4)
+    hoof = studio.material("hoof", (0.10, 0.09, 0.08), scale=20, rough=0.5)
+    snout = studio.material("snout", (0.50, 0.38, 0.36), (0.25, 0.17, 0.16), scale=20, rough=0.6)
+    eye = studio.material("eye", (0.95, 0.85, 0.70), scale=60, rough=0.3)
+    rig = Rig()
+    rig.kind = "boar"
+    rig.joint("body", "root", (0, 0, 1.25))
+    rig.attach(shape("ball", (1.35, 0.68, 0.72), hide), "body", (0, 0, 0))
+    rig.attach(shape("ball", (0.80, 0.72, 0.80), hide), "body", (0.65, 0, 0.12))  # heavy shoulders
+    for k in range(9):
+        x = 1.1 - 0.28 * k
+        rig.attach(shape("cone", (0.10, 0.06, 0.18 + 0.04 * (k < 4)), bristle, rotation=(0, math.radians(-35), 0)),
+                   "body", (x, 0, 0.82 - 0.03 * k - 0.1 * (k > 5)))
+    rig.joint("head", "body", (1.25, 0, 0.15))
+    rig.attach(shape("ball", (0.55, 0.45, 0.48), hide), "head", (0.15, 0, -0.05))
+    segment(rig, "head", (0.35, 0, -0.10), (1.05, 0, -0.35), 0.22, hide)
+    rig.attach(shape("cylinder", (0.17, 0.19, 0.04), snout, rotation=(0, math.radians(70), 0)), "head", (1.07, 0, -0.36))
+    for side in (1, -1):
+        segment(rig, "head", (0.85, 0.16 * side, -0.42), (1.05, 0.30 * side, -0.18), 0.04, tusk)
+        rig.attach(shape("ball", (0.05, 0.05, 0.05), eye), "head", (0.55, 0.26 * side, 0.08))
+        rig.attach(shape("cone", (0.10, 0.06, 0.16), hide, rotation=(math.radians(-30 * side), math.radians(-20), 0)),
+                   "head", (0.10, 0.30 * side, 0.40))
+    rig.joint("tail", "body", (-1.30, 0, 0.25))
+    segment(rig, "tail", (0, 0, 0), (-0.35, 0, -0.45), 0.04, hide)
+    rig.attach(shape("ball", (0.07, 0.07, 0.12), bristle), "tail", (-0.38, 0, -0.52))
+    rig.legs = []
+    for front in (1, -1):
+        for side in (1, -1):
+            name = f"leg{'f' if front > 0 else 'b'}{'l' if side > 0 else 'r'}"
+            rig.joint(name, "body", (0.75 * front, 0.38 * side, -0.35))
+            rig.attach(shape("ball", (0.30, 0.20, 0.38), hide), name, (0, 0, -0.10))
+            segment(rig, name, (0, 0, -0.30), (0.04 * front, 0, -0.85), 0.09, hide)
+            rig.attach(shape("cylinder", (0.10, 0.10, 0.07), hoof), name, (0.06 * front, 0, -0.88))
+            rig.legs.append((name, front, side))
+    if rider:
+        skin = studio.material("orcskin", (0.66, 0.46, 0.26), (0.30, 0.18, 0.08), scale=5, rough=0.5, bump=0.3)
+        iron = studio.material("darkiron", (0.36, 0.36, 0.38), (0.06, 0.06, 0.07), scale=24, rough=0.3, bump=0.5)
+        leather = studio.material("leather", (0.36, 0.18, 0.10), (0.14, 0.07, 0.03), scale=20, rough=0.6)
+        horn = studio.material("horn", (0.86, 0.82, 0.72), (0.45, 0.42, 0.36), scale=30, rough=0.5)
+        wood = studio.material("haft", (0.40, 0.20, 0.10), scale=25, rough=0.6, stretch=(1, 1, 4))
+        steel = studio.material("steel", (0.84, 0.84, 0.88), (0.36, 0.36, 0.42), scale=40, rough=0.3, bump=0.1)
+        rig.joint("rider", "body", (0.05, 0, 0.62))
+        rig.attach(shape("cylinder", (0.55, 0.62, 0.06), leather), "rider", (0, 0, -0.05))  # saddle cloth
+        rig.attach(shape("ball", (0.30, 0.36, 0.42), skin), "rider", (0.0, 0, 0.45))
+        rig.attach(shape("ball", (0.28, 0.40, 0.26), leather), "rider", (0.0, 0, 0.25))
+        for side in (1, -1):
+            rig.attach(shape("ball", (0.20, 0.17, 0.30), skin), "rider", (0.15, 0.32 * side, 0.0))  # thighs astride
+            rig.attach(shape("ball", (0.17, 0.20, 0.10), iron), "rider", (0.0, 0.40 * side, 0.76))  # pauldrons
+            rig.attach(shape("cylinder", (0.12, 0.12, 0.06), leather), "rider", (0.0, 0.40 * side, 0.62))
+            for j in (-1, 0, 1):
+                rig.attach(shape("cone", (0.04, 0.04, 0.14), iron, rotation=(math.radians(-60 * side), 0.4 * j, 0)), "rider",
+                           (0.12 * j, 0.52 * side, 0.84))
+        rig.joint("rhead", "rider", (0.08, 0, 0.95))
+        rig.attach(shape("ball", (0.20, 0.18, 0.21), skin), "rhead", (0.04, 0, 0.08))
+        rig.attach(shape("ball", (0.21, 0.20, 0.13), iron), "rhead", (0.0, 0, 0.18))
+        for side in (1, -1):
+            rig.attach(shape("cone", (0.05, 0.05, 0.16), horn, rotation=(math.radians(-35 * side), 0, 0)), "rhead",
+                       (0.0, 0.17 * side, 0.32))
+        for side, name in ((1, "rarm_l"), (-1, "rarm_r")):
+            rig.joint(name, "rider", (0.0, 0.38 * side, 0.72))
+            limb(rig, name, 0.65, 0.09, skin, "ball", skin, (0.10, 0.10, 0.10))
+        # The halberd: a long haft with an axe blade, a hook and a spike.
+        rig.joint("weapon", "rarm_r", (0, 0, -0.65))
+        rig.attach(shape("cylinder", (0.04, 0.04, 1.4), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.5, 0, 0))
+        rig.attach(shape("box", (0.18, 0.02, 0.26), steel), "weapon", (1.65, 0, 0.18))
+        rig.attach(shape("box", (0.10, 0.02, 0.14), steel), "weapon", (1.65, 0, -0.14))
+        rig.attach(shape("cone", (0.06, 0.03, 0.30), steel, rotation=(0, math.radians(90), 0)), "weapon", (2.12, 0, 0))
+        rig.weapon = math.radians(-40)
+        rig.joints["rider"].scale = (1.35, 1.35, 1.35)
+    rig.joints["root"].scale = (1.45, 1.45, 1.45)
+    return rig
+
+
+def boar_pose(rig, animation, t, frames):
+    """The boar trots on four legs, lowers its head and rushes to gore,
+    flinches back when hit and rolls onto its side to die. A rider sways
+    with it and swings the halberd down on the attack."""
+    s = math.sin(2 * math.pi * t)
+    k = min(1.0, t * frames / max(1, frames - 1))
+    r = {"tail": (0.2 * s, 0, 0), "head": (0, 0.04 * s, 0)}
+    offset = (0, 0, 0.02 * s)
+    swing = 0.0
+    if animation == "walk":
+        for name, front, side in rig.legs:
+            r[name] = (0, 0.45 * s * front * side, 0)
+        offset = (0, 0, 0.06 * abs(math.cos(2 * math.pi * t)))
+    elif animation == "attack":
+        gore = math.sin(math.pi * k)
+        r["head"] = (0, 0.35 * gore - 0.45 * gore * (k > 0.5), 0)
+        r["body"] = (0, 0.10 * gore, 0)
+        offset = (0.35 * gore, 0, 0)
+        swing = gore
+    elif animation == "hit":
+        jolt = math.sin(math.pi * k)
+        r["head"] = (0, -0.3 * jolt, 0)
+        offset = (-0.25 * jolt, 0, 0)
+    elif animation == "death":
+        r["body"] = (math.radians(80) * k * k, 0, 0)
+        for name, front, side in rig.legs:
+            r[name] = (0, 0.3 * front * k, 0)
+        r["head"] = (0, 0.3 * k, 0)
+        offset = (0, 0, -0.45 * k * k)
+    if "rider" in rig.joints:
+        r["rider"] = (0, 0.05 * s, 0)
+        r["rarm_l"] = (0.3, -0.7, 0)
+        r["rarm_r"] = (-0.2, -1.2 + 2.2 * swing * (k > 0.4) - 1.0 * swing * (k <= 0.4), 0)
+        r["weapon"] = (0, rig.weapon, 0)
+        if animation == "death":
+            r["rider"] = (0, -1.2 * k, 0)
+    rig.pose(r, offset)
+
+
+def build_skeleton():
+    """A walking skeleton of yellowed bone with a rusty curved sword and a
+    small round wooden shield."""
+    bone = studio.material("bone", (0.78, 0.76, 0.62), (0.34, 0.32, 0.24), scale=20, rough=0.6, bump=0.6)
+    dark = studio.material("socket", (0.05, 0.04, 0.03), scale=10)
+    rust = studio.material("rustblade", (0.86, 0.46, 0.16), (0.40, 0.16, 0.05), scale=30, rough=0.4, bump=0.4)
+    wood = studio.material("shieldwood", (0.42, 0.22, 0.10), (0.18, 0.09, 0.04), scale=12, rough=0.6, stretch=(1, 6, 1))
+    iron = studio.material("iron", (0.50, 0.50, 0.52), (0.16, 0.16, 0.18), scale=24, rough=0.4)
+    rig = Rig(lean=0.12, weapon=60, stance=0.12)
+    rig.joint("hips", "root", (0, 0, 1.0))
+    rig.joint("spine", "hips", (0, 0, 0.05))
+    rig.joint("head", "spine", (0.10, 0, 0.98))
+    rig.joint("arm_l", "spine", (0.0, 0.36, 0.80))
+    rig.joint("arm_r", "spine", (0.0, -0.36, 0.80))
+    rig.joint("leg_l", "hips", (0, 0.15, 0))
+    rig.joint("leg_r", "hips", (0, -0.15, 0))
+    rig.attach(shape("ball", (0.20, 0.30, 0.10), bone), "hips", (0, 0, 0.02))  # pelvis
+    segment(rig, "spine", (0, 0, 0), (0, 0, 0.90), 0.05, bone)
+    for k in range(5):
+        z = 0.42 + 0.09 * k
+        w = 0.24 - 0.02 * abs(k - 2)
+        ring = shape("ball", (0.17, w, 0.025), bone)
+        rig.attach(ring, "spine", (0.03, 0, z))
+    rig.attach(shape("cylinder", (0.03, 0.36, 0.03), bone, rotation=(0, 0, 0)), "spine", (0, 0, 0.82))  # collarbones
+    rig.attach(shape("ball", (0.22, 0.19, 0.23), bone), "head", (0.03, 0, 0.14))
+    rig.attach(shape("ball", (0.09, 0.10, 0.06), bone), "head", (0.13, 0, -0.03))  # jaw
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.04, 0.045, 0.045), dark), "head", (0.18, 0.07 * side, 0.14))
+    for side in ("arm_l", "arm_r"):
+        segment(rig, side, (0, 0, 0), (0, 0, -0.75), 0.055, bone)
+        rig.attach(shape("ball", (0.05, 0.05, 0.05), bone), side, (0, 0, -0.38))
+        rig.attach(shape("ball", (0.06, 0.04, 0.07), bone), side, (0, 0, -0.78))
+    for side in ("leg_l", "leg_r"):
+        segment(rig, side, (0, 0, 0), (0, 0, -0.95), 0.065, bone)
+        rig.attach(shape("ball", (0.06, 0.06, 0.06), bone), side, (0, 0, -0.48))
+        rig.attach(shape("box", (0.11, 0.05, 0.03), bone), side, (0.06, 0, -0.97))
+    rig.joint("weapon", "arm_r", (0, 0, -0.78))
+    rig.attach(shape("cylinder", (0.025, 0.025, 0.09), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.03, 0, 0))
+    rig.attach(shape("box", (0.02, 0.10, 0.02), iron), "weapon", (0.13, 0, 0))
+    blade = []
+    for i in range(6):
+        a = (0.15 + 0.15 * i, 0, 0.012 * i * i)
+        b = (0.15 + 0.15 * (i + 1), 0, 0.012 * (i + 1) ** 2)
+        segment(rig, "weapon", a, b, 0.06 - 0.005 * i, rust)
+    rig.joint("shield", "arm_l", (0.12, 0.08, -0.55))
+    rig.attach(shape("cylinder", (0.38, 0.38, 0.04), wood, rotation=(math.radians(90), 0, 0)), "shield", (0, 0.04, 0))
+    rig.attach(shape("cylinder", (0.40, 0.40, 0.025), iron, rotation=(math.radians(90), 0, 0)), "shield", (0, 0.02, 0))
+    rig.attach(shape("ball", (0.09, 0.05, 0.09), iron), "shield", (0, 0.08, 0))
+    # Scraps of blackened armour: shoulder plates and a belt.
+    armour = studio.material("blackarmour", (0.17, 0.16, 0.16), (0.04, 0.04, 0.04), scale=20, rough=0.4)
+    for side in ("arm_l", "arm_r"):
+        rig.attach(shape("ball", (0.13, 0.12, 0.08), armour), side, (0, 0, 0.0))
+    rig.attach(shape("cylinder", (0.20, 0.27, 0.06), armour), "hips", (0, 0, 0.10))
+    rig.arms = "guard"
+    rig.joints["root"].scale = (1.3, 1.3, 1.3)
+    return rig
+
+
+def build_barbarian():
+    """A huge bare-chested barbarian: tanned skin, a horned steel helm, a
+    dark loincloth, heavy boots, a great hooked sword and a round shield
+    of polished steel."""
+    skin = studio.material("skin", (0.86, 0.62, 0.40), (0.42, 0.26, 0.14), scale=5, rough=0.45, bump=0.3)
+    cloth = studio.material("cloth", (0.26, 0.12, 0.08), (0.08, 0.04, 0.03), scale=18, bump=0.4, stretch=(1, 1, 4))
+    steel = studio.material("steel", (0.80, 0.80, 0.84), (0.26, 0.26, 0.30), scale=24, rough=0.3, bump=0.3)
+    horn = studio.material("horn", (0.90, 0.88, 0.82), (0.50, 0.48, 0.44), scale=30, rough=0.4)
+    boots = studio.material("boots", (0.32, 0.16, 0.08), (0.10, 0.05, 0.02), scale=20, rough=0.6)
+    grip = studio.material("grip", (0.50, 0.30, 0.12), scale=25, rough=0.6)
+    rig = Rig(lean=0.12, weapon=60, stance=0.18)
+    rig.joint("hips", "root", (0, 0, 1.05))
+    rig.joint("spine", "hips", (0, 0, 0.05))
+    rig.joint("head", "spine", (0.10, 0, 1.10))
+    rig.joint("arm_l", "spine", (0.0, 0.58, 0.88))
+    rig.joint("arm_r", "spine", (0.0, -0.58, 0.88))
+    rig.joint("leg_l", "hips", (0, 0.22, 0))
+    rig.joint("leg_r", "hips", (0, -0.22, 0))
+    rig.attach(shape("ball", (0.30, 0.38, 0.42), skin), "spine", (0.02, 0, 0.38))  # waist
+    rig.attach(shape("ball", (0.36, 0.60, 0.36), skin), "spine", (0.02, 0, 0.82))  # chest and shoulders
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.16, 0.22, 0.14), skin), "spine", (0.26, 0.20 * side, 0.82))  # pecs
+    rig.attach(shape("cylinder", (0.34, 0.36, 0.12), cloth), "hips", (0, 0, 0.0))
+    rig.attach(shape("box", (0.04, 0.24, 0.30), cloth), "hips", (0.30, 0, -0.26))
+    rig.attach(shape("ball", (0.19, 0.17, 0.21), skin), "head", (0.06, 0, 0.10))
+    rig.attach(shape("ball", (0.21, 0.20, 0.13), steel), "head", (0.04, 0, 0.20))
+    for side in (1, -1):
+        segment(rig, "head", (0.0, 0.18 * side, 0.26), (0.0, 0.34 * side, 0.46), 0.05, horn)
+        segment(rig, "head", (0.0, 0.34 * side, 0.46), (-0.02, 0.32 * side, 0.66), 0.03, horn)
+    for side in ("arm_l", "arm_r"):
+        limb(rig, side, 1.0, 0.14, skin, "ball", skin, (0.14, 0.13, 0.14))
+        rig.attach(shape("ball", (0.21, 0.20, 0.26), skin), side, (0, 0, -0.18))
+        rig.attach(shape("cylinder", (0.15, 0.15, 0.08), cloth), side, (0, 0, -0.80))
+    for side in ("leg_l", "leg_r"):
+        limb(rig, side, 0.98, 0.16, skin, "box", boots, (0.24, 0.13, 0.08))
+        rig.attach(shape("ball", (0.20, 0.20, 0.30), skin), side, (0.02, 0, -0.26))
+        rig.attach(shape("cylinder", (0.18, 0.18, 0.22), boots), side, (0, 0, -0.80))
+    rig.joint("weapon", "arm_r", (0, 0, -1.0))
+    rig.attach(shape("cylinder", (0.04, 0.04, 0.16), grip, rotation=(0, math.radians(90), 0)), "weapon", (0.05, 0, 0))
+    rig.attach(shape("box", (0.04, 0.22, 0.04), steel), "weapon", (0.22, 0, 0))
+    rig.attach(shape("box", (0.90, 0.03, 0.14), steel), "weapon", (1.14, 0, 0))
+    rig.attach(shape("box", (0.22, 0.03, 0.14), steel, rotation=(0, math.radians(35), 0)), "weapon", (2.02, 0, 0.14))
+    for k in range(3):
+        rig.attach(shape("cone", (0.05, 0.02, 0.10), steel), "weapon", (0.7 + 0.4 * k, 0, 0.18))
+    rig.joint("shield", "arm_l", (0.1, 0.12, -0.6))
+    rig.attach(shape("cylinder", (0.62, 0.62, 0.06), steel, rotation=(math.radians(90), 0, 0)), "shield", (0, 0.06, 0))
+    rig.attach(shape("ball", (0.12, 0.08, 0.12), steel), "shield", (0, 0.13, 0))
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        rig.attach(shape("cone", (0.04, 0.04, 0.08), horn, rotation=(math.radians(-90), 0, 0)), "shield",
+                   (0.42 * math.cos(a), 0.12, 0.42 * math.sin(a)))
+    rig.arms = "guard"
+    rig.joints["root"].scale = (1.85, 1.85, 1.85)
+    return rig
+
+
+def build_lizard():
+    """A lizard warrior in blackened spiked plate: a scaly reptile head
+    with swept-back horns, a heavy tail, clawed feet, and a long staff
+    with a curved scythe blade."""
+    plate = studio.material("plate", (0.40, 0.40, 0.44), (0.03, 0.03, 0.035), scale=20, detail=8, rough=0.25, bump=0.8,
+                            band=(0.45, 0.70))
+    scales = studio.material("lizardscale", (0.22, 0.22, 0.24), (0.04, 0.04, 0.05), scale=50, rough=0.6, bump=1.0)
+    spike = studio.material("spike", (0.82, 0.82, 0.84), (0.38, 0.38, 0.42), scale=30, rough=0.3)
+    red = studio.material("red", (0.60, 0.08, 0.06), (0.25, 0.03, 0.02), scale=20, rough=0.4)
+    wood = studio.material("haft", (0.20, 0.18, 0.16), scale=25, rough=0.5, stretch=(1, 1, 4))
+    eye = studio.material("eye", (0.95, 0.70, 0.20), scale=60, rough=0.3)
+    rig = Rig(lean=0.25, weapon=-30, stance=0.22)
+    rig.joint("hips", "root", (0, 0, 1.15))
+    rig.joint("spine", "hips", (0, 0, 0.05))
+    rig.joint("head", "spine", (0.30, 0, 1.15))
+    rig.joint("arm_l", "spine", (0.0, 0.58, 0.92))
+    rig.joint("arm_r", "spine", (0.0, -0.58, 0.92))
+    rig.joint("leg_l", "hips", (0, 0.26, 0))
+    rig.joint("leg_r", "hips", (0, -0.26, 0))
+    rig.attach(shape("ball", (0.38, 0.44, 0.50), plate), "spine", (0.02, 0, 0.50))
+    rig.attach(shape("ball", (0.40, 0.58, 0.30), plate), "spine", (0.0, 0, 0.92))
+    rig.attach(shape("cylinder", (0.36, 0.40, 0.06), red), "hips", (0, 0, 0.12))
+    rig.attach(shape("flare", (0.40, 0.44, 0.24), plate), "hips", (0, 0, -0.12))
+    for k in range(6):
+        rig.attach(shape("cone", (0.08, 0.06, 0.32 - 0.02 * k), spike, rotation=(0, math.radians(-40 - 6 * k), 0)),
+                   "spine", (-0.30 - 0.04 * k, 0, 1.15 - 0.15 * k))
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.30, 0.28, 0.20), plate), "spine", (0.0, 0.62 * side, 1.0))
+        for j in range(3):
+            rig.attach(shape("cone", (0.06, 0.06, 0.26), spike, rotation=(math.radians(-50 * side), math.radians(-20 + 20 * j), 0)),
+                       "spine", (-0.15 + 0.15 * j, 0.74 * side, 1.12))
+    # Head: a long snout, jaw, eyes and horns swept back.
+    rig.attach(shape("ball", (0.26, 0.22, 0.22), scales), "head", (0.05, 0, 0.12))
+    segment(rig, "head", (0.15, 0, 0.10), (0.55, 0, 0.02), 0.13, scales)
+    rig.attach(shape("box", (0.20, 0.10, 0.04), scales), "head", (0.40, 0, -0.08))
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.04, 0.04, 0.035), eye), "head", (0.25, 0.14 * side, 0.20))
+        segment(rig, "head", (-0.05, 0.12 * side, 0.25), (-0.45, 0.20 * side, 0.55), 0.05, spike)
+        segment(rig, "head", (0.0, 0.18 * side, 0.12), (-0.40, 0.30 * side, 0.20), 0.035, spike)
+    # A heavy tail sweeping down behind.
+    rig.joint("tail", "hips", (-0.30, 0, -0.10))
+    pts = [(-0.35 * i, 0, -0.18 * i + 0.012 * i * i) for i in range(6)]
+    for i in range(5):
+        segment(rig, "tail", pts[i], pts[i + 1], 0.20 - 0.035 * i, scales)
+        rig.attach(shape("ball", (0.20 - 0.035 * i,) * 3, scales), "tail", pts[i + 1])
+        rig.attach(shape("cone", (0.05, 0.04, 0.14), spike, rotation=(0, math.radians(-50), 0)), "tail",
+                   (pts[i][0], 0, pts[i][2] + 0.20 - 0.03 * i))
+    for side in ("arm_l", "arm_r"):
+        limb(rig, side, 1.0, 0.14, scales, "ball", scales, (0.15, 0.13, 0.15))
+        rig.attach(shape("cylinder", (0.17, 0.17, 0.26), plate), side, (0, 0, -0.68))
+        for j in range(3):
+            rig.attach(shape("cone", (0.05, 0.05, 0.20), spike, rotation=(0, math.radians(-90), 0)), side,
+                       (-0.18, 0, -0.50 - 0.12 * j))
+        rig.attach(shape("cone", (0.06, 0.06, 0.22), spike, rotation=(0, math.radians(-120), 0)), side, (-0.12, 0, -0.05))
+    for side in ("leg_l", "leg_r"):
+        limb(rig, side, 1.05, 0.17, scales, "box", scales, (0.26, 0.14, 0.07))
+        rig.attach(shape("ball", (0.22, 0.22, 0.30), plate), side, (0.03, 0, -0.30))
+        rig.attach(shape("cylinder", (0.19, 0.19, 0.24), plate), side, (0, 0, -0.80))
+        for c in (-1, 0, 1):
+            rig.attach(shape("cone", (0.04, 0.04, 0.12), spike, rotation=(0, math.radians(100), 0)), side,
+                       (0.30, 0.08 * c, -1.08))
+    # The scythe-staff: a long dark haft, a red-bound grip and a curved blade.
+    rig.joint("weapon", "arm_r", (0, 0, -1.0))
+    rig.attach(shape("cylinder", (0.05, 0.05, 1.3), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.3, 0, 0))
+    rig.attach(shape("cylinder", (0.12, 0.12, 0.22), plate, rotation=(0, math.radians(90), 0)), "weapon", (1.45, 0, 0))
+    rig.attach(shape("cylinder", (0.06, 0.06, 0.10), red, rotation=(0, math.radians(90), 0)), "weapon", (0.0, 0, 0))
+    rig.attach(shape("ball", (0.18, 0.18, 0.18), plate), "weapon", (1.62, 0, 0))
+    pts = [(1.62 + 0.16 * i - 0.03 * i * i, 0, 0.15 + 0.22 * i) for i in range(8)]
+    pts = [(1.62 + 0.30 * math.sin(a) - 0.0, 0, 0.15 + 0.95 * (1 - math.cos(a)) * 0 + 1.0 * math.sin(a * 0.9)) for a in
+           [i * 0.42 for i in range(8)]]
+    for i in range(7):
+        segment(rig, "weapon", pts[i], pts[i + 1], 0.07 - 0.008 * i, spike)
+    rig.arms = "guard"
+    rig.joints["root"].scale = (2.0, 2.0, 2.0)
+    return rig
+
+
+BUILDERS.update({"boar": lambda: build_boar(), "boarrider": lambda: build_boar(rider=True),
+                 "skeleton": build_skeleton, "barbarian": build_barbarian, "lizard": build_lizard})
+HEIGHT.update({"boar": 3.6, "boarrider": 6.0, "skeleton": 3.6, "barbarian": 6.8, "lizard": 8.0})
+SIZE.update({"boar": 240, "boarrider": 280, "barbarian": 300, "lizard": 340})
+
 
 def pose(rig, animation, t, frames):
     """Rotations (radians, about X, Y, Z) per joint at time t in [0, 1)."""
@@ -941,6 +1258,9 @@ def pose(rig, animation, t, frames):
         return
     if getattr(rig, "kind", None) == "spider":
         spider_pose(rig, animation, t, frames)
+        return
+    if getattr(rig, "kind", None) == "boar":
+        boar_pose(rig, animation, t, frames)
         return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
