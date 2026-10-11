@@ -152,6 +152,70 @@ class Floor(Ground):
         return floor, rubble, self.edge(u, v)
 
 
+class Cave(Ground):
+    """A cave or mine floor. "cave": packed earth broken into flat cracked
+    slabs, with loose gravel where the corners are 0. "mine": dark trodden
+    earth with patches of coal dust."""
+
+    def __init__(self, seed=1, kind="cave"):
+        super().__init__(seed)
+        self.kind = kind
+        # A wrapping height field of rounded clods: one jittered point per
+        # grid cell, height = distance to the cell's border, and only some
+        # cells raised. Two sizes are layered. Lit from the top of the
+        # screen, it gives the floor its lumpy relief.
+        rng = np.random.default_rng(seed + 6)
+        self.res = res = 64 * PERIOD
+        h = np.zeros((res, res))
+        for per_tile, keep in ((3, 0.35), (6, 0.45), (11, 0.5)):
+            h = np.maximum(h, self.clods(rng, PERIOD * per_tile, keep) * (0.6 + 0.4 * 3 / per_tile))
+        self.lump = h
+        self.light = np.roll(h, (2, 2), (0, 1)) - np.roll(h, (-1, -1), (0, 1))
+
+    def clods(self, rng, g, keep):
+        res = self.res
+        pts = (np.mgrid[0:g, 0:g].transpose(1, 2, 0) + rng.uniform(0.15, 0.85, (g, g, 2))) / g
+        raised = rng.random((g, g)) < keep
+        yy, xx = (np.mgrid[0:res, 0:res] + 0.5) / res
+        cy, cx = np.floor(yy * g).astype(int), np.floor(xx * g).astype(int)
+        d, idx = [], []
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                ny, nx = (cy + dy) % g, (cx + dx) % g
+                py = pts[ny, nx, 0] + np.floor((cy + dy) / g)
+                px = pts[ny, nx, 1] + np.floor((cx + dx) / g)
+                d.append((yy - py) ** 2 + (xx - px) ** 2)
+                idx.append(raised[ny, nx])
+        d, idx = np.stack(d), np.stack(idx)
+        order = np.argsort(d, axis=0)
+        d = np.take_along_axis(d, order, 0)
+        up = np.take_along_axis(idx, order[:1], 0)[0]
+        h = np.clip((np.sqrt(d[1]) - np.sqrt(d[0])) * g * 2.5, 0, 1) ** 0.5
+        return h * up
+
+    def sample(self, grid, u, v):
+        x = (np.asarray(u) % PERIOD) / PERIOD * self.res
+        y = (np.asarray(v) % PERIOD) / PERIOD * self.res
+        return grid[y.astype(int) % self.res, x.astype(int) % self.res]
+
+    def texture(self, u, v):
+        big = self.big(u, v)
+        fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
+        if self.kind == "mine":
+            earth = colour(np.array([62, 46, 30.0]), np.array([38, 28, 17.0]), np.array([84, 64, 42.0]),
+                           0.2 * big, fine, 0.26)
+            coal = colour(np.array([30, 26, 24.0]), np.array([14, 12, 11.0]), np.array([50, 44, 40.0]),
+                          0.3 * big, fine, 0.35)
+            return earth, coal, self.edge(u, v)
+        lump, light = self.sample(self.lump, u, v), self.sample(self.light, u, v)
+        rock = colour(np.array([90, 75, 58.0]), np.array([46, 37, 28.0]), np.array([136, 118, 94.0]),
+                      np.clip(2.0 * light, -1, 1) * 0.55 + 0.15 * big, fine, 0.14)
+        rock = rock * (0.8 + 0.2 * lump)[..., None]
+        gravel = colour(np.array([72, 60, 48.0]), np.array([40, 33, 26.0]), np.array([104, 90, 72.0]),
+                        0.2 * big, fine, 0.40)
+        return rock, gravel, self.edge(u, v)
+
+
 def corner_patterns():
     """All 16 corner combinations, as (top-left, top-right, bottom-left, bottom-right)."""
     return [((k >> 0) & 1, (k >> 1) & 1, (k >> 2) & 1, (k >> 3) & 1) for k in range(16)]
@@ -165,8 +229,10 @@ def pattern_index(corners, tx, ty):
 
 def build_tiles(seed=1, kind="meadow"):
     """Every tile, in pattern_index order: (image, anchor x, anchor y).
-    kind is "meadow" (grass and dirt) or "dungeon" (brick floor and rubble)."""
-    g = Floor(seed) if kind == "dungeon" else Ground(seed)
+    kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
+    "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
+    g = {"dungeon": lambda: Floor(seed), "cave": lambda: Cave(seed, "cave"),
+         "mine": lambda: Cave(seed, "mine")}.get(kind, lambda: Ground(seed))()
     tiles = []
     for corners in corner_patterns():
         for ty in range(PERIOD):
