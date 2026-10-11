@@ -18,7 +18,7 @@ struct AnimationSet {
         std::int16_t status = 0;  // 8 = shadow (pattern is in the .sdw bank)
         std::int16_t trans = 1000;
         std::int32_t pattern = -1;
-        std::int16_t priority = 0;  // draw order within the frame, low first
+        std::int16_t priority = 0;  // draw order within the frame, high first (low is in front)
     };
     using Layer = std::vector<Cell>;  // one cell per frame
     struct Direction {

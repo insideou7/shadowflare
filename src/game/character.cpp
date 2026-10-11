@@ -127,10 +127,11 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         if (!shadow && std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
         items.push_back({&cell, shadow});
     }
-    // Shadows first, then the rest by priority.
+    // Shadows first, then the rest from the highest priority down: a
+    // lower number is nearer the viewer (armour over the body).
     std::ranges::stable_sort(items, [](const Item& a, const Item& b) {
         if (a.shadow != b.shadow) return a.shadow;
-        return a.cell->priority < b.cell->priority;
+        return a.cell->priority > b.cell->priority;
     });
 
     for (const auto& item : items) {

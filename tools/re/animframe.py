@@ -14,7 +14,7 @@ def comp(frame):
     for li, layer in enumerate(d["layers"]):
         if sel != "all" and str(li) not in sel.split(","): continue
         if frame < len(layer) and layer[frame]["status"] != 8: cells.append((layer[frame]["priority"], li, layer[frame]))
-    cells.sort()
+    cells.sort(key=lambda c: -c[0])  # high priority first, low in front
     W, H, ox, oy = 240, 240, 120, 180
     img = bytearray(W * H * 4)
     for _, li, cell in cells:

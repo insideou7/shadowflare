@@ -165,7 +165,7 @@ chart[chartCount]:
                 i16 status     8 = shadow, pattern is in the .Sdw bank
                 i16 trans      per mille
                 pattern        i16 if version <= 1, else i32
-                i16 priority   draw order, low first
+                i16 priority   draw order, high first: 0 is in front
 if version >= 1: i32, i32 (unknown)
 ```
 
