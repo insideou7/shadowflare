@@ -158,6 +158,42 @@ class Floor(Ground):
         return floor, rubble, self.edge(u, v)
 
 
+class Wild(Ground):
+    """Open country for the third area. "shore": sand with pools of water
+    where the corners are 0; "desert": sand with patches of brown earth;
+    "heath": olive grass with patches of dark soil; "coast": grass giving
+    way to sand. Grass and sand are the same in every kind, so the kinds
+    can sit side by side on one map."""
+
+    # (mid, dark, light, speckle) for the corner-1 and corner-0 surfaces.
+    KINDS = {"shore": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
+                       ((38, 86, 146), (20, 52, 100), (70, 124, 184), 0.14)),
+             "desert": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
+                        ((92, 66, 42), (62, 44, 28), (120, 90, 60), 0.26)),
+             "heath": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
+                       ((40, 32, 26), (24, 19, 15), (58, 47, 38), 0.24)),
+             "coast": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
+                       ((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20))}
+
+    def __init__(self, seed=1, kind="shore"):
+        super().__init__(seed)
+        self.kind = kind
+        self.surfaces = [([np.array(c, dtype=float) for c in spec[:3]], spec[3]) for spec in self.KINDS[kind]]
+        self.ripple = Field([(0.05, 1.0), (0.02, 0.6)], seed + 6)
+
+    def texture(self, u, v):
+        big = self.big(u, v)
+        fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
+        (a, ga), (b, gb) = self.surfaces
+        one = colour(*a, 0.25 * big, fine, ga)
+        if self.kind == "shore":
+            # Water: smoother, with soft ripples instead of grit.
+            zero = colour(*b, 0.2 * big + 0.5 * self.ripple(u, v), fine * 0.3, gb)
+        else:
+            zero = colour(*b, 0.25 * big, fine, gb)
+        return one, zero, self.edge(u, v)
+
+
 class Cave(Ground):
     """A cave or mine floor. "cave": packed earth broken into flat cracked
     slabs, with loose gravel where the corners are 0. "mine": dark trodden
@@ -236,10 +272,14 @@ def pattern_index(corners, tx, ty):
 def build_tiles(seed=1, kind="meadow"):
     """Every tile, in pattern_index order: (image, anchor x, anchor y).
     kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
-    "fort" (grey stone paving and grit),
+    "fort" (grey stone paving and grit), "shore" (sand and water),
+    "desert" (sand and brown earth), "heath" (grass and dark soil),
+    "coast" (grass and sand),
     "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
     g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "cave": lambda: Cave(seed, "cave"),
-         "mine": lambda: Cave(seed, "mine")}.get(kind, lambda: Ground(seed))()
+         "mine": lambda: Cave(seed, "mine"), "shore": lambda: Wild(seed, "shore"),
+         "desert": lambda: Wild(seed, "desert"), "heath": lambda: Wild(seed, "heath"),
+         "coast": lambda: Wild(seed, "coast")}.get(kind, lambda: Ground(seed))()
     tiles = []
     for corners in corner_patterns():
         for ty in range(PERIOD):
