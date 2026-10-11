@@ -8,7 +8,8 @@ props/, town/, dungeon/, cave/, fort/, wilds/, hero/, the monsters (one folder p
 ENEMIES entry) and townspeople (person<N>/). This script adds the ground
 tiles (ground.py), lays out the test maps (a meadow with a goblin camp, the
 waterworks under it, the caves and coal mine below that, the fort above
-the mine and the open country beyond the fort) and writes the
+the mine, the open country beyond the fort and the deep caverns under it)
+and writes the
 pack's text files. Needs Pillow and numpy.
 """
 
@@ -36,7 +37,7 @@ PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
 # Monster art and the Character/ENEMY folder each one fills.
 ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "demon": 3, "golem": 4, "shaman": 5, "spider": 6, "bigspider": 7,
            "archer": 10, "swordsman": 11, "dragon": 12, "ogre": 13, "boarrider": 8, "boar": 9, "skeleton": 14,
-           "barbarian": 16, "lizard": 18}
+           "barbarian": 16, "lizard": 18, "fire": 15, "scorpion": 19, "bigscorpion": 20, "raptor": 22}
 
 
 def cropped(path, ax, ay):
@@ -119,7 +120,8 @@ def main():
     props = Atlas()
     anchors = {}
     for folder, listing in (("props", "props.txt"), ("town", "town.txt"), ("dungeon", "dungeon.txt"),
-                            ("cave", "cave.txt"), ("fort", "fort.txt"), ("wilds", "wilds.txt")):
+                            ("cave", "cave.txt"), ("fort", "fort.txt"), ("wilds", "wilds.txt"),
+                            ("deep", "deep.txt")):
         if not (art / folder / listing).exists():
             continue
         for line in (art / folder / listing).read_text().split("\n"):
@@ -743,7 +745,7 @@ def wilds(out, anchors, rng):
     for tx in np.arange(24.0, 38.0, 2.4):  # one cliff piece is about 2.5 tiles long
         place("cliff_x", tx, 3.0, (tx - 1.25, 2.4, tx + 1.25, 3.6))
     place("cliff_corner", 22.4, 4.0, (21.6, 2.4, 23.2, 5.0))
-    place("cave_mouth", 30.0, 4.9, (29.0, 4.5, 31.0, 5.3))
+    place("cave_mouth", 30.0, 4.9)  # left open: walking into it is the way down
     take(20, 1, 39, 7)
     # A bandits' stockade on the west, with a skeleton-haunted yard.
     # One run of stakes spans about a tile and a half, so they go every 1.5.
@@ -819,9 +821,128 @@ def wilds(out, anchors, rng):
         enemy("barbarian", tx, ty, 110, 13, 2)
     for tx, ty in ((30, 19), (34, 15)):
         enemy("lizard", tx, ty, 130, 14, 2)
+    if "earth_x" in anchors:
+        # The cave mouth at the foot of the cliff leads down into the deep.
+        lines += [f"entry=2,{int(30.0 * TILE)},{int(6.2 * TILE)},0",
+                  f"exit={int(29.4 * TILE)},{int(4.6 * TILE)},{int(30.6 * TILE)},{int(5.3 * TILE)},6,1"]
+        deep(out, anchors, rng)
     (out / "Scenario" / "00000005").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000005" / "scenario.txt").write_text("\n".join(lines) + "\n")
     print(f"wilds: {len(objects)} objects")
+
+
+def deep(out, anchors, rng):
+    """The deep caverns under the wilds: dark earth halls walled with
+    crumbling red-brown earth, a fiery chamber of lava pools, a pit, rail
+    barriers and a chained seal, glowing obelisks and stone stairs back up.
+    Writes Map/deep.txt and Scenario/00000006."""
+    size = 30
+    floor = Atlas()
+    for t in ground.build_tiles(seed=8, kind="deep"):
+        floor.add(len(floor.frames), t)
+    floor.write(out / "Map" / "deepfloor.sheet", "deepfloor.png")
+    halls = [(2, 2, 12, 10), (16, 2, 28, 12), (2, 16, 14, 28), (18, 16, 28, 28)]
+    passages = [(12, 4, 16, 6), (6, 10, 8, 16), (22, 12, 24, 16), (14, 22, 18, 24)]
+    open_ = np.zeros((size, size), dtype=bool)
+    for x0, y0, x1, y1 in halls + passages:
+        open_[y0:y1, x0:x1] = True
+    n = size + 1
+    yy, xx = np.mgrid[0:n, 0:n]
+    terrain = np.ones((n, n), dtype=int)
+    for _ in range(16):
+        px, py, pr = rng.randrange(n), rng.randrange(n), rng.uniform(1.0, 2.4)
+        terrain[(xx - px) ** 2 + (yy - py) ** 2 < pr * pr] = 0
+    rows = []
+    for ty in range(size):
+        row = []
+        for tx in range(size):
+            if not open_[ty, tx]:
+                row.append(".")
+                continue
+            corners = (terrain[ty, tx], terrain[ty, tx + 1], terrain[ty + 1, tx], terrain[ty + 1, tx + 1])
+            row.append(f"0:{ground.pattern_index(corners, tx, ty)}")
+        rows.append(" ".join(row))
+    blocked = ~np.repeat(np.repeat(open_, PER, axis=0), PER, axis=1)
+    objects = []
+
+    def place(name, tx, ty, block=None):
+        objects.append(f"{int(tx * TILE)},{int(ty * TILE)},1,{anchors[name]}")
+        if block:
+            x0, y0, x1, y1 = block
+            blocked[max(0, int(y0 * PER)):int(y1 * PER), max(0, int(x0 * PER)):int(x1 * PER)] = True
+
+    def wall(tx, ty, along_y, k):
+        name = f"{'earth2' if k % 3 == 1 else 'earth'}_{'y' if along_y else 'x'}"
+        if along_y:
+            place(name, tx, ty + 1, (tx - 0.15, ty, tx + 0.15, ty + 2))
+        else:
+            place(name, tx + 1, ty, (tx, ty - 0.15, tx + 2, ty + 0.15))
+
+    k = 0
+    for ty in range(size + 1):
+        for tx in range(0, size, 2):
+            above = ty > 0 and open_[ty - 1, tx:tx + 2].all()
+            below = ty < size and open_[ty, tx:tx + 2].all()
+            if above != below:
+                wall(tx, ty, False, k)
+                k += 1
+    for tx in range(size + 1):
+        for ty in range(0, size, 2):
+            left = tx > 0 and open_[ty:ty + 2, tx - 1].all()
+            right = tx < size and open_[ty:ty + 2, tx].all()
+            if left != right:
+                wall(tx, ty, True, k)
+                k += 1
+    # The way in: stone stairs climbing to the cave mouth, and obelisks.
+    place("stone_stairs", 6.0, 3.2, (4.6, 2, 7.4, 3.2))
+    place("obelisk_blue", 3.0, 3.0, (2.7, 2.7, 3.3, 3.3))
+    place("obelisk_blue", 10.8, 3.0, (10.5, 2.7, 11.1, 3.3))
+    place("earth_post", 8.0, 9.0, (7.6, 8.6, 8.4, 9.4))
+    # The north-east hall: the fire chamber, lava pools among fallen rock.
+    for name, px, py, r in (("lava_0", 20.5, 5.0, 2.0), ("lava_1", 25.0, 9.0, 2.0), ("lava_2", 19.5, 9.8, 1.6),
+                            ("lava_3", 25.5, 4.0, 1.6)):
+        place(name, px, py, (px - r, py - r * 0.8, px + r, py + r * 0.8))
+    place("boulders", 17.5, 3.0, (16.6, 2.0, 18.4, 4.0))
+    place("ledge", 27.0, 11.0, (26, 10, 28, 12))
+    # A rail barrier and a chained seal across the passages.
+    place("rail_gate_y", 6.0, 13.0)
+    place("chain_gate_x", 23.0, 14.0)
+    # The south-west hall: a pit and a heap of rock.
+    place("pit", 8.0, 22.0, (5.5, 20.8, 10.5, 23.2))
+    place("boulders", 3.4, 26.6, (2.4, 25.6, 4.4, 27.6))
+    place("obelisk_red", 12.8, 17.0, (12.5, 16.7, 13.1, 17.3))
+    # The south-east hall: stone ledges round a red portal deeper down.
+    place("stone_ledge_corner", 21.0, 19.0, (19.8, 18.6, 22.0, 19.4))
+    place("stone_ledge", 25.0, 19.0, (23.6, 18.6, 26.4, 19.4))
+    place("portal_red", 24.0, 24.0)
+    place("obelisk_red", 20.0, 26.8, (19.7, 26.5, 20.3, 27.1))
+    place("obelisk_red", 27.0, 26.8, (26.7, 26.5, 27.3, 27.1))
+    judge = ["".join("x" if b else "." for b in line) for line in blocked]
+    with open(out / "Map" / "deep.txt", "w", newline="\n") as f:
+        f.write("# The deep caverns under the wilds: generated by tools/art/build_pack.py\n")
+        f.write(f"size={size},{size}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{size * PER},{size * PER}\n")
+        f.write("bank=Map/deepfloor.sheet\nbank=Map/props.sheet\n\n[ground]\n" + "\n".join(rows))
+        f.write("\n\n[judge]\n" + "\n".join(judge) + "\n\n[objects]\n" + "\n".join(objects) + "\n")
+    lines = ["# generated by tools/art/build_pack.py", "title=The Deep", "map=deep",
+             f"entry=0,{6 * TILE},{int(5.0 * TILE)},0", f"entry=1,{6 * TILE},{int(5.0 * TILE)},0",
+             f"exit={int(5.2 * TILE)},{int(2.6 * TILE)},{int(6.8 * TILE)},{int(3.8 * TILE)},5,2"]
+
+    def enemy(name, tx, ty, hp, attack, wander):
+        if (out / "Character" / "ENEMY" / f"{ENEMIES[name]:08d}").exists():
+            lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                         f"{wander * TILE},goblin")
+
+    for tx, ty in ((4, 7), (9, 6), (7, 12)):
+        enemy("scorpion", tx, ty, 45, 9, 2)
+    for tx, ty in ((22, 7), (18, 7), (26, 6)):
+        enemy("fire", tx, ty, 70, 13, 2)
+    for tx, ty in ((5, 18), (11, 25), (4, 23)):
+        enemy("bigscorpion", tx, ty, 140, 16, 2)
+    for tx, ty in ((21, 22), (26, 21), (23, 27)):
+        enemy("raptor", tx, ty, 160, 18, 2)
+    (out / "Scenario" / "00000006").mkdir(parents=True, exist_ok=True)
+    (out / "Scenario" / "00000006" / "scenario.txt").write_text("\n".join(lines) + "\n")
+    print(f"deep: {len(objects)} objects")
 
 
 if __name__ == "__main__":
