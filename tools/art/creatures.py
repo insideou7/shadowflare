@@ -1434,6 +1434,224 @@ HEIGHT.update({"scorpion": 2.0, "bigscorpion": 5.4, "fire": 6.4, "raptor": 6.4})
 SIZE.update({"bigscorpion": 280, "raptor": 300, "fire": 200})
 
 
+def build_bonebeast():
+    """A winged beast of yellowed bone: a ribbed, spiked body over dark red
+    flesh, a horned skull, clawed arms and legs, a spiny tail and great
+    wings of long bone fingers with tattered membranes."""
+    bone = studio.material("bone", (0.82, 0.76, 0.58), (0.36, 0.30, 0.18), scale=20, rough=0.55, bump=0.7)
+    flesh = studio.material("flesh", (0.42, 0.10, 0.06), (0.12, 0.03, 0.02), scale=16, rough=0.5, bump=0.6)
+    skin = studio.material("membrane", (0.62, 0.52, 0.36), (0.24, 0.18, 0.10), scale=4, rough=0.7, bump=0.0)
+    skin.use_backface_culling = False
+    rig = Rig()
+    rig.joint("body", "root", (0, 0, 2.1))
+    rig.joint("head", "body", (0.22, 0, 0.75))
+    rig.attach(shape("ball", (0.40, 0.46, 0.58), flesh), "body", (0, 0, 0.15))
+    for k in range(6):  # ribs
+        rig.attach(shape("ball", (0.34, 0.40 - 0.02 * k, 0.04), bone), "body", (0.03, 0, 0.45 - 0.13 * k))
+    rig.attach(shape("ball", (0.24, 0.30, 0.16), bone), "body", (0, 0, -0.45))  # pelvis
+    for k in range(5):  # spines down the back
+        rig.attach(shape("cone", (0.05, 0.05, 0.16), bone, rotation=(0, math.radians(-70), 0)), "body",
+                   (-0.30, 0, 0.55 - 0.2 * k))
+    rig.attach(shape("ball", (0.20, 0.17, 0.20), bone), "head", (0.05, 0, 0.08))
+    rig.attach(shape("cone", (0.10, 0.10, 0.18), bone, rotation=(0, math.radians(100), 0)), "head", (0.28, 0, 0.0))
+    for side in (1, -1):
+        segment(rig, "head", (0, 0.10 * side, 0.18), (-0.25, 0.22 * side, 0.50), 0.05, bone)  # horns
+        segment(rig, "head", (-0.25, 0.22 * side, 0.50), (-0.50, 0.20 * side, 0.62), 0.03, bone)
+        rig.attach(shape("ball", (0.035, 0.035, 0.035), flesh), "head", (0.18, 0.07 * side, 0.12))
+        name = f"leg0{'l' if side > 0 else 'r'}"
+        rig.joint(name, "body", (0, 0.20 * side, -0.50))
+        segment(rig, name, (0, 0, 0), (0.25, 0.05 * side, -0.60), 0.09, bone)
+        segment(rig, name, (0.25, 0.05 * side, -0.60), (0.0, 0.05 * side, -1.15), 0.07, bone)
+        for k in (-1, 0, 1):
+            segment(rig, name, (0.0, 0.05 * side, -1.15), (0.22, (0.05 + 0.08 * k) * side, -1.30), 0.03, flesh)
+        arm = f"arm{'l' if side > 0 else 'r'}"
+        rig.joint(arm, "body", (0.10, 0.36 * side, 0.45))
+        segment(rig, arm, (0, 0, 0), (0.35, 0.12 * side, -0.40), 0.06, bone)
+        segment(rig, arm, (0.35, 0.12 * side, -0.40), (0.70, 0.10 * side, -0.55), 0.05, bone)
+        for k in range(4):  # long claws
+            segment(rig, arm, (0.70, 0.10 * side, -0.55), (1.05, (0.04 + 0.05 * k) * side, -0.75 + 0.05 * k),
+                    0.015, bone)
+        rig.attach(shape("ball", (0.14, 0.12, 0.10), bone), arm, (0, 0, 0))  # shoulder spur
+        rig.attach(shape("cone", (0.04, 0.04, 0.16), bone, rotation=(math.radians(-40 * side), 0, 0)), arm,
+                   (0, 0.05 * side, 0.12))
+    points = [(-0.20 - 0.10 * i, 0, -0.55 - 0.16 * i + 0.012 * i * i) for i in range(9)]
+    for i in range(8):
+        segment(rig, "body", points[i], points[i + 1], 0.07 - 0.006 * i, bone)
+        rig.attach(shape("cone", (0.03, 0.03, 0.08), bone, rotation=(0, math.radians(-60), 0)), "body",
+                   (points[i][0] - 0.05, 0, points[i][2] + 0.05))
+    for side in (1, -1):
+        name = "wing_l" if side > 0 else "wing_r"
+        rig.joint(name, "body", (-0.20, 0.25 * side, 0.55))
+        spike_wing(rig, name, side, 2.6, bone)
+    rig.attach(shape("ball", (0.36, 0.44, 0.30), bone), "body", (0.02, 0, 0.62))  # shoulder plates
+    rig.beat, rig.wing_rest, rig.wing_depth = 12, 0.0, 0.30
+    rig.joints["root"].scale = (2.0, 2.0, 2.0)
+    return rig
+
+
+def spike_wing(rig, joint, side, span, bone):
+    """A wing that is all bone: a jointed arm and long curved spikes fanning
+    back from its wrist, with no membrane between them."""
+    wrist = Vector((-0.15, 0.40 * side, 0.40)) * span
+    segment(rig, joint, (0, 0, 0), wrist, 0.05 * span, bone)
+    for k in range(6):
+        a = math.radians(70 - 22 * k)
+        length = (1.0 - 0.08 * k) * span
+        mid = wrist + Vector((-0.35 * math.cos(a) * 0.5, 0.45 * side, 0.6 * math.sin(a))) * length * 0.5
+        tip = wrist + Vector((-0.55 * math.cos(a), 0.55 * side, 0.9 * math.sin(a))) * length
+        segment(rig, joint, wrist, mid, 0.035 * span, bone)
+        segment(rig, joint, mid, tip, 0.018 * span, bone)
+
+
+def build_vampire():
+    """A gaunt vampire with white hair and a pale face, wrapped in a long
+    crimson cloak with a high collar."""
+    skin = studio.material("paleskin", (0.86, 0.80, 0.78), (0.46, 0.38, 0.38), scale=5, rough=0.5, bump=0.2)
+    hair = studio.material("whitehair", (0.88, 0.86, 0.86), (0.50, 0.48, 0.50), scale=30, rough=0.6, stretch=(1, 1, 5))
+    cloak = studio.material("crimson", (0.42, 0.03, 0.06), (0.10, 0.005, 0.015), scale=12, rough=0.55, bump=0.5,
+                            stretch=(1, 1, 4))
+    dark = studio.material("darkcloth", (0.14, 0.05, 0.07), (0.04, 0.01, 0.02), scale=18, rough=0.6)
+    # No glossy sheen: it turns the crimson pink.
+    cloak.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
+    rig = Rig(lean=0.08, stance=0.06)
+    rig.joint("hips", "root", (0, 0, 1.0))
+    rig.joint("spine", "hips", (0, 0, 0.05))
+    rig.joint("head", "spine", (0.06, 0, 1.0))
+    rig.joint("arm_l", "spine", (0.0, 0.30, 0.82))
+    rig.joint("arm_r", "spine", (0.0, -0.30, 0.82))
+    rig.joint("leg_l", "hips", (0, 0.12, 0))
+    rig.joint("leg_r", "hips", (0, -0.12, 0))
+    rig.attach(shape("flare", (0.46, 0.48, 0.95), cloak), "spine", (-0.06, 0, 0.0))  # cloak skirt to the floor
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.13, 0.15, 0.10), cloak), "spine", (-0.02, 0.30 * side, 0.92))  # padded shoulders
+    rig.attach(shape("ball", (0.24, 0.32, 0.45), cloak), "spine", (0, 0, 0.55))
+    rig.attach(shape("cylinder", (0.20, 0.30, 0.18), cloak, rotation=(0, math.radians(-15), 0)), "spine",
+               (-0.06, 0, 0.98))  # high collar
+    rig.attach(shape("ball", (0.15, 0.13, 0.17), skin), "head", (0.04, 0, 0.08))
+    rig.attach(shape("ball", (0.17, 0.15, 0.16), hair), "head", (-0.04, 0, 0.14))
+    rig.attach(shape("cone", (0.12, 0.10, 0.22), hair, rotation=(0, math.radians(160), 0)), "head", (-0.12, 0, -0.08))
+    for side in ("arm_l", "arm_r"):
+        limb(rig, side, 0.80, 0.09, cloak, "ball", skin, (0.06, 0.05, 0.07))
+        rig.attach(shape("ball", (0.13, 0.12, 0.14), cloak), side, (0, 0, -0.05))
+    for side in ("leg_l", "leg_r"):
+        limb(rig, side, 0.95, 0.08, dark, "box", dark, (0.12, 0.06, 0.04))
+    rig.arms = "out"
+    rig.joints["root"].scale = (1.45, 1.45, 1.45)
+    return rig
+
+
+def build_bonewarrior():
+    """A hunched warrior of bound bone and old leather: a horned skull, a
+    great curved bone over its shoulders, bony spurs and long claws."""
+    bone = studio.material("bone", (0.70, 0.62, 0.46), (0.26, 0.20, 0.12), scale=20, rough=0.55, bump=0.7)
+    wrap = studio.material("wraps", (0.38, 0.24, 0.13), (0.11, 0.06, 0.03), scale=20, rough=0.7, bump=0.8,
+                           stretch=(1, 1, 5))
+    dark = studio.material("darkleather", (0.18, 0.12, 0.08), (0.05, 0.03, 0.02), scale=18, rough=0.6)
+    rig = Rig(lean=0.35, weapon=0, stance=0.16)
+    rig.joint("hips", "root", (0, 0, 1.05))
+    rig.joint("spine", "hips", (0, 0, 0.05))
+    rig.joint("head", "spine", (0.20, 0, 0.98))
+    rig.joint("arm_l", "spine", (0.05, 0.40, 0.80))
+    rig.joint("arm_r", "spine", (0.05, -0.40, 0.80))
+    rig.joint("leg_l", "hips", (0, 0.16, 0))
+    rig.joint("leg_r", "hips", (0, -0.16, 0))
+    rig.attach(shape("ball", (0.26, 0.30, 0.36), wrap), "spine", (0.02, 0, 0.36))
+    rig.attach(shape("ball", (0.30, 0.42, 0.30), wrap), "spine", (0.0, 0, 0.75))
+    for k in range(4):
+        rig.attach(shape("ball", (0.28, 0.34, 0.03), dark), "spine", (0.02, 0, 0.20 + 0.12 * k))  # bindings
+    # Great curling horns.
+    for side in (1, -1):
+        pts = [(-0.05 - 0.22 * math.sin(a) * 0.6, side * (0.12 + 0.30 * (1 - math.cos(a))), 0.15 + 0.35 * math.sin(a))
+               for a in [math.pi * 1.3 * i / 8 for i in range(9)]]
+        for i in range(8):
+            segment(rig, "head", pts[i], pts[i + 1], 0.07 - 0.006 * i, bone)
+    rig.attach(shape("ball", (0.18, 0.16, 0.18), bone), "head", (0.06, 0, 0.08))
+    rig.attach(shape("ball", (0.10, 0.11, 0.07), bone), "head", (0.18, 0, -0.02))
+    for side in (1, -1):
+        segment(rig, "head", (0, 0.10 * side, 0.16), (-0.10, 0.24 * side, 0.36), 0.04, bone)
+        rig.attach(shape("ball", (0.035, 0.035, 0.035), dark), "head", (0.19, 0.06 * side, 0.10))
+    for side in ("arm_l", "arm_r"):
+        limb(rig, side, 0.95, 0.14, wrap, "ball", bone, (0.13, 0.10, 0.10))
+        rig.attach(shape("ball", (0.17, 0.17, 0.24), bone), side, (0, 0, -0.55))
+        rig.attach(shape("ball", (0.16, 0.16, 0.12), bone), side, (0, 0, 0.0))
+        rig.attach(shape("cone", (0.05, 0.05, 0.16), bone), side, (-0.12, 0, 0.10))
+        for k in range(3):
+            segment(rig, side, (0.05, 0, -0.98), (0.20, 0.06 * (k - 1), -1.25), 0.02, bone)
+    for side in ("leg_l", "leg_r"):
+        limb(rig, side, 0.98, 0.11, wrap, "box", bone, (0.18, 0.10, 0.06))
+        rig.attach(shape("ball", (0.12, 0.12, 0.10), bone), side, (0.05, 0, -0.50))
+    rig.arms = "out"
+    rig.joints["root"].scale = (2.2, 2.2, 2.2)
+    return rig
+
+
+def build_angel():
+    """The fallen angel: a lean pale figure marked with blue sigils, golden
+    armour at the shoulders and hips, long hair and two great golden wings
+    of layered feathers."""
+    skin = studio.material("angelskin", (0.80, 0.70, 0.58), (0.40, 0.32, 0.24), scale=6, rough=0.45, bump=0.3)
+    sigil = studio.material("sigil", (0.45, 0.62, 0.95), (0.20, 0.30, 0.55), scale=8, rough=0.4)
+    gold = studio.material("goldarmour", (0.92, 0.74, 0.36), (0.44, 0.30, 0.10), scale=16, rough=0.3, bump=0.4)
+    feather = studio.material("feathers", (0.88, 0.72, 0.40), (0.42, 0.30, 0.12), scale=14, rough=0.5, bump=0.9,
+                              stretch=(1, 6, 1))
+    feather.use_backface_culling = False
+    rig = Rig()
+    rig.joint("body", "root", (0, 0, 2.4))
+    rig.joint("head", "body", (0.06, 0, 0.78))
+    rig.attach(shape("ball", (0.22, 0.30, 0.45), skin), "body", (0, 0, 0.25))
+    rig.attach(shape("ball", (0.10, 0.18, 0.12), sigil), "body", (0.16, 0, 0.30))
+    rig.attach(shape("cylinder", (0.26, 0.30, 0.16), gold), "body", (0, 0, -0.18))
+    rig.attach(shape("flare", (0.30, 0.30, 0.30), gold), "body", (0, 0, -0.42))
+    rig.attach(shape("ball", (0.13, 0.12, 0.16), skin), "head", (0.04, 0, 0.06))
+    rig.attach(shape("cone", (0.15, 0.13, 0.40), gold, rotation=(0, math.radians(165), 0)), "head", (-0.12, 0, -0.10))
+    for side in (1, -1):
+        segment(rig, "head", (0, 0.08 * side, 0.15), (-0.20, 0.14 * side, 0.45), 0.03, gold)  # crest
+        name = f"leg0{'l' if side > 0 else 'r'}"
+        rig.joint(name, "body", (0, 0.12 * side, -0.45))
+        segment(rig, name, (0, 0, 0), (0.10, 0.02 * side, -0.70), 0.08, skin)
+        segment(rig, name, (0.10, 0.02 * side, -0.70), (-0.05, 0.02 * side, -1.30), 0.06, skin)
+        rig.attach(shape("ball", (0.10, 0.09, 0.10), gold), name, (0.10, 0.02 * side, -0.70))
+        arm = f"arm{'l' if side > 0 else 'r'}"
+        rig.joint(arm, "body", (0.05, 0.36 * side, 0.55))
+        segment(rig, arm, (0, 0, 0), (0.25, 0.10 * side, -0.45), 0.06, skin)
+        segment(rig, arm, (0.25, 0.10 * side, -0.45), (0.45, 0.10 * side, -0.75), 0.05, sigil)
+        rig.attach(shape("ball", (0.16, 0.14, 0.12), gold), arm, (0, 0, 0.02))
+        rig.attach(shape("ball", (0.06, 0.05, 0.07), skin), arm, (0.47, 0.10 * side, -0.80))
+    for side in (1, -1):
+        name = "wing_l" if side > 0 else "wing_r"
+        rig.joint(name, "body", (-0.15, 0.20 * side, 0.55))
+        feathered_wing(rig, name, side, 2.6, gold, feather)
+        wing(rig, name, side, 2.5, gold, feather)
+    rig.beat, rig.wing_rest, rig.wing_depth = 12, 0.0, 0.30
+    rig.joints["root"].scale = (1.8, 1.8, 1.8)
+    return rig
+
+
+def feathered_wing(rig, joint, side, span, bone, feather):
+    """A bird's wing: an arm of gold and rows of long flat feathers fanning
+    back and down from it."""
+    shoulder = Vector((0, 0, 0))
+    elbow = Vector((-0.15, 0.45 * side, 0.45)) * span
+    tip = Vector((-0.30, 1.05 * side, 0.75)) * span
+    segment(rig, joint, shoulder, elbow, 0.04 * span, bone)
+    segment(rig, joint, elbow, tip, 0.03 * span, bone)
+    for row, (length, width) in enumerate(((0.80, 0.22), (0.60, 0.20), (0.40, 0.18), (0.22, 0.16))):
+        for k in range(18):
+            f = k / 17
+            base = shoulder.lerp(elbow, f * 2) if f < 0.5 else elbow.lerp(tip, (f - 0.5) * 2)
+            down = Vector((-0.55 - 0.3 * f, 0.15 * side * f, -1.0 + 0.4 * f)).normalized() * length * span * (1 - 0.15 * row)
+            a, b = base, base + down
+            obj = shape("box", (width * span / 2, 0.01, (b - a).length / 2), feather)
+            obj.rotation_euler = Vector((0, 0, 1)).rotation_difference(b - a).to_euler()
+            rig.attach(obj, joint, tuple((a + b) / 2 + Vector((0.02 * row, 0, 0))))
+
+
+BUILDERS.update({"bonebeast": build_bonebeast, "vampire": build_vampire, "bonewarrior": build_bonewarrior,
+                 "angel": build_angel})
+HEIGHT.update({"bonebeast": 12.0, "vampire": 3.7, "bonewarrior": 7.0, "angel": 11.0})
+SIZE.update({"bonebeast": 420, "angel": 420, "bonewarrior": 240})
+
+
 def pose(rig, animation, t, frames):
     """Rotations (radians, about X, Y, Z) per joint at time t in [0, 1)."""
     s = math.sin(2 * math.pi * t)

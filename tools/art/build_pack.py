@@ -37,7 +37,8 @@ PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
 # Monster art and the Character/ENEMY folder each one fills.
 ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "demon": 3, "golem": 4, "shaman": 5, "spider": 6, "bigspider": 7,
            "archer": 10, "swordsman": 11, "dragon": 12, "ogre": 13, "boarrider": 8, "boar": 9, "skeleton": 14,
-           "barbarian": 16, "lizard": 18, "fire": 15, "scorpion": 19, "bigscorpion": 20, "raptor": 22}
+           "barbarian": 16, "lizard": 18, "fire": 15, "scorpion": 19, "bigscorpion": 20, "raptor": 22,
+           "bonebeast": 17, "vampire": 21, "bonewarrior": 23, "angel": 24}
 
 
 def cropped(path, ax, ay):
@@ -121,7 +122,7 @@ def main():
     anchors = {}
     for folder, listing in (("props", "props.txt"), ("town", "town.txt"), ("dungeon", "dungeon.txt"),
                             ("cave", "cave.txt"), ("fort", "fort.txt"), ("wilds", "wilds.txt"),
-                            ("deep", "deep.txt")):
+                            ("deep", "deep.txt"), ("castle", "castle.txt")):
         if not (art / folder / listing).exists():
             continue
         for line in (art / folder / listing).read_text().split("\n"):
@@ -940,9 +941,123 @@ def deep(out, anchors, rng):
         enemy("bigscorpion", tx, ty, 140, 16, 2)
     for tx, ty in ((21, 22), (26, 21), (23, 27)):
         enemy("raptor", tx, ty, 160, 18, 2)
+    if "castle_x" in anchors:
+        # The red portal leads up into the castle.
+        lines += [f"entry=2,{24 * TILE},{int(22.2 * TILE)},0",
+                  f"exit={int(23.5 * TILE)},{int(23.5 * TILE)},{int(24.5 * TILE)},{int(24.5 * TILE)},7,1"]
+        castle(out, anchors, rng)
     (out / "Scenario" / "00000006").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000006" / "scenario.txt").write_text("\n".join(lines) + "\n")
     print(f"deep: {len(objects)} objects")
+
+
+def castle(out, anchors, rng):
+    """The castle: a paved court inside dark curtain walls and towers, a
+    gate, the keep to the north, a marble hall with its fire, statues along
+    the way in, a chapel of shrines and pews, and a magic circle back down.
+    Writes Map/castle.txt and Scenario/00000007."""
+    size = 32
+    floor = Atlas()
+    for t in ground.build_tiles(seed=11, kind="fort"):
+        floor.add(len(floor.frames), t)
+    floor.write(out / "Map" / "castlefloor.sheet", "castlefloor.png")
+    lo, hi = 2, 30  # the curtain wall runs round this square
+    n = size + 1
+    yy, xx = np.mgrid[0:n, 0:n]
+    terrain = np.ones((n, n), dtype=int)
+    for _ in range(18):
+        px, py, pr = rng.randrange(n), rng.randrange(n), rng.uniform(0.8, 2.0)
+        terrain[(xx - px) ** 2 + (yy - py) ** 2 < pr * pr] = 0
+    rows = []
+    for ty in range(size):
+        row = []
+        for tx in range(size):
+            if not (lo <= tx < hi and lo <= ty < hi):
+                row.append(".")
+                continue
+            corners = (terrain[ty, tx], terrain[ty, tx + 1], terrain[ty + 1, tx], terrain[ty + 1, tx + 1])
+            row.append(f"0:{ground.pattern_index(corners, tx, ty)}")
+        rows.append(" ".join(row))
+    open_ = np.zeros((size, size), dtype=bool)
+    open_[lo:hi, lo:hi] = True
+    blocked = ~np.repeat(np.repeat(open_, PER, axis=0), PER, axis=1)
+    objects = []
+
+    def place(name, tx, ty, block=None):
+        objects.append(f"{int(tx * TILE)},{int(ty * TILE)},1,{anchors[name]}")
+        if block:
+            x0, y0, x1, y1 = block
+            blocked[max(0, int(y0 * PER)):int(y1 * PER), max(0, int(x0 * PER)):int(x1 * PER)] = True
+
+    def solid(name, tx, ty, r):
+        place(name, tx, ty, (tx - r, ty - r, tx + r, ty + r))
+
+    gate = 16  # the gate in the south wall, between tiles 16 and 18
+    for tx in range(lo, hi, 2):
+        place("castle_x", tx + 1, lo, (tx, lo - 0.15, tx + 2, lo + 0.15))
+        if tx == gate:
+            place("castle_gate_x", tx + 1, hi, (tx, hi - 0.15, tx + 0.6, hi + 0.15))
+            blocked[int((hi - 0.15) * PER):int((hi + 0.15) * PER), int((tx + 1.4) * PER):int((tx + 2) * PER)] = True
+        else:
+            place("castle_x", tx + 1, hi, (tx, hi - 0.15, tx + 2, hi + 0.15))
+    for ty in range(lo, hi, 2):
+        place("castle_y", lo, ty + 1, (lo - 0.15, ty, lo + 0.15, ty + 2))
+        place("castle_y", hi, ty + 1, (hi - 0.15, ty, hi + 0.15, ty + 2))
+    for k, tx in enumerate(range(lo, hi + 1, 7)):
+        for ty in (lo, hi):
+            solid("tower" if k % 2 else "tower_round", tx, ty, 0.4)
+    for ty in range(lo + 7, hi, 7):
+        for tx in (lo, hi):
+            solid("tower_round", tx, ty, 0.4)
+    # The keep along the north wall, carved pillars before it.
+    for tx in (8, 13, 18, 23):
+        place("keep", tx, 4.2, (tx - 0.8, lo, tx + 0.8, 4.7))
+    for tx in (6, 10.5, 15.5, 20.5, 25):
+        solid("carved_pillar", tx, 6.4, 0.35)
+    # The way in from the gate: statues either side, the marble hall ahead.
+    for ty in (19, 22, 25):
+        solid("statue_knight", 13.6, ty, 0.3)
+        solid("statue_saint", 18.4, ty, 0.25)
+    place("fire_hall", 16, 13, (15.3, 12.3, 16.7, 13.7))
+    solid("statue_gargoyle", 12, 12, 0.5)
+    solid("statue_gargoyle", 20, 12, 0.5)
+    # The chapel in the east court: shrines in a row and pews before them.
+    for k, ty in enumerate((10, 12, 14, 16)):
+        solid("shrine" if k % 2 == 0 else "shrine_spike", 27.5, ty, 0.25)
+    for ty in (11, 13, 15):
+        for tx in (23.5, 25.0):
+            place("pew_y", tx, ty, (tx - 0.3, ty - 0.2, tx + 0.3, ty + 0.2))
+    # The west court: a ring of statues round the magic circle back down.
+    place("magic_circle", 6, 20)
+    for tx, ty in ((4, 18), (8, 18), (4, 22), (8, 22)):
+        solid("statue_saint", tx, ty, 0.25)
+    for tx, ty in ((5, 11), (9, 14), (24, 22), (26, 26)):
+        solid("tower", tx, ty, 0.4)
+    judge = ["".join("x" if b else "." for b in line) for line in blocked]
+    with open(out / "Map" / "castle.txt", "w", newline="\n") as f:
+        f.write("# The castle: generated by tools/art/build_pack.py\n")
+        f.write(f"size={size},{size}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{size * PER},{size * PER}\n")
+        f.write("bank=Map/castlefloor.sheet\nbank=Map/props.sheet\n\n[ground]\n" + "\n".join(rows))
+        f.write("\n\n[judge]\n" + "\n".join(judge) + "\n\n[objects]\n" + "\n".join(objects) + "\n")
+    lines = ["# generated by tools/art/build_pack.py", "title=The Castle", "map=castle",
+             f"entry=0,{6 * TILE},{int(23.5 * TILE)},0", f"entry=1,{6 * TILE},{int(23.5 * TILE)},0",
+             f"exit={int(5.5 * TILE)},{int(19.5 * TILE)},{int(6.5 * TILE)},{int(20.5 * TILE)},6,2"]
+
+    def enemy(name, tx, ty, hp, attack, wander):
+        if (out / "Character" / "ENEMY" / f"{ENEMIES[name]:08d}").exists():
+            lines.append(f"enemy={ENEMIES[name]},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)},{hp},{attack},"
+                         f"{wander * TILE},goblin")
+
+    for tx, ty in ((11, 24), (21, 21), (25, 12)):
+        enemy("vampire", tx, ty, 150, 18, 2)
+    for tx, ty in ((9, 9), (22, 8), (26, 19)):
+        enemy("bonewarrior", tx, ty, 220, 22, 2)
+    for tx, ty in ((14, 9), (24, 25)):
+        enemy("bonebeast", tx, ty, 300, 26, 3)
+    enemy("angel", 16, 8.5, 600, 34, 2)
+    (out / "Scenario" / "00000007").mkdir(parents=True, exist_ok=True)
+    (out / "Scenario" / "00000007" / "scenario.txt").write_text("\n".join(lines) + "\n")
+    print(f"castle: {len(objects)} objects")
 
 
 if __name__ == "__main__":
