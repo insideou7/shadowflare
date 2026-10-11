@@ -2,7 +2,7 @@
 
 Replacement content that lets the engine run without the original game:
 two areas (a goblin camp and its cave), the player, three kinds of
-monster and their behaviour. The formats are described in
+monster and their behaviour, and a few items. The formats are described in
 [docs/content.md](../docs/content.md).
 
 ## Licence
@@ -19,7 +19,9 @@ copyright to their own contributions; its full credits are in
 `tools/content/import_flare.py` from flare-game commit `af6eee6d`:
 character layers composited into single sprite sheets, tiles regrouped
 into one sheet per map, and maps and monster placements converted to this
-engine's formats. Monster stats and behaviour (`ai.txt`) are our own.
+engine's formats. Item pictures are Flare's inventory icons and loot
+sprites, converted by `tools/content/import_items.py`. Monster stats and
+behaviour (`ai.txt`) and the item definitions (`items.txt`) are our own.
 
 Changes to these files must stay under CC-BY-SA 3.0 (or a later version)
 and keep this attribution.

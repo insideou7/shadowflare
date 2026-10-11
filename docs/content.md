@@ -18,6 +18,9 @@ original format.
 | `Player/Male/Animation00.caf/.njp`    | `Player/Male/Animation00.anim` + `.sheet`|
 | `Scenario/<n>/Scenario.Mct` + `.Scs`  | `Scenario/<n>/scenario.txt`              |
 | `System/Game/Parameter/Control.aid`   | `ai.txt`                                 |
+| `System/Game/Parameter/Item.Ibn`      | `items.txt`                              |
+| `System/Game/Pattern/Item%04d.njp`    | `System/Game/Pattern/Item%04d.sheet`     |
+| `Character/ITEM/%08d/Pattern.njp`     | `Character/ITEM/%08d/Pattern.sheet`      |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -85,13 +88,16 @@ pixel chips, as in the original game.
     title=Goblin Camp
     map=goblin_camp
     entry=0,2640,1200,0      # entry number, world x, y, direction
-    enemy=1,9840,12720,4,30,4,480,goblin
+    enemy=1,9840,12720,4,30,4,480,goblin,1,30,2,12
     person=2,1000,1000,0     # kind, x, y, direction
+    item=0,0,3120,1680       # class, code, x, y
     exit=16800,12000,17760,12960,2,1
 
 `enemy` is kind (folder `Character/ENEMY/<kind as 8 digits>`), x, y,
 direction, hit points, attack, wander radius in world units, and the AI
-list it follows. `exit` is a world rectangle and the scenario and entry it
+list it follows, optionally followed by its level (which items it may
+drop), the chance in percent that it drops gold and the least and most
+gold. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
@@ -109,12 +115,49 @@ Control.aid (see formats.md): the event, the action, then any of
 (gap to the player in world units; either end may be left out).
 `tools/content/ai.txt` lists the event and action names.
 
+### items.txt
+
+    [item weapon 0]          # class and code, as in the original's Item.Ibn
+    name=Short Sword
+    subtype=0                # see below
+    size=2,2                 # inventory cells (32 pixels) across and down
+    price=400
+    icon=0,0                 # System/Game/Pattern/Item0000.sheet, frame 0
+    ground=7,0               # Character/ITEM/00000007/Pattern.sheet, frame 0
+    level=1,1                # item level (for drops), required level
+    stats=20,100             # see below; numbers left out are 0
+    layer=12                 # hero animation layer shown while worn
+    weight=10                # how often it drops compared with others
+
+Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
+(gold is special 0). Weapon subtypes: 0 sword, 1 axe, 3 two-handed sword,
+5 bowgun, 8 staff, 9 rod (1 and 3, or `two-handed=1`, leave no hand for a
+shield). Armour subtypes say where it is worn: 0 helmet, 1 body, 2 shield,
+3 boots. `stats` are attack, hit, defense, evasion, magic attack, magic
+hit, magic defense, magic evasion, attack speed and walking speed.
+Consumables have `effect=`, nine numbers as in the original: the first is
+1 if it may go in the belt, the second the health it restores, the third
+the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
+quest; only normal items drop) and `glow` (a second hero layer).
+
+Codes follow the original where an item stands in for one, so the
+starting kit (body armour 0, consumables 0 and 10000000) works with
+either. Every key but the section line may be left out. When the folder
+of a `ground` picture holds `Animation.anim`, the number is a chart of it
+instead, as with the original's animated item folders.
+
 ## Rebuilding content/ from Flare
 
     git clone https://github.com/flareteam/flare-game /tmp/flare-game
     python3 tools/content/import_flare.py /tmp/flare-game content
 
 Needs Pillow. Which maps, monsters and player layers to import, and the
-monsters' stats, are set at the top of the script. Flare's maps are made
+monsters' stats and loot and the items lying on each map, are set at the
+top of the script. The item pictures come from Flare's icons and loot
+sprites:
+
+    python3 tools/content/import_items.py /tmp/flare-game content
+
+Their order is set in that script; `content/items.txt` is written by hand. Flare's maps are made
 with [Tiled](https://www.mapeditor.org/), so new maps can be drawn there,
 saved in Flare's format and imported the same way.

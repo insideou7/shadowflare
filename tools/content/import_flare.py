@@ -57,11 +57,20 @@ PLAYER_LAYERS = {
 
 # Monster kinds (Character/ENEMY/<kind>/), the Flare map categories that
 # become them, and their stats: hp, attack, wander radius, AI list.
+# level matters for item drops; gold = (chance in percent, min, max) dropped on death.
 ENEMIES = {
-    1: dict(name="goblin", anim="animations/enemies/goblin.txt", categories=["goblin"], hp=30, attack=4, ai="goblin"),
+    1: dict(name="goblin", anim="animations/enemies/goblin.txt", categories=["goblin"], hp=30, attack=4, ai="goblin",
+            level=1, gold=(30, 2, 12)),
     2: dict(name="goblin spearman", anim="animations/enemies/goblin_elite.txt",
-            categories=["goblin_spearman", "goblin_chief"], hp=60, attack=7, ai="goblin"),
-    3: dict(name="skeleton", anim="animations/enemies/skeleton.txt", categories=["undead"], hp=50, attack=6, ai="skeleton"),
+            categories=["goblin_spearman", "goblin_chief"], hp=60, attack=7, ai="goblin", level=3, gold=(50, 10, 30)),
+    3: dict(name="skeleton", anim="animations/enemies/skeleton.txt", categories=["undead"], hp=50, attack=6, ai="skeleton",
+            level=2, gold=(30, 5, 20)),
+}
+
+# Items lying on each map from the start: (class, code, world x, world y),
+# as defined in content/items.txt.
+MAP_ITEMS = {
+    "goblin_camp": [(0, 0, 3120, 1680), (1, 1000000, 3120, 720)],
 }
 
 # Maps to import, in scenario order; the first is where the game starts.
@@ -379,7 +388,10 @@ def import_maps(flare, out):
                     if 0 <= tx < width and 0 <= ty < height and not blocked[ty][tx]]
             for tx, ty in rng.sample(free, min(count, len(free))):
                 lines.append(f"enemy={kind},{tx * TILE_WORLD + TILE_WORLD // 2},{ty * TILE_WORLD + TILE_WORLD // 2},"
-                             f"{rng.randrange(8)},{e['hp']},{e['attack']},{max(1, radius) * TILE_WORLD},{e['ai']}")
+                             f"{rng.randrange(8)},{e['hp']},{e['attack']},{max(1, radius) * TILE_WORLD},{e['ai']},"
+                             f"{e['level']},{e['gold'][0]},{e['gold'][1]},{e['gold'][2]}")
+        for cls, code, x, y in MAP_ITEMS.get(name, []):
+            lines.append(f"item={cls},{code},{x},{y}")
         for x, y, w, h, target, entry in exits[name]:
             lines.append(f"exit={x * TILE_WORLD},{y * TILE_WORLD},{(x + w) * TILE_WORLD},{(y + h) * TILE_WORLD},{target},{entry}")
         scen = out / "Scenario" / f"{number[name]:08d}"

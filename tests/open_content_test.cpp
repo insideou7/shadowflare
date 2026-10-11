@@ -126,6 +126,32 @@ void testScenario() {
     check(cmd.opcode == sf::ScenarioScript::kChangeScenario && cmd.operands[0].value == 2 && cmd.operands[1].value == 1,
           "exit sentence");
     expectRejected("enemy short", "enemy=1,2,3\n", [](auto& d) { sf::open::parseScenario(d); });
+
+    const auto loot = sf::open::parseScenario(bytes("enemy=1,5,6,0,30,4,480,goblin,2,10,1,8\nitem=3,0,700,800\n"));
+    const auto& l = loot.control.placements;
+    check(l.size() == 2 && l[0].stats.level == 2 && l[0].stats.goldChance == 10 && l[0].stats.goldMax == 8, "enemy loot fields");
+    check(l.size() == 2 && l[1].group == sf::ScenarioControl::Group::Item && l[1].itemClass == 3 && l[1].x == 700,
+          "scenario item");
+}
+
+void testItems() {
+    const auto table = sf::open::parseItems(bytes(
+        "[item weapon 5]\nname=Great Sword\nsubtype=3\nsize=2,4\nicon=0,3\nground=7,3\nlevel=4,3\n"
+        "stats=45,90\nlayer=19\nweight=10\n"
+        "[item consumable 0]\nname=Potion\neffect=1,50\n"));
+    check(table.items.size() == 2, "item count");
+    const auto* sword = table.find(sf::ItemDef::Class::Weapon, 5);
+    check(sword && sword->name == "Great Sword" && sword->width == 2 && sword->height == 4 && sword->twoHanded(), "item basics");
+    check(sword && sword->invPattern == 3 && sword->groundFolder == 7 && sword->requiredLevel == 3 && sword->itemLevel == 4,
+          "item pictures and levels");
+    check(sword && sword->stats[0] == 45 && sword->stats[1] == 90 && sword->stats[2] == 0 && sword->heroLayer == 19, "item stats");
+    const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
+    check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
+    expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
+    expectRejected("item bad class", "[item hat 1]\n", [](auto& d) { sf::open::parseItems(d); });
+    expectRejected("item twice", "[item weapon 1]\n[item weapon 1]\n", [](auto& d) { sf::open::parseItems(d); });
+    expectRejected("item too big", "[item weapon 1]\nsize=10,1\n", [](auto& d) { sf::open::parseItems(d); });
+    expectRejected("item too many stats", "[item weapon 1]\nstats=1,2,3,4,5,6,7,8,9,10,11\n", [](auto& d) { sf::open::parseItems(d); });
 }
 
 void testAi() {
@@ -160,6 +186,7 @@ int main() {
     testAnimation();
     testMap();
     testScenario();
+    testItems();
     testAi();
     testPackInfo();
     if (failures == 0) std::puts("all open content tests passed");

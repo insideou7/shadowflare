@@ -7,6 +7,7 @@
 
 #include "formats/ai_control.h"
 #include "formats/animation.h"
+#include "formats/item_data.h"
 #include "formats/map_layers.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
@@ -66,6 +67,9 @@ struct Scenario {
     ScenarioScript script;
 };
 Scenario parseScenario(std::span<const std::uint8_t> text);
+
+// items.txt: item definitions, standing in for Item.Ibn.
+ItemTable parseItems(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);
