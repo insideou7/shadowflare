@@ -18,6 +18,7 @@ add_library(sf_formats STATIC
     src/formats/scenario.cpp
     src/formats/scenario_script.cpp
     src/formats/table_data.cpp
+    src/formats/item_data.cpp
     src/formats/open_content.cpp
 )
 target_include_directories(sf_formats PUBLIC src)

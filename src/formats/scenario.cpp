@@ -56,8 +56,13 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         p.stats.defense = words[11];
         p.stats.experience = words[13];
         p.stats.level = words[14];
+        p.stats.goldChance = words[49];
         p.stats.goldMin = words[50];
         p.stats.goldMax = words[51];
+    } else if (group == ScenarioControl::Group::Item) {
+        p.itemClass = in.i32();
+        p.itemCode = in.i32();
+        in.skip(extraSize - 8);
     } else {
         in.skip(extraSize);
     }

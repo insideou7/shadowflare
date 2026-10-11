@@ -242,8 +242,12 @@ from the exe, so treat them as likely rather than certain:
 | 14 | level |
 | 1-4 | area it wanders in: left, top, right, bottom around its position |
 | 15-30 | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
+| 49 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
 | 50, 51 | gold dropped, min and max |
 | 77 | movement speed, per mille (usually 1000) |
+
+The item block (0x10 bytes) is the item's class and code in Item.Ibn
+(see Items below) and two zeros.
 
 Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
 
@@ -350,11 +354,71 @@ body:
 descriptions. The numeric tables (experience curves, shops, drops...) are
 not identified yet.
 
+## Items: `System/Game/Parameter/Item.Ibn` (ShadowFlare.exe, loader 0x462f90)
+
+```
+char magic[16]   "SFItemDataV0000\x1a"
+i32  checksum    sum of the unpacked bytes as signed chars (checked at 0x463bd1)
+i32  compressed  1
+RCLIB-L header   magic, u32 unpacked, u32 packed
+u8   packed[]    each byte first replaced through a 256-byte table, then LZSS
+```
+
+The substitution table is not in any data file: the exe builds it on the
+stack with one `mov byte [esp+n], value` per entry between 0x463031 and
+0x46376e (one entry is written from `bl`, which is 0, and a `push ebx;
+push imm32` in the middle moves esp by 8), and applies it at 0x463ae6.
+The engine decodes those instructions from the player's own
+`ShadowFlare.exe` at run time (`itemSubstitutionTable` in
+`src/formats/item_data.cpp`); without the exe, items fall back to the
+open content pack's `items.txt`. The checksum confirms the result.
+
+The unpacked data holds five classes in order, each an `i32 count` and its
+records: 0 weapons (1264), 1 armour (1281), 2 accessories (239),
+3 consumables (31) and 4 special items such as gold and quest items (45).
+An item is identified by (class, code); scenario files place items that way.
+
+A record is `i32 length, name` and `i32 length, unidentified name` (bytes
+bitwise inverted) followed by i32 fields. The shared part, in file order
+(object offset in brackets):
+
+| field | meaning |
+|---|---|
+| subtype (0x10) | weapon: 0 one-handed sword, 1 axe/mace, 3 two-handed sword, 5 bowgun/sling, 8 staff, 9 rod; armour: 0 helmet, 1 body, 2 shield, 3 boots |
+| code (0x14) | id within the class |
+| quality (0x18) | 0 normal, 1 magic, 2 unique, 3 quest |
+| drop pool (0x88), drop weight (0x78) | used by the drop tables |
+| price (0x40), fixed price (0x44) | |
+| width, height (0x20, 0x24) | size in 32-pixel inventory cells |
+| weight (0x28) | |
+| inventory bank, pattern (0x2c, 0x30) | `System/Game/Pattern/Item%04d.njp` |
+| ground folder, picture (0x34, 0x38) | `Character/ITEM/%08d`: a chart of its `Animation.Caf` (folders 0-6) or a pattern of its `Pattern.njp` (7-11) |
+| icon parameter (0x3c), ground tint R, G, B (0x50-0x58) | |
+| glow layer (0x68), its tint (0x6c-0x74) | a second hero layer for some weapons, or -1 |
+| 0x7c, 0x80[2] | unknown |
+
+Then per class: weapons have durability, ten stats (attack, hit, defense,
+evasion, magic attack, magic hit, magic defense, magic evasion, attack
+speed, walking speed), item level, required level, an unknown, the weapon
+effect tint, the hero layer and its tint, six projectile and flag words
+(the last is "two-handed"), 8 elements, 39 modifiers of {min, max,
+chance%} and 8 elemental modifiers of 3. Armour has durability, stats,
+item level, required level, hero layer and tint, elements and modifiers.
+Accessories have item level, required level and modifiers. Consumables
+have item level and nine effect words (word 0: may go in the belt; 1:
+health restored; 2: mental power restored). Special items have nothing
+more.
+
+Axes and two-handed swords (subtypes 1 and 3) or the two-handed flag hide
+the shield. Worn weapons, body armour and shields turn on their hero
+layer in `Player/Male/Animation00.Caf` (0 body and 1 shadow are always
+on): 5-8 armour, 9-11 shields, 12-21 weapons. Helmets, boots and
+accessories are not drawn.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |
 | --- | --- | --- |
 | `MAPED_FILE v000` | `.map` | 36 bytes; small header read by `RKC_RPGSCRN::ReadMapFile` |
-| `SFItemDataV0000` | `Item.Ibn` | Item table; RCLIB-wrapped with an extra layer |
 | `VoiceData  V003` | `.Voc` | Music and voice (`RKC_DSOUND.dll`) |
 | `ShadowFlare0005` | `Save/*.Ssv` | Save games |

@@ -1,5 +1,7 @@
 // Small self-contained checks for the format readers. Uses synthetic data so it
 // runs without the original game files.
+#include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -10,6 +12,7 @@
 #include "formats/ai_control.h"
 #include "formats/animation.h"
 #include "formats/binary_reader.h"
+#include "formats/item_data.h"
 #include "formats/map_layers.h"
 #include "formats/rclib.h"
 #include "formats/scenario.h"
@@ -189,17 +192,35 @@ void testScenario() {
     i32(0);  // no list
     i32(0);  // no table
     i32(-1);
-    for (int w = 0; w < 0x13c / 4; ++w) i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : w == 15 ? 0x0041474f : w == 77 ? 1100 : 0);
-    i32(0);  // items
+    for (int w = 0; w < 0x13c / 4; ++w) {
+        i32(w == 8 ? 40 : w == 9 ? 10 : w == 14 ? 3 : w == 15 ? 0x0041474f : w == 77 ? 1100 : w == 49 ? 10 : w == 51 ? 25 : 0);
+    }
+    i32(1);  // items
+    i32(0);
+    i32(0);
+    i32(0);
+    i32(0);
+    i32(7000);
+    i32(800);
+    for (int v : {-40, -40, 39, 39}) i32(v);
+    i32(8);
+    i32(0);
+    i32(0);
+    i32(-1);
+    for (int v : {3, 40000008, 0, 0}) i32(v);
     i32(1);  // entry points
     for (int v : {4, 90000, 5000, 7}) i32(v);
     const auto s = sf::ScenarioControl::parse(d);
     check(s.mapPath == "Map\\c02_00.map" && s.title == "Kanfore", "scenario header");
-    check(s.placements.size() == 2, "scenario placement count");
+    check(s.placements.size() == 3, "scenario placement count");
     const auto& e = s.placements[1];
     check(e.group == sf::ScenarioControl::Group::Enemy && e.kind == 2 && e.x == 500, "scenario enemy");
     check(e.stats.hp == 40 && e.stats.attack == 10 && e.stats.level == 3, "scenario enemy stats");
     check(e.stats.ai == "OGA" && e.stats.speed == 1100, "scenario enemy AI");
+    check(e.stats.goldChance == 10 && e.stats.goldMax == 25, "scenario enemy gold");
+    const auto& item = s.placements[2];
+    check(item.group == sf::ScenarioControl::Group::Item && item.itemClass == 3 && item.itemCode == 40000008 && item.x == 7000,
+          "scenario item");
     const auto& p = s.placements[0];
     check(p.group == sf::ScenarioControl::Group::Person && p.id == 5 && p.kind == 1000002 && p.name == "Dune",
           "scenario person");
@@ -338,6 +359,211 @@ void testTables() {
     check(t && t->string(0, 0) == "Ok" && t->string(0, 1).empty(), "table strings are inverted");
 }
 
+// Item.Ibn records, built field by field in file order.
+struct ItemWriter {
+    std::vector<std::uint8_t> d;
+    void i32(int x) { put32(d, x); }
+    void words(int count, int value = 0) {
+        for (int i = 0; i < count; ++i) i32(value);
+    }
+    void text(const std::string& s) {
+        i32(static_cast<int>(s.size()));
+        for (char c : s) d.push_back(static_cast<std::uint8_t>(~static_cast<std::uint8_t>(c)));
+    }
+    // name, base name, then the shared part: subtype, code, quality, pool,
+    // weight, price, fixed price, w, h, weight, inventory bank/pattern,
+    // ground folder/picture, icon parameter, tint, glow layer, its tint,
+    // three unknowns.
+    void common(const std::string& name, int subtype, int code, int w, int h, int glow = -1) {
+        text(name);
+        text("?");
+        for (int v : {subtype, code, 0, 1, 10, 400, 0, w, h, 30, 2, 17, 7, 5, -1, 1000, 1000, 1000, glow, 0, 0, 0, 0, 0, 0}) i32(v);
+    }
+};
+
+std::vector<std::uint8_t> itemBody() {
+    ItemWriter w;
+    w.i32(2);  // weapons
+    w.common("Sword", 0, 0, 1, 4);
+    w.i32(300);                                                // durability
+    for (int v : {20, 100, 0, 0, 0, 0, 0, 0, 0, 0}) w.i32(v);  // stats
+    w.i32(1);                                                  // item level
+    w.i32(3);                                                  // required level
+    w.words(4);                                                // 0xec, effect tint
+    w.i32(12);                                                 // hero layer
+    w.words(8);
+    w.i32(0);  // two-handed flag
+    w.words(8 + 117 + 24);
+    w.common("Axe", 1, 4000000, 2, 4, 3);
+    w.i32(300);
+    w.words(10, 5);
+    w.i32(30);
+    w.i32(30);
+    w.words(4);
+    w.i32(21);
+    w.words(8);
+    w.i32(0);
+    w.words(8 + 117 + 24);
+    w.i32(1);  // armour
+    w.common("Cloth", 1, 0, 2, 3);
+    w.i32(100);
+    for (int v : {0, 0, 20, 20, 0, 0, 10, 20, 0, 0}) w.i32(v);
+    w.i32(1);
+    w.i32(1);
+    w.i32(5);  // hero layer
+    w.words(3 + 8 + 117 + 24);
+    w.i32(0);  // accessories
+    w.i32(1);  // consumables
+    w.common("Tablet", -1, 0, 1, 1);
+    w.i32(1);
+    for (int v : {1, 200, 0, 0, 0, 0, 0, -1, 0}) w.i32(v);
+    w.i32(1);  // special
+    w.common("Gold", -1, 0, 1, 1);
+    return w.d;
+}
+
+// Wraps a body the way Item.Ibn does: literal-only LZSS, then every packed
+// byte replaced by the one the table maps back to it.
+std::vector<std::uint8_t> itemFile(const std::vector<std::uint8_t>& body, const std::array<std::uint8_t, 256>& table,
+                                   int checksumDelta = 0) {
+    std::vector<std::uint8_t> packed;
+    for (std::size_t i = 0; i < body.size(); i += 8) {
+        packed.push_back(0);
+        for (std::size_t k = i; k < i + 8 && k < body.size(); ++k) packed.push_back(body[k]);
+    }
+    std::array<std::uint8_t, 256> inverse{};
+    for (int i = 0; i < 256; ++i) inverse[table[i]] = static_cast<std::uint8_t>(i);
+    for (auto& b : packed) b = inverse[b];
+    std::vector<std::uint8_t> d;
+    for (char c : std::string("SFItemDataV0000\x1a")) d.push_back(static_cast<std::uint8_t>(c));
+    int sum = 0;
+    for (std::uint8_t b : body) sum += static_cast<std::int8_t>(b);
+    put32(d, sum + checksumDelta);
+    put32(d, 1);
+    for (char c : std::string("RCLIB-L\x1a")) d.push_back(static_cast<std::uint8_t>(c));
+    put32(d, static_cast<int>(body.size()));
+    put32(d, static_cast<int>(packed.size()));
+    d.insert(d.end(), packed.begin(), packed.end());
+    return d;
+}
+
+std::array<std::uint8_t, 256> testTable() {
+    std::array<std::uint8_t, 256> t{};
+    for (int i = 0; i < 256; ++i) t[i] = static_cast<std::uint8_t>(i * 7 + 3);
+    return t;
+}
+
+void testItems() {
+    const auto table = testTable();
+    const auto items = sf::ItemTable::parse(itemFile(itemBody(), table), table);
+    check(items.items.size() == 5, "item count");
+    using C = sf::ItemDef::Class;
+    const auto* sword = items.find(C::Weapon, 0);
+    check(sword && sword->name == "Sword" && sword->width == 1 && sword->height == 4, "item name and size");
+    check(sword && sword->stats[sf::ItemDef::kAttack] == 20 && sword->requiredLevel == 3 && sword->heroLayer == 12,
+          "weapon stats, level and layer");
+    check(sword && sword->invBank == 2 && sword->invPattern == 17 && sword->groundFolder == 7 && sword->groundPicture == 5,
+          "item pictures");
+    check(sword && !sword->twoHanded() && sword->glowLayer == -1, "one-handed sword");
+    const auto* axe = items.find(C::Weapon, 4000000);
+    check(axe && axe->twoHanded() && axe->glowLayer == 3 && axe->itemLevel == 30, "axes are two-handed");
+    const auto* cloth = items.find(C::Armour, 0);
+    check(cloth && cloth->subtype == sf::ItemDef::kBody && cloth->stats[sf::ItemDef::kDefense] == 20 && cloth->heroLayer == 5,
+          "armour");
+    const auto* tablet = items.find(C::Consumable, 0);
+    check(tablet && tablet->effect[1] == 200, "consumable effect");
+    const auto* gold = items.find(C::Special, 0);
+    check(gold && gold->isGold(), "gold");
+    check(!items.find(C::Accessory, 0), "missing item");
+
+    auto rejected = [&](const char* what, const std::vector<std::uint8_t>& data) {
+        try {
+            sf::ItemTable::parse(data, table);
+            check(false, what);
+        } catch (const sf::FormatError&) {
+        }
+    };
+    rejected("item checksum mismatch", itemFile(itemBody(), table, 1));
+    auto wrongTable = table;
+    std::swap(wrongTable[0], wrongTable[1]);
+    try {
+        sf::ItemTable::parse(itemFile(itemBody(), table), wrongTable);
+        check(false, "wrong substitution table is caught");
+    } catch (const sf::FormatError&) {
+    }
+    auto body = itemBody();
+    body.resize(body.size() - 2);
+    rejected("truncated item record", itemFile(body, table));
+    body = itemBody();
+    body[3] = 0x7f;  // a huge weapon count
+    rejected("bad item count", itemFile(body, table));
+    auto file = itemFile(itemBody(), table);
+    file.resize(file.size() - 10);
+    rejected("truncated item file", file);
+    rejected("not an item file", std::vector<std::uint8_t>(64, 0));
+}
+
+// A minimal PE whose code at 0x463031 builds a table the way ShadowFlare.exe
+// does: short and long mov forms, then a push and lea instructions.
+void testItemSubstitutionTable() {
+    const auto table = testTable();
+    constexpr std::uint32_t kSectionVa = 0x1000, kFileOffset = 0x200;
+    constexpr std::size_t kCodeSize = 0x46376e - 0x463031;
+    std::vector<std::uint8_t> code;
+    auto bytes = [&](std::initializer_list<int> list) {
+        for (int b : list) code.push_back(static_cast<std::uint8_t>(b));
+    };
+    for (int i = 0; i < 256; ++i) {
+        const int disp = 0x3c + i;
+        if (disp <= 0x7f) {
+            bytes({0xc6, 0x44, 0x24, disp, table[i]});
+        } else if (table[i] == 0) {
+            bytes({0x88, 0x9c, 0x24});  // mov [esp+disp32], bl
+            put32(code, disp);
+        } else {
+            bytes({0xc6, 0x84, 0x24});
+            put32(code, disp);
+            code.push_back(table[i]);
+        }
+    }
+    bytes({0x53});
+    while (code.size() + 4 <= kCodeSize) bytes({0x8d, 0x4c, 0x24, 0x10});
+    while (code.size() < kCodeSize) bytes({0x53});
+
+    std::vector<std::uint8_t> exe(kFileOffset, 0);
+    exe[0] = 'M';
+    exe[1] = 'Z';
+    exe[0x3c] = 0x40;
+    const std::uint8_t header[] = {'P', 'E', 0, 0, 0x4c, 0x01, 1, 0};  // i386, one section
+    std::copy(std::begin(header), std::end(header), exe.begin() + 0x40);
+    exe[0x40 + 20] = 0xe0;  // optional header size
+    const std::size_t optional = 0x40 + 24;
+    for (int k = 0; k < 4; ++k) exe[optional + 28 + k] = static_cast<std::uint8_t>(0x400000 >> (8 * k));
+    const std::uint32_t rawSize = 0x64000;
+    std::vector<std::uint8_t> fields;
+    put32(fields, static_cast<int>(rawSize));
+    put32(fields, static_cast<int>(kSectionVa));
+    put32(fields, static_cast<int>(rawSize));
+    put32(fields, static_cast<int>(kFileOffset));
+    std::copy(fields.begin(), fields.end(), exe.begin() + static_cast<std::ptrdiff_t>(optional + 0xe0 + 8));
+    exe.resize(kFileOffset + rawSize, 0);
+    const std::size_t codeAt = kFileOffset + (0x463031 - 0x400000 - kSectionVa);
+    std::copy(code.begin(), code.end(), exe.begin() + static_cast<std::ptrdiff_t>(codeAt));
+    check(sf::itemSubstitutionTable(exe) == table, "substitution table read from the executable");
+
+    exe[codeAt] = 0x90;
+    try {
+        sf::itemSubstitutionTable(exe);
+        check(false, "unexpected code is rejected");
+    } catch (const sf::FormatError&) {
+    }
+    try {
+        sf::itemSubstitutionTable(std::vector<std::uint8_t>(100, 0));
+        check(false, "a non-executable is rejected");
+    } catch (const sf::FormatError&) {
+    }
+}
+
 }  // namespace
 
 int main() {
@@ -354,6 +580,8 @@ int main() {
     testAi();
     testCorruptFiles();
     testTables();
+    testItems();
+    testItemSubstitutionTable();
     if (failures == 0) std::puts("all format tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
