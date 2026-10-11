@@ -96,11 +96,10 @@ renders a whole map to an image.
 
 ## Licence
 
-The engine is free software under the GNU General Public License,
-version 3 or later; see [LICENSE](LICENSE). The open content in
-[content/](content/) is CC-BY-SA 3.0, from Flare: Empyrean Campaign; see
-[content/README.md](content/README.md) for its credits. stb_image is
-public domain (or MIT).
+The engine and tools are under the MIT licence; see [LICENSE](LICENSE).
+The open content in [content/](content/) is CC-BY-SA 3.0, from Flare:
+Empyrean Campaign; see [content/README.md](content/README.md) for its
+credits. stb_image is public domain (or MIT).
 
 The original game is copyrighted and is not covered by this licence. Do
 not commit its files, extracted assets or decompiled code to this
