@@ -126,13 +126,20 @@ def post(black=""):
     """A single square pit prop, its top level with the gallery beams.
     black: which of its near faces the original blacks out, "l" (lower
     left on screen), "r" (lower right) or both."""
-    box((0.8, 0.8, 7.0), (0, 0, 3.5), mat("timber", TIMBER))
-    if black:
-        import fort
-        if "l" in black:
-            box((0.82, 0.02, 7.0), (0, -0.41, 3.5), fort.void())
-        if "r" in black:
-            box((0.02, 0.82, 7.0), (0.41, 0, 3.5), fort.void())
+    if not black:
+        box((0.8, 0.8, 7.0), (0, 0, 3.5), mat("timber", TIMBER))
+        return
+    import fort
+    # Among the blacked-out near walls the post is as thick and as tall as
+    # their plank, so its top sits flush in the beam line, and only the
+    # plank's height of its near faces shows above the black.
+    h, w = WALL_H + 0.3, 0.9
+    box((w, w, h), (0, 0, h / 2), mat("timber", TIMBER))
+    low = WALL_H - 0.1
+    if "l" in black:
+        box((w + 0.02, 0.02, low), (0, -w / 2 - 0.01, low / 2), fort.void())
+    if "r" in black:
+        box((0.02, w + 0.02, low), (w / 2 + 0.01, 0, low / 2), fort.void())
 
 
 def frame(along_y=False):
