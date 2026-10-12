@@ -452,6 +452,32 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             s.script.sentences.push_back({change});
             s.script.triggers.push_back({0, ScenarioScript::kOnJudge, ScenarioControl::idBase(Group::Object) + area.id, sentence});
             c.placements.push_back(std::move(area));
+        } else if (key == "light") {
+            // light=level: how light the area is, 2000 fully lit (the
+            // default), 1000 dark beyond the hero's own light.
+            c.light = lines.ints(value, 1)[0];
+        } else if (key == "lamp") {
+            // lamp=x,y,size: a light in the dark at a world position, size
+            // 0 (the smallest) to 5, as the original's lit objects carry.
+            const auto v = lines.ints(value, 3);
+            if (v[2] < 0 || v[2] > 5) lines.fail("lamp size must be 0 to 5");
+            ScenarioControl::Placement lamp;
+            lamp.group = Group::Object;
+            lamp.id = nextId[0]++;
+            lamp.x = v[0];
+            lamp.y = v[1];
+            lamp.direction = 8;
+            lamp.light = v[2];
+            c.placements.push_back(std::move(lamp));
+        } else if (key == "glow") {
+            // glow=size: the enemy or person on the line before carries a
+            // light of that size (0-5) with them, as some of the original's do.
+            const int size = lines.ints(value, 1)[0];
+            if (size < 0 || size > 5) lines.fail("glow size must be 0 to 5");
+            if (c.placements.empty() || (c.placements.back().group != Group::Enemy && c.placements.back().group != Group::Person)) {
+                lines.fail("glow must follow an enemy or person line");
+            }
+            c.placements.back().light = size;
         } else {
             lines.fail(std::format("unknown key '{}'", key));
         }

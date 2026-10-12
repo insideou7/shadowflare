@@ -14,6 +14,8 @@
 
 #include "game/character.h"
 #include "logic/ai_select.h"
+#include "logic/explored_map.h"
+#include "logic/lighting.h"
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
@@ -42,6 +44,12 @@ class Skin;
 // The original's Shift-JIS text as the font draws it (talk.cpp): the
 // English release only uses a few double-byte characters.
 std::string toAscii(const std::string& text);
+
+// An SDL texture the game owns.
+struct TextureFree {
+    void operator()(SDL_Texture* t) const { SDL_DestroyTexture(t); }
+};
+using TexturePtr = std::unique_ptr<SDL_Texture, TextureFree>;
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -296,6 +304,7 @@ private:
     void renderHealthBars(int camX, int camY);
     void renderMap();
     void renderChips(int camX, int camY);
+    void drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha);
     void renderIsoGround(int camX, int camY);
     void renderJudge(int camX, int camY);
     void renderPlaceholder(double interpolation);
@@ -561,6 +570,34 @@ private:
     void renderCompass();
     const CharacterModel* compassModel();
 
+    // Darkness in dungeons (darkness.cpp), as ShadowFlare.exe draws it in
+    // its frame code (0x41e4f0): the screen is lit by an ellipse round the
+    // hero and by the lights some characters carry, dimmed by the area's
+    // light level. Display Darkness off, or a fully lit area, skips it.
+    bool darknessShown() const;
+    void renderDarkness(int camX, int camY);
+    const LightMap* darkPart(int part);  // Dark.njp's parts, or ours
+
+    // The map (N), as the original's window (0x40d4d0): the area at a
+    // tenth of its size in the left half of the screen, only what the hero
+    // has seen, with them blinking in the middle (area_map.cpp).
+    void toggleAreaMap();
+    void closeAreaMap() { mapOpen_ = false; }
+    bool areaMapClick(int x, int y, bool right);
+    bool areaMapKey(SDL_Keycode key);
+    void tickAreaMap();
+    void renderAreaMap();
+    // Where the hero is, in the map's pixels (a tenth of the screen's,
+    // from the ground's top left corner).
+    std::pair<int, int> mapPosition(double worldX, double worldY) const;
+    std::string exploredKey() const;  // the area the map remembers: its scenario, else the map
+    ExploredMap& explored();
+    // The area drawn small: the original's Scenario.Njp when the map is the
+    // original's own art, else ours, drawn from the map itself.
+    void drawAreaMapPicture(int left, int top);
+    void buildAreaMapPicture();
+    void renderScenery(int camX, int camY);  // ground and objects, no one on them
+
     // The Settings Menu and Help window (options.cpp).
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
@@ -687,6 +724,20 @@ private:
     double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
     std::string areaName_;
     double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
+
+    std::map<std::string, ExploredMap> explored_;  // by exploredKey()
+    bool mapOpen_ = false;      // the map window (0xa070)
+    int mapScrollX_ = 0, mapScrollY_ = 0;  // the arrow keys' scroll (0xa998, 0xa99c)
+    double mapTicks_ = 0;       // original ticks the map has been open, for its pulse and blink
+    // Our drawing of the area at a tenth of its size, made when the map
+    // first opens on it.
+    TexturePtr mapPicture_;
+    std::string mapPictureFor_;
+    int mapPictureW_ = 0, mapPictureH_ = 0;
+    std::optional<SpriteBank> scenarioPicture_;  // Scenario.Njp
+    std::string scenarioPictureFor_;
+    std::array<std::optional<LightMap>, 7> darkParts_;
+    TexturePtr darkTexture_;
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

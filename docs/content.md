@@ -26,6 +26,7 @@ original format.
 | `Table.Tbd` tables 41 and 700 on      | `missions.txt`                           |
 | `System/Game/Pattern/Status.njp` (mission list parts) | `System/Game/Pattern/Missions.sheet` |
 | `Player/Common/compasses.Caf/.Njp`    | `Player/Common/compasses.anim` + `.sheet`|
+| `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -148,6 +149,21 @@ number is the folder name.
 
 `person` takes an optional fifth field, a name that `script.txt` calls
 them by.
+
+Dark places say how light they are and where their lights are:
+
+    light=1000               # 2000 lit (the default), 1000 dark
+    lamp=9845,14332,1        # x, y, size 0 (smallest) to 5
+    enemy=1,500,600,4,30,4,480,goblin
+    glow=1                   # the line before carries a light of size 1
+
+With Display Darkness on, everything outside the light round the hero,
+the lamps and anything that glows goes dark. The light's sizes are the
+original's (90 x 60 to 280 x 200 pixels); without its `Dark.njp` the
+engine draws its own soft ellipses of those sizes. The area map (N) is
+drawn from the map itself, a tenth of its size, inside the window in
+`System/Game/Pattern/Map.sheet` (frames: the window, its gem, the hero's
+arrow, the PLAYER label).
 
 ### Scenario/\<number\>/script.txt
 
@@ -356,7 +372,9 @@ Each follows the original map's routes, not its exact layout: which
 blocks of tiles can be walked through, where the exits and entries are,
 which monsters and townspeople stand where, and where the buildings and
 other landmarks stand. The walls, paths and forest edges are our own, and
-the monsters' stats are the demo's. The maps exactly as the original has
+the monsters' stats are the demo's. The dungeons are as dark as the
+original's, with lamps where its torches stand and glows on the monsters
+that carry one. The maps exactly as the original has
 them are what a player with the original game sees (see above).
 
 `tools/content/first_area.py` writes them from the player's own copy:
@@ -376,12 +394,12 @@ with Pillow and numpy:
 `build_pack.py` lays out the maps and writes the text files;
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. The item pictures
-and the interface (inventory panel, shop window, speech balloon and
+and the interface (inventory panel, shop window, speech balloon, area map window and
 font) are kept in content/ and rebuilt on their own:
 
     python tools/art/items.py render /tmp/items     # a Python with bpy
     python3 tools/art/items.py pack /tmp/items content
-    python3 tools/art/ui.py content
+    python3 tools/art/ui.py content          # or just some: ui.py content map
     python3 tools/art/panel.py content    # the game panel along the bottom
     python3 tools/art/magic_icons.py content    # the magic/attack bar's icons
 

@@ -159,6 +159,7 @@ void Game::toggleMissions() {
     if (showInventory_) closeInventory();
     showStatus_ = false;
     helpOpen_ = false;
+    closeAreaMap();
     missionsOpen_ = true;
     missionShown_ = -1;
 }

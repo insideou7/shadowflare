@@ -89,8 +89,8 @@ def find(folder, stem, ext):
 # --- Reading the original ----------------------------------------------------
 
 def read_mct(data):
-    """Map path, title, placements (objects, people, enemies) and entry
-    points of a Scenario.Mct, as in src/formats/scenario.cpp."""
+    """Map path, title, placements (objects, people, enemies), entry
+    points and light of a Scenario.Mct, as in src/formats/scenario.cpp."""
     o = 16
 
     def i32():
@@ -130,12 +130,16 @@ def read_mct(data):
             if i32() == 1:
                 n = i32()
                 o += 10 * n
-            i32()
+            c["light"] = i32()  # a Dark.njp light (0-5) or -1
             c["words"] = [i32() for _ in range(tail)]
             group.append(c)
         groups.append(group)
     entries = [[i32() for _ in range(4)] for _ in range(i32())]
-    return path, title, groups, entries
+    light = 2000  # how light the area is: 2000 lit, 1000 dark
+    if len(data) - o >= 12:
+        i32(), i32()
+        light = i32()
+    return path, title, groups, entries, light
 
 
 def read_scs(data):
@@ -199,7 +203,7 @@ class Original:
 
     def __init__(self, game, number):
         sc = game / "Scenario" / f"{number:08d}"
-        self.path, self.title, self.groups, self.entries = read_mct(find(sc, "Scenario", ".mct").read_bytes())
+        self.path, self.title, self.groups, self.entries, self.light = read_mct(find(sc, "Scenario", ".mct").read_bytes())
         self.name = self.path.replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
         scs = find(sc, "Scenario", ".scs")
         self.exits = exits_of(read_scs(scs.read_bytes()), self.groups[0]) if scs else []
@@ -685,11 +689,22 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         x, y = spot(c["x"], c["y"])
         stats = enemy_kinds[c["kind"]]
         lines.append(f"enemy={c['kind']},{x},{y},{c['direction'] % 8},{stats}")
+        if o.light != 2000 and c["light"] >= 0:
+            lines.append(f"glow={c['light']}")
     for c in o.groups[1]:
         if c["kind"] in people_kinds:
             x, y = spot(c["x"], c["y"])
             name = PEOPLE_NAMES.get((number, c["id"]))
             lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}" + (f",{name}" if name else ""))
+            if o.light != 2000 and c["light"] >= 0:
+                lines.append(f"glow={c['light']}")
+    # In the dark, the original's lit objects (torches and braziers) become
+    # lamps where they stood, and the area keeps its light level.
+    if o.light != 2000:
+        lines.append(f"light={o.light}")
+        for c in o.groups[0] + o.groups[3]:
+            if c["light"] >= 0:
+                lines.append(f"lamp={','.join(map(str, spot(c['x'], c['y'])))},{c['light']}")
     folder = out / "Scenario" / f"{our_number(number):08d}"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "scenario.txt").write_text("\n".join(lines) + "\n")

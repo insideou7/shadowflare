@@ -309,7 +309,12 @@ void testSaveGame() {
     save.sex = sf::HeroSex::Female;
     save.name = "Ada, of the Hills";
 
+    save.explored["Scenario/10000"] = sf::ExploredMap(4, 2);
+    save.explored["Scenario/10000"].reveal(1, 0, 2, 2);
     const auto loaded = sf::SaveGame::parse(save.write());
+    check(loaded.explored.size() == 1 && loaded.explored.at("Scenario/10000").seenAt(2, 1) &&
+              !loaded.explored.at("Scenario/10000").seenAt(0, 1),
+          "the explored map survives");
     check(loaded.mines == 7, "mines in hand survive");
     check(loaded.sex == sf::HeroSex::Female && loaded.name == "Ada, of the Hills", "the heroine and her name survive");
     check(loaded.map == "waterworks" && loaded.scenario == "Scenario/00000002", "map and scenario survive");

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The interface pictures for the open content pack.
 
-    python3 tools/art/ui.py <content pack folder>
+    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map]
 
 Draws, in the style of the original but from scratch:
 
@@ -30,6 +30,9 @@ Draws, in the style of the original but from scratch:
 - the compass the area's name is shown beside on arrival: a bronze rose
   in a ring, seen at a slant, shrinking over eight frames as the
   original's does. Player/Common/compasses (.anim and .sheet).
+- the area map's window: the same stone and iron with a hole the map shows
+  through, a gem by the area's name, the hero's arrow and a PLAYER label
+  (src/game/area_map.cpp). System/Game/Pattern/Map.
 
 The panels are built as height maps and shaded with a light from the top
 left, so frames stand out and recesses sink in, and reduced to 256
@@ -551,6 +554,100 @@ def compasses(out):
         f.write("sheet=compasses.sheet\n\n[chart 0 once]\n8=" + ",".join(str(i) for i in range(len(sizes))) + "\n")
 
 
+MAP_HOLE = (32, 40, 292, 376)  # x0, y0, x1, y1: where the map shows through, inside its clip
+MAP_GEM = (36, 44, 28, 23)  # x, y, w, h, where area_map.cpp puts the gem
+
+
+def map_gem():
+    """A cut blue stone in a bronze collet, 28 x 23, white so the engine can
+    dim it as it pulses."""
+    w, h = MAP_GEM[2], MAP_GEM[3]
+    y, x = np.mgrid[0:h, 0:w].astype(float)
+    nx, ny = (x + 0.5 - w / 2) / (w / 2), (y + 0.5 - h / 2) / (h / 2)
+    r = np.hypot(nx, ny)
+    rgb = np.zeros((h, w, 3))
+    alpha = np.zeros((h, w))
+    collet = (r <= 1.0) & (r > 0.78)
+    rgb[collet] = BRONZE * (0.85 - 0.3 * ny[collet])[:, None]
+    alpha[collet] = 1
+    # The stone: eight facets round a flat table, lit from the top left.
+    stone = r <= 0.78
+    facet = np.floor((np.arctan2(ny, nx) + np.pi) / (np.pi / 4)) % 8
+    shade = np.where(r < 0.35, 1.15, 0.65 + 0.12 * ((facet + 3) % 8) / 2)
+    base = np.array([96, 150, 220])
+    rgb[stone] = (base * shade[..., None])[stone]
+    alpha[stone] = 1
+    glint = np.hypot(nx + 0.3, ny + 0.35) < 0.14
+    rgb[glint] = (240, 248, 255)
+    rgba = np.concatenate([np.clip(rgb, 0, 255), alpha[..., None] * 255], axis=2).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
+
+
+def map_arrow():
+    """The hero's mark: a small blue arrow head pointing down, 7 x 8."""
+    rows = ["#######", "#######", ".#####.", ".#####.", "..###..", "..###..", "...#...", "...#..."]
+    img = Image.new("RGBA", (7, 8), (0, 0, 0, 0))
+    for yy_, row in enumerate(rows):
+        for xx_, bit in enumerate(row):
+            if bit == "#":
+                edge = xx_ == 0 or xx_ == 6 or row[max(0, xx_ - 1)] == "." or row[min(6, xx_ + 1)] == "."
+                img.putpixel((xx_, yy_), (40, 70, 170, 255) if edge else (90, 140, 240, 255))
+    return img
+
+
+def map_label():
+    """PLAYER in the small capitals, blue with a dark outline."""
+    text = "PLAYER"
+    img = Image.new("RGBA", (len(text) * 6 + 1, 10), (0, 0, 0, 0))
+    ink = []
+    for i, ch in enumerate(text):
+        for y, row in enumerate(CAPS[ch]):
+            for x, bit in enumerate(row):
+                if bit == "#":
+                    ink.append((1 + i * 6 + x, 1 + y))
+    for x, y in ink:
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            img.putpixel((x + dx, y + dy), (10, 14, 40, 255))
+    for x, y in ink:
+        img.putpixel((x, y), (110, 160, 255, 255))
+    return img
+
+
+def area_map(out):
+    """The area map's window: 320 x 415, the panel's stone and iron with a
+    hole the map shows through, a bronze rim round it, studs down its sides
+    and a socket for the gem by the area's name; then the gem, the hero's
+    arrow and the PLAYER label (src/game/area_map.cpp)."""
+    canvas(320, 415)
+    p = Panel(11)
+    x0, y0, x1, y1 = MAP_HOLE
+    lip = inside(x0 - 3, y0 - 3, x1 + 3, y1 + 3) & ~inside(x0, y0, x1, y1)
+    p.bronze(lip, 2.0)
+    for y in list(range(y0 + 30, y0 + 120, 22)) + list(range(y1 - 110, y1 - 20, 22)):
+        p.boss((x0 - 12, y), 2.5, 3)
+        p.boss((x1 + 12, y), 2.5, 3)
+    for x in range(x0 + 30, x1 - 20, 40):
+        p.boss((x, y0 - 16), 2.2, 2)
+    frame = p.image()
+    hole = np.asarray(frame).copy()
+    hole[y0:y1, x0:x1, 3] = 0
+    frame = Image.fromarray(hole, "RGBA")
+    canvas(320, 416)
+
+    parts = [map_gem(), map_arrow(), map_label()]
+    sheet = Image.new("RGBA", (320, 415 + 26), (0, 0, 0, 0))
+    sheet.paste(frame, (0, 0))
+    frames = [(0, 0, 320, 415, 0, 0)]
+    anchors = [(-MAP_GEM[0], -MAP_GEM[1]), (3, 8), (parts[2].width // 2, 18)]
+    x = 0
+    for img, (ax, ay) in zip(parts, anchors):
+        sheet.paste(img, (x, 415))
+        frames.append((x, 415, img.width, img.height, ax, ay))
+        x += img.width + 2
+    write_sheet(out / "System/Game/Pattern", "Map", sheet, frames,
+                "The area map: window, gem, the hero's arrow, the PLAYER label.")
+
+
 def font(out):
     sheet = Image.new("RGBA", (16 * 6, 16 * 12), (0, 0, 0, 0))
     for table, top in ((CAPS, 1), (SMALL, 3)):
@@ -567,19 +664,20 @@ def font(out):
 
 def main():
     out = Path(sys.argv[1])
-    inventory(out)
-    shop(out)
-    balloon(out)
-    font(out)
-    missions(out)
-    compasses(out)
+    only = set(sys.argv[2:])  # the names below, to redraw just those
+    sheets = {"inventory": inventory, "shop": shop, "balloon": balloon, "font": font,
+              "missions": missions, "compasses": compasses, "map": area_map}
+    for name, draw in sheets.items():
+        if not only or name in only:
+            draw(out)
     # The panels to 256 colours, as the rest of the pack; the balloon and
     # the font have only a few already.
-    for name in ("Inventory", "Shop", "Missions"):
-        shrink.shrink(out / "System/Game/Pattern" / f"{name}.png")
-    shrink.shrink(out / "Player/Common/compasses.png")
-    print("wrote the inventory, the shop window, the speech balloon, the font, the mission list and the compass")
-
+    for name, png in (("inventory", "Inventory"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map")):
+        if not only or name in only:
+            shrink.shrink(out / "System/Game/Pattern" / f"{png}.png")
+    if not only or "compasses" in only:
+        shrink.shrink(out / "Player/Common/compasses.png")
+    print("wrote " + ", ".join(n for n in sheets if not only or n in only))
 
 if __name__ == "__main__":
     main()
