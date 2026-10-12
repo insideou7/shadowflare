@@ -87,6 +87,10 @@ public:
         LevelTooLow,  // the player's level is below the item's required level
     };
 
+    // The belt pocket, 4 x 2 cells under the HP and MP gauges (player
+    // +0x518): consumables only. Keys 1-4 use the top row, 5-8 the bottom.
+    static constexpr int kBeltWidth = 4, kBeltHeight = 2;
+
     const std::vector<Placed>& bag() const { return bag_; }
     const std::optional<Item>& equipped(EquipSlot slot) const { return equipped_[static_cast<int>(slot)]; }
     int gold() const { return gold_; }
@@ -101,6 +105,23 @@ public:
     // left. Gold goes to the gold counter. False when the bag is full.
     bool add(const Item& item);
     bool addAt(const Item& item, int x, int y);
+    // An item picked up from the ground (0x449ef0): consumables marked for
+    // the belt (effect word 0) go in its first free cell, row by row, and
+    // otherwise, like everything else, in the bag.
+    bool pickUp(const Item& item);
+
+    // The belt. Only 1 x 1 consumables go in it.
+    const std::optional<Item>& beltAt(int x, int y) const;
+    static bool fitsBelt(const ItemDef& def);
+    bool addToBelt(const Item& item);
+    bool addToBeltAt(const Item& item, int x, int y);
+    // Left click on a belt cell, from the HUD (0x445bd0): picks up what is
+    // there, or puts a consumable from the hand there, swapping.
+    Result clickBelt(std::optional<Item>& hand, int x, int y);
+    // After the item in a belt cell was used: one like it from the bag is
+    // used up if there is one, so the belt stays stocked, otherwise the
+    // one in the belt (0x44a5f0, and the keys at 0x442ed6).
+    void useUpBelt(int x, int y);
 
     // Left click on a bag cell. With an empty hand, picks up the item
     // there. With an item in hand, puts it down with its top-left corner
@@ -152,6 +173,10 @@ public:
     // count them: broken weapons and armour don't count, nor a shield
     // hidden by a two-handed weapon.
     int modifier(ItemDef::Modifier which) const;
+    // The Amount of Gold modifiers worn, as the gold drop adds them
+    // (0x44f8b0): broken items count there, a shield hidden by a
+    // two-handed weapon does not.
+    int goldBonus() const;
     // Their element levels with their element modifiers, added up
     // (0x44fe30). Broken items still count: that code, unlike the stats
     // at 0x44eb5b, does not check; a shield hidden by a two-handed weapon
@@ -165,19 +190,9 @@ public:
 
 private:
     std::vector<Placed> bag_;
+    std::array<std::optional<Item>, kBeltWidth * kBeltHeight> belt_;
     std::array<std::optional<Item>, kEquipSlotCount> equipped_;
     int gold_ = 0;
 };
-
-// What a dying monster leaves. Gold, as ShadowFlare.exe does it
-// (0x45a030): `chance` percent of the time, an amount from min to max.
-// Returns 0 for none.
-int rollGold(int chance, int min, int max, Random& random);
-
-// An item for a monster of `level` to drop, or null: a stand-in for the
-// game's drop tables (Table.Tbd tables 30 and 31, not decoded yet). Picks
-// among normal-quality weapons, armour, accessories and consumables whose
-// item level is at most the monster's, weighted by their drop weight.
-const ItemDef* pickDrop(const ItemTable& items, int level, Random& random);
 
 }  // namespace sf

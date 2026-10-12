@@ -15,13 +15,18 @@ struct Rules {
     // The partner's status window prints its defence on the "M Evasion
     // Rate" line (0x4319de, 0x450ace).
     bool partnerStatusShowsMagicEvasion = true;
+    // A drop list rolled more than once forgets which qualities the last
+    // roll allowed: the original never clears them (0x417550), so a roll
+    // allowing magic items lets every later roll of that monster give one.
+    bool dropQualityPerRoll = true;
 
-    bool originalMode() const { return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion; }
+    bool originalMode() const { return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !dropQualityPerRoll; }
     static Rules ours() { return {}; }
     static Rules original() {
         Rules r;
         r.shieldsCostTheirOwnMp = false;
         r.partnerStatusShowsMagicEvasion = false;
+        r.dropQualityPerRoll = false;
         return r;
     }
 };

@@ -58,7 +58,7 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         p.stats.magicEvasion = words[12];
         p.stats.word7 = words[7];
         p.stats.experience = words[13];
-        p.stats.level = words[14];
+        p.stats.dropList = words[14];
         for (int k = 0; k < 3; ++k) {
             p.stats.attacks[k] = words[23 + k];
             p.stats.hits[k] = words[29 + k];

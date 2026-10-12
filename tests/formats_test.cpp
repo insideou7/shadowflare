@@ -215,7 +215,7 @@ void testScenario() {
     check(s.placements.size() == 3, "scenario placement count");
     const auto& e = s.placements[1];
     check(e.group == sf::ScenarioControl::Group::Enemy && e.kind == 2 && e.x == 500, "scenario enemy");
-    check(e.stats.hp == 40 && e.stats.defense == 10 && e.stats.evasion == 50 && e.stats.magicDefense == 6 && e.stats.level == 3,
+    check(e.stats.hp == 40 && e.stats.defense == 10 && e.stats.evasion == 50 && e.stats.magicDefense == 6 && e.stats.dropList == 3,
           "scenario enemy stats");
     check(e.stats.element == 5 && e.stats.attack() == 12 && e.stats.hit() == 170, "scenario enemy element and attack");
     check(e.stats.spells[0] == 1 && e.stats.spells[1] == -1 && e.stats.spellPower[0] == 30, "scenario enemy spells");

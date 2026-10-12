@@ -1,0 +1,128 @@
+# What monsters leave behind, standing in for the original's drop tables
+# (Table.Tbd tables 30 and 31): see docs/content.md. Each [drops <list>] is
+# used by the monsters whose enemy= line names that list (the field after
+# the AI list, which tools/content/balance.py sets to the level the hero
+# should be at there). Like the original, a list has its rolls, each
+# dropping something `chance` percent of the time (a little more: as in
+# the original, 15 means 16 in 100), as one of its picks chosen at random.
+# Monsters with no gold of their own drop gold= (chance, least, most).
+
+[drops 1]
+rolls=1
+chance=15
+gold=10,3,8
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,1,1         # a weapon, armour or ring of item level 1-1, by weight
+pick=any,any,1,1
+pick=any,any,1,1
+
+[drops 2]
+rolls=1
+chance=15
+gold=10,6,16
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,1,1         # a weapon, armour or ring of item level 1-1, by weight
+pick=any,any,1,1
+pick=any,any,1,1
+
+[drops 3]
+rolls=1
+chance=15
+gold=10,9,24
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,1,2         # a weapon, armour or ring of item level 1-2, by weight
+pick=any,any,1,2
+pick=any,any,1,2
+
+[drops 4]
+rolls=1
+chance=15
+gold=10,12,32
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,1,2         # a weapon, armour or ring of item level 1-2, by weight
+pick=any,any,1,2
+pick=any,any,1,2
+
+[drops 5]
+rolls=1
+chance=15
+gold=10,15,40
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,1,3         # a weapon, armour or ring of item level 1-3, by weight
+pick=any,any,1,3
+pick=any,any,1,3
+
+[drops 6]
+rolls=1
+chance=15
+gold=10,18,48
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,2,3         # a weapon, armour or ring of item level 2-3, by weight
+pick=any,any,2,3
+pick=any,any,2,3
+
+[drops 7]
+rolls=1
+chance=15
+gold=10,21,56
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,2,4         # a weapon, armour or ring of item level 2-4, by weight
+pick=any,any,2,4
+pick=any,any,2,4
+
+[drops 8]
+rolls=1
+chance=15
+gold=10,24,64
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,2,4         # a weapon, armour or ring of item level 2-4, by weight
+pick=any,any,2,4
+pick=any,any,2,4
+
+[drops 9]
+rolls=1
+chance=15
+gold=10,27,72
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,3,4         # a weapon, armour or ring of item level 3-4, by weight
+pick=any,any,3,4
+pick=any,any,3,4
+
+[drops 10]
+rolls=1
+chance=15
+gold=10,30,80
+pick=consumable,0        # Healing Potion
+pick=consumable,0
+pick=consumable,10000000 # Mana Potion
+pick=consumable,10000000
+pick=any,any,3,4         # a weapon, armour or ring of item level 3-4, by weight
+pick=any,any,3,4
+pick=any,any,3,4

@@ -700,7 +700,8 @@ void Game::renderSpellBar() {
     // F1-F8 along the bottom right; the chosen spell is framed in gold.
     constexpr int kSlot = 36, kGap = 2;
     const int left = kScreenWidth - kSpellBarSize * (kSlot + kGap) - 6;
-    const int top = kScreenHeight - kSlot - 6;
+    // Above the belt pocket, which sits where the original's does.
+    const int top = kBeltTop - kSlot - 6;
     for (int b = 0; b < kSpellBarSize; ++b) {
         const SDL_Rect r{left + b * (kSlot + kGap), top, kSlot, kSlot};
         const int spell = spells_.bar[static_cast<std::size_t>(b)];

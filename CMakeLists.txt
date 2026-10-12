@@ -18,6 +18,7 @@ add_library(sf_formats STATIC
     src/formats/scenario.cpp
     src/formats/scenario_script.cpp
     src/formats/table_data.cpp
+    src/formats/drop_tables.cpp
     src/formats/item_data.cpp
     src/formats/open_content.cpp
     src/formats/ground_skin.cpp
@@ -36,6 +37,7 @@ add_library(sf_logic STATIC
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
+    src/logic/loot.cpp
     src/logic/shop.cpp
     src/logic/progression.cpp
     src/logic/save_game.cpp

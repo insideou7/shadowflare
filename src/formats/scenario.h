@@ -40,7 +40,10 @@ struct ScenarioControl {
             std::int32_t evasion = 0;       // word 10; against blows (0x45eb38)
             std::int32_t magicDefense = 0;  // word 11
             std::int32_t experience = 0;    // word 13
-            std::int32_t level = 0;         // word 14
+            // Word 14 (monster + 0x180): the row of Table.Tbd table 30, its
+            // drop list, that 0x45a000 rolls when it dies. Open content
+            // calls it the monster's level.
+            std::int32_t dropList = 0;
             // Its three attacks (Control.aid actions 2-4): power (words
             // 23-25) and hit (words 29-31).
             std::array<std::int32_t, 3> attacks{}, hits{50, 50, 50};

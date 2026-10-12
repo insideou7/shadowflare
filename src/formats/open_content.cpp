@@ -405,7 +405,7 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                 p.stats.area[2] = p.stats.area[3] = r;
                 p.stats.ai = fields[7];
                 if (fields.size() >= 12) {
-                    p.stats.level = lines.toInt(fields[8]);
+                    p.stats.dropList = lines.toInt(fields[8]);
                     p.stats.goldChance = lines.toInt(fields[9]);
                     p.stats.goldMin = lines.toInt(fields[10]);
                     p.stats.goldMax = lines.toInt(fields[11]);
@@ -640,6 +640,59 @@ ShopLists parseShops(std::span<const std::uint8_t> text) {
     return lists;
 }
 
+// [drops <list>] sections; see docs/content.md.
+DropTables parseDrops(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    DropTables tables;
+    DropTables::List* list = nullptr;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "drops") lines.fail("expected [drops <list>]");
+            const int number = lines.toInt(words[1]);
+            if (tables.lists.contains(number)) lines.fail("drop list defined twice");
+            list = &tables.lists[number];
+            continue;
+        }
+        std::string_view key, value;
+        if (!list || !keyValue(*line, key, value)) lines.fail("expected [drops <list>] then key=value lines");
+        if (key == "rolls") {
+            list->rolls = lines.toInt(value);
+            if (list->rolls < 1 || list->rolls > 10) lines.fail("rolls must be 1 to 10");
+        } else if (key == "chance") {
+            list->chance = lines.toInt(value);
+        } else if (key == "gold") {
+            const auto v = lines.ints(value, 3);
+            list->gold = std::array<int, 3>{v[0], v[1], v[2]};
+        } else if (key == "pick") {
+            if (value == "nothing") {
+                list->picks.push_back({});
+                continue;
+            }
+            const auto f = Lines::split(value, ',');
+            if (f.size() != 2 && f.size() != 4) lines.fail("expected pick=<class>,<code>[,<lowest level>,<highest level>]");
+            DropTables::Entry e;
+            e.pool = -1;
+            if (f[0] != "any") {
+                const auto cls = kClasses.find(f[0]);
+                if (cls == kClasses.end()) lines.fail(std::format("unknown item class '{}'", f[0]));
+                e.cls = static_cast<int>(cls->second);
+            }
+            if (f[1] != "any") e.code = lines.toInt(f[1]);
+            if (e.cls == -1 && e.code != -1) lines.fail("a code needs a class");
+            if (f.size() == 4) {
+                e.minLevel = lines.toInt(f[2]);
+                e.maxLevel = lines.toInt(f[3]);
+            }
+            list->picks.push_back({static_cast<int>(tables.entries.size()), 1});
+            tables.entries.push_back(e);
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    return tables;
+}
+
 // [item <class> <code>] sections of key=value lines; see docs/content.md.
 ItemTable parseItems(std::span<const std::uint8_t> text) {
     Lines lines(text);
@@ -667,6 +720,7 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item = &table.items.emplace_back();
             item->cls = cls->second;
             item->code = code;
+            item->poolMask = 1;  // drops.txt picks match any pool
             continue;
         }
         std::string_view key, value;
