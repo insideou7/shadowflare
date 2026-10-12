@@ -24,7 +24,7 @@ from cave import ROCK, rough  # noqa: E402
 from dungeon import DARK, solid  # noqa: E402
 from fort import BLACKIRON, BRASS  # noqa: E402
 from props import WOOD, branch  # noqa: E402
-from town import COPPER, MOSSY, _mats, ball, box, cyl, mat, resize  # noqa: E402
+from town import COPPER, MOSSY, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
 
 BARK = dict(colour=(0.36, 0.26, 0.24), dark=(0.10, 0.07, 0.06), scale=14, bump=0.6)
 GREYBARK = dict(colour=(0.40, 0.36, 0.34), dark=(0.12, 0.10, 0.09), scale=14, bump=0.6)
@@ -532,10 +532,12 @@ def cliff(seed, kind="x"):
 
 
 def cave_mouth():
-    """A burrow into a long hump of earth: a curved ridge of craggy earth
-    arching round a black hollow, like the original's cave entrances in
-    the wilds. The ridge runs along Blender Y and the hollow opens towards
-    +X (the lower right of the screen; the skin mirrors it as needed)."""
+    """A cave dug into a hill: a broad hump of earth rising gently from one
+    end to a rounded top, dropping steeply at the other, with a small arched
+    opening in its face. The hill runs along Blender Y and its face, with the
+    opening, looks towards +X (the lower right of the screen; the skin
+    mirrors it as needed)."""
+    import math
     rng = random.Random(3)
     earth = mat("mound", dict(EARTH, colour=(0.36, 0.22, 0.06), dark=(0.012, 0.006, 0.002), scale=18, bump=1.4,
                               band=(0.35, 0.62), grime=0.6, spot=0.22, spot_colour=(0.62, 0.46, 0.26)))
@@ -546,32 +548,47 @@ def cave_mouth():
     emit = nodes.new("ShaderNodeEmission")
     emit.inputs["Color"].default_value = (0, 0, 0, 1)
     hole.node_tree.links.new(emit.outputs[0], nodes.new("ShaderNodeOutputMaterial").inputs[0])
-    # The hollow: a black pit sunk into the ground in front of the ridge.
-    ball(1.6, (0.3, 0.0, 0.05), hole, scale=(0.7, 1.0, 0.15))
-    # The mouth: the black opening under the lip, going in under the ridge.
-    ball(1.6, (-0.1, 0.0, 0.6), hole, scale=(0.9, 1.1, 0.7))
-    # The ridge: faceted lumps along a shallow arc, highest in the middle
-    # and leaning over the hollow, tapering away at both ends.
-    for k in range(44):
-        t = -1 + 2 * k / 43
-        y = 4.0 * t
-        x = -1.0 + 1.6 * t * t + rng.uniform(-0.35, 0.35)
-        h = 0.4 + 2.2 * (1 - t * t) ** 1.5 + rng.uniform(-0.3, 0.3)
-        size = rng.uniform(0.5, 0.8) * (0.5 + 0.5 * (1 - t * t))
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=size, location=(x, y, h * 0.5))
-        o = bpy.context.object
-        o.scale = (1.3, 1.0, h / size * 0.6)
-        o.rotation_euler = (rng.uniform(0, 3.1), rng.uniform(0, 3.1), rng.uniform(0, 3.1))
-        studio.assign(o, earth)
-    # The lip of the burrow: slabs jutting out over the hollow.
-    for k in range(6):
-        y = rng.uniform(-1.6, 1.6)
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=rng.uniform(0.7, 1.0),
-                                              location=(-0.1, y, 2.5 - 0.3 * abs(y)))
-        o = bpy.context.object
-        o.scale = (1.4, 1.0, 0.45)
-        o.rotation_euler = (rng.uniform(-0.3, 0.3), rng.uniform(-0.4, 0.1), rng.uniform(0, 3.1))
-        studio.assign(o, earth)
+
+    def step(e0, e1, v):
+        t = min(1.0, max(0.0, (v - e0) / (e1 - e0)))
+        return t * t * (3 - 2 * t)
+
+    face = 1.5  # where the hill's front face stands
+    bumps = [(rng.uniform(-3, face), rng.uniform(-4, 3), rng.uniform(0.6, 1.4), rng.uniform(-0.3, 0.3))
+             for _ in range(18)]
+
+    def height(x, y):
+        # Along the ridge: a long gentle rise, a rounded top, a steep drop.
+        along = step(-4.8, -0.8, y) * (1 - step(2.0, 3.2, y))
+        # Across: a slope at the back and a steep face at the front.
+        # The face is a bank, sheer where the opening is cut into it.
+        soft = 0.25 + 0.9 * step(0.6, 1.6, abs(y - 0.2))
+        across = step(-3.6, -0.6, x) * (1 - step(face - soft, face + 0.1, x))
+        h = 2.7 * along * across
+        for bx, by, r, a in bumps:
+            h += a * math.exp(-((x - bx) ** 2 + (y - by) ** 2) / (r * r)) * along * across
+        return max(0.0, h)
+
+    nx, ny = 64, 90
+    xs = [-4.0 + 6.0 * i / nx for i in range(nx + 1)]
+    ys = [-5.2 + 9.0 * j / ny for j in range(ny + 1)]
+    verts = [(x, y, height(x, y)) for x in xs for y in ys]
+    faces = [(i * (ny + 1) + j, (i + 1) * (ny + 1) + j, (i + 1) * (ny + 1) + j + 1, i * (ny + 1) + j + 1)
+             for i in range(nx) for j in range(ny)]
+    faces = [f for f in faces if max(verts[v][2] for v in f) > 0.02]  # no flat skirt
+    hill = studio.smooth(mesh(verts, faces, earth, "hill"))
+    studio.displace(hill, 0.25, 0.6, seed=5)
+    # The opening: a small arch of black on the face, round at the top.
+    w, h, y = 1.3, 1.8, 0.2
+    pts = [(face + 0.12, y - w / 2, -0.05), (face + 0.12, y + w / 2, -0.05)]
+    for k in range(13):
+        a = math.pi * k / 12
+        pts.append((face + 0.12, y + w / 2 * math.cos(a), h - w / 2 + w / 2 * math.sin(a)))
+    mesh(pts, [tuple(range(len(pts)))], hole, "opening")
+    # A few stones at its foot.
+    for k in range(5):
+        ball(rng.uniform(0.15, 0.3), (face + rng.uniform(0.2, 0.7), y + rng.uniform(-1.4, 1.4), 0.05), earth,
+             scale=(1.2, 1.0, 0.6))
 
 
 def paving(seed=1):
