@@ -150,7 +150,7 @@ void testScenario() {
 
     const auto loot = sf::open::parseScenario(bytes("enemy=1,5,6,0,30,4,480,goblin,2,10,1,8\nitem=3,0,700,800\n"));
     const auto& l = loot.control.placements;
-    check(l.size() == 2 && l[0].stats.level == 2 && l[0].stats.goldChance == 10 && l[0].stats.goldMax == 8, "enemy loot fields");
+    check(l.size() == 2 && l[0].stats.dropList == 2 && l[0].stats.goldChance == 10 && l[0].stats.goldMax == 8, "enemy loot fields");
     check(l.size() == 2 && l[1].group == sf::ScenarioControl::Group::Item && l[1].itemClass == 3 && l[1].x == 700,
           "scenario item");
 }
@@ -206,6 +206,18 @@ void testScript() {
               shops.at(2)[1].count == 6 && shops.at(2)[0].code == 7,
           "shop lists");
     expectRejected("sell outside a shop", "sell=weapon,0\n", [](auto& d) { sf::open::parseShops(d); });
+
+    const auto drops = sf::open::parseDrops(
+        bytes("[drops 2]\nrolls=2\nchance=15\ngold=10,4,12\npick=consumable,0\npick=any,any,1,3\npick=nothing\n"));
+    const auto* list = drops.list(2);
+    check(list && list->rolls == 2 && list->chance == 15 && list->gold && (*list->gold)[2] == 12 && list->picks.size() == 3,
+          "drop list");
+    check(list && list->picks[2].entry == -1 && drops.entries.size() == 2 && drops.entries[0].cls == 3 &&
+              drops.entries[0].code == 0 && drops.entries[1].cls == -1 && drops.entries[1].minLevel == 1 &&
+              drops.entries[1].maxLevel == 3 && drops.entries[1].code == -1,
+          "drop picks");
+    expectRejected("a code needs a class", "[drops 1]\npick=any,5\n", [](auto& d) { sf::open::parseDrops(d); });
+    expectRejected("pick outside a list", "pick=consumable,0\n", [](auto& d) { sf::open::parseDrops(d); });
 }
 
 void testItems() {

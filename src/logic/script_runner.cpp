@@ -161,6 +161,9 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 host_->createItem(arg(0), arg(1), arg(2), arg(3), amount);
                 break;
             }
+            case S::kCreateItemTable:
+                if (ops.size() >= 3) host_->createItemTable(arg(0), arg(1), arg(2));
+                break;
             case S::kStop: host_->stopCharacter(arg(0), true); break;
             case S::kMovable: host_->stopCharacter(arg(0), false); break;
             case S::kSetAngleTo: host_->faceCharacter(arg(0), arg(1)); break;

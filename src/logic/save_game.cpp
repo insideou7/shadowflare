@@ -125,6 +125,7 @@ std::string SaveGame::write() const {
     // Items: class,code,count[,x,y], then wear,unidentified and the rolled
     // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+    for (const auto& e : belt) out += std::format("belt={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
     for (const auto& e : storage) {
         out += std::format("stored={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
     }
@@ -216,9 +217,9 @@ SaveGame SaveGame::parse(std::string_view text) {
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);
-        } else if (key == "bag" || key == "stored") {
+        } else if (key == "bag" || key == "belt" || key == "stored") {
             const auto v = numbers(value, 5, lineNumber, 7 + kMaxModifierNumbers);
-            (key == "bag" ? save.bag : save.storage).push_back({readRef(v, 2, lineNumber), static_cast<int>(v[3]), static_cast<int>(v[4])});
+            (key == "bag" ? save.bag : key == "belt" ? save.belt : save.storage).push_back({readRef(v, 2, lineNumber), static_cast<int>(v[3]), static_cast<int>(v[4])});
         } else if (key == "wear") {
             const auto v = numbers(value, 4, lineNumber, 6 + kMaxModifierNumbers);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
@@ -234,6 +235,12 @@ void SaveGame::store(const Inventory& inventory) {
     gold = inventory.gold();
     bag.clear();
     for (const auto& p : inventory.bag()) bag.push_back({ref(p.item), p.x, p.y});
+    belt.clear();
+    for (int y = 0; y < Inventory::kBeltHeight; ++y) {
+        for (int x = 0; x < Inventory::kBeltWidth; ++x) {
+            if (const auto& item = inventory.beltAt(x, y)) belt.push_back({ref(*item), x, y});
+        }
+    }
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         const auto& worn = inventory.equipped(static_cast<EquipSlot>(slot));
         equipped[static_cast<std::size_t>(slot)] = worn ? std::optional(ref(*worn)) : std::nullopt;
@@ -248,6 +255,10 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
     for (const auto& e : bag) {
         const ItemDef* def = find(e.item);
         if (!def || !inventory.addAt(toItem(def, e.item), e.x, e.y)) ++skipped;
+    }
+    for (const auto& e : belt) {
+        const ItemDef* def = find(e.item);
+        if (!def || !inventory.addToBeltAt(toItem(def, e.item), e.x, e.y)) ++skipped;
     }
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         const auto& r = equipped[static_cast<std::size_t>(slot)];

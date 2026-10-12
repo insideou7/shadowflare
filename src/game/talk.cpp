@@ -113,6 +113,7 @@ public:
             amount -= pile;
         }
     }
+    void createItemTable(int list, int x, int y) override { g_.dropFromList(list, x, y); }
     std::int32_t characterX(std::int32_t id) const override {
         if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->first);
         return g_.player_ ? static_cast<std::int32_t>(g_.player_->x) : 0;

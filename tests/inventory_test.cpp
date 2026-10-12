@@ -1,5 +1,6 @@
 // Tests for the inventory and equipment rules (src/logic/inventory.h).
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <optional>
@@ -8,6 +9,7 @@
 #include "logic/ai_select.h"
 #include "formats/binary_reader.h"
 #include "logic/inventory.h"
+#include "logic/loot.h"
 #include "logic/partner.h"
 #include "logic/save_game.h"
 
@@ -160,27 +162,110 @@ void testLoot() {
     sf::Random random(7);
     int drops = 0;
     for (int i = 0; i < 1000; ++i) {
-        const int gold = sf::rollGold(10, 5, 8, random);
+        const int gold = sf::rollGold(10, 5, 8, 0, random);
         check(gold == 0 || (gold >= 5 && gold <= 8), "gold amount in range");
         drops += gold > 0;
     }
     check(drops > 50 && drops < 150, "gold drops about 10% of the time");
-    check(sf::rollGold(0, 5, 8, random) == 0, "no chance, no gold");
+    check(sf::rollGold(0, 5, 8, 0, random) == 0, "no chance, no gold");
+    check(sf::rollGold(100, 10, 10, 50, random) == 15, "the Amount of Gold bonus raises it");
+    check(sf::rollGold(100, 10, 10, -100, random) == 0, "a bonus of -100% stops gold");
 
+    // Table 31 rows: 0 a Tablet; 1 any weapon, armour or accessory of item
+    // level 1-2 in pool 1; 2 any of level 30.
     sf::ItemTable table;
     table.items = {kSword, kHeavy, kGold, kTablet};
+    table.items[0].poolMask = 1;
+    table.items[0].dropWeight = 5;
+    table.items[1].poolMask = 1;
+    table.items[1].dropWeight = 5;
     table.items[1].itemLevel = 30;
-    table.items[2].itemLevel = 0;
-    bool sawSword = false, sawTablet = false;
-    for (int i = 0; i < 200; ++i) {
-        const sf::ItemDef* d = sf::pickDrop(table, 1, random);
-        check(d && d->cls != Class::Special && d->itemLevel <= 1, "drops fit the monster's level and are never gold");
-        sawSword |= d && d->cls == Class::Weapon;
-        sawTablet |= d && d->cls == Class::Consumable;
+    table.items[3].code = 0;
+    sf::DropTables tables;
+    tables.entries = {{3, -1, -1, 0, 1}, {-1, 2, 1, -1, 1}, {-1, 30, 30, -1, 1}};
+    tables.lists[0] = {1, 100, {{0, 111}}, std::nullopt};
+    tables.lists[1] = {1, 100, {{1, 111}}, std::nullopt};
+    tables.lists[2] = {2, 0, {{0, 111}}, std::nullopt};
+    tables.lists[3] = {1, 100, {{-1, 111}}, std::nullopt};
+    tables.lists[4] = {1, 100, {{1, 10}}, std::nullopt};
+    for (int i = 0; i < 50; ++i) {
+        auto d = sf::rollDrops(tables, table, 0, random, true);
+        check(d.size() == 1 && d[0] == &table.items[3], "a set code drops that item");
+        d = sf::rollDrops(tables, table, 1, random, true);
+        check(d.size() == 1 && d[0] == &table.items[0], "a weighted pick keeps to the level range");
+        check(sf::rollDrops(tables, table, 3, random, true).empty(), "a -1 pick drops nothing");
+        check(sf::rollDrops(tables, table, 4, random, true).empty(), "normal items need the ones digit");
     }
-    check(sawSword && sawTablet, "every allowed item can drop");
-    sf::ItemTable none;
-    check(sf::pickDrop(none, 5, random) == nullptr, "nothing to drop");
+    // A chance of 0 still drops 1 time in 100, as the exe compares with <=.
+    int lucky = 0;
+    for (int i = 0; i < 2000; ++i) lucky += !sf::rollDrops(tables, table, 2, random, true).empty();
+    check(lucky > 5 && lucky < 80, "chance 0 drops about 1% of the time per roll");
+    check(sf::rollDrops(tables, table, 9, random, true).empty(), "no such list");
+    table.items[0].poolMask = 2;
+    check(sf::rollDrops(tables, table, 1, random, true).empty(), "the pool masks must share a bit");
+
+    // The original's slip: one roll allowing magic lets later rolls drop it.
+    sf::ItemTable magic;
+    magic.items = {kSword, kSword};
+    magic.items[0].poolMask = magic.items[1].poolMask = 1;
+    magic.items[0].dropWeight = magic.items[1].dropWeight = 1;
+    magic.items[1].code = 1;
+    magic.items[1].quality = 1;
+    sf::DropTables two;
+    two.entries = {{0, -1, -1, -1, 1}};
+    two.lists[0] = {2, 100, {{0, 11}, {0, 1}}, std::nullopt};
+    magic.items[1].dropWeight = 1000;
+    int magicDrops[2] = {};  // ours, original
+    for (const bool ours : {true, false}) {
+        sf::Random r(11);
+        for (int i = 0; i < 2000; ++i) {
+            for (const sf::ItemDef* d : sf::rollDrops(two, magic, 0, r, ours)) magicDrops[ours ? 0 : 1] += d->quality == 1;
+        }
+    }
+    // Ours: only the "11" picks give magic, about half the rolls. The
+    // original: also every "1" pick after one.
+    check(magicDrops[0] > 1700 && magicDrops[0] < 2300, "only rolls allowing magic give it");
+    check(magicDrops[1] > magicDrops[0] + 500, "original mode lets magic carry over between rolls");
+
+    double x, y;
+    sf::dropSpot(0, 2, 1000, 1000, x, y);
+    check(std::abs(x - 1200) < 1e-6 && std::abs(y - 1000) < 1e-6, "the first item lands 200 to the side");
+}
+
+void testBelt() {
+    sf::ItemDef tablet = kTablet;
+    tablet.effect[0] = 1;  // may go in the belt
+    sf::ItemDef capsule = kTablet;
+    capsule.code = 10000000;
+    capsule.effect[0] = 1;
+    sf::ItemDef herb = kTablet;  // usable, but not put in the belt by itself
+    herb.code = 5;
+
+    sf::Inventory inv;
+    for (int i = 0; i < 4; ++i) check(inv.addToBelt({&tablet}), "four tablets fit the top row");
+    check(inv.beltAt(3, 0) && !inv.beltAt(0, 1), "the belt fills row by row");
+    check(inv.pickUp({&capsule}) && inv.beltAt(0, 1) && inv.bag().empty(), "a picked-up capsule goes in the belt");
+    check(inv.pickUp({&herb}) && inv.bag().size() == 1 && !inv.beltAt(1, 1), "other consumables go in the bag");
+    check(inv.pickUp({&kSword}) && inv.bag().size() == 2, "so does everything else");
+
+    // Using a belt item takes a like one from the bag first.
+    inv.add({&tablet});
+    inv.useUpBelt(0, 0);
+    check(inv.beltAt(0, 0) && inv.bag().size() == 2, "a spare tablet in the bag is used instead");
+    inv.useUpBelt(0, 0);
+    check(!inv.beltAt(0, 0), "without a spare, the belt's own is used");
+
+    std::optional<sf::Item> hand;
+    check(inv.clickBelt(hand, 1, 0) == Result::Done && hand && !inv.beltAt(1, 0), "a click picks it up");
+    check(inv.clickBelt(hand, 0, 1) == Result::Done && hand && hand->def == &capsule && inv.beltAt(0, 1)->def == &tablet,
+          "putting it on another swaps them");
+    std::optional<sf::Item> sword{sf::Item{&kSword}};
+    check(inv.clickBelt(sword, 2, 1) == Result::WrongSlot && sword, "a sword does not go in the belt");
+    sf::ItemDef bigPotion = kTablet;
+    bigPotion.height = 2;
+    check(!inv.addToBelt({&bigPotion}), "only 1 x 1 items fit");
+    inv.clear();
+    check(!inv.beltAt(1, 1) && !inv.beltAt(3, 0), "clear empties the belt");
 }
 
 void testSaveGame() {
@@ -195,6 +280,7 @@ void testSaveGame() {
     inventory.addGold(120);
     check(inventory.addAt({&table.items[1], 1}, 2, 1), "potion goes in the bag");
     inventory.equip(Slot::Weapon, {&table.items[0], 1});
+    check(inventory.addToBeltAt({&table.items[1], 1}, 2, 1), "potion goes in the belt");
 
     sf::SaveGame save;
     save.map = "waterworks";
@@ -225,6 +311,11 @@ void testSaveGame() {
     check(loaded.x == 1280 && loaded.y == 1472 && loaded.direction == 5, "position survives");
     check(loaded.hp == 92 && loaded.level == 3 && loaded.experience == 140 && loaded.gold == 120, "stats survive");
     check(loaded.flags.at({sf::ScenarioScript::kSave, 71}) == 1, "story flags survive");
+    {
+        sf::Inventory back;
+        loaded.restore(back, table);
+        check(back.beltAt(2, 1) && back.beltAt(2, 1)->def == &table.items[1] && !back.beltAt(0, 0), "the belt survives");
+    }
     check(loaded.career && loaded.career->history == save.career->history && loaded.career->offered == sf::HeroClass::Wizard &&
               loaded.career->kills == 1 && loaded.career->killsBy[sf::Career::kMagic] == 1,
           "the class, its history and the kills survive");
@@ -272,7 +363,7 @@ void testSaveGame() {
 
     table.items.pop_back();
     sf::Inventory partial;
-    check(loaded.restore(partial, table) == 1, "unknown items are skipped");
+    check(loaded.restore(partial, table) == 2, "unknown items are skipped, in the bag and the belt");
 
     auto threw = [](std::string_view text) {
         try {
@@ -497,6 +588,7 @@ int main() {
     testStatsAndLayers();
     testUse();
     testLoot();
+    testBelt();
     testSaveGame();
     testStorageClicks();
     testWearRepairIdentify();

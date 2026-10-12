@@ -20,7 +20,6 @@ namespace sf {
 namespace {
 
 constexpr double kPickupRange = 150.0;  // world units from the player's feet
-constexpr int kItemDropChance = 15;     // percent; stands in for Table.Tbd table 30
 constexpr int kMessageTicks = 3 * kTicksPerSecond;
 
 // The item window, where ShadowFlare.exe draws it (Status.njp patterns 2
@@ -79,6 +78,13 @@ void Game::loadItems() {
         } catch (const FormatError& e) {
             log::warn("items.txt: {}", e.what());
         }
+        if (auto drops = data_->read("drops.txt")) {
+            try {
+                dropTables_ = open::parseDrops(*drops);
+            } catch (const FormatError& e) {
+                log::warn("drops.txt: {}", e.what());
+            }
+        }
         if (auto shops = data_->read("shops.txt")) {
             try {
                 openShops_ = open::parseShops(*shops);
@@ -91,11 +97,17 @@ void Game::loadItems() {
 }
 
 // A new character's equipment (ShadowFlare.exe 0x44104c): Leather Cloth
-// worn, four Tablets and four Capsules in the bag. The belt is not there yet.
+// worn, and four Tablets and four Capsules both in the bag and in the belt,
+// the Tablets along its top row and the Capsules along the bottom.
 void Game::giveStartingKit() {
     give(static_cast<int>(ItemDef::Class::Armour), 0, 1, GiveTo::Wear);
-    for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), 0, 1, GiveTo::Bag);
-    for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), 10000000, 1, GiveTo::Bag);
+    for (const std::int32_t code : {0, 10000000}) {
+        for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), code, 1, GiveTo::Bag);
+    }
+    for (const std::int32_t code : {0, 10000000}) {
+        const ItemDef* def = items_.find(ItemDef::Class::Consumable, code);
+        for (int i = 0; def && i < 4; ++i) inventory_.addToBelt(Item::make(def, random_));
+    }
 }
 
 bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
@@ -176,21 +188,39 @@ void Game::dropItem(const Item& item, double x, double y) {
     groundItems_.push_back(std::move(g));
 }
 
+// A monster's gold (0x45a030), dropped 100 units below it, then its drop
+// list (0x45a000).
 void Game::dropLoot(const Actor& enemy) {
     const auto& stats = enemy.placement.stats;
     const double x = enemy.character.x, y = enemy.character.y;
-    if (const int gold = rollGold(stats.goldChance, stats.goldMin, stats.goldMax, random_)) {
+    int chance = stats.goldChance, least = stats.goldMin, most = stats.goldMax;
+    // drops.txt can give gold to open content monsters that have none.
+    if (const auto* list = dropTables_.list(stats.dropList); list && list->gold && chance <= 0) {
+        chance = (*list->gold)[0];
+        least = (*list->gold)[1];
+        most = (*list->gold)[2];
+    }
+    if (const int gold = rollGold(chance, least, most, inventory_.goldBonus(), random_)) {
         if (const ItemDef* def = items_.find(ItemDef::Class::Special, 0)) {
-            dropItem({def, gold}, x, y);
+            dropItem({def, gold}, x, y + 100);
         } else {
             inventory_.addGold(gold);
         }
     }
-    if (random_.next(100) < kItemDropChance) {
-        if (const ItemDef* def = pickDrop(items_, stats.level, random_)) {
-            dropItem(Item::make(def, random_), x + 60, y + 60);
-            log::info("A monster dropped {}", def->name);
-        }
+    dropFromList(stats.dropList, x, y);
+}
+
+void Game::dropFromList(int list, double x, double y) {
+    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll);
+    for (std::size_t i = 0; i < drops.size(); ++i) {
+        // Spread around the spot by how many rolls the list has, as the
+        // exe does, whether or not each roll gave something.
+        const auto* l = dropTables_.list(list);
+        const int rolls = l && l->rolls > 0 ? l->rolls : 1;
+        double dx, dy;
+        dropSpot(static_cast<int>(i), rolls, x, y, dx, dy);
+        dropItem(Item::make(drops[i], random_), dx, dy);
+        log::info("Dropped {}", drops[i]->name);
     }
 }
 
@@ -207,7 +237,7 @@ void Game::pickUpItems() {
             continue;
         }
         const Item item = it->item;
-        if (!inventory_.add(item)) {
+        if (!inventory_.pickUp(item)) {
             showMessage(std::format("No room for {}", item.shownName()));
             it->waitForLeave = true;
             ++it;
@@ -263,11 +293,9 @@ ElementLevels Game::playerElements() const { return elementLevels({}, inventory_
 // mental medicine modifiers; only what is not full takes them. When the
 // hero takes nothing, words 5 and 6 heal the companion likewise (meat),
 // while it is up and hurt. Something that does nothing is not used up.
-void Game::useItem(int index) {
-    if (index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
-    const ItemDef* def = inventory_.bag()[static_cast<std::size_t>(index)].item.def;
-    if (def->cls != ItemDef::Class::Consumable) return;
-    const auto& e = def->effect;
+bool Game::applyConsumable(const ItemDef& def) {
+    if (def.cls != ItemDef::Class::Consumable) return false;
+    const auto& e = def.effect;
     bool used = false;
     auto restore = [&](int& value, int max, int amount, int percent, int bonus) {
         if (value == max) return;
@@ -291,9 +319,14 @@ void Game::useItem(int index) {
     }
     // Words 7 and 8 (the medicines and fruits) are not in yet; those are
     // used up as before.
-    if (!used && e[7] == -1) return;
-    inventory_.use(index);
-    showMessage(std::format("Used {}", def->name));
+    if (!used && e[7] == -1) return false;
+    showMessage(std::format("Used {}", def.name));
+    return true;
+}
+
+void Game::useItem(int index) {
+    if (index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
+    if (applyConsumable(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) inventory_.use(index);
 }
 
 // The original's experience curve is in Table.Tbd; the open content uses ours.
@@ -303,6 +336,7 @@ void Game::loadLevelCurve() {
             tables_ = GameTables::parse(*raw);
             levels_ = LevelCurve::fromTables(tables_);
             modifierPrices_ = ModifierPrices::load(tables_);
+            dropTables_ = DropTables::fromTables(tables_);
         } catch (const FormatError& e) {
             log::warn("Table.Tbd: {}", e.what());
         }
@@ -591,9 +625,58 @@ void Game::renderInventory() {
     }
 }
 
+// Which belt cell a screen point is over, or false.
+namespace {
+bool beltCellAt(int x, int y, int& cx, int& cy) {
+    for (int row = 0; row < Inventory::kBeltHeight; ++row) {
+        const int left = row == 0 ? kBeltLeft : kBeltBottomLeft, top = kBeltTop + row * kBeltCell;
+        if (x >= left && x < left + Inventory::kBeltWidth * kBeltCell && y >= top && y < top + kBeltCell) {
+            cx = (x - left) / kBeltCell;
+            cy = row;
+            return true;
+        }
+    }
+    return false;
+}
+}  // namespace
+
+// Keys 1-8 and a right click on a belt cell use what is there; a like
+// item from the bag is used up first, so the belt stays stocked.
+void Game::useBelt(int x, int y) {
+    const auto& item = inventory_.beltAt(x, y);
+    if (!item || hand_) return;
+    if (applyConsumable(*item->def)) inventory_.useUpBelt(x, y);
+}
+
+bool Game::beltClick(int x, int y, bool right) {
+    int cx, cy;
+    if (menuOpen_ || !player_ || !beltCellAt(x, y, cx, cy)) return false;
+    if (right) {
+        useBelt(cx, cy);
+    } else if (inventory_.clickBelt(hand_, cx, cy) == Inventory::Result::WrongSlot) {
+        showMessage("Only potions go in the belt");
+    }
+    return true;
+}
+
+void Game::renderBelt() {
+    for (int row = 0; row < Inventory::kBeltHeight; ++row) {
+        for (int col = 0; col < Inventory::kBeltWidth; ++col) {
+            const SDL_Rect r{(row == 0 ? kBeltLeft : kBeltBottomLeft) + col * kBeltCell, kBeltTop + row * kBeltCell, kBeltCell,
+                             kBeltCell};
+            frame(renderer_, r, {20, 18, 26, 170}, {110, 100, 80, 220});
+            if (const auto& item = inventory_.beltAt(col, row)) drawItemPicture(*item->def, r);
+            // Its key, small in the bottom right corner, as on the original's panel.
+            drawText(renderer_, r.x + r.w - 6, r.y + r.h - 8, std::to_string(row * Inventory::kBeltWidth + col + 1),
+                     {200, 190, 160, 255}, 1);
+        }
+    }
+}
+
 void Game::renderHud() {
     if (menuOpen_) return;
     renderSpellBar();
+    if (player_) renderBelt();
     if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);

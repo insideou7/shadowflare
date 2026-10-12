@@ -14,6 +14,7 @@
 #include "game/character.h"
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
+#include "logic/loot.h"
 #include "logic/magic.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
@@ -47,6 +48,10 @@ inline constexpr int kTicksPerSecond = 20;
 inline constexpr double kPlayerWalkSpeed = 70.0;
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
+// The belt pocket's cells on the screen, as the original's clicks find them
+// (0x445bd0, 0x44a5f0): the top row's left edge, and the bottom row's,
+// which sits a cell and a half further right.
+inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBeltCell = 32;
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
@@ -272,6 +277,9 @@ private:
     void spawnGroundItems();
     void dropItem(const Item& item, double x, double y);
     void dropLoot(const Actor& enemy);
+    // Drops what a drop list gives around (x, y): monsters and
+    // CREATEITEMTABLE.
+    void dropFromList(int list, double x, double y);
     void pickUpItems();
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
@@ -289,6 +297,13 @@ private:
     void loadLevelCurve();
     void gainExperience(int amount);
     void useItem(int index);
+    // A consumable's effect on the hero or companion; false when it would
+    // do nothing, so it is not used up.
+    bool applyConsumable(const ItemDef& def);
+    // The belt pocket on the HUD: keys 1-8, clicks, drawing.
+    void useBelt(int x, int y);
+    bool beltClick(int x, int y, bool right);
+    void renderBelt();
     void showMessage(std::string text);
     bool inventoryClick(int x, int y, bool right);
     void dropHand();
@@ -484,6 +499,7 @@ private:
     GameTables tables_;  // Table.Tbd; empty with open content
     ModifierPrices modifierPrices_;  // Table.Tbd table 34
     open::ShopLists openShops_;  // shops.txt, INITTRADE's lists with open content
+    DropTables dropTables_;  // Table.Tbd tables 30 and 31, or drops.txt
     Career career_;  // the hero's class, its history and the class on offer
     bool showStatus_ = false;
     std::optional<Dialogue> dialogue_;
