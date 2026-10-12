@@ -23,6 +23,11 @@ std::string invertedString(BinaryReader& in) {
 
 void skipWords(BinaryReader& in, std::size_t count) { in.skip(4 * count); }
 
+void readModifiers(BinaryReader& in, ItemDef& d) {
+    for (auto& m : d.modifiers) m = {in.i32(), in.i32(), in.i32()};
+    for (auto& m : d.elementModifiers) m = {in.i32(), in.i32(), in.i32()};
+}
+
 ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     ItemDef d;
     d.cls = cls;
@@ -36,7 +41,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     d.poolMask = in.i32();    // 0x88
     d.dropWeight = in.i32();  // 0x78
     d.price = in.i32();       // 0x40
-    in.i32();                 // 0x44 fixed price
+    d.fixedPrice = in.i32() != 0;  // 0x44
     d.width = in.i32();       // 0x20
     d.height = in.i32();      // 0x24
     in.i32();                 // 0x28 weight
@@ -65,7 +70,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             skipWords(in, 3 + 5);  // layer tint, projectile ways, orbit, 0x104, 0x108, pierce
             d.twoHandedFlag = in.i32() != 0;
             for (auto& e : d.elements) e = in.i32();  // 0xc8
-            skipWords(in, 39 * 3 + 8 * 3);  // modifiers, elemental modifiers
+            readModifiers(in, d);  // 0x114, 0x2e8
             d.glowLayer = glow;
             break;
         case ItemDef::Class::Armour:
@@ -76,13 +81,13 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.heroLayer = in.i32();
             skipWords(in, 3);  // layer tint
             for (auto& e : d.elements) e = in.i32();  // 0xc8
-            skipWords(in, 39 * 3 + 8 * 3);
+            readModifiers(in, d);  // 0xec, 0x2c0
             d.glowLayer = glow;
             break;
         case ItemDef::Class::Accessory:
             d.itemLevel = in.i32();
             d.requiredLevel = in.i32();
-            skipWords(in, 39 * 3 + 8 * 3);
+            readModifiers(in, d);  // 0x94, 0x268
             break;
         case ItemDef::Class::Consumable:
             d.itemLevel = in.i32();

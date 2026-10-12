@@ -8,6 +8,7 @@
 #include "logic/ai_select.h"
 #include "formats/binary_reader.h"
 #include "logic/inventory.h"
+#include "logic/partner.h"
 #include "logic/save_game.h"
 
 namespace {
@@ -61,6 +62,7 @@ const sf::ItemDef kTablet = [] {
     return d;
 }();
 const sf::ItemDef kGold = def(Class::Special, -1, 1, 1);
+const sf::ModifierPrices kNoPrices{};
 const sf::ItemDef kHeavy = [] {
     auto d = def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 17);
     d.requiredLevel = 30;
@@ -330,12 +332,12 @@ void testWearRepairIdentify() {
 
     // 400 gold, worn 3 of 3: the whole tenth of the price. Helmet: worn
     // share of 100, at least 1.
-    check(inventory.repairPrice(0) == 40, "a broken weapon costs a tenth of its price to mend");
+    check(inventory.repairPrice(0, kNoPrices) == 40, "a broken weapon costs a tenth of its price to mend");
     sf::Item lightly{&helmet, 1};
     lightly.wear = 1;
-    check(lightly.repairPrice() == 1, "slight wear costs at least 1");
-    check(sf::Item{&helmet, 1}.repairPrice() == 0, "unworn items cost nothing");
-    check(inventory.repairPrice(1) == helmetBlows * 100 / 300, "the helmet's price is its worn share");
+    check(lightly.repairPrice(kNoPrices) == 1, "slight wear costs at least 1");
+    check(sf::Item{&helmet, 1}.repairPrice(kNoPrices) == 0, "unworn items cost nothing");
+    check(inventory.repairPrice(1, kNoPrices) == helmetBlows * 100 / 300, "the helmet's price is its worn share");
     inventory.repair(0);
     check(!inventory.equipped(Slot::Weapon)->broken() && inventory.stats()[sf::ItemDef::kAttack] == 20, "repair mends the weapon");
     check(inventory.equipped(Slot::Helmet)->wear == helmetBlows, "and only the weapon");
@@ -346,8 +348,8 @@ void testWearRepairIdentify() {
     wornHelmet.wear = 30;
     inventory.addAt(wornSword, 0, 0);
     inventory.addAt(wornHelmet, 2, 0);
-    check(inventory.repairPrice(sf::Inventory::kRepairBag) == 2 * 40 / 3 + 10, "the bag's price adds up its items");
-    check(inventory.repairPrice(7) == inventory.repairPrice(sf::Inventory::kRepairBag), "other numbers price the bag too");
+    check(inventory.repairPrice(sf::Inventory::kRepairBag, kNoPrices) == 2 * 40 / 3 + 10, "the bag's price adds up its items");
+    check(inventory.repairPrice(7, kNoPrices) == inventory.repairPrice(sf::Inventory::kRepairBag, kNoPrices), "other numbers price the bag too");
     inventory.repair(7);
     check(inventory.bag()[0].item.wear == 2, "but repair does nothing for them");
     inventory.repair(sf::Inventory::kRepairBag);
@@ -396,6 +398,96 @@ void testStorageClicks() {
     check(storage.click(hand, 0, 3) == sf::Inventory::Result::Done && hand && hand->def == &table.items[0], "and is picked up again");
 }
 
+// Magic modifiers: rolled per item, counted in the stats, the companion's
+// stats and the price (0x467310, 0x44eb5b, 0x4138b0, 0x4661c0).
+void testModifiers() {
+    using M = sf::ItemDef;
+    auto magic = def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12);
+    magic.price = 400;
+    magic.durability = 100;
+    magic.modifiers[M::kModAttack] = {10, 30, 100};
+    magic.modifiers[M::kModHighDamage] = {1, 1, 100};
+    magic.modifiers[M::kModCompanionHp] = {100, 100, 100};
+    magic.modifiers[M::kModCompanionDefense] = {-50, -50, 100};
+    magic.modifiers[M::kModMaxMp] = {5, 9, 0};  // never rolls
+    magic.elementModifiers[0] = {2, 2, 100};
+    sf::Random random(3);
+    for (int k = 0; k < 50; ++k) {
+        const auto item = sf::Item::make(&magic, random);
+        const int attack = item.modifiers[M::kModAttack];
+        check(attack >= 10 && attack <= 30, "a modifier rolls within its range");
+        check(item.modifiers[M::kModMaxMp] == 0, "a modifier without a chance stays 0");
+    }
+    sf::Item item = sf::Item::make(&magic, random);
+    item.modifiers[M::kModAttack] = 20;
+    check(item.elementModifiers[0] == 2, "element modifiers roll too");
+    check(sf::Item::make(&magic).modifiers[M::kModAttack] == 0, "items made without a roll have none");
+
+    // Table 34 prices: 100 a point of element, 20 a point of attack, 1000
+    // for the high-damage modifier counted from 1 on weapons.
+    sf::ModifierPrices prices;
+    prices.element[0] = 100;
+    prices.modifier[M::kModAttack] = 20;
+    prices.modifier[M::kModHighDamage] = 1000;
+    check(item.value(prices) == 400 + 2 * 100 + 20 * 20, "modifiers raise the value");
+    check(item.value(kNoPrices) == 400, "without the table only the price counts");
+    item.wear = 50;
+    check(item.repairPrice(prices) == 50 * (1000 / 10) / 100, "mending costs a tenth of the value, by wear");
+    check(item.repairPrice(kNoPrices) == 50 * 40 / 100, "a plain price mends for less");
+    check(item.sellValue(prices) == 50 * 1000 / 100 / 4, "a shop pays a quarter of the value left");
+    auto fixed = magic;
+    fixed.fixedPrice = true;
+    sf::Item fixedItem = item;
+    fixedItem.def = &fixed;
+    check(fixedItem.value(prices) == 400, "a fixed price ignores modifiers");
+
+    sf::Inventory worn;
+    item.wear = 0;
+    worn.equip(Slot::Weapon, item);
+    check(worn.stats()[M::kAttack] == 20, "the attack modifier adds to attack");
+    check(worn.modifier(M::kModCompanionHp) == 100, "modifiers of worn items add up");
+    check(worn.elements()[0] == 2, "element modifiers add to the element levels");
+
+    sf::PartnerStats dog;
+    dog.maxHp = 400;
+    dog.defense = 30;
+    dog.evasion = 0;
+    sf::addItemBonuses(dog, worn);
+    check(dog.maxHp == 500, "companion HP rises with the hero's items");
+    check(dog.defense == 1, "companion stats stay at least 1");
+    check(dog.evasion == 1, "even ones the items do not touch");
+
+    // Broken weapons stop counting, and so does a shield behind a
+    // two-handed weapon.
+    sf::Item broken = item;
+    broken.wear = magic.durability;
+    sf::Inventory brokenSet;
+    brokenSet.equip(Slot::Weapon, broken);
+    check(brokenSet.modifier(M::kModCompanionHp) == 0, "broken weapons add nothing");
+    auto shieldDef = def(Class::Armour, sf::ItemDef::kShield, 2, 2, 9);
+    shieldDef.modifiers[M::kModCompanionHp] = {7, 7, 100};
+    sf::Inventory hidden;
+    hidden.equip(Slot::Weapon, {&kGreatSword, 1});
+    hidden.equip(Slot::Shield, sf::Item::make(&shieldDef, random));
+    check(hidden.modifier(M::kModCompanionHp) == 0, "a hidden shield adds nothing");
+
+    // Saves keep the rolls.
+    sf::Inventory inv;
+    inv.addAt(item, 0, 0);
+    sf::SaveGame save;
+    save.map = "m";
+    save.store(inv);
+    const auto loaded = sf::SaveGame::parse(save.write());
+    sf::ItemTable table;
+    table.items.push_back(magic);
+    table.items.back().code = 0;
+    sf::Inventory back;
+    loaded.restore(back, table);
+    check(back.bag().size() == 1 && back.bag()[0].item.modifiers == item.modifiers &&
+              back.bag()[0].item.elementModifiers == item.elementModifiers,
+          "saved items keep their modifiers");
+}
+
 }  // namespace
 
 int main() {
@@ -408,6 +500,7 @@ int main() {
     testSaveGame();
     testStorageClicks();
     testWearRepairIdentify();
+    testModifiers();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

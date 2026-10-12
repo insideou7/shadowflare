@@ -10,6 +10,16 @@
 namespace sf {
 
 class Random;
+struct GameTables;
+
+// What each point of a magic modifier adds to an item's price: Table.Tbd
+// table 34, rows 0-7 the element modifiers, then one row per modifier
+// (0x4661c0). All 0 without the table (open content).
+struct ModifierPrices {
+    std::array<int, 8> element{};
+    std::array<int, ItemDef::kModifierCount> modifier{};
+    static ModifierPrices load(const GameTables& tables);
+};
 
 // One item the player has or that lies somewhere.
 struct Item {
@@ -20,10 +30,19 @@ struct Item {
     // The exe keeps the points left instead (+0xbc, out of +0xb8).
     int wear = 0;
     bool unidentified = false;  // the exe's flag at +0x1c, inverted
+    // Its rolled magic modifiers (ItemDef::Modifier) and element modifiers.
+    std::array<std::int32_t, ItemDef::kModifierCount> modifiers{};
+    std::array<std::int32_t, 8> elementModifiers{};
 
     // A newly made item: magic and unique ones start unidentified, as
-    // ShadowFlare.exe makes them (0x462d30).
+    // ShadowFlare.exe makes them (0x462d30). The second form also rolls
+    // its modifiers, as every new item gets.
     static Item make(const ItemDef* def, int count = 1);
+    static Item make(const ItemDef* def, Random& random, int count = 1);
+    // Each modifier: `chance` percent of the time a number from its range,
+    // otherwise 0 (0x467310 for weapons, 0x466570 armour, 0x465730
+    // accessories).
+    void rollModifiers(Random& random);
 
     // Durability points left, and whether it is broken (0 left). Items
     // with no durability never wear out.
@@ -31,9 +50,16 @@ struct Item {
     bool broken() const { return def->durability > 0 && wear >= def->durability; }
     // Its name, or the plain one before it is identified.
     const std::string& shownName() const;
+    // What it is worth (0x4661c0 with 0): its price plus what its
+    // modifiers add, unless the price is fixed. Shops sell at this.
+    int value(const ModifierPrices& prices) const;
+    // What a shop pays (0x4661c0 with 1): a quarter of its value, of the
+    // durability left for weapons and armour, at least 1.
+    int sellValue(const ModifierPrices& prices) const;
     // What mending it costs (0x4667a0): nothing when it is not worn,
-    // otherwise the worn share of a tenth of its price, at least 1.
-    int repairPrice() const;
+    // otherwise the worn share of a tenth of its value, at least 1. Magic
+    // items cost more to mend because their modifiers raise the value.
+    int repairPrice(const ModifierPrices& prices) const;
 };
 
 // Where worn items go, as in ShadowFlare.exe's item window (slot table
@@ -116,13 +142,20 @@ public:
     // armour in the bag. GETREPAIRPRICE also prices the bag for any other
     // number, REPAIR does nothing for one.
     static constexpr int kRepairBag = -1;
-    int repairPrice(int part) const;
+    int repairPrice(int part, const ModifierPrices& prices) const;
     void repair(int part);
 
-    // The ten stats of everything worn and not broken, added up.
+    // The ten stats of everything worn and not broken, added up, with
+    // their modifiers (0x44eb5b).
     std::array<int, ItemDef::kStatCount> stats() const;
-    // Their element levels, added up (0x44fca0). Broken items still count:
-    // that code, unlike the stats at 0x44eb5b, does not seem to check.
+    // One modifier of everything worn, added up, as 0x44eb5b and 0x4138b0
+    // count them: broken weapons and armour don't count, nor a shield
+    // hidden by a two-handed weapon.
+    int modifier(ItemDef::Modifier which) const;
+    // Their element levels with their element modifiers, added up
+    // (0x44fe30). Broken items still count: that code, unlike the stats
+    // at 0x44eb5b, does not check; a shield hidden by a two-handed weapon
+    // does not.
     std::array<int, 8> elements() const;
     // Layers of the hero's animation to draw: 0 (body) and 1 (shadow), then
     // the body armour's, the weapon's and its glow, and the shield's unless

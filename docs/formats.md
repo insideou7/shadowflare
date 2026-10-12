@@ -552,8 +552,22 @@ chance%} and 8 elemental modifiers of 3. Armour has durability, stats,
 item level, required level, hero layer and tint, elements and modifiers.
 Accessories have item level, required level and modifiers. Consumables
 have item level and nine effect words (word 0: may go in the belt; 1:
-health restored; 2: mental power restored). Special items have nothing
-more.
+health restored; 2: mental power restored; 3 and 4: health and mental
+power in percent; 5 and 6: the partner's health, as a number and in
+percent; 7 and 8: medicines). Special items have nothing more.
+
+Modifiers are rolled once when the item is made (0x467310 weapons,
+0x466570 armour, 0x465730 accessories): each one with `chance` percent
+becomes a number from min to max, else 0. Modifiers 0-12 add to the
+hero's attack, defence, hit, evasion, magic attack, magic defence, magic
+hit, magic evasion, attack speed, walking speed, max HP, max MP and
+strength (0x44ea60); 30-38 add to the partner's HP, attack, hit,
+defence, evasion, magic attack, magic hit, magic defence and magic
+evasion while the hero wears the item (0x4138b0, each stat at least 1).
+The elemental modifiers add to the item's elements (0x44fe30). Table 34
+prices them: its first 8 numbers per point of each elemental modifier,
+the next 39 per point of each modifier (modifier 16 on a weapon counts
+as |1 - value|). Saves keep the rolled numbers after the item's wear.
 
 Each item the game makes keeps its own durability left (+0xbc, out of
 +0xb8 from the record) and an identified flag (+0x1c). Magic and unique
@@ -563,9 +577,10 @@ until then (0x462d30). Each blow the hero aims wears the weapon one point
 boots 20% and the body armour and shield 30% of the time (not a shield
 behind a two-handed weapon). An item at 0 is broken and adds nothing to
 the hero's stats (0x44eb5b). Mending one costs nothing when it is unworn,
-else max(1, worn points x (price / 10) / durability) (0x4667a0). The
-original adds its modifiers' surcharges to the price first; the engine
-does not read modifiers yet.
+else max(1, worn points x (value / 10) / durability) (0x4667a0), where
+the value is the price plus the modifiers' surcharges unless the item's
+fixed-price flag (+0x44) is set (0x4661c0). Shops sell at the value and
+buy at value x durability left / durability / 4, at least 1.
 
 Axes and two-handed swords (subtypes 1 and 3) or the two-handed flag hide
 the shield. Worn weapons, body armour and shields turn on their hero

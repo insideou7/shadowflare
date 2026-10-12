@@ -37,22 +37,40 @@ HeroClass heroClass(long long n, int line) {
     return static_cast<HeroClass>(n);
 }
 
+constexpr std::size_t kMaxModifierNumbers = 2 * SaveGame::kSavedModifiers;
+
 SaveGame::ItemRef ref(const Item& item) {
-    return {static_cast<int>(item.def->cls), item.def->code, item.count, item.wear, item.unidentified};
+    SaveGame::ItemRef r{static_cast<int>(item.def->cls), item.def->code, item.count, item.wear, item.unidentified};
+    std::ranges::copy(item.modifiers, r.modifiers.begin());
+    std::ranges::copy(item.elementModifiers, r.modifiers.begin() + ItemDef::kModifierCount);
+    return r;
 }
 
-// An item's wear and whether it is unidentified, after its other numbers;
-// left off when it is new and identified.
+// An item's wear and whether it is unidentified, after its other numbers,
+// then each modifier it rolled as index,value; left off when it is new,
+// identified and plain.
 std::string condition(const SaveGame::ItemRef& r) {
-    return r.wear != 0 || r.unidentified ? std::format(",{},{}", r.wear, r.unidentified ? 1 : 0) : std::string();
+    std::string mods;
+    for (std::size_t i = 0; i < r.modifiers.size(); ++i) {
+        if (r.modifiers[i] != 0) mods += std::format(",{},{}", i, r.modifiers[i]);
+    }
+    if (r.wear == 0 && !r.unidentified && mods.empty()) return {};
+    return std::format(",{},{}{}", r.wear, r.unidentified ? 1 : 0, mods);
 }
 
-// cls,code,count then `extra` numbers, then optionally wear,unidentified.
-SaveGame::ItemRef readRef(const std::vector<long long>& v, std::size_t extra) {
+// cls,code,count then `extra` numbers, then optionally wear,unidentified
+// and modifiers.
+SaveGame::ItemRef readRef(const std::vector<long long>& v, std::size_t extra, int line) {
     SaveGame::ItemRef r{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])};
     if (v.size() >= 5 + extra) {
         r.wear = static_cast<int>(v[3 + extra]);
         r.unidentified = v[4 + extra] != 0;
+    }
+    for (std::size_t i = 5 + extra; i + 1 < v.size(); i += 2) {
+        if (v[i] < 0 || static_cast<std::size_t>(v[i]) >= r.modifiers.size()) {
+            throw FormatError(std::format("save line {}: no modifier {}", line, v[i]));
+        }
+        r.modifiers[static_cast<std::size_t>(v[i])] = static_cast<std::int32_t>(v[i + 1]);
     }
     return r;
 }
@@ -61,6 +79,8 @@ Item toItem(const ItemDef* def, const SaveGame::ItemRef& r) {
     Item item{def, r.count};
     item.wear = r.wear;
     item.unidentified = r.unidentified;
+    std::copy_n(r.modifiers.begin(), ItemDef::kModifierCount, item.modifiers.begin());
+    std::copy_n(r.modifiers.begin() + ItemDef::kModifierCount, 8, item.elementModifiers.begin());
     return item;
 }
 
@@ -102,7 +122,8 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
-    // Items: class,code,count[,x,y], then wear,unidentified when not 0,0.
+    // Items: class,code,count[,x,y], then wear,unidentified and the rolled
+    // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
     for (const auto& e : storage) {
         out += std::format("stored={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
@@ -196,12 +217,12 @@ SaveGame SaveGame::parse(std::string_view text) {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);
         } else if (key == "bag" || key == "stored") {
-            const auto v = numbers(value, 5, lineNumber, 7);
-            (key == "bag" ? save.bag : save.storage).push_back({readRef(v, 2), static_cast<int>(v[3]), static_cast<int>(v[4])});
+            const auto v = numbers(value, 5, lineNumber, 7 + kMaxModifierNumbers);
+            (key == "bag" ? save.bag : save.storage).push_back({readRef(v, 2, lineNumber), static_cast<int>(v[3]), static_cast<int>(v[4])});
         } else if (key == "wear") {
-            const auto v = numbers(value, 4, lineNumber, 6);
+            const auto v = numbers(value, 4, lineNumber, 6 + kMaxModifierNumbers);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
-            save.equipped[static_cast<std::size_t>(v[0])] = readRef({v.begin() + 1, v.end()}, 0);
+            save.equipped[static_cast<std::size_t>(v[0])] = readRef({v.begin() + 1, v.end()}, 0, lineNumber);
         }  // unknown keys are skipped, so newer saves still mostly load
     }
     if (!versioned) throw FormatError("not a saved game");

@@ -137,14 +137,18 @@ ShopStock stockShop(const GameTables& tables, const ItemTable& items, int list, 
                 const int total = weightOf(items, static_cast<Class>(cls), f);
                 if (total > 0) def = pickWeighted(items, static_cast<Class>(cls), f, random.next(total));
             }
-            if (def) stock.add({def, 1});
+            if (!def) continue;
+            // Shop goods come identified, modifiers rolled.
+            Item item = Item::make(def, random);
+            item.unidentified = false;
+            stock.add(item);
         }
     }
     return stock;
 }
 
-int buyPrice(const ItemDef& def) { return std::max(1, def.price); }
+int buyPrice(const Item& item, const ModifierPrices& prices) { return std::max(1, item.value(prices)); }
 
-int sellPrice(const ItemDef& def) { return std::max(1, def.price / 4); }
+int sellPrice(const Item& item, const ModifierPrices& prices) { return item.sellValue(prices); }
 
 }  // namespace sf
