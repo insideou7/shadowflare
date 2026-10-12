@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "game/character.h"
@@ -147,7 +148,13 @@ private:
     void openDialogue(const ScriptHost::Talk& talk);
     void closeDialogue(int answer);
     void dialogueEvent(const SDL_Event& event);
-    int dialogueOptionAt(int x, int y) const;
+    int dialogueOptionAt(int x, int y);
+    SDL_Rect dialogueBox();
+    SDL_Rect dialogueOptionRect(const SDL_Rect& box, int option);
+    // Text in the original's font when the data has it, else the tiny one.
+    const SpriteTexture* uiFont();
+    int uiTextWidth(std::string_view text);
+    void uiText(int x, int y, std::string_view text, SDL_Color color);
     void renderDialogue();
     bool shopClick(int x, int y, bool right);
     void renderShop();
