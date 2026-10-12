@@ -37,6 +37,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
@@ -74,6 +75,8 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--status") {
+            options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
@@ -267,6 +270,7 @@ int main(int argc, char** argv) {
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     app.game->setInventoryOpen(options.inventory);
+    app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);
     } else if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {

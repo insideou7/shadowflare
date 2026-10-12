@@ -178,10 +178,10 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 if (!ops.empty()) store(ops[0], host_->entryPoint());
                 break;
             case S::kEnableClassChange:
-                if (arg(0) >= 1 && arg(0) <= 3) host_->setClass(arg(0));
+                if (arg(0) >= 1 && arg(0) <= 3) host_->offerClass(arg(0));
                 break;
             case S::kGetClass:
-                if (!ops.empty()) store(ops[0], host_->playerClass());
+                if (!ops.empty()) store(ops[0], host_->offeredClass());
                 break;
             // Nothing wears out or needs identifying in the engine yet.
             case S::kGetRepairPrice:

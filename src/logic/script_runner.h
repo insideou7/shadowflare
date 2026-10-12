@@ -45,13 +45,17 @@ public:
     virtual void faceCharacter(std::int32_t /*id*/, std::int32_t /*towards*/) {}
     virtual void setActive(std::int32_t /*id*/, bool /*active*/) {}
     virtual int playerLevel() const { return 1; }
-    virtual int playerClass() const { return 0; }  // 0 none, then as setClass
+    // GETCLASS: the class on offer, which is the hero's own unless one is
+    // waiting to be taken (0 mercenary, 1 warrior, 2 hunter, 3 wizard).
+    virtual int offeredClass() const { return 0; }
     virtual std::int64_t gold() const { return 0; }
     virtual void payGold(std::int64_t /*amount*/) {}
     virtual int random(int /*n*/) { return 0; }
     virtual void showQuestName(int /*quest*/) {}
     virtual int entryPoint() const { return 0; }  // the entry the party came in by
-    virtual void setClass(int /*cls*/) {}         // 1 warrior, 2 magician, 3 hunter
+    // ENABLECLASSCHANGE: offers class 1 warrior, 2 hunter or 3 wizard; the
+    // player takes it in the status window.
+    virtual void offerClass(int /*cls*/) {}
 };
 
 // The scenario script interpreter (ShadowFlare.exe 0x430f80; command names

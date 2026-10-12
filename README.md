@@ -30,7 +30,10 @@ gold and items, and what the hero wears shows on them and adds to attack
 and defense. The damage formula and spell effects are still placeholders.
 With the original data the scenario scripts run: click a person to talk,
 pick an answer with the mouse or the arrow keys and Enter, and shops,
-healers and the guilds' class change work as their scripts say. Sound and
+healers and the class instructors work as their scripts say. The hero
+becomes a warrior at level 5 and is offered the hunter or wizard by how
+they kill monsters, as in the original; S opens the status window with its
+Change Career button. Sound and
 spells are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
@@ -74,6 +77,7 @@ Options:
 - `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
+- `--status` start with the status window open
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n

@@ -74,6 +74,7 @@ public:
     void trade(int shop) override {
         g_.shops_.try_emplace(shop);
         g_.openShop_ = shop;
+        g_.showStatus_ = false;  // the shop takes the left of the screen
         g_.showInventory_ = true;
     }
     void healLife() override { g_.playerHp_ = g_.playerMaxHp(); }
@@ -117,7 +118,7 @@ public:
         if (auto* a = g_.actorById(id)) a->active = active;
     }
     int playerLevel() const override { return g_.playerLevel_; }
-    int playerClass() const override { return static_cast<int>(g_.heroClass()); }
+    int offeredClass() const override { return static_cast<int>(g_.career_.offered); }
     std::int64_t gold() const override { return g_.inventory_.gold(); }
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
     int random(int n) override { return g_.random_.next(n); }
@@ -126,11 +127,9 @@ public:
         if (titles && quest >= 0 && quest < titles->rows) g_.showMessage(toAscii(titles->string(quest, 0)));
     }
     int entryPoint() const override { return g_.entryPoint_; }
-    void setClass(int cls) override {
-        g_.heroClass_ = static_cast<HeroClass>(cls);
-        g_.classFrom_ = g_.playerLevel_;
-        g_.playerHp_ = std::min(g_.playerHp_, g_.playerMaxHp());
-        log::info("Class {} from level {}", cls, g_.playerLevel_);
+    void offerClass(int cls) override {
+        g_.career_.offered = static_cast<HeroClass>(cls);
+        log::info("{} offered", className(g_.career_.offered));
     }
 
 private:

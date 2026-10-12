@@ -331,9 +331,11 @@ picked to begin with. Scripts carry on straight away; when the box closes
 the chosen option (from 0) goes into `answer` and the speaker's event 1
 triggers run. `CREATEITEM` with class 4 code 0 drops a random amount of
 gold between `min` and `max`, in piles of at most 10,000.
-`ENABLECLASSCHANGE` 1, 2 and 3 make the hero a warrior, magician or
-hunter (player +0x30 = 6, 5 or 9; 16 is no class), and `GETCLASS` reports
-them back the same way.
+`ENABLECLASSCHANGE` 1, 2 and 3 offer the hero the warrior, hunter or
+wizard (player +0x30 = 6, 5 or 9, 0x4341da); the hero takes it in the
+status window (see Classes below). `GETCLASS` reports the class on offer
+the same way, 0 for the mercenary (+0x30 = 16, 0x434186). Only the
+instructors in Scenario 03900003 use them.
 
 Trigger events (0x4304b0-0x430a40): 0 the player speaks to the character,
 1 its message box closed, 3 `ONJUDGE`, 4 an enemy died (inferred from the
@@ -420,10 +422,13 @@ descriptions. The numeric tables found so far:
   `901 + 2 * map[class] - [character+0x28]`). 900/901 hold the starting
   stats in column 0 and four classless levels (900 looks like the male
   hero: more health and attack); 902/903 the warrior, 904/905 the
-  magician, 906/907 the hunter. A new hero's class history starts as
-  classless (16); the n-th level in a class reads column n - 1. The rows,
-  from the stats function 0x44ea60 that adds equipment to them: 0 attack
-  speed, 1 walk speed, 2 health, 3 magic, 4 a third pool (not used yet),
+  wizard, 906/907 the hunter. Each level-up first stores the class held
+  in a byte per level (+0xec + level) and then counts that class's bytes:
+  the n-th level gained in a class reads column n - 1. A new hero's byte 0
+  is the mercenary (16), so mercenary levels read 900 from column 1. The
+  rows, from the stats function 0x44ea60 that adds equipment to them: 0
+  attack speed, 1 walk speed, 2 health, 3 magic, 4 strength (the manual's
+  status window shows 180 at level 5: 140 + 4 x 10),
   5 attack, 6 defence, 7 magic attack, 8 magic defence, 9 hit, 10 evasion,
   11 magic hit, 12 magic evasion.
 
@@ -432,6 +437,30 @@ is hit minus evasion, kept between 20 and 98 percent (0x413e00); damage is
 attack x (90, 100 or 110)% minus defence, at least 1 (0x412a40). Elements
 scale these through tables 7 and 11 (not used yet). Monsters keep hit in
 Mct enemy word 10 (50 for all) and evasion in word 12.
+
+## Classes (ShadowFlare.exe)
+
+The player keeps a job number at +0x2c and the job on offer at +0x30: 16
+mercenary, 6 warrior, 5 hunter, 9 wizard (the names at 0x405750 are in a
+table of 17 per sex, witch for the heroine; jobs 2, 8 and 10 have stats
+slots but no names or tables). Every hero starts as a mercenary.
+
+- Kills (0x4134a0): when the player's own blow kills a monster, +0xc0
+  counts it, and +0xc4[n] counts it by the weapon in hand: Item.Ibn weapon
+  subtype n for 0-7, slot 8 for staffs, rods (subtypes 8, 9) and spells.
+  Bare hands only add to the total. Both reset on every level-up.
+- Level-up (end of 0x412fb0, from level 5): each slot as a percentage of
+  the total. If the hero is not a wizard and magic is at least 20%, the
+  wizard is offered; else if not a hunter and slot 5 (bows) is at least
+  30%, the hunter; else a non-warrior with slots 0 + 1 + 3 (swords, axes
+  and maces) at least 50% is offered the warrior; otherwise the offer goes
+  back to the hero's own job. On reaching level 5 the job and the offer both
+  become the warrior, whatever was counted.
+- While the offer differs from the job, the level-up window says "It is
+  possible to change your occupation to [...]" (at level 5: "Changed your
+  occupation to [...]", 0x451771), and the status window (Status.njp
+  pattern 5) has a Change Career button: a click between (17, 64) and
+  (112, 79) copies +0x30 to +0x2c and works the stats out again (0x4474b0).
 
 ## Items: `System/Game/Parameter/Item.Ibn` (ShadowFlare.exe, loader 0x462f90)
 
