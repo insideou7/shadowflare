@@ -24,6 +24,8 @@ struct SaveGame {
         int cls = 0;
         std::int32_t code = 0;
         int count = 1;
+        int wear = 0;               // Item::wear
+        bool unidentified = false;  // Item::unidentified
     };
     struct BagEntry {
         ItemRef item;

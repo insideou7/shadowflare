@@ -717,10 +717,22 @@ void Game::tickEnemy(Actor& enemy) {
 
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
-    if (random_.next(100) >= hitChance(playerHit(), s.evasion)) return;
-    // Table 7: the hero's level in the monster's opposite element
-    // strengthens the blow (0x412a40).
-    hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+    if (random_.next(100) < hitChance(playerHit(), s.evasion)) {
+        // Table 7: the hero's level in the monster's opposite element
+        // strengthens the blow (0x412a40).
+        hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+    }
+    // Every blow wears the weapon a little, hit or miss.
+    sayBroken(inventory_.wearFromAttacking(random_));
+}
+
+void Game::sayBroken(const std::vector<EquipSlot>& slots) {
+    for (EquipSlot slot : slots) {
+        if (const auto& item = inventory_.equipped(slot)) {
+            showMessage(std::format("{} is broken", item->shownName()));
+            log::info("{} broke", item->def->name);
+        }
+    }
 }
 
 void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
@@ -813,6 +825,8 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         placePlayer();
         return;
     }
+    // Blows that get through wear out the armour (0x443fa8).
+    sayBroken(inventory_.wearFromBlow(random_));
     // Counter Burst sends part of a monster's blow back (0x444150): half
     // as much to monsters whose word 7 is 100, at least 1.
     if (!magic && attacker && attacker->alive() && spellOn(kCounterBurst)) {

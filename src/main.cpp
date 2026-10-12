@@ -32,7 +32,7 @@ struct Options {
     bool autoFight = false;  // player attacks nearby monsters by itself
     std::optional<std::pair<int, int>> at;  // start position in map pixels
     struct Gift {
-        int itemClass = 0, code = 0, count = 1;
+        int itemClass = 0, code = 0, count = 1, wear = 0;
         sf::Game::GiveTo to = sf::Game::GiveTo::Bag;
     };
     std::vector<Gift> gifts;  // items to start with, for testing
@@ -70,11 +70,12 @@ Options parseArgs(int argc, char** argv) {
             int x = 0, y = 0;
             if (std::sscanf(argv[++i], "%d,%d", &x, &y) == 2) options.at.emplace(x, y);
         } else if ((arg == "--give" || arg == "--equip" || arg == "--drop") && i + 1 < argc) {
-            // class:code[:count], e.g. --give 0:0 (Short Sword), --give 4:0:500 (gold)
+            // class:code[:count[:wear]], e.g. --give 0:0 (Short Sword), --give 4:0:500
+            // (gold), --equip 0:0:1:150 (a Short Sword worn down by 150 points)
             Options::Gift gift;
             if (arg == "--equip") gift.to = sf::Game::GiveTo::Wear;
             if (arg == "--drop") gift.to = sf::Game::GiveTo::Ground;
-            if (std::sscanf(argv[++i], "%d:%d:%d", &gift.itemClass, &gift.code, &gift.count) >= 2) {
+            if (std::sscanf(argv[++i], "%d:%d:%d:%d", &gift.itemClass, &gift.code, &gift.count, &gift.wear) >= 2) {
                 options.gifts.push_back(gift);
             } else {
                 sf::log::warn("{} expects class:code[:count]", arg);
@@ -304,7 +305,7 @@ int main(int argc, char** argv) {
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
                           options.level > 0 || options.autoFight || options.talk >= 0 || options.cast;
     if (!scripted) app.game->openMenu(true);
-    for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
+    for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);

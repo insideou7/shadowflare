@@ -464,6 +464,10 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
         if (!item || !keyValue(*line, key, value)) lines.fail("expected [item <class> <code>] then key=value lines");
         if (key == "name") {
             item->name = value;
+        } else if (key == "unidentified") {
+            item->unidentifiedName = value;
+        } else if (key == "durability") {
+            item->durability = lines.toInt(value);
         } else if (key == "subtype") {
             item->subtype = lines.toInt(value);
         } else if (key == "quality") {

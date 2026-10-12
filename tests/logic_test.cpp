@@ -221,6 +221,12 @@ struct TestHost : sf::ScriptHost {
     std::vector<Label> labels;
     void openStorage() override { ++storages; }
     void showLabel(const Label& l) override { labels.push_back(l); }
+    bool unidentified = true;
+    std::vector<int> repaired;
+    void identifyItems() override { unidentified = false; }
+    bool hasUnidentifiedItems() const override { return unidentified; }
+    void repair(int part) override { repaired.push_back(part); }
+    int repairPrice(int part) const override { return part == -1 ? 75 : 10 + part; }
 };
 
 void testScriptStorageAndLabels() {
@@ -240,6 +246,24 @@ void testScriptStorageAndLabels() {
               host.labels[0].dy == -160 && host.labels[0].g == 200 && host.labels[0].duration == 1000,
           "MESSAGEBOX floats a message over a character");
     check(host.labels.size() == 2 && host.labels[1].text == "29" && host.labels[1].dx == 20, "MESSAGEBOXVALUE floats a number");
+}
+
+void testScriptRepairAndIdentify() {
+    using S = sf::ScenarioScript;
+    S script;
+    const Op a{S::kTemp, 1000010}, b{S::kTemp, 1000011}, c{S::kTemp, 1000012}, d{S::kTemp, 1000013};
+    script.sentences = {{{S::kCheckUnopinionItem, {a}},
+                         {S::kIdentify, {}},
+                         {S::kCheckUnopinionItem, {b}},
+                         {S::kGetRepairPrice, {constant(3), c}},
+                         {S::kGetRepairPrice, {constant(-1), d}},
+                         {S::kRepair, {constant(-1)}}}};
+    sf::ScriptFlags flags;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(flags[{S::kTemp, 1000010}] == 1 && flags[{S::kTemp, 1000011}] == 0, "CHECKUNOPINIONITEM before and after IDENTIFY");
+    check(flags[{S::kTemp, 1000012}] == 13 && flags[{S::kTemp, 1000013}] == 75, "GETREPAIRPRICE asks the game");
+    check(host.repaired == std::vector{-1}, "REPAIR mends the part asked for");
 }
 
 void testScriptTalkAndShop() {
@@ -416,6 +440,7 @@ int main() {
     testScriptTalkAndShop();
     testShopStock();
     testScriptStorageAndLabels();
+    testScriptRepairAndIdentify();
     testCareer();
     testScriptExit();
     testScriptFlagsAndOperators();

@@ -272,6 +272,100 @@ void testSaveGame() {
     check(!threw("version=1\nmap=a\nfuture=thing\n"), "unknown keys are skipped");
 }
 
+void testWearRepairIdentify() {
+    auto sword = kSword;
+    sword.durability = 3;
+    sword.price = 400;
+    auto helmet = kHelmet;
+    helmet.durability = 300;
+    helmet.price = 1000;
+    auto shield = kShield;
+    shield.durability = 1;
+    auto magic = kSword;
+    magic.quality = 1;
+    magic.name = "Speed Short Sword";
+    magic.unidentifiedName = "Short Sword";
+
+    sf::Item fresh = sf::Item::make(&magic);
+    check(fresh.unidentified && fresh.shownName() == "Short Sword", "magic items start unidentified");
+    check(!sf::Item::make(&sword).unidentified, "plain items start identified");
+
+    sf::Inventory inventory;
+    inventory.equip(Slot::Weapon, {&sword, 1});
+    inventory.equip(Slot::Helmet, {&helmet, 1});
+    sf::Random random(7);
+    std::vector<Slot> broke;
+    for (int k = 0; k < 200 && broke.empty(); ++k) broke = inventory.wearFromAttacking(random);
+    check(broke == std::vector{Slot::Weapon}, "the weapon wears out from attacking");
+    check(inventory.equipped(Slot::Weapon)->broken() && inventory.equipped(Slot::Weapon)->durability() == 0, "and is broken");
+    check(inventory.stats()[sf::ItemDef::kAttack] == 0, "broken items add nothing");
+    check(inventory.wearFromAttacking(random).empty(), "broken items do not break again");
+
+    int helmetBlows = 0;
+    for (int k = 0; k < 1000; ++k) inventory.wearFromBlow(random);
+    helmetBlows = inventory.equipped(Slot::Helmet)->wear;
+    check(helmetBlows > 120 && helmetBlows < 280, "helmets wear on about one blow in five");
+
+    // A shield behind a two-handed weapon is not hit.
+    sf::Inventory twoHanded;
+    twoHanded.equip(Slot::Weapon, {&kGreatSword, 1});
+    twoHanded.equip(Slot::Shield, {&shield, 1});
+    for (int k = 0; k < 100; ++k) twoHanded.wearFromBlow(random);
+    check(!twoHanded.equipped(Slot::Shield)->broken(), "hidden shields do not wear");
+
+    // 400 gold, worn 3 of 3: the whole tenth of the price. Helmet: worn
+    // share of 100, at least 1.
+    check(inventory.repairPrice(0) == 40, "a broken weapon costs a tenth of its price to mend");
+    sf::Item lightly{&helmet, 1};
+    lightly.wear = 1;
+    check(lightly.repairPrice() == 1, "slight wear costs at least 1");
+    check(sf::Item{&helmet, 1}.repairPrice() == 0, "unworn items cost nothing");
+    check(inventory.repairPrice(1) == helmetBlows * 100 / 300, "the helmet's price is its worn share");
+    inventory.repair(0);
+    check(!inventory.equipped(Slot::Weapon)->broken() && inventory.stats()[sf::ItemDef::kAttack] == 20, "repair mends the weapon");
+    check(inventory.equipped(Slot::Helmet)->wear == helmetBlows, "and only the weapon");
+
+    sf::Item wornSword{&sword, 1};
+    wornSword.wear = 2;
+    sf::Item wornHelmet{&helmet, 1};
+    wornHelmet.wear = 30;
+    inventory.addAt(wornSword, 0, 0);
+    inventory.addAt(wornHelmet, 2, 0);
+    check(inventory.repairPrice(sf::Inventory::kRepairBag) == 2 * 40 / 3 + 10, "the bag's price adds up its items");
+    check(inventory.repairPrice(7) == inventory.repairPrice(sf::Inventory::kRepairBag), "other numbers price the bag too");
+    inventory.repair(7);
+    check(inventory.bag()[0].item.wear == 2, "but repair does nothing for them");
+    inventory.repair(sf::Inventory::kRepairBag);
+    check(inventory.bag()[0].item.wear == 0 && inventory.bag()[1].item.wear == 0, "repairing the bag mends what is in it");
+
+    check(!inventory.hasUnidentified(), "nothing to identify yet");
+    inventory.add(fresh);
+    check(inventory.hasUnidentified(), "an unidentified item is found");
+    inventory.identifyAll();
+    check(!inventory.hasUnidentified() && inventory.bag().back().item.shownName() == "Speed Short Sword", "identify names it");
+
+    // Wear and the unidentified flag are saved; plain lines still load.
+    sf::ItemTable table;
+    table.items = {sword};
+    sf::Inventory before;
+    sf::Item kept{&table.items[0], 1};
+    kept.wear = 2;
+    kept.unidentified = true;
+    before.addAt(kept, 0, 0);
+    before.equip(Slot::Weapon, kept);
+    sf::SaveGame save;
+    save.map = "a";
+    save.store(before);
+    sf::Inventory after;
+    sf::SaveGame::parse(save.write()).restore(after, table);
+    check(after.bag().size() == 1 && after.bag()[0].item.wear == 2 && after.bag()[0].item.unidentified, "bag items keep their wear");
+    check(after.equipped(Slot::Weapon) && after.equipped(Slot::Weapon)->wear == 2 && after.equipped(Slot::Weapon)->unidentified,
+          "worn items keep their wear");
+    const auto plain = sf::SaveGame::parse("version=1\nmap=a\nbag=0,0,1,0,0\nwear=3,0,0,1\n");
+    check(plain.bag.size() == 1 && plain.bag[0].item.wear == 0 && plain.equipped[3] && !plain.equipped[3]->unidentified,
+          "older item lines load as new");
+}
+
 void testStorageClicks() {
     sf::ItemTable table;
     table.items = {def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12), def(Class::Consumable, 0, 1, 1)};
@@ -298,6 +392,7 @@ int main() {
     testLoot();
     testSaveGame();
     testStorageClicks();
+    testWearRepairIdentify();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

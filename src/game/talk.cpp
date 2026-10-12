@@ -88,7 +88,7 @@ public:
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def) return;
         if (!def->isGold()) {
-            g_.dropItem({def, 1}, x, y);
+            g_.dropItem(Item::make(def), x, y);
             return;
         }
         // Gold comes in piles of at most 10,000, spread out a little.
@@ -134,6 +134,10 @@ public:
     }
     int entryPoint() const override { return g_.entryPoint_; }
     void openStorage() override { trade(Game::kStorage); }
+    void identifyItems() override { g_.inventory_.identifyAll(); }
+    bool hasUnidentifiedItems() const override { return g_.inventory_.hasUnidentified(); }
+    void repair(int part) override { g_.inventory_.repair(part); }
+    int repairPrice(int part) const override { return g_.inventory_.repairPrice(part); }
     void showLabel(const Label& l) override { g_.showLabel(l); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
@@ -592,7 +596,7 @@ void Game::renderShop() {
         }
     }
     const auto& stock = shops_[*openShop_];
-    const ItemDef* hover = nullptr;
+    const Item* hover = nullptr;
     for (const auto& g : stock.goods) {
         const SDL_Rect r{kShopX + g.x * kCell, kShopY + g.y * kCell, g.item.def->width * kCell, g.item.def->height * kCell};
         // Over a picture, a faint wash shows which cells an item takes.
@@ -602,13 +606,13 @@ void Game::renderShop() {
             frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
         }
         drawItemPicture(*g.item.def, r);
-        if (inside(r, mx, my)) hover = g.item.def;
+        if (inside(r, mx, my)) hover = &g.item;
     }
     // What the item under the mouse costs, or what the held one sells for,
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
     if (*openShop_ == kStorage) {
-        if (hover && !hand_) lines.emplace_back(hover->name, kWhite);
+        if (hover && !hand_) lines.emplace_back(hover->shownName(), kWhite);
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
@@ -616,8 +620,8 @@ void Game::renderShop() {
             lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_->def) * std::max(1, hand_->count)), kGold);
         }
     } else if (hover && !hand_) {
-        lines.emplace_back(hover->name, kWhite);
-        lines.emplace_back(std::format("{} gold", buyPrice(*hover)), buyPrice(*hover) > inventory_.gold() ? kGrey : kGold);
+        lines.emplace_back(hover->shownName(), kWhite);
+        lines.emplace_back(std::format("{} gold", buyPrice(*hover->def)), buyPrice(*hover->def) > inventory_.gold() ? kGrey : kGold);
     }
     if (!lines.empty()) {
         int w = 0;
