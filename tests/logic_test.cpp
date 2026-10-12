@@ -2,12 +2,15 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "logic/explored_map.h"
+#include "logic/lighting.h"
 #include "formats/table_data.h"
 #include "logic/magic.h"
 #include "logic/mines.h"
@@ -638,6 +641,40 @@ void testPowerMode() {
     check(sf::attackSpeedFactor(t, 255) >= sf::attackSpeedFactor(t, 0), "faster attack speed, faster swings");
 }
 
+void testLighting() {
+    const auto dark = sf::lighting::levels(1000);
+    check(dark[0] == 0 && dark[128] == 128 && dark[255] == 255, "light 1000 keeps the light as it is");
+    const auto darker = sf::lighting::levels(500);
+    check(darker[200] == 100 && darker[255] == 128, "below 1000 the light is scaled down");
+    const auto lit = sf::lighting::levels(1500);
+    check(lit[0] == 127 && lit[255] == 255, "above 1000 it is lifted towards white");
+
+    sf::LightMap screen{4, 3, std::vector<std::uint8_t>(12, 200)};
+    const sf::LightMap lamp{2, 2, {100, 0, 30, 60}};
+    sf::lighting::add(screen, lamp, 0, 0);  // its middle at (0, 0): only its bottom right lands
+    check(screen.at(0, 0) == 255 && screen.at(1, 0) == 200 && screen.at(0, 1) == 200, "lights add, saturating, clipped to the screen");
+    const auto e = sf::lighting::ellipse(160, 110);
+    check(e.at(80, 55) >= 250 && e.at(0, 0) == 0 && e.at(80, 0) < 10, "our light is brightest in the middle");
+}
+
+void testExploredMap() {
+    sf::ExploredMap m(10, 5);
+    m.reveal(-2, 3, 5, 9);
+    check(m.seenAt(0, 3) && m.seenAt(2, 4) && !m.seenAt(3, 4) && !m.seenAt(0, 2), "reveal marks the block on the map");
+    check(!m.seenAt(-1, 3) && !m.seenAt(0, 5), "off the map is never seen");
+    check(m.encode() == "10,5,30,3,7,3,7", "the mask is written as runs");
+    const auto back = sf::ExploredMap::decode(m.encode());
+    check(back.width == 10 && back.height == 5 && back.seen == m.seen, "the mask survives a write and a read");
+    check(sf::ExploredMap::decode(sf::ExploredMap(3, 2).encode()).seen == std::vector<std::uint8_t>(6, 0), "an unseen map");
+    bool threw = false;
+    try {
+        sf::ExploredMap::decode("2,2,5");
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    check(threw, "runs longer than the map are rejected");
+}
+
 void testSettings() {
     const sf::Settings defaults;
     check(!defaults.fullScreen && defaults.seeThroughPlayer && defaults.clickSize == 2 && !defaults.originalMode,
@@ -665,6 +702,8 @@ void testSettings() {
 }
 
 int main() {
+    testLighting();
+    testExploredMap();
     testSettings();
     testMagic();
     testPowerMode();

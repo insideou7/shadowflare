@@ -1,7 +1,7 @@
 // The Settings Menu (Esc in the game, Options on the title menu) and the
 // Help window (H), laid out after the original's: each row names a setting
 // with its choices to the right, the chosen one bright. Rows the engine
-// cannot do yet (no darkness, sound or map) are shown dimmed.
+// cannot do yet (no sound) are shown dimmed.
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -57,12 +57,11 @@ std::vector<Game::OptionRow> Game::optionRows() const {
 bool Game::optionEnabled(OptionRow row) const {
     switch (row) {
         // Not in the engine yet.
-        case OptionRow::Darkness:
         case OptionRow::SaveImage:
         case OptionRow::EffectVolume:
-        case OptionRow::MusicVolume:
-        case OptionRow::Map: return false;
-        case OptionRow::MissionList: return map_ && player_;
+        case OptionRow::MusicVolume: return false;
+        case OptionRow::MissionList:
+        case OptionRow::Map: return map_ && player_;
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
@@ -203,6 +202,10 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::MissionList:
             closeOptions();
             if (!missionsOpen_) toggleMissions();
+            break;
+        case OptionRow::Map:
+            closeOptions();
+            if (!mapOpen_) toggleAreaMap();
             break;
         case OptionRow::SaveAndTitle:
             if (saveGame()) {
@@ -380,7 +383,7 @@ void Game::renderHelp() {
         {"X", "SPECIAL ITEMS WINDOW", false},
         {"M", "MAGIC WINDOW", true},
         {"Q", "MISSION LIST", true},
-        {"N", "MAP", false},
+        {"N", "MAP; ARROWS SCROLL IT, ENTER CENTERS IT", true},
         {"R", "SWITCH WALK/RUN", true},
         {"H", "HELP", true},
         {"PRINT SCREEN", "SCREEN SHOT", true},

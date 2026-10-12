@@ -160,6 +160,7 @@ void Game::toggleMissions() {
     showStatus_ = false;
     closeMagicWindow();
     helpOpen_ = false;
+    closeAreaMap();
     missionsOpen_ = true;
     missionShown_ = -1;
 }

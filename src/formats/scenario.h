@@ -84,6 +84,13 @@ struct ScenarioControl {
 
         // Items lying on the map: which one, as an Item.Ibn (class, code).
         std::int32_t itemClass = -1, itemCode = 0;
+
+        // The light it carries in the dark (a torch, a glowing monster):
+        // which of Dark.njp's ellipses, 0 the smallest to 5 the largest
+        // (its parts 1-6), or -1 for none. The word after the record's
+        // table, which the loader keeps at character + 0xc0 for the
+        // darkness drawn in the frame code at 0x41e4f0.
+        std::int32_t light = -1;
     };
 
     // Where the party appears when the scenario is entered. Each entry
@@ -105,6 +112,17 @@ struct ScenarioControl {
 
     std::string mapPath;  // e.g. "Map\\c02_00.map"
     std::string title;    // area name shown to the player
+    // The header's third word (scenario + 0x1c): 0 town, 1 field, 2 the
+    // Caravan and two towns, 3 a boss room, 4 ruins, towers and forts,
+    // 5 caves, 6 shrines (named from which areas have which).
+    std::int32_t areaKind = 0;
+    // How light the area is (the file's last word, scenario + 0x68, which
+    // 0x426200 copies to the game at + 0xa9f8): 2000 fully lit, so no
+    // darkness; 1000 Dark.njp's light as drawn; in between, lighter. The
+    // original's outdoor areas have 2000, ruins, towers and caves 1000,
+    // the late forests and the Devil's Castle 1200-1600.
+    std::int32_t light = kLit;
+    static constexpr std::int32_t kLit = 2000;
     std::vector<Placement> placements;
     std::vector<EntryPoint> entryPoints;
 

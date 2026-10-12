@@ -87,6 +87,7 @@ void Game::toggleMagicWindow() {
     if (openShop_ || dialogue_ || !player_) return;
     showStatus_ = false;
     closeMissions();
+    closeAreaMap();
     helpOpen_ = false;
     magicOpen_ = true;
 }
