@@ -101,6 +101,8 @@ Options:
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
 - `--answers <a,b,...>` answer the next messages with these options (-1 = none)
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
+- `--quest-flag <id>=<state>` set a mission's flag first (1 taken, 2 cleared)
+- `--missions` start with the mission list open; `--missions=<n>` with mission n's description open
 - `--original` play in original mode: the original game's rules, bugs included
   (also in the menu; off by default)
 - `--cast <slot>:<x>,<y>` cast the spell on F1-F8 (slot 1-8) at a point given in

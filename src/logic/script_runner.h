@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "formats/scenario_script.h"
+#include "logic/rules.h"
 
 namespace sf {
 
@@ -54,7 +55,12 @@ public:
     virtual std::int64_t gold() const { return 0; }
     virtual void payGold(std::int64_t /*amount*/) {}
     virtual int random(int /*n*/) { return 0; }
+    // DRAWQUESTNAME: the mission's title along the bottom of the screen
+    // for a while (ShadowFlare.exe 0x433868, drawn by 0x4050f0).
     virtual void showQuestName(int /*quest*/) {}
+    // SETCOMPASSES msg: the area's name beside the compass at the top left
+    // as the player arrives (0x43389b, drawn by 0x412220).
+    virtual void showAreaName(const std::string& /*name*/) {}
     virtual int entryPoint() const { return 0; }  // the entry the party came in by
     // ENABLECLASSCHANGE: offers class 1 warrior, 2 hunter or 3 wizard; the
     // player takes it in the status window.
@@ -115,6 +121,9 @@ public:
     // A message with printf-style %d / %s filled from SETMSGDEFINE's values.
     std::string format(const std::string& text) const;
 
+    // Original mode's SETQUESTFLAG (see Rules::missionsClearOnlyWhenTaken).
+    void setRules(const Rules& rules) { rules_ = rules; }
+
 private:
     void run(std::int32_t sentence, int depth);
 
@@ -123,10 +132,15 @@ private:
     ScriptHost* host_;
     std::int32_t character_;
     std::optional<ScenarioChange> change_;
+    Rules rules_;
 };
 
 // SETMSGDEFINE's twenty values live with the flags under this operand type
 // so they survive from one sentence to the next, as in the original.
 inline constexpr std::int32_t kMessageArgType = -100;
+// The original's other mission array (0x48cebc): set once a script has
+// cleared a mission, taken or not. It is not saved, so it lives under a
+// negative type with the flags, which saving skips.
+inline constexpr std::int32_t kQuestClearedType = -101;
 
 }  // namespace sf

@@ -53,6 +53,8 @@ struct Options {
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
+    std::vector<std::pair<int, int>> questFlags;  // QUEST[id] = state (1 taken, 2 cleared)
+    std::optional<int> missions;  // open the mission list (-1, or a mission's description)
     bool original = false;    // play by the original game's rules, bugs included
     struct Cast {
         int slot = 0, dx = 0, dy = 0;
@@ -116,6 +118,14 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--save-flag" && i + 1 < argc) {
             int id = 0, value = 0;
             if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.saveFlags.emplace_back(id, value);
+        } else if (arg == "--quest-flag" && i + 1 < argc) {
+            int id = 0, value = 0;
+            if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.questFlags.emplace_back(id, value);
+        } else if (arg == "--missions") {
+            // Opens the mission list; --missions=<n> with mission n's description.
+            options.missions = -1;
+        } else if (arg.starts_with("--missions=")) {
+            options.missions = static_cast<int>(std::strtol(argv[i] + 11, nullptr, 10));
         } else if (arg == "--original") {
             options.original = true;
         } else if (arg == "--cast" && i + 1 < argc) {
@@ -379,6 +389,8 @@ int main(int argc, char** argv) {
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
+    for (const auto& [id, value] : options.questFlags) app.game->setQuestFlag(id, value);
+    if (options.missions) app.game->openMissions(*options.missions);
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
     if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);

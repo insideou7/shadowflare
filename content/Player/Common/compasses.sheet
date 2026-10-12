@@ -1,0 +1,11 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The compass beside the area's name, frame by frame as it shrinks.
+image=compasses.png
+frame=0,0,170,124,33,25
+frame=172,0,165,118,30,22
+frame=339,0,154,111,25,18
+frame=495,0,142,102,19,14
+frame=639,0,130,94,13,10
+frame=771,0,118,86,7,6
+frame=891,0,106,76,1,1
+frame=999,0,100,73,-2,-1

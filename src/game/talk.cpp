@@ -36,6 +36,17 @@ void frame(SDL_Renderer* renderer, const SDL_Rect& r, SDL_Color fill, SDL_Color 
     SDL_RenderDrawRect(renderer, &r);
 }
 
+int directionTowards(double dx, double dy) {
+    // World x runs down-right on screen and y down-left; 0 = south, then
+    // counter-clockwise.
+    const double sx = dx - dy, sy = (dx + dy) * 2.0 / 3.0;
+    const double angle = std::atan2(sx, sy);  // 0 = down the screen, positive = right
+    int d = static_cast<int>(std::lround(angle / (3.14159265358979 / 4)));
+    return (d + 8) % 8;
+}
+
+}  // namespace
+
 // The original's messages are Shift-JIS. The English release only uses a
 // few double-byte characters: the wide space and the middle dot.
 std::string toAscii(const std::string& text) {
@@ -55,17 +66,6 @@ std::string toAscii(const std::string& text) {
     }
     return out;
 }
-
-int directionTowards(double dx, double dy) {
-    // World x runs down-right on screen and y down-left; 0 = south, then
-    // counter-clockwise.
-    const double sx = dx - dy, sy = (dx + dy) * 2.0 / 3.0;
-    const double angle = std::atan2(sx, sy);  // 0 = down the screen, positive = right
-    int d = static_cast<int>(std::lround(angle / (3.14159265358979 / 4)));
-    return (d + 8) % 8;
-}
-
-}  // namespace
 
 // What the scenario scripts ask of the game.
 class GameScript : public ScriptHost {
@@ -144,10 +144,8 @@ public:
     std::int64_t gold() const override { return g_.inventory_.gold(); }
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
     int random(int n) override { return g_.random_.next(n); }
-    void showQuestName(int quest) override {
-        const auto* titles = g_.tables_.find(41);
-        if (titles && quest >= 0 && quest < titles->rows) g_.showMessage(toAscii(titles->string(quest, 0)));
-    }
+    void showQuestName(int quest) override { g_.showMissionName(quest); }
+    void showAreaName(const std::string& name) override { g_.showAreaName(toAscii(name)); }
     int entryPoint() const override { return g_.entryPoint_; }
     void openStorage() override { trade(Game::kStorage); }
     void identifyItems() override { g_.inventory_.identifyAll(); }
@@ -242,7 +240,9 @@ void Game::renderLabels(int camX, int camY) {
 void Game::runScript(std::int32_t sentence, std::int32_t character) {
     if (!script_ || pendingScenario_) return;
     GameScript host(*this);
-    if (const auto change = ScriptRunner(*script_, flags_, &host, character).run(sentence)) {
+    ScriptRunner runner(*script_, flags_, &host, character);
+    runner.setRules(rules_);
+    if (const auto change = runner.run(sentence)) {
         pendingScenario_.emplace(change->scenario, change->entry);
     }
 }
@@ -377,6 +377,7 @@ void Game::uiText(int x, int y, std::string_view text, SDL_Color color) {
         return;
     }
     SDL_SetTextureColorMod(font->texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(font->texture, color.a);
     for (const char ch : text) {
         const auto c = static_cast<unsigned char>(ch);
         const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
@@ -385,6 +386,7 @@ void Game::uiText(int x, int y, std::string_view text, SDL_Color color) {
         x += 6;
     }
     SDL_SetTextureColorMod(font->texture, 255, 255, 255);
+    SDL_SetTextureAlphaMod(font->texture, 255);
 }
 
 // Where the box goes: above the speaker, kept on screen.
