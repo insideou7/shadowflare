@@ -9,9 +9,9 @@ ways to play:
   the repository root (git ignores it), or point the engine elsewhere with
   `--data`. The engine reads them at runtime.
 - Without it: the engine falls back to the open replacement content in
-  [content/](content/), a small demo built from
-  [Flare](https://github.com/flareteam/flare-game)'s CC-BY-SA art (a goblin
-  camp and its cave). See [docs/content.md](docs/content.md).
+  [content/](content/): our own ShadowFlare-style art, made from scratch
+  in Blender, with seven areas from a village meadow down to a castle.
+  See [docs/content.md](docs/content.md).
 
 ## Status
 
@@ -92,8 +92,8 @@ Players will still need to supply their own game files.
     third_party/    stb_image (PNG decoding for the open content)
     content/        open replacement content (CC-BY-SA 3.0)
     tests/          unit tests that run without game data
-    tools/          inventory script, reverse engineering helpers and the
-                    Flare content importer (Python)
+    tools/          inventory script, reverse engineering helpers, the
+                    Blender art scripts (tools/art) and a Flare importer
     docs/           file format notes
 
 ## Surveying the original files
@@ -110,9 +110,8 @@ renders a whole map to an image.
 ## Licence
 
 The engine and tools are under the MIT licence; see [LICENSE](LICENSE).
-The open content in [content/](content/) is CC-BY-SA 3.0, from Flare:
-Empyrean Campaign; see [content/README.md](content/README.md) for its
-credits. stb_image is public domain (or MIT).
+The open content in [content/](content/) is our own art, under CC-BY-SA
+3.0; see [content/README.md](content/README.md). stb_image is public domain (or MIT).
 
 The original game is copyrighted and is not covered by this licence. Do
 not commit its files, extracted assets or decompiled code to this

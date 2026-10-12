@@ -34,12 +34,12 @@ jobs:
         run: ctest --test-dir build --build-config Release --output-on-failure
 
       # Play the bundled open content for a few seconds without a window:
-      # walk into the goblin camp's cave entrance, which loads the cave.
+      # walk into the meadow's stairs down, which loads the waterworks.
       - name: Smoke test with the open content
         if: runner.os == 'Linux'
         env:
           SDL_VIDEODRIVER: dummy
           SDL_AUDIODRIVER: dummy
         run: |
-          ./build/shadowflare --data content --at 864,3072 --walk 0,-96 --ticks 60 2>&1 | tee run.log
-          grep -q 'Going to Scenario/00000002 "Goblin Cave"' run.log
+          ./build/shadowflare --data content --at -792,1872 --walk 90,-60 --ticks 60 2>&1 | tee run.log
+          grep -q 'Going to Scenario/00000002 "Old Waterworks"' run.log
