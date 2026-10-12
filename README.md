@@ -34,7 +34,7 @@ for what has been decoded so far.
 Controls: hold the left mouse button to walk towards the cursor (or to
 attack the monster under it), or use
 the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
-map, Home returns to the start point, J shows the walkability grid, Esc quits.
+map, Home returns to the start point, J shows the walkability grid, Esc opens the menu (resume, save, load, new game, quit).
 Walk onto an item to pick it up. I opens the inventory: click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
@@ -74,6 +74,7 @@ Options:
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
+- `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 
 Run the unit tests with `ctest --test-dir build`.
 

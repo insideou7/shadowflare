@@ -80,6 +80,12 @@ public:
         playerHp_ = playerMaxHp();
     }
 
+    // The main menu. At the start it offers Continue, New Game and Quit;
+    // Esc during play opens it with Resume, Save and Load as well.
+    enum class MenuItem { Resume, Continue, NewGame, Save, Load, Quit };
+    void openMenu(bool atStart);
+    bool menuOpen() const { return menuOpen_; }
+
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
     bool loadGame();
@@ -180,6 +186,12 @@ private:
     void renderGroundItems(int camX, int camY);
     void renderInventory();
     void renderHud();
+    void renderMenu();
+    void menuEvent(const SDL_Event& event);
+    int menuItemAt(int x, int y) const;
+    bool menuItemEnabled(MenuItem item) const;
+    void chooseMenuItem(MenuItem item);
+    void newGame();
 
     SDL_Renderer* renderer_;
     const FileSystem* data_;
@@ -226,6 +238,10 @@ private:
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;
     bool quit_ = false;
+    bool menuOpen_ = false;
+    std::vector<MenuItem> menuItems_;
+    int menuChoice_ = 0;
+    std::size_t startMapIndex_ = 0;
 };
 
 }  // namespace sf

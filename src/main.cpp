@@ -37,6 +37,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool noMenu = false;      // go straight into the game
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
@@ -75,6 +76,8 @@ Options parseArgs(int argc, char** argv) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--no-menu") {
+            options.noMenu = true;
         } else if (arg == "--load") {
             options.load = true;
         } else if (arg == "--save-at-end") {
@@ -262,6 +265,12 @@ int main(int argc, char** argv) {
     }
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level);
+    // The main menu, unless this is a scripted run (tests, screenshots) or
+    // the command line already says where to start.
+    const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
+                          options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
+                          options.level > 0 || options.autoFight;
+    if (!scripted) app.game->openMenu(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);

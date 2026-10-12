@@ -487,6 +487,7 @@ void Game::renderInventory() {
 }
 
 void Game::renderHud() {
+    if (menuOpen_) return;
     if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 34, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
