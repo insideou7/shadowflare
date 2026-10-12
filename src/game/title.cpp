@@ -77,6 +77,8 @@ void Game::newGame() {
     playerLevel_ = 1;
     career_ = {};
     showStatus_ = false;
+    closeMagicWindow();
+    power_ = {};
     shops_.clear();
     openShop_.reset();
     dialogue_.reset();

@@ -27,7 +27,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | F9 | choose the attack for the right button | yes |
 | 1-8 | use a belt pocket item (1-4 the top row, 5-8 the bottom); a right click on it does too | yes |
 | B | lay a mine where you stand; the MINE button by the belt does too ([mines.md](mines.md)) | yes |
-| P | increased-power mode | no |
+| P | increased-power mode, once its button by the panel's crossed swords blinks (or click the button); see [magic.md](magic.md#increased-power-mode) | yes |
 | Ctrl | run while held | yes |
 | Shift | stop where you are; with a left click, attack in place | yes |
 | Caps Lock | swap between the two equipment sets | no |
@@ -36,7 +36,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | S | status window | yes |
 | I | items window | yes |
 | X | special items window | no |
-| M | magic window | no |
+| M | magic window, the STATUS window's other tab; drag spells to its bar for F1-F8; see [magic.md](magic.md#the-magic-window) | yes |
 | Q | mission list; see below | yes |
 | N | map (the arrow keys scroll it, Enter centers it) | yes |
 | R | switch walk / run | yes |

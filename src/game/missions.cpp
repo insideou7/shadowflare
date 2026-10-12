@@ -158,6 +158,7 @@ void Game::toggleMissions() {
     if (openShop_ || dialogue_) return;
     if (showInventory_) closeInventory();
     showStatus_ = false;
+    closeMagicWindow();
     helpOpen_ = false;
     closeAreaMap();
     missionsOpen_ = true;

@@ -142,6 +142,14 @@ public:
     // (for scripted tests).
     void orderPartnerBy(const std::string& kind, int dx, int dy);
 
+    // Increased-power mode (P or the power button): `charge` kills toward
+    // it, for tests; startPower() starts it when it is ready.
+    void setPowerCharge(int charge) { power_.charge = charge; }
+    bool startPower();
+    bool powerActive() const { return power_.active(); }
+    // The magic window (M), on page 0-3 (for tests).
+    void openMagicWindow(int page = 0);
+
     // Lays a mine where the player stands, as B does (for scripted tests).
     void layMineHere() { layMine(); }
 
@@ -283,6 +291,7 @@ private:
     void updateCamera();
     bool tryMove(Character& who, double dx, double dy);
     void tickPlayer();
+    void swing();
     void tickEnemy(Actor& enemy);
     // Monster behaviour from Control.aid (enemy_ai.cpp).
     void tickEnemyAi(Actor& enemy);
@@ -423,6 +432,23 @@ private:
     void stepEffect(Effect& effect);
     void clearSpells();
     void trainSpell(int spell);
+    // The level a spell is cast at: its own, two higher in power mode.
+    int castLevel(int spell) const { return spells_.castLevel(spell, power_.active()); }
+    bool hasSpiritStone() const { return inventory_.carries(ItemDef::Class::Special, PowerMode::kSpiritStone); }
+    // The power button on the panel (power.cpp) and the glow round the hero
+    // while the mode runs.
+    void renderPowerButton();
+    bool powerButtonClick(int x, int y);
+    const CharacterModel* powerModel();
+    void renderPowerAura(int camX, int camY);
+    // The magic window (magic_window.cpp), the STATUS window's other tab:
+    // the spells learned, six to a page, and the eight places of the
+    // magic/attack bar that spells are dragged to.
+    void toggleMagicWindow();
+    void closeMagicWindow();
+    bool magicWindowClick(int x, int y, bool right);
+    void magicWindowRelease(int x, int y);
+    void renderMagicWindow();
     bool spellOn(int spell) const { return spellOn_[static_cast<std::size_t>(spell)]; }
     void setSpellOn(int spell, bool on) { spellOn_[static_cast<std::size_t>(spell)] = on; }
     int spellPower(int spell, int level) const;
@@ -668,6 +694,12 @@ private:
     MagicTables magic_ = MagicTables::standard();
     SpellBook spells_;
     std::array<bool, kSpellCount> spellOn_{};  // toggle spells that are on
+    PowerMode power_;
+    double powerAuraTicks_ = 0;
+    bool blowLanded_ = false;  // the hero's current swing has struck  // original ticks into the glow (+0x1558)
+    bool magicOpen_ = false;
+    int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
+    int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)
     int berserkerCarry_ = 0;
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units

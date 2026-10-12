@@ -391,6 +391,8 @@ void Game::handleEvent(const SDL_Event& event) {
                         closeInventory();
                     } else if (showStatus_) {
                         showStatus_ = false;
+                    } else if (magicOpen_) {
+                        closeMagicWindow();
                     } else {
                         openOptions(true);
                     }
@@ -409,6 +411,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         showStatus_ = !showStatus_;
                         if (showStatus_) {
                             closeMissions();
+                            closeMagicWindow();
                             closeAreaMap();
                         }
                     }
@@ -447,7 +450,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 }
                 case SDLK_b: layMine(); break;
-                case SDLK_p: notYet("Increased-power mode"); break;
+                case SDLK_p: startPower(); break;
                 case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
                 case SDLK_SPACE:
                     // Open content has no companions.
@@ -458,7 +461,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     }
                     break;
                 case SDLK_x: notYet("The special items window"); break;
-                case SDLK_m: notYet("The magic window"); break;
+                case SDLK_m: toggleMagicWindow(); break;
                 case SDLK_q: toggleMissions(); break;
                 case SDLK_n: toggleAreaMap(); break;
                 case SDLK_HOME:
@@ -478,6 +481,8 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && missionHudClick(event.button.x, event.button.y)) break;
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
+            if (magicWindowClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && powerButtonClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
@@ -521,7 +526,10 @@ void Game::handleEvent(const SDL_Event& event) {
             }
             break;
         case SDL_MOUSEBUTTONUP:
-            if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = false;
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                mouseHeld_ = false;
+                magicWindowRelease(event.button.x, event.button.y);
+            }
             break;
         default: break;
     }
@@ -602,6 +610,10 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    if (power_.active()) {
+        power_.tick(1.5);  // the original's ticks, 30 a second
+        powerAuraTicks_ += 1.5;
+    }
     tickPartner();
     tickSpells();
     pickUpItems();
@@ -689,6 +701,13 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
     return best;
 }
 
+// A swing of the hero's weapon, as fast as their attack speed (power mode:
+// the fastest).
+void Game::swing() {
+    player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
+    blowLanded_ = false;
+}
+
 void Game::tickPlayer() {
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
@@ -701,8 +720,10 @@ void Game::tickPlayer() {
     }
     if (current == chart::kPlayerHit && !player_->finished()) return;
     if (current == chart::kPlayerPunch) {
-        // The blow lands halfway through the swing.
-        if (player_->frame() == 4 && attackTarget_) {
+        // The blow lands halfway through the swing (once, as a fast swing
+        // can step past the frame).
+        if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
+            blowLanded_ = true;
             Actor& target = actors_[*attackTarget_];
             if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) strikeEnemy(target);
         }
@@ -730,7 +751,7 @@ void Game::tickPlayer() {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
             player_->faceTowards(wx - player_->x, wy - player_->y);
-            player_->restart(chart::kPlayerPunch);
+            swing();
             return;
         }
         if (target.kind == Settings::kEnemy) {
@@ -828,7 +849,7 @@ void Game::tickPlayer() {
         dy = enemy.y - player_->y;
         if (std::hypot(dx, dy) <= kMeleeRange) {
             player_->faceTowards(dx, dy);
-            player_->restart(chart::kPlayerPunch);
+            swing();
             // Keep punching only while the button is held.
             if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
             return;
@@ -840,7 +861,9 @@ void Game::tickPlayer() {
 
     // Run when RUN is chosen (R), or while Ctrl is held.
     const bool running = runMode_ || (SDL_GetModState() & KMOD_CTRL) != 0;
-    const double speed = running ? kRunSpeed : kWalkSpeed;
+    // Walking speed picks a step of the original's scale; power mode the
+    // fastest.
+    const double speed = (running ? kRunSpeed : kWalkSpeed) * walkSpeedFactor(playerStats()[HeroStats::kWalkSpeed], power_.active());
     const double length = std::hypot(dx, dy);
     if (length > 1.0) {
         const double step = std::min(speed, walkTarget_ ? length : speed);
@@ -956,7 +979,8 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
     // Table 11: the hero's level in the monster's element strengthens their
     // defence. Energy Shield changes the defence first (0x443cb0).
     int defense = stats[HeroStats::kDefense];
-    if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, spells_.castLevel(kEnergyShield)) / 100;
+    if (power_.active()) defense = defense * 12 / 10;
+    if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
     hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
 }
 
@@ -971,7 +995,10 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
         // The original counts how the hero kills monsters, to offer a class
         // (0x4134a0), and every kill trains the companion (0x413640).
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
-        if (!byPartner) career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        if (!byPartner) {
+            career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+            ++power_.charge;  // towards increased-power mode (0x4134a0)
+        }
         partnerCountKill();
         // Moon, Berserker and Energy Shield train by kills while they are
         // on (0x419c91).
@@ -995,14 +1022,14 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
         const int charged = rules_.shieldsCostTheirOwnMp || spells_.selected < 0 ? shield : spells_.selected;
-        playerMp_ -= spellMpCost(magic_, charged, spells_.castLevel(shield));
+        playerMp_ -= spellMpCost(magic_, charged, castLevel(shield));
         if (playerMp_ <= 0) {
             playerMp_ = 0;
             setSpellOn(shield, false);
         }
     };
     if (magic && spellOn(kMagicShield)) {
-        damage = std::max(1, damage * (100 - magic_.power(kMagicShield, spells_.castLevel(kMagicShield))) / 100);
+        damage = std::max(1, damage * (100 - magic_.power(kMagicShield, castLevel(kMagicShield))) / 100);
         if (damage >= 20) trainSpell(kMagicShield);
         chargeShield(kMagicShield);
         spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
@@ -1033,7 +1060,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
     // Counter Burst sends part of a monster's blow back (0x444150): half
     // as much to monsters whose word 7 is 100, at least 1.
     if (!magic && attacker && attacker->alive() && spellOn(kCounterBurst)) {
-        int back = damage * magic_.power(kCounterBurst, spells_.castLevel(kCounterBurst)) / 100;
+        int back = damage * magic_.power(kCounterBurst, castLevel(kCounterBurst)) / 100;
         if (attacker->placement.stats.word7 == 100) back /= 2;
         if (damage >= 20) trainSpell(kCounterBurst);
         chargeShield(kCounterBurst);
@@ -1115,6 +1142,7 @@ void Game::renderMap() {
         std::vector<Drawable> pending = shadows ? std::vector<Drawable>{} : drawables;
         auto draw = [&](const Drawable& d) {
             if (d.character) d.character->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+            if (!shadows && d.character && player_ && d.character == &*player_) renderPowerAura(camX, camY);
             if (d.effect) renderEffect(*d.effect, camX, camY);
         };
         for (std::size_t i : drawOrder_) {
@@ -1145,9 +1173,11 @@ void Game::renderMap() {
     // layers them (11 and 13 below 14).
     renderPanel();
     renderSpellBar();
+    renderPowerButton();
     renderCompass();
     renderShop();
     renderStatus();
+    renderMagicWindow();
     renderInventory();
     renderMissions();
     renderAreaMap();

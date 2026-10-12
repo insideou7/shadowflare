@@ -76,6 +76,7 @@ void Game::toggleAreaMap() {
     // It shares the left half with these.
     showStatus_ = false;
     closeMissions();
+    closeMagicWindow();
     mapOpen_ = true;
     mapTicks_ = 0;
 }

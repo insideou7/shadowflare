@@ -1,0 +1,7 @@
+# Drawn by tools/art/magic.py (our own art, see content/README.md).
+# The magic window: window, icon box, previous page, next page.
+image=Magic.png
+frame=0,0,320,416,0,0
+frame=0,417,32,32,0,0
+frame=34,417,33,16,-17,-336
+frame=69,417,33,16,-272,-336

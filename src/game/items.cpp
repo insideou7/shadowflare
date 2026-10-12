@@ -297,7 +297,7 @@ HeroStats Game::playerStats() const {
     v[HeroStats::kStrength] += inventory_.modifier(ItemDef::kModStrength);
     int chant = 0;  // chant speed has no source yet besides elements
     applyElementLevels(stats, chant, playerElements());
-    if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, spells_.castLevel(kBerserker));
+    if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, castLevel(kBerserker));
     return stats;
 }
 

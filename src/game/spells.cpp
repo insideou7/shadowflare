@@ -127,7 +127,7 @@ void Game::selectSpellSlot(int slot) {
     const int spell = spells_.bar[static_cast<std::size_t>(slot)];
     if (spell < 0) return;
     spells_.selected = spell;
-    showMessage(std::format("{} (level {})", magic_.spell(spell).name, spells_.castLevel(spell)));
+    showMessage(std::format("{} (level {})", magic_.spell(spell).name, castLevel(spell)));
 }
 
 void Game::castBy(int slot, int screenDx, int screenDy) {
@@ -161,6 +161,9 @@ void Game::startCast(double worldX, double worldY) {
         showMessage("No spell chosen (F1-F8)");
         return;
     }
+    // Power mode keeps Berserker, Moon and Energy Shield from being cast,
+    // or cast again to turn them off (0x441c00).
+    if (power_.active() && blockedInPowerMode(spell)) return;
     const Kind kind = kindOf(spell);
     if (kind == Kind::NotYet) {
         showMessage(std::format("{} is not in the game yet", magic_.spell(spell).name));
@@ -173,7 +176,7 @@ void Game::startCast(double worldX, double worldY) {
         return;
     }
     if (kind == Kind::Heal && playerHp_ >= playerMaxHp()) return;  // as the original: not when full
-    const int level = spells_.castLevel(spell);
+    const int level = castLevel(spell);
     const int cost = spellMpCost(magic_, spell, level);
     if (playerMp_ < cost) {
         showMessage("Not enough MP");
@@ -196,7 +199,7 @@ void Game::startCast(double worldX, double worldY) {
     // Heal has a casting animation of its own.
     int chart = spell == kHeal ? chart::kPlayerHeal : chart::kPlayerCast;
     if (!player_->hasChart(chart)) chart = player_->hasChart(chart::kPlayerCast) ? chart::kPlayerCast : chart::kPlayerPunch;
-    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed));
+    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active()));
     if (kind == Kind::Cast) {
         SpellCast cast;
         cast.spell = spell;
@@ -213,7 +216,7 @@ void Game::startCast(double worldX, double worldY) {
 void Game::releaseSpell() {
     castReleased_ = true;
     const int spell = *casting_;
-    const int level = spells_.castLevel(spell);
+    const int level = castLevel(spell);
     log::info("Cast {} at level {}", magic_.spell(spell).name, level);
     switch (kindOf(spell)) {
         case Kind::NotYet: break;
@@ -622,7 +625,7 @@ void Game::tickSpells() {
     }
     // Berserker drains MP every third tick (0x44f2f0) and ends with it.
     if (spellOn(kBerserker) && ticks_ % 3 == 0) {
-        const int rate = magic_.berserker[0][MagicTables::column(spells_.castLevel(kBerserker))];
+        const int rate = magic_.berserker[0][MagicTables::column(castLevel(kBerserker))];
         playerMp_ += regenerate(playerMaxMp(), rate, berserkerCarry_);
         if (playerMp_ <= 0) {
             playerMp_ = 0;
@@ -728,7 +731,7 @@ void Game::renderSpells(int camX, int camY) {
 std::vector<Game::BarIcon> Game::spellBarLayout() const {
     std::vector<BarIcon> icons;
     if (!player_ || missionsOpen_ || menuOpen_) return icons;
-    const bool left = showStatus_ || openShop_.has_value() || mapOpen_;
+    const bool left = showStatus_ || magicOpen_ || openShop_.has_value() || mapOpen_;
     if (left && showInventory_) return icons;
     int x = left ? 344 : showInventory_ ? 124 : 224;
     for (int b = 0; b < kSpellBarSize; ++b) {
@@ -758,7 +761,7 @@ bool Game::spellBarClick(int x, int y) {
             showMessage("Attack");
         } else if (icon.spell >= 0 && !icon.chosen) {
             spells_.selected = icon.spell;
-            showMessage(std::format("{} (level {})", magic_.spell(icon.spell).name, spells_.castLevel(icon.spell)));
+            showMessage(std::format("{} (level {})", magic_.spell(icon.spell).name, castLevel(icon.spell)));
         }
         return true;
     }

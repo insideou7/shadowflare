@@ -179,6 +179,46 @@ int spellMpCost(const MagicTables& t, int spell, int level, int equipmentSaving 
 // in power mode, 0 when carrying too much).
 double castSpeedFactor(const MagicTables& t, int spell, int chantSpeed, bool powerMode = false, bool overloaded = false);
 
+// Increased-power mode (P, or the power button on the panel), as
+// ShadowFlare.exe runs it. Each monster the hero kills themself (not the
+// companion) adds one to a charge (player + 0x1550, 0x4134a0); at 50, or 30
+// while the Spirit Stone is in the bag, the button blinks and the mode can
+// be started (0x451a00). Starting it empties the charge, turns Berserker off
+// and runs the mode for 900 of the original's ticks, 30 seconds (+0x1554,
+// P at 0x4429b0, the button at 0x445bd0). While it runs:
+// walking, running, attacking and casting all take the fastest step of their
+// speed scales (step 9), spells are cast two levels higher (0x451e60), the
+// hero's defense against blows is 20% higher (0x443cb0), and Berserker, Moon
+// and Energy Shield cannot be cast (0x441c00). The charge is not saved.
+struct PowerMode {
+    static constexpr int kCharge = 50;               // kills needed
+    static constexpr int kChargeWithStone = 30;      // with the Spirit Stone
+    static constexpr int kSpiritStone = 98000001;    // special item (class 4) 0x5d75c81
+    static constexpr double kLength = 900;           // original ticks (30 a second)
+
+    int charge = 0;      // kills since it was last used
+    double left = 0;     // original ticks it still runs for
+
+    bool active() const { return left > 0; }
+    bool ready(bool spiritStone) const { return charge >= kCharge || (spiritStone && charge >= kChargeWithStone); }
+    // Starts it if it is ready; false (and nothing changes) if not.
+    bool start(bool spiritStone);
+    // Runs it for `originalTicks` of the original's ticks.
+    void tick(double originalTicks) { left = std::max(0.0, left - originalTicks); }
+};
+// Spells that cannot be cast while the mode runs.
+bool blockedInPowerMode(int spell);
+
+// How fast the hero walks or runs, as a factor of the plain speed: walking
+// speed / 32 + 1 picks a step (0x450d40) of the scale the walk and run code
+// multiply by (0x4351f0, 0x435530); step 9 in power mode. A new hero's 128
+// is step 5, a factor of 1.
+double walkSpeedFactor(int walkSpeed, bool powerMode = false);
+// How fast the hero swings, likewise: table 4 at attack speed / 32, plus 1,
+// picks a step (0x450c60) of the swing's scale (0x437fe0); step 9 in power
+// mode. A new hero's 100 is step 5, a factor of 1.
+double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = false);
+
 // HP or MP recovered every third frame (0x44f2f0): maximum x rate / 10000,
 // with the fraction carried over in `carry` (in hundredths of a point).
 int regenerate(int maximum, int rate, int& carry);

@@ -65,6 +65,8 @@ constexpr Field kFields[kFieldCount] = {
 bool Game::statusClick(int x, int y) {
     if (!showStatus_ || openShop_ || !inside(kStatusPanel, x, y)) return false;
     if (inside(kChangeButton, x, y)) changeCareer();
+    // The MAGIC tab at the top right (0x4474b0).
+    if (y < 37 && x >= 160) toggleMagicWindow();
     return true;
 }
 

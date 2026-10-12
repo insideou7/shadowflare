@@ -1,4 +1,5 @@
 // Unit tests for the game rules that need neither SDL nor game data.
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -618,6 +619,28 @@ void testMagic() {
           "Explosion's level is a switchable fix");
 }
 
+void testPowerMode() {
+    sf::PowerMode p;
+    check(!p.ready(false) && !p.start(false), "power mode needs a charge");
+    p.charge = 30;
+    check(!p.ready(false) && p.ready(true), "the Spirit Stone lowers the charge to 30");
+    p.charge = 50;
+    check(p.start(false) && p.charge == 0 && p.active() && p.left == 900, "starting empties the charge for 900 ticks");
+    p.tick(899.5);
+    check(p.active(), "still on before 900 ticks");
+    p.tick(1);
+    check(!p.active() && p.left == 0, "off after 900 ticks");
+    check(sf::blockedInPowerMode(sf::kBerserker) && sf::blockedInPowerMode(sf::kMoon) &&
+              sf::blockedInPowerMode(sf::kEnergyShield) && !sf::blockedInPowerMode(sf::kFireBall),
+          "Berserker, Moon and Energy Shield can't be cast in power mode");
+
+    const auto t = sf::MagicTables::standard();
+    check(sf::walkSpeedFactor(128) == 1.0 && sf::walkSpeedFactor(0) < 1.0, "walking speed 128 is the normal step");
+    check(std::abs(sf::walkSpeedFactor(0, true) - 4.0 / 3.0) < 1e-9, "power mode walks at the fastest step");
+    check(sf::attackSpeedFactor(t, 0, true) == 2.0 && sf::attackSpeedFactor(t, 0) < 2.0, "power mode attacks at the fastest step");
+    check(sf::attackSpeedFactor(t, 255) >= sf::attackSpeedFactor(t, 0), "faster attack speed, faster swings");
+}
+
 void testLighting() {
     const auto dark = sf::lighting::levels(1000);
     check(dark[0] == 0 && dark[128] == 128 && dark[255] == 255, "light 1000 keeps the light as it is");
@@ -683,6 +706,7 @@ int main() {
     testExploredMap();
     testSettings();
     testMagic();
+    testPowerMode();
     testMines();
     testScriptTalkAndShop();
     testShopStock();

@@ -72,6 +72,9 @@ struct Options {
     std::optional<Order> companion;  // a Tab order for the companion, in world units from the hero
     int spell = -1, spellLevel = 1;  // --spell n[:level] puts that spell on F1
     bool mine = false;        // lay a mine where the player starts
+    int powerCharge = -1;     // --power-charge n: kills towards power mode
+    bool power = false;       // start power mode
+    std::optional<int> magicWindow;  // open the magic window on this page
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -156,6 +159,15 @@ Options parseArgs(int argc, char** argv) {
             options.companion = o;
         } else if (arg == "--mine") {
             options.mine = true;
+        } else if (arg == "--power-charge" && i + 1 < argc) {
+            options.powerCharge = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--power") {
+            options.power = true;
+        } else if (arg == "--magic-window") {
+            // Opens the magic window; --magic-window=<page> on page 0-3.
+            options.magicWindow = 0;
+        } else if (arg.starts_with("--magic-window=")) {
+            options.magicWindow = static_cast<int>(std::strtol(argv[i] + 15, nullptr, 10));
         } else if (arg == "--options") {
             options.options = true;
         } else if (arg == "--options-file" && i + 1 < argc) {
@@ -444,6 +456,12 @@ int main(int argc, char** argv) {
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
     if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);
     if (options.mine) app.game->layMineHere();
+    if (options.powerCharge >= 0) app.game->setPowerCharge(options.powerCharge);
+    if (options.power) {
+        app.game->setPowerCharge(sf::PowerMode::kCharge);
+        app.game->startPower();
+    }
+    if (options.magicWindow) app.game->openMagicWindow(*options.magicWindow);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__
