@@ -81,8 +81,7 @@ void Game::newGame() {
     spells_ = {};
     spellOn_ = {};
     casting_.reset();
-    missiles_.clear();
-    spellEffects_.clear();
+    clearSpells();
     setOriginalMode(settings_.originalMode);
     partnerRecord_ = {};
     partner_.reset();

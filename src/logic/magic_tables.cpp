@@ -228,6 +228,12 @@ MagicTables MagicTables::standard() {
     t.classWeights = {{{1, 0, 0, 0}, {0, 10, 2, 4}, {0, 2, 10, 4}, {0, 5, 2, 10}}};  // tables 100-103
     t.chantSteps = {1, 2, 3, 4, 5, 6, 7, 8};  // table 4
     for (std::size_t r = 0; r < t.berserker.size(); ++r) t.berserker[r] = expand<kSpellColumns>(kBerserkerTable[r]);
+    // Tables 204-206 are the same: 2 at level 1, one more every 5 levels, 8 at 30.
+    for (std::size_t c = 0; c < kSpellColumns; ++c) {
+        const int n = c == kSpellColumns - 1 ? 8 : 2 + static_cast<int>(c) / 5;
+        t.counts[0][c] = t.counts[1][c] = t.counts[2][c] = n;
+        t.counts[3][c] = c < 9 ? 1 : c < 20 ? 3 : 5;  // table 207
+    }
     return t;
 }
 

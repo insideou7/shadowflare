@@ -73,6 +73,17 @@ the original (see `layer=` in items.txt). A line is then
     0.5@10=4,5,6,7           # direction 0, layer 5 (cloth armour)
     0.9=8@3,9@3,-,10@15      # layer 9 (a shield): per-frame priorities
 
+Spell effects (`Character/OPTION/<number>/Animation.anim`, drawn by
+`tools/art/effects.py`) use two more marks. Direction `8` is an effect
+with no direction (a glow or a burst); the engine uses it whenever the
+effect's own direction has no frames. A `*` at the end of the key draws
+the line's frames additively, adding their light to what is behind, as
+the original draws its flames and glows. A frame can end in
+`%<opacity>`, in thousandths (`1000` is solid), before any `@`:
+
+    [chart 0 once]
+    8*=0,1,2%600,3%300       # no direction, additive, fading out
+
 A frame of `-` draws nothing. Layers are drawn from the highest priority
 down, so a lower number is nearer the viewer (the original's rule); equal
 priorities are drawn in layer order. Priorities default to 0, so a file

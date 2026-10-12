@@ -80,6 +80,12 @@ struct MagicTables {
     // speed, walking speed, HP, MP, attack, defence, magic attack, magic
     // defence, hit, evasion, magic hit, magic evasion).
     std::array<std::array<int, kSpellColumns>, 13> berserker{};
+    // Tables 204-207, by level - 1: how many of something a spell makes.
+    // 204: Flame Strike's fireballs, Dread Deathscythe's blades and
+    // Lightning Storm's rays; 205: Plasma's bursts; 206: Earth Spears'
+    // spears; 207: Elemental Strike's orbs.
+    std::array<std::array<int, kSpellColumns>, 4> counts{};
+    int count(int table, int level) const { return counts[static_cast<std::size_t>(table - 204)][column(level)]; }
 
     // The original's numbers, for the open content: it plays like the
     // original.
