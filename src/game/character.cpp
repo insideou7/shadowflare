@@ -80,13 +80,17 @@ bool Character::finished() const {
 
 void Character::faceTowards(double dx, double dy) {
     if (dx == 0 && dy == 0) return;
+    direction = facingOf(dx, dy);
+}
+
+int facingOf(double dx, double dy) {
     // Work in screen space so "south" means down on screen.
     const double sx = (dx - dy) * projection.x;
     const double sy = (dx + dy) * projection.y;
     // Angle measured from screen-down, increasing towards screen-right (east).
     double angle = std::atan2(sx, sy);
     if (angle < 0) angle += 2 * std::numbers::pi;
-    direction = static_cast<int>(std::lround(angle / (std::numbers::pi / 4))) % 8;
+    return static_cast<int>(std::lround(angle / (std::numbers::pi / 4))) % 8;
 }
 
 const AnimationSet::Direction* Character::currentDirection() const {

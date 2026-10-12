@@ -35,11 +35,16 @@ inline constexpr int kIdle = 0;
 inline constexpr int kWalk = 1;
 inline constexpr int kPlayerHit = 3;
 inline constexpr int kPlayerPunch = 5;
+inline constexpr int kPlayerHeal = 11;  // Heal's own casting (the spell's controller)
 inline constexpr int kPlayerCast = 13;
 inline constexpr int kEnemyHit = 2;
 inline constexpr int kEnemyDeath = 3;
 inline constexpr int kEnemyAttack = 4;
 }  // namespace chart
+
+// The direction (0-7) a world-space vector points on screen: 0 = south,
+// then counter-clockwise on screen through east, north and west.
+int facingOf(double dx, double dy);
 
 // A character standing in the world: position, facing and animation state.
 class Character {

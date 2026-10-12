@@ -1,0 +1,5 @@
+# Drawn by tools/art/effects.py (our own art, see content/README.md).
+sheet=Animation.sheet
+
+[chart 0 once]
+8*=0%333,1%666,2,3,4,5,6,7,8,9,10,11%833,12%666,13%500,14%333,15%166

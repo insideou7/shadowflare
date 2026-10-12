@@ -363,6 +363,10 @@ void testMagic() {
     using L = sf::ElementLevels;
     check(sf::oppositeElement(sf::kFire) == sf::kWater && sf::oppositeElement(sf::kMetal) == sf::kGel, "opposite elements");
     check(sf::discElementLevels(0, 0) == L{}, "a new hero's element levels are 0");
+    // Tables 204-207 as the original's Table.Tbd has them.
+    check(t.count(204, 1) == 2 && t.count(204, 6) == 3 && t.count(204, 29) == 7 && t.count(204, 30) == 8, "table 204");
+    check(t.count(205, 10) == 3 && t.count(206, 20) == 5, "tables 205 and 206");
+    check(t.count(207, 9) == 1 && t.count(207, 10) == 3 && t.count(207, 21) == 5, "table 207");
     check(sf::discElementLevels(0, 20000)[sf::kFire] == 20, "the disc's fire anchor");
     check(sf::elementLevels({}, L{15, -12, 3})[0] == 10 && sf::elementLevels({}, L{15, -12, 3})[1] == -10, "levels stay in -10..10");
 

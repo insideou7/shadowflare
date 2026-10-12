@@ -138,11 +138,12 @@ def main():
         (folder / "Animation.anim").write_text(character(art / f"person{kind}", folder, PEOPLE_CHARTS))
     print("characters done")
     # Items: their definitions, inventory and ground pictures and the
-    # inventory panel, all our own renders kept in content/ (tools/art/items.py).
+    # inventory panel, all our own renders kept in content/ (tools/art/items.py),
+    # and the spell effects (tools/art/effects.py).
     content = HERE.parent.parent / "content"
     if out.resolve() != content.resolve():
         shutil.copy(content / "items.txt", out / "items.txt")
-        for folder in ("System/Game/Pattern", "Character/ITEM/00000007"):
+        for folder in ("System/Game/Pattern", "Character/ITEM/00000007", "Character/OPTION"):
             shutil.copytree(content / folder, out / folder, dirs_exist_ok=True)
 
     # Bank 0: ground tiles. Bank 1: props.

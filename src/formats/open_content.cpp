@@ -191,8 +191,14 @@ Animation parseAnimation(std::span<const std::uint8_t> text) {
             continue;
         }
         if (!chart) lines.fail(std::format("unknown key '{}'", key));
-        // "<direction>[.<layer>][@<priority>]": layer 0 (the body) when
-        // left out; the priority is the default for the line's frames.
+        // "<direction>[.<layer>][@<priority>][*]": layer 0 (the body) when
+        // left out; the priority is the default for the line's frames; "*"
+        // draws the layer additively (glows, flames).
+        std::int16_t lineStatus = 0;
+        if (key.ends_with('*')) {
+            lineStatus = AnimationSet::kAdditiveStatus;
+            key = trim(key.substr(0, key.size() - 1));
+        }
         std::int16_t linePriority = 0;
         if (const auto at = key.find('@'); at != std::string_view::npos) {
             linePriority = static_cast<std::int16_t>(lines.toInt(key.substr(at + 1)));
@@ -205,17 +211,24 @@ Animation parseAnimation(std::span<const std::uint8_t> text) {
         }
         if (layerNumber < 0 || layerNumber >= kMaxAnimationLayers) lines.fail("layers are 0 to 31");
         const int direction = lines.toInt(key);
-        if (direction < 0 || direction >= 8) lines.fail("directions are 0 to 7");
+        if (direction < 0 || direction > 8) lines.fail("directions are 0 to 8 (8 = no direction)");
         auto& dir = chart->directions[direction];
         AnimationSet::Layer layer;
         // Each frame is a sheet frame, "-" for nothing, optionally followed
-        // by "@<priority>".
+        // by "%<opacity per mille>" and "@<priority>".
         for (auto field : Lines::split(value, ',')) {
             AnimationSet::Cell cell;
+            cell.status = lineStatus;
             cell.priority = linePriority;
             if (const auto at = field.find('@'); at != std::string_view::npos) {
                 cell.priority = static_cast<std::int16_t>(lines.toInt(field.substr(at + 1)));
                 field = trim(field.substr(0, at));
+            }
+            if (const auto pc = field.find('%'); pc != std::string_view::npos) {
+                const int trans = lines.toInt(field.substr(pc + 1));
+                if (trans < 0 || trans > 1000) lines.fail("opacity is 0 to 1000");
+                cell.trans = static_cast<std::int16_t>(trans);
+                field = trim(field.substr(0, pc));
             }
             cell.pattern = field == "-" ? -1 : lines.toInt(field);
             layer.push_back(cell);

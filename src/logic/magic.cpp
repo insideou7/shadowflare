@@ -95,6 +95,11 @@ MagicTables MagicTables::fromTables(const GameTables& tables) {
     grid(4, [&](int r, int c, int v) {
         if (r < 8 && c == 0) t.chantSteps[static_cast<std::size_t>(r)] = v;
     });
+    for (int no = 204; no <= 207; ++no) {
+        grid(no, [&](int r, int c, int v) {
+            if (r == 0 && c < kSpellColumns) t.counts[static_cast<std::size_t>(no - 204)][static_cast<std::size_t>(c)] = v;
+        });
+    }
     grid(201, [&](int r, int c, int v) {
         if (r < 13 && c < kSpellColumns) t.berserker[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
     });

@@ -95,8 +95,7 @@ bool Game::loadGame() {
     }
     setOriginalMode(save.originalMode);
     casting_.reset();
-    missiles_.clear();
-    spellEffects_.clear();
+    clearSpells();
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", saveFile_, skipped);

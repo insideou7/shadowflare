@@ -99,7 +99,17 @@ void testAnimation() {
           "single-layer files are unchanged");
     expectRejected("layer 32", "sheet=a\n[chart 0 loop]\n0.32=1\n", [](auto& d) { sf::open::parseAnimation(d); });
     expectRejected("bad priority", "sheet=a\n[chart 0 loop]\n0=1@x\n", [](auto& d) { sf::open::parseAnimation(d); });
-    expectRejected("direction 8","sheet=a\n[chart 0 loop]\n8=1\n", [](auto& d) { sf::open::parseAnimation(d); });
+    expectRejected("direction 9", "sheet=a\n[chart 0 loop]\n9=1\n", [](auto& d) { sf::open::parseAnimation(d); });
+    expectRejected("opacity over 1000", "sheet=a\n[chart 0 loop]\n8=1%1001\n", [](auto& d) { sf::open::parseAnimation(d); });
+    {
+        // Effects: no direction (8), additive layers ("*") and opacity ("%").
+        const std::string text = "sheet=a\n[chart 0 once]\n8*=0,1%500@2\n8.1=2\n";
+        const auto anim = sf::open::parseAnimation(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+        const auto& dir = anim.set.charts[0].directions[8];
+        check(dir.frameCount == 2 && dir.layers[0][0].status == sf::AnimationSet::kAdditiveStatus, "additive layer");
+        check(dir.layers[0][1].trans == 500 && dir.layers[0][1].priority == 2 && dir.layers[0][0].trans == 1000, "opacity");
+        check(dir.layers[1][0].status == 0 && anim.set.charts[0].directions[0].frameCount == 0, "direction 8 alone");
+    }
     expectRejected("frames outside a chart", "sheet=a\n0=1\n", [](auto& d) { sf::open::parseAnimation(d); });
 }
 

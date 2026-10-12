@@ -50,7 +50,8 @@ struct Options {
     struct Cast {
         int slot = 0, dx = 0, dy = 0;
     };
-    std::optional<Cast> cast;  // cast the spell on F1-F8 at a point from the player
+    std::optional<Cast> cast;
+    int spell = -1, spellLevel = 1;  // --spell n[:level] puts that spell on F1  // cast the spell on F1-F8 at a point from the player
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -107,6 +108,8 @@ Options parseArgs(int argc, char** argv) {
             } else {
                 sf::log::warn("--cast expects slot:x,y");
             }
+        } else if (arg == "--spell" && i + 1 < argc) {
+            if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -310,6 +313,7 @@ int main(int argc, char** argv) {
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
+    if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
     app.lastCounter = SDL_GetPerformanceCounter();
 

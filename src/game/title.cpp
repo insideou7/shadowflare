@@ -92,8 +92,7 @@ void Game::newGame() {
     spells_ = {};
     spellOn_ = {};
     casting_.reset();
-    missiles_.clear();
-    spellEffects_.clear();
+    clearSpells();
     giveStartingKit();
     updateEquipment();
     if (!mapNames_.empty()) loadMap(startMapIndex_);
