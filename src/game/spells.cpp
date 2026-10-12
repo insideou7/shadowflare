@@ -310,6 +310,8 @@ void Game::clearSpells() {
     casts_.clear();
     effects_.clear();
     pendingEffects_.clear();
+    mines_.clear();
+    mineWait_ = 0;
     originalTicks_ = 0;
 }
 
@@ -608,6 +610,9 @@ void Game::tickSpells() {
             if (!cast.done) stepCast(cast);
         }
         std::erase_if(casts_, [](const SpellCast& c) { return c.done; });
+        if (mineWait_ > 0) --mineWait_;
+        for (auto& mine : mines_) stepMine(mine);
+        std::erase_if(mines_, [](const Mine& m) { return m.done; });
         for (auto& effect : effects_) {
             if (!effect.dead) stepEffect(effect);
         }
@@ -632,6 +637,20 @@ void Game::tickSpells() {
 // One effect, drawn where it stands; renderMap sorts effects in with the
 // map's objects and characters.
 void Game::renderEffect(const Effect& e, int camX, int camY) {
+    if (e.pattern >= 0) {
+        // A still picture from the folder's Pattern bank (the mine).
+        const SpriteBank* bank = itemBank(std::format("Character/OPTION/{:08d}/Pattern", e.option));
+        const SpriteTexture* sprite = bank ? sprites_.get(*bank, e.pattern, false) : nullptr;
+        if (!sprite) return;
+        int sx, sy;
+        worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
+        SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureAlphaMod(sprite->texture, 255);
+        SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
+        const SDL_Rect dst{sx - camX + sprite->originX, sy - camY + sprite->originY, sprite->width, sprite->height};
+        SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+        return;
+    }
     const CharacterModel* model = effectModel(e.option);
     if (!model) return;
     const auto& charts = model->animations.charts;
@@ -652,7 +671,9 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
     int sx, sy;
     worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
     sx -= camX;
-    sy -= camY;
+    // Height lifts it up the screen, at the ground's vertical scale (ours:
+    // the original passes it to its renderer, whose scale is not read yet).
+    sy -= camY + static_cast<int>(e.height * projection.y / 100);
     std::vector<const AnimationSet::Cell*> cells;
     for (const auto& layer : dir->layers) {
         if (frame < static_cast<int>(layer.size()) && layer[static_cast<std::size_t>(frame)].pattern >= 0) {

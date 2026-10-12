@@ -418,7 +418,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     useBelt(key % Inventory::kBeltWidth, key / Inventory::kBeltWidth);
                     break;
                 }
-                case SDLK_b: notYet("Mines"); break;
+                case SDLK_b: layMine(); break;
                 case SDLK_p: notYet("Increased-power mode"); break;
                 case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
                 case SDLK_SPACE:
@@ -450,6 +450,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (statusClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&

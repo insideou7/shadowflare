@@ -17,6 +17,7 @@
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
+#include "logic/mines.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
@@ -120,6 +121,9 @@ public:
     // relative to the hero in world units; fetch takes the nearest item
     // (for scripted tests).
     void orderPartnerBy(const std::string& kind, int dx, int dy);
+
+    // Lays a mine where the player stands, as B does (for scripted tests).
+    void layMineHere() { layMine(); }
 
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
@@ -349,6 +353,10 @@ private:
         int hitOption = -1;        // played on whoever it hurts
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
+        // A picture of the OPTION folder's Pattern bank instead of its
+        // animation (the mine on the ground), -1 = the animation.
+        int pattern = -1;
+        double height = 0;  // above the ground, as the original's objects (+0x124)
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -385,6 +393,30 @@ private:
     int spellHit(int spell, int level) const;
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
+
+    // Land mines (mines.cpp): B or the MINE button lays one where the hero
+    // stands; a controller, as the original's (0x42bd40), arms it, sets it
+    // off and plays the blast.
+    struct Mine {
+        double x = 0, y = 0;
+        int tick = 0;        // the original's ticks since it was laid, then since the blast
+        int effect = 0;      // the mine on the ground; 0 once it has gone off
+        bool blasted = false;
+        int level = 1;       // the hero's when it was laid, for its power
+        int ring = 0;        // how far out the last smoke ring was
+        std::array<int, 4> pieces{}, fires{};
+        int lift = 0;        // the pieces' upward speed
+        bool done = false;
+    };
+    void layMine();
+    void stepMine(Mine& mine);
+    void mineBlast(Mine& mine);
+    int mostMines() const;
+    int minePower(int level) const;
+    // Picking up a mine adds it to the count when there is room (0x44a0e2).
+    bool pickUpMine();
+    bool mineButtonClick(int x, int y);
+    void renderMineButton();
 
     // The hero's companion (partner.cpp).
     struct Partner {
@@ -527,6 +559,9 @@ private:
     std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
     int nextEffectId_ = 1;
     double originalTicks_ = 0;  // carried between engine ticks
+    std::vector<Mine> mines_;
+    int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
+    int mineWait_ = 0;                    // ticks before another can be laid
     Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;

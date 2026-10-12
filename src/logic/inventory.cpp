@@ -317,6 +317,10 @@ bool Inventory::carries(ItemDef::Class cls, std::int32_t code) const {
     return std::ranges::any_of(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; });
 }
 
+int Inventory::takeAll(ItemDef::Class cls, std::int32_t code) {
+    return static_cast<int>(std::erase_if(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; }));
+}
+
 void Inventory::identifyAll() {
     for (auto& p : bag_) p.item.unidentified = false;
     for (auto& worn : equipped_) {

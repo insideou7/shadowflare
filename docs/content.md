@@ -254,7 +254,8 @@ What monsters leave behind, standing in for the original's drop tables
 A pick is a class (or `any` for weapon, armour or accessory), a code (or
 `any`, chosen by `weight` among the items of that class), and optionally
 the lowest and highest item level. Only normal items are picked with
-`any`. Gold comes before the items, 100 units below the monster; the
+`any`. A mine (`special,1`) goes to the hero's mines, not the bag (see
+[mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 
 ## Drawing the original game with this art

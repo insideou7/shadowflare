@@ -45,6 +45,7 @@ struct SaveGame {
     std::int64_t experience = 0;
     std::optional<Career> career;
     int gold = 0;
+    std::optional<int> mines;  // mines in hand; none in saves from before mines
     std::vector<BagEntry> bag;
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid

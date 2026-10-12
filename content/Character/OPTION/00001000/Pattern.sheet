@@ -1,0 +1,4 @@
+# Rendered by tools/art/items.py (our own art, see content/README.md).
+image=Pattern.png
+frame=0,0,128,128,64,64
+frame=128,0,128,128,64,64

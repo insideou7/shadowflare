@@ -9,6 +9,7 @@
 #include "logic/ai_select.h"
 #include "formats/table_data.h"
 #include "logic/magic.h"
+#include "logic/mines.h"
 #include "logic/movement.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
@@ -490,6 +491,26 @@ void testCareer() {
     check(sf::Career::at(9, C::Hunter).current == C::Hunter && sf::Career::at(4).current == C::Mercenary, "Career::at");
 }
 
+void testMines() {
+    auto t = sf::MagicTables::standard();
+    // Table 23: 40 at level 1, ten more a level to 280 at 25, then steps
+    // of 15, 20 and 30 to 2000 at 100.
+    check(sf::mines::power(t, 1, 0) == 40 && sf::mines::power(t, 25, 0) == 280 && sf::mines::power(t, 26, 0) == 295 &&
+              sf::mines::power(t, 70, 0) == 1100 && sf::mines::power(t, 100, 0) == 2000,
+          "mine power follows table 23");
+    check(sf::mines::power(t, 3, 15) == 75 && sf::mines::power(t, 1, -100) == 1, "Mine Effect adds to it, at least 1");
+    check(sf::mines::power(t, 0, 0) == 40 && sf::mines::power(t, 150, 0) == 2000, "levels outside the table use its ends");
+    check(sf::mines::most(0) == 10 && sf::mines::most(3) == 13, "ten mines, more with Mine Count");
+    // No element levels behind the blast: power x 90-110% - defence.
+    check(sf::mines::damage(t, 100, 3, 20, 0) == 70 && sf::mines::damage(t, 100, -1, 20, 2) == 90, "blast damage");
+    check(sf::mines::damage(t, 40, 0, 500, 1) == 1, "a blast does at least 1");
+    // From the player's Table.Tbd when it has table 23.
+    sf::GameTables tables;
+    tables.tables[23] = {2, 1, {11, 22}, {}};
+    t = sf::MagicTables::fromTables(tables);
+    check(sf::mines::power(t, 2, 0) == 22 && sf::mines::power(t, 3, 0) == 60, "table 23 is read from Table.Tbd");
+}
+
 void testMagic() {
     const auto t = sf::MagicTables::standard();
     using L = sf::ElementLevels;
@@ -578,6 +599,7 @@ void testSettings() {
 int main() {
     testSettings();
     testMagic();
+    testMines();
     testScriptTalkAndShop();
     testShopStock();
     testScriptStorageAndLabels();

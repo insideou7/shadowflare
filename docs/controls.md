@@ -26,7 +26,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | F1-F8 | choose the spell for the right button | yes |
 | F9 | choose the attack for the right button | yes |
 | 1-8 | use a belt pocket item (1-4 the top row, 5-8 the bottom); a right click on it does too | yes |
-| B | lay a mine | no |
+| B | lay a mine where you stand; the MINE button by the belt does too ([mines.md](mines.md)) | yes |
 | P | increased-power mode | no |
 | Ctrl | run while held | yes |
 | Shift | stop where you are; with a left click, attack in place | yes |

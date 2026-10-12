@@ -1069,9 +1069,9 @@ def water_burst(e):
 
 
 # A blow landing: yellow chips struck off and falling.
-def hit_spark(e):
+def hit_spark(e, seed=91):
     n = 11
-    rng = np.random.default_rng(91)
+    rng = np.random.default_rng(seed)
     chips = [(rng.uniform(-2.6, -0.4), rng.uniform(8, 26)) for _ in range(9)]
     frames = []
     for f in range(n):
@@ -1101,6 +1101,75 @@ def fire_pillar(e):
     e.chart(False, {8: [(True, 0, frames, trans)]})
 
 
+# --- the mine going off (Character/OPTION 1001-1008, see docs/mines.md) ----
+
+# The blast: a white flash, a fireball rolling up and a ring of dust.
+def mine_blast(e):
+    frames, trans = [], []
+    rng = np.random.default_rng(1001)
+    for f in range(21):
+        t = f / 20
+        cv = Canvas(300, 280, 150, 180)
+        g = ease(min(1, t * 2.5))
+        if f < 4:  # the flash
+            cv.blob(0, -20, 60 + 30 * f, 40 + 20 * f, (255, 245, 220), 1.6 - 0.3 * f)
+        smoke(cv, 0, -30 - 40 * t, 50 + 70 * g, 44 + 56 * g, 1100 + f, (255, 160, 60),
+              1.9 * (1 - 0.75 * t), hole=0.15 * t * t, bits=0.2 + 0.4 * t)
+        if f < 7:  # the white-hot heart, gone once the fireball opens
+            cv.blob(0, -30 - 40 * t, 34 - 4 * f, 30 - 4 * f, (255, 235, 190), 1.6 * (1 - f / 7))
+        if 2 <= f < 14:  # dust thrown along the ground
+            u = (f - 2) / 11
+            cv.ring(0, 0, 50 + 90 * u, (50 + 90 * u) * GROUND, 0.08, (230, 190, 130), 0.9 * (1 - u))
+        if f < 10:
+            sparks(cv, rng, 0, -20, 20, 130, -math.pi / 2, 2.6, 8, (255, 200, 90), 1.0 - 0.08 * f, t=t * 2)
+        frames.append(e.light(cv))
+        trans.append(1000 if f < 14 else 1000 - 120 * (f - 13))
+    e.chart(False, {8: [(True, 0, frames, trans)]})
+
+
+# The smoke the blast leaves in rings: a puff of fire turning to smoke.
+def mine_smoke(e, seed, colour):
+    frames, trans = [], []
+    for f in range(16):
+        t = f / 15
+        cv = Canvas(100, 110, 50, 70)
+        r = 14 + 21 * ease(t)
+        c = tuple(int(a + (b - a) * min(1, t * 1.6)) for a, b in zip(colour, (120, 110, 100)))
+        smoke(cv, 0, -10 - 16 * t, r, r * 0.9, seed + f // 2, c, 1.5 * (1 - 0.6 * t), hole=0.3 * t, bits=0.2 + 0.5 * t)
+        frames.append(e.light(cv))
+        trans.append(1000 if f < 8 else 1000 - 110 * (f - 7))
+    e.chart(False, {8: [(True, 0, frames, trans)]})
+
+
+# The small fire riding on each piece of the mine.
+def piece_fire(e):
+    frames = []
+    for f in range(16):
+        cv = Canvas(50, 70, 25, 52)
+        fire(cv, 0, 4, 18, 34, f, 1400 + f // 2, 0.9, tongues=5)
+        cv.blob(0, -4, 6, 5, (255, 230, 170), 0.6)
+        frames.append(e.light(cv))
+    e.chart(True, {8: [(True, 0, frames, None)]})
+
+
+# A piece of the mine's iron pot, tumbling.
+def mine_piece(e, seed, loop=True):
+    rng = np.random.default_rng(seed)
+    pts = [(math.cos(a) * r, math.sin(a) * r * 0.7)
+           for a, r in sorted((rng.uniform(0, 2 * math.pi), rng.uniform(4, 9)) for _ in range(6))]
+    frames = []
+    for f in range(20):
+        im = Image.new("RGBA", (30, 30))
+        dr = ImageDraw.Draw(im)
+        a = f / 20 * 2 * math.pi
+        rot = [(15 + x * math.cos(a) - y * math.sin(a), 15 + x * math.sin(a) + y * math.cos(a)) for x, y in pts]
+        shade = int(70 + 40 * (0.5 + 0.5 * math.cos(a)))
+        dr.polygon(rot, fill=(shade, shade - 6, shade - 14, 255), outline=(30, 28, 26, 255))
+        dr.line(rot[:2], fill=(170, 130, 60, 255))  # a scrap of the brass band
+        frames.append(e.frame(im, 15, 15))
+    e.chart(loop, {8: [(False, 0, frames, None)]})
+
+
 EFFECTS = {
     10000000: fire_spray,
     10000001: gold_burst,
@@ -1123,6 +1192,10 @@ EFFECTS = {
     10000110: mud_javelin,
     10000111: mud_burst,
     11000000: hit_spark,
+    # The other three blows a mine's blast picks from at random.
+    11000001: lambda e: hit_spark(e, 92),
+    11000002: lambda e: hit_spark(e, 93),
+    11000009: lambda e: hit_spark(e, 94),
     11000003: shock,
     11000026: frost_hit,
     11000027: ice_swirl,
@@ -1135,6 +1208,14 @@ EFFECTS = {
     11000241: magic_shield,
     11000251: counter_burst,
     12000000: fire_pillar,
+    1001: mine_blast,
+    1002: lambda e: mine_smoke(e, 1200, (255, 170, 80)),
+    1003: lambda e: mine_smoke(e, 1300, (200, 150, 110)),
+    1004: piece_fire,
+    1005: lambda e: mine_piece(e, 1),
+    1006: lambda e: mine_piece(e, 2),
+    1007: lambda e: mine_piece(e, 3),
+    1008: lambda e: mine_piece(e, 4, loop=False),
 }
 
 

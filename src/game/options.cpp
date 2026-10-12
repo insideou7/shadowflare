@@ -364,7 +364,7 @@ void Game::renderHelp() {
         {"F1-F8", "SPELL ON RIGHT BUTTON", true},
         {"F9", "ATTACK ON RIGHT BUTTON", true},
         {"1-8", "USE BELT POCKET ITEM", true},
-        {"B", "LAY A MINE", false},
+        {"B", "LAY A MINE", true},
         {"P", "INCREASED-POWER MODE", false},
         {"CTRL", "RUN WHILE HELD", true},
         {"SHIFT", "STOP; ATTACK IN PLACE", true},

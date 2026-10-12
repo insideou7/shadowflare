@@ -86,6 +86,8 @@ struct MagicTables {
     // spears; 207: Elemental Strike's orbs.
     std::array<std::array<int, kSpellColumns>, 4> counts{};
     int count(int table, int level) const { return counts[static_cast<std::size_t>(table - 204)][column(level)]; }
+    // Table 23, by hero level - 1: a mine's power (logic/mines.h).
+    std::array<int, 100> minePower{};
 
     // The original's numbers, for the open content: it plays like the
     // original.
