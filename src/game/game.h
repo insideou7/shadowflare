@@ -110,6 +110,13 @@ public:
         playerMp_ = playerMaxMp();
     }
 
+    // For screenshots of the panel: the hero's HP drops to `percent` four
+    // seconds in, and the experience bar starts part full.
+    void hurtLater(int percent) { hurtPercent_ = percent; }
+    void setExperiencePercent(int percent) {
+        playerExperience_ = levels_.need(playerLevel_) * std::clamp(percent, 0, 100) / 100;
+    }
+
     // Original mode plays by the original game's rules, bugs included
     // (logic/rules.h). Off by default.
     void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
@@ -494,6 +501,10 @@ private:
     void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1);
     void renderPartnerGauge();
     bool partnerGaugeClick(int x, int y);
+    // The game panel along the bottom of the screen (panel.cpp).
+    void renderPanel();
+    bool panelClick(int x, int y);
+    bool hasPanelArt();
     void renderSpellBar();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
@@ -678,7 +689,23 @@ private:
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
     bool helpOpen_ = false;
+    int hurtPercent_ = -1;  // --hurt
     bool runMode_ = false;  // R or the RUN button: run instead of walk
+    // What the panel shows between frames (0x4039f0): the HP and MP gauges
+    // follow the real values a few pixels a frame (+0xa028, +0xa02c), the
+    // level's digits pop when it changes (+0xa038), a clicked button
+    // flashes, and glints run along the gauges.
+    struct PanelState {
+        struct Glint {
+            int age = 0, speed = 0, dy = 0;
+        };
+        std::uint64_t frame = 0;  // original frames (30 a second) shown so far
+        int hpShown = 0, mpShown = 0;
+        int levelCounter = -1;
+        std::array<int, 3> flash{};  // STATUS, ITEM, MENU
+        std::array<std::array<Glint, 60>, 2> glints{};
+        std::uint32_t random = 1;
+    } panel_;
     bool screenshotPending_ = false;
     std::vector<MenuItem> menuItems_;
     int menuChoice_ = 0;

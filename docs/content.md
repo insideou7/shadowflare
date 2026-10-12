@@ -382,6 +382,7 @@ font) are kept in content/ and rebuilt on their own:
     python tools/art/items.py render /tmp/items     # a Python with bpy
     python3 tools/art/items.py pack /tmp/items content
     python3 tools/art/ui.py content
+    python3 tools/art/panel.py content    # the game panel along the bottom
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.

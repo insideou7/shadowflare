@@ -52,6 +52,7 @@ struct Options {
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
+    int hpPercent = -1, experiencePercent = -1;  // --hurt, --experience: for screenshots of the panel
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
     bool originalArt = false;  // draw the original game with its own art
     int talk = -1;            // speak to this character (in-game id) at the start
@@ -106,6 +107,10 @@ Options parseArgs(int argc, char** argv) {
             options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
             options.saveFile = argv[++i];
+        } else if (arg == "--hurt" && i + 1 < argc) {
+            options.hpPercent = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--experience" && i + 1 < argc) {
+            options.experiencePercent = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--skin" && i + 1 < argc) {
@@ -389,7 +394,7 @@ int main(int argc, char** argv) {
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast ||
+                          options.level > 0 || options.hpPercent >= 0 || options.experiencePercent >= 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast ||
                           options.companion || options.mine || options.hero.has_value();
     // The player's options (Esc in the game); scripted runs keep the
     // defaults so they come out the same on every machine.
@@ -404,6 +409,8 @@ int main(int argc, char** argv) {
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level);
     if (options.original) app.game->setOriginalMode(true);
+    if (options.hpPercent >= 0) app.game->hurtLater(options.hpPercent);
+    if (options.experiencePercent >= 0) app.game->setExperiencePercent(options.experiencePercent);
     if (options.hero || !options.heroName.empty()) {
         app.game->setHero(options.hero.value_or(sf::HeroSex::Male), options.heroName);
         if (options.level <= 0 && !options.load) app.game->setLevel(1);  // full with the hero's own stats

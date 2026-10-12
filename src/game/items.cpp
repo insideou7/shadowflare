@@ -681,12 +681,15 @@ bool Game::beltClick(int x, int y, bool right) {
 }
 
 void Game::renderBelt() {
+    const bool panel = hasPanelArt();
     for (int row = 0; row < Inventory::kBeltHeight; ++row) {
         for (int col = 0; col < Inventory::kBeltWidth; ++col) {
             const SDL_Rect r{(row == 0 ? kBeltLeft : kBeltBottomLeft) + col * kBeltCell, kBeltTop + row * kBeltCell, kBeltCell,
                              kBeltCell};
-            frame(renderer_, r, {20, 18, 26, 170}, {110, 100, 80, 220});
+            // The panel has the pockets and their keys drawn in.
+            if (!panel) frame(renderer_, r, {20, 18, 26, 170}, {110, 100, 80, 220});
             if (const auto& item = inventory_.beltAt(col, row)) drawItemPicture(*item->def, r);
+            if (panel) continue;
             // Its key, small in the bottom right corner, as on the original's panel.
             drawText(renderer_, r.x + r.w - 6, r.y + r.h - 8, std::to_string(row * Inventory::kBeltWidth + col + 1),
                      {200, 190, 160, 255}, 1);
@@ -699,7 +702,10 @@ void Game::renderHud() {
     renderSpellBar();
     if (player_) renderBelt();
     if (player_) renderMineButton();
-    if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
+    // The original shows the gold only in the item window.
+    if (player_ && !showInventory_ && !hasPanelArt()) {
+        drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
+    }
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
     }

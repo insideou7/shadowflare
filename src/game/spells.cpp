@@ -719,9 +719,10 @@ void Game::renderSpells(int camX, int camY) {
 
 void Game::renderSpellBar() {
     if (!player_ || showInventory_ || missionsOpen_) return;
-    // F1-F8 along the bottom right; the chosen spell is framed in gold.
+    // F1-F8 above the panel; the chosen spell is framed in gold.
     constexpr int kSlot = 36, kGap = 2;
-    const int left = kScreenWidth - kSpellBarSize * (kSlot + kGap) - 6;
+    // Clear of the panel's EXP gauge at the top right.
+    const int left = 508 - kSpellBarSize * (kSlot + kGap);
     // Above the belt pocket, which sits where the original's does.
     const int top = kBeltTop - kSlot - 6;
     for (int b = 0; b < kSpellBarSize; ++b) {

@@ -474,6 +474,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && panelClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
@@ -557,6 +558,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 
 void Game::tick() {
     ++ticks_;
+    if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
     if (newCharacter_) tickNewCharacter();
     if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
     tickMissions();
@@ -1146,6 +1148,8 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    // The panel is under the windows, as the exe layers them (11 below 14).
+    renderPanel();
     renderCompass();
     renderShop();
     renderStatus();
@@ -1212,36 +1216,18 @@ void Game::renderIsoGround(int camX, int camY) {
     }
 }
 
-// Simple bars until the original status panel is drawn: the player's
-// health in the corner and a bar over each wounded monster.
+// A bar over each wounded monster; the hero's are on the panel (panel.cpp).
 void Game::renderHealthBars(int camX, int camY) {
-    auto bar = [&](int x, int y, int w, int h, double fraction, SDL_Color color = {200, 30, 30, 255}) {
-        SDL_Rect back{x, y, w, h};
-        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
-        SDL_RenderFillRect(renderer_, &back);
-        SDL_Rect fill{x + 1, y + 1, static_cast<int>((w - 2) * std::clamp(fraction, 0.0, 1.0)), h - 2};
-        SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, 255);
-        SDL_RenderFillRect(renderer_, &fill);
-    };
     for (const auto& a : actors_) {
         if (!a.hostile() || !a.alive() || a.hp == a.maxHp) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        bar(sx - camX - 20, sy - camY - 100, 40, 5, static_cast<double>(a.hp) / a.maxHp);
-    }
-    if (player_ && !menuOpen_) {
-        bar(8, kScreenHeight - 30, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
-        bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerMp_) / std::max(1, playerMaxMp()), {40, 70, 210, 255});
-        // Experience towards the next level, in a thin blue bar underneath.
-        const auto need = levels_.need(playerLevel_);
-        const double fraction = need > 0 ? static_cast<double>(playerExperience_) / static_cast<double>(need) : 1.0;
-        SDL_Rect back{8, kScreenHeight - 7, 120, 4};
+        SDL_Rect back{sx - camX - 20, sy - camY - 100, 40, 5};
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderFillRect(renderer_, &back);
-        SDL_Rect fill{9, kScreenHeight - 6, static_cast<int>(118 * std::clamp(fraction, 0.0, 1.0)), 2};
-        SDL_SetRenderDrawColor(renderer_, 70, 120, 230, 255);
+        SDL_Rect fill{back.x + 1, back.y + 1, static_cast<int>(38 * std::clamp(static_cast<double>(a.hp) / a.maxHp, 0.0, 1.0)), 3};
+        SDL_SetRenderDrawColor(renderer_, 200, 30, 30, 255);
         SDL_RenderFillRect(renderer_, &fill);
-        drawText(renderer_, 134, kScreenHeight - 30, std::format("LV {}", playerLevel_), {255, 255, 255, 255});
     }
 }
 
