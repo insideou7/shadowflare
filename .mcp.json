@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rea": {
+      "command": "node",
+      "args": ["tools/rea/mcp.mjs"]
+    }
+  }
+}
