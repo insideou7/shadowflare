@@ -328,6 +328,28 @@ void Game::drawItemPicture(const ItemDef& def, const SDL_Rect& area) {
     drawText(renderer_, box.x + 3, box.y + 3, def.name.substr(0, 1), kWhite);
 }
 
+// The inventory panel's background: the open pack's Inventory.sheet, or
+// the original's item window (Status.njp pattern 0, the figure behind the
+// worn items, under pattern 2, the window, and pattern 3, its left part).
+// Their positions are screen positions. False when there is neither.
+bool Game::drawPanelPicture() {
+    const SpriteBank* bank = itemBank("System/Game/Pattern/Inventory");
+    std::vector<int> patterns = {0};
+    if (!bank) {
+        bank = itemBank("System/Game/Pattern/Status");
+        patterns = {0, 2, 3};
+    }
+    bool drawn = false;
+    for (int pattern : patterns) {
+        if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, pattern, false) : nullptr) {
+            const SDL_Rect dst{sprite->originX, sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            drawn = true;
+        }
+    }
+    return drawn;
+}
+
 void Game::renderGroundItems(int camX, int camY) {
     std::vector<const GroundItem*> order;
     for (const auto& g : groundItems_) order.push_back(&g);
@@ -371,11 +393,14 @@ void Game::renderInventory() {
     }
     const ItemDef* hover = nullptr;
     if (showInventory_) {
-        frame(renderer_, kPanel, {20, 18, 26, 225}, {150, 130, 90, 255});
+        // The panel's picture has the slots and bag cells drawn in; without
+        // one, plain rectangles stand in.
+        const bool picture = drawPanelPicture();
+        if (!picture) frame(renderer_, kPanel, {20, 18, 26, 225}, {150, 130, 90, 255});
         // Equipment slots.
         for (const auto& box : kSlots) {
             const SDL_Rect r = box.rect();
-            frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
+            if (!picture) frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
             if (const auto& worn = inventory_.equipped(box.slot)) {
                 drawItemPicture(*worn->def, r);
                 if (inside(r, mx, my)) hover = worn->def;
@@ -388,14 +413,22 @@ void Game::renderInventory() {
             frame(renderer_, r, {0, 0, 0, 140}, {110, 100, 80, 255});
         }
         // The bag.
-        for (int y = 0; y < Inventory::kBagHeight; ++y) {
-            for (int x = 0; x < Inventory::kBagWidth; ++x) {
-                frame(renderer_, {kBagX + x * kCell, kBagY + y * kCell, kCell, kCell}, {35, 32, 40, 255}, {80, 74, 64, 255});
+        if (!picture) {
+            for (int y = 0; y < Inventory::kBagHeight; ++y) {
+                for (int x = 0; x < Inventory::kBagWidth; ++x) {
+                    frame(renderer_, {kBagX + x * kCell, kBagY + y * kCell, kCell, kCell}, {35, 32, 40, 255},
+                          {80, 74, 64, 255});
+                }
             }
         }
         for (const auto& p : inventory_.bag()) {
             const SDL_Rect r{kBagX + p.x * kCell, kBagY + p.y * kCell, p.item.def->width * kCell, p.item.def->height * kCell};
-            frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
+            // Over a picture, a faint wash shows which cells an item takes.
+            if (picture) {
+                frame(renderer_, r, {90, 80, 110, 40}, {150, 130, 90, 90});
+            } else {
+                frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
+            }
             drawItemPicture(*p.item.def, r);
             if (inside(r, mx, my)) hover = p.item.def;
         }

@@ -16,6 +16,7 @@ namespace sf::open {
 namespace {
 
 constexpr int kMaxSize = 16384;  // limit on image, map and frame dimensions
+constexpr int kMaxAnimationLayers = 32;  // the original hero has 23
 
 std::string_view trim(std::string_view s) {
     while (!s.empty() && (s.front() == ' ' || s.front() == '\t')) s.remove_prefix(1);
@@ -190,18 +191,41 @@ Animation parseAnimation(std::span<const std::uint8_t> text) {
             continue;
         }
         if (!chart) lines.fail(std::format("unknown key '{}'", key));
+        // "<direction>[.<layer>][@<priority>]": layer 0 (the body) when
+        // left out; the priority is the default for the line's frames.
+        std::int16_t linePriority = 0;
+        if (const auto at = key.find('@'); at != std::string_view::npos) {
+            linePriority = static_cast<std::int16_t>(lines.toInt(key.substr(at + 1)));
+            key = key.substr(0, at);
+        }
+        int layerNumber = 0;
+        if (const auto dot = key.find('.'); dot != std::string_view::npos) {
+            layerNumber = lines.toInt(key.substr(dot + 1));
+            key = key.substr(0, dot);
+        }
+        if (layerNumber < 0 || layerNumber >= kMaxAnimationLayers) lines.fail("layers are 0 to 31");
         const int direction = lines.toInt(key);
         if (direction < 0 || direction >= 8) lines.fail("directions are 0 to 7");
         auto& dir = chart->directions[direction];
         AnimationSet::Layer layer;
-        for (int frame : lines.ints(value)) {
+        // Each frame is a sheet frame, "-" for nothing, optionally followed
+        // by "@<priority>".
+        for (auto field : Lines::split(value, ',')) {
             AnimationSet::Cell cell;
-            cell.pattern = frame;
+            cell.priority = linePriority;
+            if (const auto at = field.find('@'); at != std::string_view::npos) {
+                cell.priority = static_cast<std::int16_t>(lines.toInt(field.substr(at + 1)));
+                field = trim(field.substr(0, at));
+            }
+            cell.pattern = field == "-" ? -1 : lines.toInt(field);
             layer.push_back(cell);
         }
         if (layer.size() > 4096) lines.fail("too many frames");
-        dir.frameCount = static_cast<std::int16_t>(layer.size());
-        dir.layers.assign(1, std::move(layer));
+        if (dir.layers.size() <= static_cast<std::size_t>(layerNumber)) dir.layers.resize(layerNumber + 1);
+        dir.layers[layerNumber] = std::move(layer);
+        std::size_t frames = 0;
+        for (const auto& l : dir.layers) frames = std::max(frames, l.size());
+        dir.frameCount = static_cast<std::int16_t>(frames);
     }
     if (anim.sheet.empty()) throw FormatError("animation names no sheet");
     // Directions left out of a chart borrow direction 0.

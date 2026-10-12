@@ -12,6 +12,12 @@ simple shapes hung on joints and posed in code, then rendered from the
 eight directions the engine uses for every frame of every animation.
 Writes <animation>_<direction>_<frame>.png and frames.txt (anchor point and
 the animation list).
+
+The hero is drawn in layers, like the original's player: the body into
+the output folder and each piece of equipment in GEAR into layerNN/
+(NN = the animation layer that items.txt's layer= names), each with its
+own frames.txt that also gives every frame a draw priority. `--layers
+0,5,12` renders only those layers (0 is the body).
 """
 
 import math
@@ -185,13 +191,194 @@ def build_hero():
     for side in ("leg_l", "leg_r"):
         rig.attach(shape("cylinder", (0.15, 0.15, 0.2), leather), side, (0, 0, -1.0))
     rig.attach(shape("box", (0.03, 0.07, 0.06), steel), "hips", (0.30, 0, 0.02))
-    # A short sword in the right hand.
+    # The right hand holds weapons by this joint. The body itself is
+    # unarmed: what the hero wears and wields is built by build_gear and
+    # rendered as layers of their own.
     rig.joint("weapon", "arm_r", (0, 0, -0.95))
-    rig.attach(shape("cylinder", (0.03, 0.03, 0.12), leather, rotation=(0, math.radians(90), 0)), "weapon", (0.05, 0, 0))
-    rig.attach(shape("box", (0.03, 0.16, 0.025), steel), "weapon", (0.18, 0, 0))
-    rig.attach(shape("box", (0.48, 0.05, 0.012), steel), "weapon", (0.68, 0, 0))
     rig.joints["root"].scale = (1.22, 1.22, 1.22)
+    rig.kind = "hero"
     return rig
+
+
+# The hero's equipment, one animation layer each, numbered as in the
+# original's Player/Male/Animation00.Caf (and items.txt's layer=): 5-8
+# body armour, 9-11 shields, 12-21 weapons. Armour wraps the body parts it
+# covers a little larger than they are, so that with the body held out of
+# the render it still hides everything under it.
+_gear_materials = {}
+
+
+def gear_material(name):
+    try:
+        any(m.name for m in _gear_materials.values())
+    except ReferenceError:  # made for a scene that studio.reset() has since cleared
+        _gear_materials.clear()
+    if not _gear_materials:
+        m = _gear_materials
+        m["cloth"] = studio.material("gear cloth", (0.46, 0.48, 0.46), (0.22, 0.24, 0.23), scale=22, bump=0.4)
+        m["quilt"] = studio.material("gear quilt", (0.42, 0.44, 0.42), (0.18, 0.19, 0.18), scale=8, bump=0.6,
+                                     stretch=(1, 1, 6))
+        m["green"] = studio.material("gear trousers", (0.20, 0.27, 0.22), (0.08, 0.11, 0.09), scale=18)
+        m["leather"] = studio.material("gear leather", (0.38, 0.24, 0.13), (0.16, 0.10, 0.05), scale=25, rough=0.6)
+        m["dark"] = studio.material("gear dark leather", (0.20, 0.14, 0.10), (0.08, 0.05, 0.04), scale=25, rough=0.6)
+        m["plate"] = studio.material("gear plate", (0.66, 0.67, 0.70), (0.24, 0.24, 0.27), scale=14, rough=0.32,
+                                     bump=0.2, grime=0.45)
+        m["chain"] = studio.material("gear chain", (0.40, 0.40, 0.42), (0.12, 0.12, 0.13), scale=140, rough=0.5,
+                                     bump=0.9)
+        m["steel"] = studio.material("gear steel", (0.85, 0.86, 0.88), (0.45, 0.46, 0.50), scale=40, rough=0.25,
+                                     bump=0.05)
+        m["brass"] = studio.material("gear brass", (0.78, 0.60, 0.28), (0.40, 0.28, 0.10), scale=30, rough=0.35)
+        m["wood"] = studio.material("gear wood", (0.50, 0.32, 0.16), (0.24, 0.14, 0.06), scale=10, stretch=(12, 12, 1))
+        m["oak"] = studio.material("gear oak", (0.46, 0.30, 0.15), (0.22, 0.13, 0.05), scale=6, stretch=(1, 12, 1))
+        crystal = studio.material("gear crystal", (0.55, 0.80, 1.0), (0.20, 0.45, 0.85), scale=8, rough=0.15, bump=0)
+        bsdf = crystal.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Emission Color"].default_value = (0.25, 0.55, 1.0, 1)
+        bsdf.inputs["Emission Strength"].default_value = 1.5
+        m["crystal"] = crystal
+    return _gear_materials[name]
+
+
+def grip(rig, angle=0.0):
+    """An empty in the right hand that a weapon hangs off, tilted by
+    `angle` degrees from the way the rig holds weapons."""
+    empty = bpy.data.objects.new("grip", None)
+    bpy.context.scene.collection.objects.link(empty)
+    empty.parent = rig.joints["weapon"]
+    empty.rotation_euler = (0, math.radians(angle), 0)
+    return empty
+
+
+def hang(obj, parent, offset):
+    obj.parent = parent
+    obj.location = offset
+    return obj
+
+
+def gear_cloth(rig):
+    """Cloth Armour: a quilted grey jacket with leather shoulders and belt,
+    long sleeves, green trousers and tall boots."""
+    m = gear_material
+    rig.attach(shape("ball", (0.31, 0.50, 0.38), m("quilt")), "spine", (0, 0, 0.62))
+    rig.attach(shape("cylinder", (0.26, 0.33, 0.31), m("quilt")), "spine", (0, 0, 0.26))
+    rig.attach(shape("flare", (0.37, 0.39, 0.18), m("cloth")), "hips", (0, 0, -0.14))
+    rig.attach(shape("cylinder", (0.34, 0.34, 0.08), m("leather")), "hips", (0, 0, 0.02))
+    rig.attach(shape("box", (0.03, 0.08, 0.07), m("brass")), "hips", (0.34, 0, 0.02))
+    rig.attach(shape("cylinder", (0.14, 0.15, 0.07), m("cloth")), "head", (0, 0, -0.03))
+    for side in ("arm_l", "arm_r"):
+        rig.attach(shape("ball", (0.18, 0.18, 0.12), m("leather")), side, (0, 0, 0.02))
+        rig.attach(shape("cylinder", (0.16, 0.16, 0.42), m("cloth")), side, (0, 0, -0.42))
+        rig.attach(shape("cylinder", (0.165, 0.165, 0.1), m("leather")), side, (0, 0, -0.76))
+    for side in ("leg_l", "leg_r"):
+        rig.attach(shape("cylinder", (0.155, 0.155, 0.42), m("green")), side, (0, 0, -0.42))
+        rig.attach(shape("cylinder", (0.17, 0.17, 0.24), m("dark")), side, (0, 0, -0.98))
+        rig.attach(shape("box", (0.22, 0.105, 0.085), m("dark")), side, (0.08, 0, -1.2))
+
+
+def gear_plate(rig):
+    """Plate Mail: a steel cuirass and big pauldrons over mail, vambraces,
+    tassets, knee cops, greaves and sabatons."""
+    m = gear_material
+    rig.attach(shape("ball", (0.32, 0.51, 0.39), m("plate")), "spine", (0, 0, 0.62))
+    rig.attach(shape("ball", (0.16, 0.30, 0.24), m("plate")), "spine", (0.17, 0, 0.60))
+    rig.attach(shape("cylinder", (0.26, 0.33, 0.31), m("chain")), "spine", (0, 0, 0.26))
+    for k, z in enumerate((0.40, 0.25, 0.10)):
+        rig.attach(shape("cylinder", (0.29 - 0.01 * k, 0.36 - 0.01 * k, 0.065), m("plate")), "spine", (0, 0, z))
+    rig.attach(shape("flare", (0.39, 0.41, 0.20), m("plate")), "hips", (0, 0, -0.16))
+    rig.attach(shape("cylinder", (0.34, 0.34, 0.08), m("dark")), "hips", (0, 0, 0.02))
+    rig.attach(shape("cylinder", (0.12, 0.13, 0.07), m("chain")), "head", (0, 0, -0.03))
+    for side in ("arm_l", "arm_r"):
+        rig.attach(shape("ball", (0.21, 0.21, 0.16), m("plate")), side, (0, 0, 0.03))
+        rig.attach(shape("ball", (0.19, 0.19, 0.13), m("plate")), side, (0, 0, -0.10))
+        rig.attach(shape("cylinder", (0.16, 0.16, 0.25), m("chain")), side, (0, 0, -0.30))
+        rig.attach(shape("cylinder", (0.15, 0.15, 0.2), m("plate")), side, (0, 0, -0.65))
+        rig.attach(shape("ball", (0.14, 0.14, 0.12), m("plate")), side, (0, 0, -0.45))
+    for side in ("leg_l", "leg_r"):
+        rig.attach(shape("cylinder", (0.16, 0.16, 0.28), m("plate")), side, (0, 0, -0.28))
+        rig.attach(shape("ball", (0.17, 0.17, 0.13), m("plate")), side, (0.04, 0, -0.60))
+        rig.attach(shape("cylinder", (0.165, 0.165, 0.24), m("plate")), side, (0, 0, -0.90))
+        rig.attach(shape("box", (0.23, 0.11, 0.09), m("plate")), side, (0.08, 0, -1.2))
+
+
+def gear_round_shield(rig):
+    """Round Shield: an oak disc with a steel rim, a boss and brass studs,
+    strapped to the left forearm and held out in front."""
+    m = gear_material
+    facing_out = (0, math.radians(90), 0)
+    rig.attach(shape("cylinder", (0.44, 0.44, 0.03), m("steel"), rotation=facing_out), "arm_l", (0.21, 0.02, -0.62))
+    rig.attach(shape("cylinder", (0.40, 0.40, 0.035), m("oak"), rotation=facing_out), "arm_l", (0.235, 0.02, -0.62))
+    rig.attach(shape("ball", (0.08, 0.12, 0.12), m("steel")), "arm_l", (0.27, 0.02, -0.62))
+    for k in range(8):
+        a = 2 * math.pi * k / 8
+        rig.attach(shape("ball", (0.03, 0.03, 0.03), m("brass")), "arm_l",
+                   (0.27, 0.02 + 0.31 * math.cos(a), -0.62 + 0.31 * math.sin(a)))
+
+
+def blade_weapon(rig, grip_length, guard, blade_length, blade_width, pommel, angle=0.0):
+    """A sword along the grip's +X: grip, cross-guard, blade and point."""
+    m = gear_material
+    g = grip(rig, angle)
+    hang(shape("cylinder", (0.034, 0.034, grip_length / 2), m("leather"), rotation=(0, math.radians(90), 0)), g,
+         (0.04, 0, 0))
+    end = 0.04 + grip_length / 2
+    hang(shape("ball", (pommel, pommel, pommel), m("brass")), g, (0.04 - grip_length / 2 - pommel * 0.6, 0, 0))
+    hang(shape("box", (0.035, guard, 0.03), m("brass")), g, (end + 0.03, 0, 0))
+    blade = hang(shape("box", (blade_length / 2, blade_width, 0.02), m("steel")), g,
+                 (end + 0.06 + blade_length / 2, 0, 0))
+    blade.modifiers.clear()  # straight edges, meeting the point
+    hang(shape("cone", (0.02, blade_width * 1.02, blade_width * 2.2), m("steel"), rotation=(0, math.radians(90), 0)),
+         g, (end + 0.06 + blade_length + blade_width * 2.2, 0, 0))
+    # A ridge down the middle of the blade, catching the light.
+    ridge = hang(shape("box", (blade_length / 2, blade_width * 0.3, blade_width * 0.3), m("steel"),
+                       rotation=(math.radians(45), 0, 0)), g, (end + 0.06 + blade_length / 2, 0, 0))
+    ridge.modifiers.clear()
+
+
+def gear_short_sword(rig):
+    blade_weapon(rig, 0.22, 0.15, 0.78, 0.06, 0.045)
+
+
+def gear_long_sword(rig):
+    blade_weapon(rig, 0.28, 0.21, 1.15, 0.065, 0.05)
+
+
+def gear_two_hand_sword(rig):
+    """A great two-handed sword with a long grip and a wide blade."""
+    blade_weapon(rig, 0.46, 0.32, 1.60, 0.11, 0.07, angle=15)
+
+
+def gear_staff(rig):
+    """Magic Staff: a long wooden staff with a blue crystal held in prongs."""
+    m = gear_material
+    g = grip(rig, -10)
+    hang(shape("cylinder", (0.05, 0.05, 1.30), m("wood"), rotation=(0, math.radians(90), 0)), g, (0.40, 0, 0))
+    hang(shape("cone", (0.05, 0.05, 0.10), m("brass"), rotation=(0, math.radians(-90), 0)), g, (-0.95, 0, 0))
+    hang(shape("cylinder", (0.06, 0.06, 0.05), m("brass"), rotation=(0, math.radians(90), 0)), g, (1.66, 0, 0))
+    hang(shape("ball", (0.12, 0.12, 0.12), m("crystal")), g, (1.86, 0, 0))
+    for k in range(3):
+        a = 2 * math.pi * k / 3
+        hang(shape("cone", (0.025, 0.025, 0.14), m("brass"),
+                   rotation=(math.radians(-25) * math.sin(a), math.radians(90 - 25 * math.cos(a)), 0)), g,
+             (1.80, 0.09 * math.sin(a), 0.09 * math.cos(a)))
+
+
+# layer: (name, builder, armour). Armour casts no shadow of its own: the
+# body's shadow, drawn on layer 0, already covers it.
+GEAR = {
+    5: ("cloth", gear_cloth, True),
+    6: ("plate", gear_plate, True),
+    9: ("round_shield", gear_round_shield, False),
+    12: ("short_sword", gear_short_sword, False),
+    17: ("long_sword", gear_long_sword, False),
+    18: ("staff", gear_staff, False),
+    19: ("two_hand_sword", gear_two_hand_sword, False),
+}
+
+
+def build_gear(rig, layer):
+    """Builds one piece of equipment on the rig; returns its mesh objects."""
+    before = set(bpy.data.objects)
+    GEAR[layer][1](rig)
+    return [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
 
 
 def veil(name, colour, alpha):
@@ -1749,9 +1936,80 @@ def facing(direction):
     return math.atan2(-y, x)
 
 
+def render_frames(scene, rig, kind, out, preview, skip=()):
+    """Renders every animation from the eight directions into out; returns
+    the frames.txt lines and calls back for each posed frame."""
+    ax, ay = studio.anchor(scene)
+    lines = [f"anchor {ax:.0f} {ay:.0f}"]
+    for name, (frames, loop) in ANIMATIONS.items():
+        if kind.startswith("person") and name not in ("idle", "walk"):
+            continue  # townspeople only stand about and stroll
+        if name in skip:
+            continue
+        lines.append(f"animation {name} {frames} {'loop' if loop else 'once'}")
+        for d in range(8):
+            for f in ([frames // 2] if preview else range(frames)):
+                pose(rig, name, f / frames, frames)
+                spin = rig.joints["root"].rotation_euler
+                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(d)))
+                yield lines, name, d, f
+        print(name, "done", flush=True)
+
+
+def depth(scene, objects):
+    """Distance from the camera plane to the middle of some objects."""
+    bpy.context.view_layer.update()
+    cam = scene.camera.matrix_world
+    forward = cam.to_3x3() @ Vector((0, 0, -1))
+    points = [o.matrix_world @ Vector(c) for o in objects for c in o.bound_box]
+    middle = sum(points, Vector()) / len(points)
+    return (middle - cam.translation).dot(forward)
+
+
+def render_hero(scene, rig, out, preview, layers):
+    """The hero's body (layer 0, into out) and each piece of equipment
+    (into out/layerNN). An equipment layer is rendered with the body held
+    out, so it shows only where it is in front of the body, and with every
+    other piece hidden. Its frames.txt gives each frame a draw priority
+    from how far the piece is from the camera compared with the chest
+    (the body is 20, lower is nearer)."""
+    body = [o for o in bpy.data.objects if o.type == "MESH" and o.name != "shadow catcher"]
+    catcher = bpy.data.objects["shadow catcher"]
+    gear = {layer: build_gear(rig, layer) for layer in sorted(GEAR)}
+    chest = [o for o in body if o.parent is rig.joints["spine"]][:1]
+    for layer in layers:
+        folder = out if layer == 0 else out / f"layer{layer:02d}"
+        folder.mkdir(parents=True, exist_ok=True)
+        for o in body:
+            o.is_holdout = layer != 0
+            # Held out of an equipment layer, the body must not darken it or
+            # the ground either, by shadow or by bounced light.
+            for ray in ("visible_shadow", "visible_diffuse", "visible_glossy", "visible_transmission"):
+                setattr(o, ray, layer == 0)
+        for n, objects in gear.items():
+            for o in objects:
+                o.hide_render = n != layer
+        catcher.hide_render = layer != 0 and GEAR[layer][2]
+        priorities = []
+        lines = []
+        skip = () if layer == 0 else ("death",)
+        for lines, name, d, f in render_frames(scene, rig, "hero", folder, preview, skip):
+            if layer:
+                delta = depth(scene, gear[layer]) - depth(scene, chest)
+                p = 10 if GEAR[layer][2] else max(1, min(19, 9 + round(delta / 0.2)))
+                priorities.append(f"priority {name} {d} {f} {p}")
+            studio.render(scene, str(folder / f"{name}_{d}_{f}.png"))
+        (folder / "frames.txt").write_text("\n".join(lines + priorities) + "\n")
+
+
 def main():
     preview = "--preview" in sys.argv
     blend = "--blend" in sys.argv
+    layers = None
+    if "--layers" in sys.argv:
+        k = sys.argv.index("--layers")
+        layers = [int(x) for x in sys.argv[k + 1].split(",")]
+        del sys.argv[k:k + 2]
     args = [a for a in sys.argv if a not in ("--preview", "--blend")]
     kind, out = args[-2], Path(args[-1])
     out.mkdir(parents=True, exist_ok=True)
@@ -1760,22 +2018,15 @@ def main():
     height = HEIGHT[kind]
     size = SIZE.get(kind, 160)
     studio.camera(scene, size, size, target=(0, 0, height * 0.42))
-    ax, ay = studio.anchor(scene)
     if blend:
         # The model in its rest pose; frames are posed from code.
         studio.save_blend(out / f"{kind}.blend")
-    lines = [f"anchor {ax:.0f} {ay:.0f}"]
-    for name, (frames, loop) in ANIMATIONS.items():
-        if kind.startswith("person") and name not in ("idle", "walk"):
-            continue  # townspeople only stand about and stroll
-        lines.append(f"animation {name} {frames} {'loop' if loop else 'once'}")
-        for d in range(8):
-            for f in ([frames // 2] if preview else range(frames)):
-                pose(rig, name, f / frames, frames)
-                spin = rig.joints["root"].rotation_euler
-                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(d)))
-                studio.render(scene, str(out / f"{name}_{d}_{f}.png"))
-        print(name, "done", flush=True)
+    if kind == "hero":
+        render_hero(scene, rig, out, preview, layers or [0, *sorted(GEAR)])
+        return
+    lines = []
+    for lines, name, d, f in render_frames(scene, rig, kind, out, preview):
+        studio.render(scene, str(out / f"{name}_{d}_{f}.png"))
     (out / "frames.txt").write_text("\n".join(lines) + "\n")
 
 
