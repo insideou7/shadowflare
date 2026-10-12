@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "logic/inventory.h"
+#include "logic/magic.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
 
@@ -32,6 +33,7 @@ struct SaveGame {
     std::string scenario;  // Scenario/<dir> of the map, or empty
     int x = 0, y = 0, direction = 0;
     int hp = 0;
+    std::optional<int> mp;  // none in saves from before magic: start full
     int level = 1;
     std::int64_t experience = 0;
     std::optional<Career> career;
@@ -39,6 +41,9 @@ struct SaveGame {
     std::vector<BagEntry> bag;
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
     ScriptFlags flags;  // the persistent scenario flags
+    std::optional<SpellBook> spells;  // none in saves from before magic
+    std::array<bool, kSpellCount> spellsOn{};  // toggle spells that are on
+    bool originalMode = false;
 
     std::string write() const;
     // Throws FormatError on a malformed file.

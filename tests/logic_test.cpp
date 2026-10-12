@@ -5,7 +5,9 @@
 
 #include "logic/ai_select.h"
 #include "formats/table_data.h"
+#include "logic/magic.h"
 #include "logic/movement.h"
+#include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
 #include "logic/shop.h"
@@ -333,7 +335,61 @@ void testCareer() {
     check(sf::Career::at(9, C::Hunter).current == C::Hunter && sf::Career::at(4).current == C::Mercenary, "Career::at");
 }
 
+void testMagic() {
+    const auto t = sf::MagicTables::standard();
+    using L = sf::ElementLevels;
+    check(sf::oppositeElement(sf::kFire) == sf::kWater && sf::oppositeElement(sf::kMetal) == sf::kGel, "opposite elements");
+    check(sf::discElementLevels(0, 0) == L{}, "a new hero's element levels are 0");
+    check(sf::discElementLevels(0, 20000)[sf::kFire] == 20, "the disc's fire anchor");
+    check(sf::elementLevels({}, L{15, -12, 3})[0] == 10 && sf::elementLevels({}, L{15, -12, 3})[1] == -10, "levels stay in -10..10");
+
+    // 0x412a40: blows get table 7 at the level in the monster's opposite.
+    check(sf::heroBlowDamage(t, 100, L{}, sf::kFire, 10, 1) == 90, "a plain blow");
+    L water{};
+    water[sf::kWater] = 10;
+    check(sf::heroBlowDamage(t, 100, water, sf::kFire, 10, 1) == 110, "water strengthens blows on fire monsters");
+    check(sf::heroBlowDamage(t, 100, water, -1, 10, 1) == 90, "open content monsters have no element");
+    L fire{};
+    fire[sf::kFire] = -10;
+    check(sf::damageToHero(t, 50, sf::kFire, fire, 20, 0) == 29, "table 11 weakens defence against fire");
+    check(sf::damageToHero(t, 5, sf::kFire, L{}, 100, 0) == 1, "at least 1 damage");
+    check(sf::spellDamage(100, sf::kWater, sf::kFire, 5, 1, 2) == 115, "the opposite element does more");
+    check(sf::spellDamage(100, sf::kFire, sf::kFire, 5, 1, 0) == 65, "the same element does less");
+    check(sf::spellDamage(100, sf::kEarth, sf::kFire, 5, 1, 3) == 95, "other elements do the usual");
+
+    // Element levels raise stats by percent; a pair at 10 adds more.
+    sf::HeroStats stats = sf::heroStats(1);
+    const int attack = stats[sf::HeroStats::kAttack], hp = stats[sf::HeroStats::kHp];
+    L both{};
+    both[sf::kFire] = both[sf::kWater] = 10;
+    int chant = 0;
+    sf::applyElementLevels(stats, chant, both);
+    check(stats[sf::HeroStats::kAttack] == attack + attack / 10 && stats[sf::HeroStats::kHp] == hp + hp / 10, "element stat bonuses");
+
+    // Spells are learned at level-ups by class points.
+    using C = sf::HeroClass;
+    auto book = sf::SpellBook::replay(t, sf::classHistory(5, C::Warrior));
+    check(book.knows(sf::kTransport) && book.knows(sf::kPlasma) && !book.knows(sf::kFireBall), "a mercenary's spells");
+    check(book.bar[0] == sf::kTransport && book.bar[1] == sf::kPlasma && book.bar[2] == -1, "learned spells fill the bar");
+    check(sf::classPoints(t, sf::classHistory(5, C::Warrior))[0] == 5, "the new hero's level counts as a mercenary one");
+    auto warrior = sf::SpellBook::replay(t, sf::classHistory(13, C::Warrior));
+    check(warrior.knows(sf::kFireBall) && !warrior.knows(sf::kIceBolt), "a warrior learns Fire Ball at 80 points");
+    const int need = t.spell(sf::kPlasma).usesToLevel[0];
+    for (int k = 1; k < need; ++k) book.train(t, sf::kPlasma);
+    check(book.castLevel(sf::kPlasma) == 1 && book.train(t, sf::kPlasma) && book.castLevel(sf::kPlasma) == 2, "training");
+    check(sf::spellMpCost(t, sf::kFireBall, 1) == 30 && sf::spellMpCost(t, sf::kFireBall, 1, 50) == 1, "MP cost");
+
+    // MP drain in hundredths of a point, the fraction carried over.
+    int carry = 0, total = 0;
+    for (int k = 0; k < 10; ++k) total += sf::regenerate(100, -30, carry);
+    check(total == -3, "Berserker's drain adds up");
+
+    check(sf::Rules::ours().shieldsCostTheirOwnMp && !sf::Rules::ours().originalMode(), "our fixes are on by default");
+    check(!sf::Rules::original().shieldsCostTheirOwnMp && sf::Rules::original().originalMode(), "original mode turns them off");
+}
+
 int main() {
+    testMagic();
     testScriptTalkAndShop();
     testShopStock();
     testCareer();

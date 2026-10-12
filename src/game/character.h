@@ -35,6 +35,7 @@ inline constexpr int kIdle = 0;
 inline constexpr int kWalk = 1;
 inline constexpr int kPlayerHit = 3;
 inline constexpr int kPlayerPunch = 5;
+inline constexpr int kPlayerCast = 13;
 inline constexpr int kEnemyHit = 2;
 inline constexpr int kEnemyDeath = 3;
 inline constexpr int kEnemyAttack = 4;
@@ -58,7 +59,8 @@ public:
     // Looping charts (idle, walk) wrap around; the others stop on their
     // last frame.
     void play(int chart);
-    void restart(int chart);
+    // `speed` is frames per tick (spells cast faster or slower).
+    void restart(int chart, double speed = 1.0);
     int chart() const { return chart_; }
     int frame() const { return frame_; }
     int frameCount() const;
@@ -77,6 +79,7 @@ private:
     const CharacterModel* model_;
     int chart_ = chart::kIdle;
     int frame_ = 0;
+    double speed_ = 1.0, progress_ = 0;
 };
 
 }  // namespace sf

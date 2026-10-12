@@ -55,6 +55,8 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         p.stats.defense = words[9];
         p.stats.evasion = words[10];
         p.stats.magicDefense = words[11];
+        p.stats.magicEvasion = words[12];
+        p.stats.word7 = words[7];
         p.stats.experience = words[13];
         p.stats.level = words[14];
         for (int k = 0; k < 3; ++k) {
@@ -62,6 +64,8 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
             p.stats.hits[k] = words[29 + k];
             p.stats.spells[k] = words[32 + k];
             p.stats.spellPower[k] = words[35 + k];
+            p.stats.spellLevel[k] = words[38 + k];
+            p.stats.spellHit[k] = words[41 + k];
         }
         p.stats.goldChance = words[49];
         p.stats.goldMin = words[50];

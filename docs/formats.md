@@ -227,24 +227,42 @@ i32  unknown
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
 ```
 
-The enemy block (0x13c bytes) holds the monster's stats. Read as i32
-words, these meanings were inferred by comparing 18,754 placements
-(goblins near Kanfore have 40 HP, Cold Ruins goblins 400), not taken
-from the exe, so treat them as likely rather than certain:
+The enemy block (0x13c bytes) holds the monster's stats, read as i32
+words. The loader (0x428bc2-0x428f02) copies the words, out of order, into
+the monster object from + 0xc4 on, and the combat code reads them there:
+0x459690 hands the damage code (0x412a40) + 0xe8 as defence, + 0xf0 as
+magic defence and + 0xd8 as element; the attack code (0x45a749) reads the
+attack and hit of the chosen slot at + 0xf8 and + 0x104; the hit test
+(0x45eb2b) takes evasion from + 0xec, or + 0xf4 for spells; the spell
+code (0x45b043) reads + 0x134 to + 0x158.
 
-| word | meaning |
-|---|---|
-| 6 | element |
-| 8 | hit points |
-| 9 | attack |
-| 11 | defense |
-| 13 | experience given |
-| 14 | level |
-| 1-4 | area it wanders in: left, top, right, bottom around its position |
-| 15-30 | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
-| 49 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
-| 50, 51 | gold dropped, min and max |
-| 77 | movement speed, per mille (usually 1000) |
+| word | monster + | meaning |
+|---|---|---|
+| 1-4 | 0xc4 | area it wanders in: left, top, right, bottom around its position |
+| 6 | 0xd8 | element: 0 fire, 1 water, 2 earth, 3 thunder, 4 holy, 5 dark, 6 gel, 7 metal |
+| 7 | 0xdc | unknown: 1 for almost every monster, 100 for 19 kinds (perhaps bosses); Counter Burst reflects half as much onto those |
+| 8 | 0xe4 | hit points |
+| 9 | 0xe8 | defence |
+| 10 | 0xec | evasion (50 for almost all) |
+| 11 | 0xf0 | magic defence |
+| 12 | 0xf4 | magic evasion |
+| 13 | 0x17c | experience given |
+| 14 | 0x180 | level |
+| 15-22 | | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
+| 23-25 | 0xf8 | attack of each of its three attacks (Control.aid actions 2-4) |
+| 29-31 | 0x104 | hit of each attack |
+| 32-34 | 0x134 | its three spells (actions 5-7), as the hero's spell numbers; -1 none |
+| 35-37 | 0x14c | each spell's power |
+| 38-40 | 0x140 | the level whose Table.Tbd columns each spell uses (hit, element) |
+| 41-43 | 0x158 | added to each spell's hit |
+| 49 | 0x198 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
+| 50, 51 | 0x19c | gold dropped, min and max |
+| 77 | | movement speed, per mille (usually 1000) |
+
+Words 26-28, 44-48, 52-75 and 78 are copied too but their use is not known
+yet. Before this was read from the exe, the engine took word 9 as the
+attack and 10-12 as hit, defence and evasion, which made monsters far too
+weak.
 
 The item block (0x10 bytes) is the item's class and code in Item.Ibn
 (see Items below) and two zeros.
@@ -432,11 +450,11 @@ descriptions. The numeric tables found so far:
   5 attack, 6 defence, 7 magic attack, 8 magic defence, 9 hit, 10 evasion,
   11 magic hit, 12 magic evasion.
 
-Combat between the player and a monster (no elements): the chance to hit
-is hit minus evasion, kept between 20 and 98 percent (0x413e00); damage is
-attack x (90, 100 or 110)% minus defence, at least 1 (0x412a40). Elements
-scale these through tables 7 and 11 (not used yet). Monsters keep hit in
-Mct enemy word 10 (50 for all) and evasion in word 12.
+Combat between the player and a monster: the chance to hit is hit minus
+evasion, kept between 20 and 98 percent (0x413e00); damage is attack x
+(90, 100 or 110)% minus defence, at least 1 (0x412a40), scaled by the
+elements through tables 7 and 11. See [magic.md](magic.md) for elements,
+spells and the tables they use.
 
 ## Classes (ShadowFlare.exe)
 

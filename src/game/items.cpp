@@ -218,19 +218,38 @@ void Game::updateEquipment() {
     if (player_) player_->visibleLayers = inventory_.heroLayers();
 }
 
-int Game::playerAttack() const { return heroStats()[HeroStats::kAttack] + inventory_.stats()[ItemDef::kAttack]; }
-int Game::playerDefense() const { return heroStats()[HeroStats::kDefense] + inventory_.stats()[ItemDef::kDefense]; }
-int Game::playerHit() const { return heroStats()[HeroStats::kHit] + inventory_.stats()[ItemDef::kHit]; }
-int Game::playerEvasion() const { return heroStats()[HeroStats::kEvasion] + inventory_.stats()[ItemDef::kEvasion]; }
+// As 0x44ea60 sums them: the hero's own stats, what they wear, their
+// element levels, then Berserker while it is on.
+HeroStats Game::playerStats() const {
+    HeroStats stats = heroStats();
+    const auto worn = inventory_.stats();
+    auto& v = stats.value;
+    v[HeroStats::kAttack] += worn[ItemDef::kAttack];
+    v[HeroStats::kHit] += worn[ItemDef::kHit];
+    v[HeroStats::kDefense] += worn[ItemDef::kDefense];
+    v[HeroStats::kEvasion] += worn[ItemDef::kEvasion];
+    v[HeroStats::kMagicAttack] += worn[ItemDef::kMagicAttack];
+    v[HeroStats::kMagicHit] += worn[ItemDef::kMagicHit];
+    v[HeroStats::kMagicDefense] += worn[ItemDef::kMagicDefense];
+    v[HeroStats::kMagicEvasion] += worn[ItemDef::kMagicEvasion];
+    v[HeroStats::kAttackSpeed] += worn[ItemDef::kAttackSpeed];
+    v[HeroStats::kWalkSpeed] += worn[ItemDef::kWalkSpeed];
+    int chant = 0;  // chant speed has no source yet besides elements
+    applyElementLevels(stats, chant, playerElements());
+    if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, spells_.castLevel(kBerserker));
+    return stats;
+}
+
+// A new hero stands in the middle of the attribute disc, so their own
+// levels are all 0; what they wear adds to that.
+ElementLevels Game::playerElements() const { return elementLevels({}, inventory_.elements()); }
 
 void Game::useItem(int index) {
     const ItemDef* def = inventory_.use(index);
     if (!def) return;
-    // Effect words 1 and 2 restore health and mental power; there is no
-    // mental power yet.
-    if (def->effect[1] > 0) {
-        playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
-    }
+    // Effect words 1 and 2 restore health and mental power.
+    if (def->effect[1] > 0) playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
+    if (def->effect[2] > 0) playerMp_ = std::min(playerMaxMp(), playerMp_ + def->effect[2]);
     showMessage(std::format("Used {}", def->name));
 }
 
@@ -245,6 +264,7 @@ void Game::loadLevelCurve() {
         }
     }
     if (levels_.needs.empty()) levels_ = LevelCurve::standard();
+    magic_ = tables_.tables.empty() ? MagicTables::standard() : MagicTables::fromTables(tables_);
 }
 
 void Game::gainExperience(int amount) {
@@ -255,15 +275,24 @@ void Game::gainExperience(int amount) {
     ++playerLevel_;
     playerExperience_ = 0;
     career_.levelUp(playerLevel_);
-    playerHp_ = playerMaxHp();  // a new level heals fully, as in the original
+    const std::vector<int> learned = spells_.learn(magic_, career_.history);
+    // A new level heals fully and refills magic, as in the original.
+    playerHp_ = playerMaxHp();
+    playerMp_ = playerMaxMp();
     log::info("Level {}, {}", playerLevel_, className(career_.current));
+    std::string spells;
+    for (const int spell : learned) {
+        log::info("Learned {}", magic_.spell(spell).name);
+        spells += std::format("{}{}", spells.empty() ? " Learned " : ", ", magic_.spell(spell).name);
+    }
     // The level-up window's lines about the class (0x451771).
     if (playerLevel_ == 5) {
-        showMessage(std::format("Level {}! Changed your occupation to [{}]", playerLevel_, className(career_.current)));
+        showMessage(std::format("Level {}! Changed your occupation to [{}]{}", playerLevel_, className(career_.current), spells));
     } else if (career_.canChange()) {
-        showMessage(std::format("Level {}! It is possible to change your occupation to [{}]", playerLevel_, className(career_.offered)));
+        showMessage(std::format("Level {}! It is possible to change your occupation to [{}]{}", playerLevel_,
+                                className(career_.offered), spells));
     } else {
-        showMessage(std::format("Level {}!", playerLevel_));
+        showMessage(std::format("Level {}!{}", playerLevel_, spells));
     }
 }
 
@@ -497,7 +526,8 @@ void Game::renderInventory() {
 
 void Game::renderHud() {
     if (menuOpen_) return;
-    if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 34, std::format("GOLD {}", inventory_.gold()), kGoldColor);
+    renderSpellBar();
+    if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
     }

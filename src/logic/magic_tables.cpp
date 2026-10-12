@@ -178,7 +178,7 @@ const Rows kUsesToLevel = {
 };
 
 // Table 201.
-const Rows kBerserker = {
+const Rows kBerserkerTable = {
     {{4, -30, 0}, {5, -25, 0}, {5, -20, 0}, {5, -15, 0}, {11, -10, 0}},
     {{30, 10, 1}},
     {{30, 10, 1}},
@@ -227,7 +227,7 @@ MagicTables MagicTables::standard() {
     t.elementDefense = {8, 8, 8, 8, 8, 9, 9, 9, 10, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 12};  // table 11
     t.classWeights = {{{1, 0, 0, 0}, {0, 10, 2, 4}, {0, 2, 10, 4}, {0, 5, 2, 10}}};  // tables 100-103
     t.chantSteps = {1, 2, 3, 4, 5, 6, 7, 8};  // table 4
-    for (std::size_t r = 0; r < t.berserker.size(); ++r) t.berserker[r] = expand<kSpellColumns>(kBerserker[r]);
+    for (std::size_t r = 0; r < t.berserker.size(); ++r) t.berserker[r] = expand<kSpellColumns>(kBerserkerTable[r]);
     return t;
 }
 
