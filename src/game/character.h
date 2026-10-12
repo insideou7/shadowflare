@@ -51,6 +51,7 @@ int facingOf(double dx, double dy);
 class Character {
 public:
     explicit Character(const CharacterModel* model) : model_(model) {}
+    void setModel(const CharacterModel* model) { model_ = model; }
 
     double x = 0, y = 0;  // world units
     int direction = 0;    // 0 = south, then counter-clockwise: south-east, east, ...

@@ -62,6 +62,7 @@ add_executable(shadowflare
     src/game/items.cpp
     src/game/saving.cpp
     src/game/title.cpp
+    src/game/new_character.cpp
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp

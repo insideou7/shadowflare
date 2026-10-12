@@ -141,6 +141,7 @@ public:
     }
     int playerLevel() const override { return g_.playerLevel_; }
     int offeredClass() const override { return static_cast<int>(g_.career_.offered); }
+    int playerSex() const override { return static_cast<int>(g_.heroSex_); }
     std::int64_t gold() const override { return g_.inventory_.gold(); }
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
     int random(int n) override { return g_.random_.next(n); }
@@ -167,7 +168,7 @@ public:
     std::string partnerStatus(int kind) const override { return g_.partnerStatusText(kind); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
-        log::info("{} offered", className(g_.career_.offered));
+        log::info("{} offered", className(g_.career_.offered, g_.heroSex_));
     }
 
 private:

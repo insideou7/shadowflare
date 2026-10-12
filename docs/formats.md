@@ -497,9 +497,12 @@ descriptions. The numeric tables found so far:
 - 900-907: the hero's stats, 13 rows by one column per level in a class
   (level-up function 0x412fb0, which reads table
   `901 + 2 * map[class] - [character+0x28]`). 900/901 hold the starting
-  stats in column 0 and four classless levels (900 looks like the male
-  hero: more health and attack); 902/903 the warrior, 904/905 the
-  wizard, 906/907 the hunter. Each level-up first stores the class held
+  stats in column 0 and four classless levels, 900 for the hero and 901
+  for the heroine (the table is `0x385 - [character+0x28]` and the sex
+  byte is 1 for the hero, see A new game); 902/903 the warrior, 904/905
+  the wizard (905, the witch, keeps 15 health a level to level 25 and 50
+  magic to level 21), 906/907 the hunter. The odd tables are otherwise
+  the same as the even ones. Each level-up first stores the class held
   in a byte per level (+0xec + level) and then counts that class's bytes:
   the n-th level gained in a class reads column n - 1. A new hero's byte 0
   is the mercenary (16), so mercenary levels read 900 from column 1. The
@@ -629,8 +632,34 @@ accessories are not drawn.
 
 ## A new game (ShadowFlare.exe 0x440f70)
 
-The title screen's New Game makes an empty hero (0x421a00) and 0x440f70
-fills it in:
+The title screen's New Game opens the Create New Character screen
+(0x421a00 sets it up, 0x423ca0 runs it each frame), drawn from
+`System/Select/Pattern/Select.njp`, whose patterns carry their screen
+positions:
+
+| Patterns | What |
+| --- | --- |
+| 41, 36 | the background and the title, CREATE NEW CHARACTER |
+| 0/1, 2/3, 4/5 | EXIT, BACK and OK, dim/lit (lit under the pointer) |
+| 7/8, 9/10 | the hero and the heroine, dim/lit; 11 and 12 their shades, drawn at half strength |
+| 34/35 | NAME, dim while choosing, lit while typing |
+| 38; 22/23, 24/25, 20/21 | the game-mode window: ONLINE MODE, SINGLE MODE, BACK |
+| 37, 6/13, 14-19, 26-33, 39, 40, 42-65 | the Load Game screen's (LOAD DATA, DELETE, YES/NO, slot numbers) |
+
+Clicking a figure (hero x 168-302, heroine 390-489, y 107-378; the arrow
+keys and Enter too) sets the new hero's sex byte (+0x18 of the record that
+becomes player +0x28): 1 for the hero, 0 for the heroine. Over 20 frames
+the other figure fades out and the chosen one slides 97 pixels to the
+middle, and an edit box opens at (190, 407) for the name (the manual: under
+20 characters), drawn at (194, 411) in white over a black shadow. OK (or
+Enter) with a name sets the job to 16, mercenary, and opens the mode
+window; Enter with no name, or BACK, slides the figure back. In the mode
+window SINGLE MODE fades out over 14 frames into the game; BACK returns to
+the name. GETPLAYERSEX (0x433b1f) reads the sex byte; the player's
+animation is `Player\Male` or `Player\Female` by it (0x412806).
+
+0x440f70 then fills in the hero, starting stats from table `0x385 - sex`
+(900 for the hero, 901 for the heroine) and:
 
 - saved scenario and entry (+0x15a4, +0x15a8) both 0, so every new game
   begins in scenario 0, Remote Town (`Map\f00_01`), at entry point 0, just

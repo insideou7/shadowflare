@@ -51,6 +51,8 @@ public:
     // GETCLASS: the class on offer, which is the hero's own unless one is
     // waiting to be taken (0 mercenary, 1 warrior, 2 hunter, 3 wizard).
     virtual int offeredClass() const { return 0; }
+    // GETPLAYERSEX: 1 for the hero, 0 for the heroine (player +0x28, 0x433b1f).
+    virtual int playerSex() const { return 1; }
     virtual std::int64_t gold() const { return 0; }
     virtual void payGold(std::int64_t /*amount*/) {}
     virtual int random(int /*n*/) { return 0; }

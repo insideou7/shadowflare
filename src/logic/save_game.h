@@ -44,6 +44,8 @@ struct SaveGame {
     int level = 1;
     std::int64_t experience = 0;
     std::optional<Career> career;
+    HeroSex sex = HeroSex::Male;  // saves from before the heroine: the hero
+    std::string name;
     int gold = 0;
     std::vector<BagEntry> bag;
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid

@@ -62,8 +62,15 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
             if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
     }
-    if (skin_) playerModel_ = skin_->character("Player/Male/Animation00");
-    if (!playerModel_) playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    // Both of the player's figures (0x412806 picks by the hero's sex); a
+    // pack without a heroine draws her as the hero.
+    for (const HeroSex sex : {HeroSex::Male, HeroSex::Female}) {
+        const std::string stem = sex == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
+        auto& model = playerModels_[static_cast<int>(sex)];
+        if (skin_) model = skin_->character(stem);
+        const bool there = data_->exists(stem + ".anim") || data_->exists(stem + ".caf");
+        if (!model && (sex == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
+    }
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
             ai_ = AiControl::parse(*raw);
@@ -76,7 +83,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadItems();
     loadLevelCurve();
     indexScenarios();
-    if (playerModel_) player_.emplace(&*playerModel_);
+    if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
     giveStartingKit();
     updateEquipment();
     if (mapNames_.empty()) {
@@ -346,6 +353,10 @@ void Game::handleEvent(const SDL_Event& event) {
         optionsEvent(event);
         return;
     }
+    if (newCharacter_) {
+        newCharacterEvent(event);
+        return;
+    }
     if (menuOpen_) {
         menuEvent(event);
         return;
@@ -533,7 +544,8 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 
 void Game::tick() {
     ++ticks_;
-    if (!map_ || menuOpen_ || optionsOpen_) return;  // the world waits while a menu is open
+    if (newCharacter_) tickNewCharacter();
+    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
     if (startScripts_) {
         startScripts_ = false;
         runEvent(ScenarioScript::kOnStart);
@@ -1016,6 +1028,8 @@ void Game::render(double interpolation) {
     }
     if (optionsOpen_) {
         renderOptions();
+    } else if (newCharacter_) {
+        renderNewCharacter();
     } else if (menuOpen_) {
         renderMenu();
     }

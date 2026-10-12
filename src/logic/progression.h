@@ -48,22 +48,36 @@ struct HeroStats {
 // 5 hunter, 9 wizard (the witch, for a heroine).
 enum class HeroClass { Mercenary, Warrior, Hunter, Wizard };
 inline constexpr int kHeroClassCount = 4;
-std::string_view className(HeroClass cls);
+
+// The hero's sex, chosen on the Create New Character screen and numbered
+// as ShadowFlare.exe keeps it (player +0x28; 1 when the male figure was
+// clicked, 0x423ca0). Stats come from Table.Tbd table 0x385 minus it (2 x
+// class index - sex + 0x385 at a level-up, 0x412fb0): odd tables for the
+// heroine, even ones for the hero.
+enum class HeroSex { Female = 0, Male = 1 };
+
+// The class's name; a wizard heroine is a Witch, as in the original.
+std::string_view className(HeroClass cls, HeroSex sex = HeroSex::Male);
 
 // Stats from the hero's class history, as the original's level-up function
 // builds them (ShadowFlare.exe 0x412fb0). `history` holds the class the
 // hero had at each level-up, oldest first, so its size is the level minus
-// one. They start with the male hero's starting stats (table 900, column
-// 0); each level-up then adds the next column of that class's table: the
-// n-th level gained in a class reads column n - 1 (warrior 902, hunter 906,
-// wizard 904), except that a new hero already counts as one mercenary level,
-// so mercenary level-ups read table 900 from column 1.
-HeroStats heroStats(const std::vector<HeroClass>& history);
+// one. They start with the new hero's starting stats (column 0 of table
+// 900, or 901 for a heroine, 0x440f70); each level-up then adds the next
+// column of that class's table: the n-th level gained in a class reads
+// column n - 1 (warrior 902/903, hunter 906/907, wizard 904/905), except
+// that a new hero already counts as one mercenary level, so mercenary
+// level-ups read table 900/901 from column 1. The heroine starts with less
+// health and attack and more magic and defence, and a witch gains her
+// larger health and magic steps for a few levels longer than a wizard.
+HeroStats heroStats(const std::vector<HeroClass>& history, HeroSex sex = HeroSex::Male);
 
 // A hero who was a mercenary up to level 5 and `cls` after it, as the
 // original makes everyone a warrior at level 5 (see Career).
 std::vector<HeroClass> classHistory(int level, HeroClass cls);
-inline HeroStats heroStats(int level, HeroClass cls = HeroClass::Warrior) { return heroStats(classHistory(level, cls)); }
+inline HeroStats heroStats(int level, HeroClass cls = HeroClass::Warrior, HeroSex sex = HeroSex::Male) {
+    return heroStats(classHistory(level, cls), sex);
+}
 
 // The hero's class and how it changes, as in the original. Every hero
 // starts as a mercenary and becomes a warrior on reaching level 5

@@ -359,7 +359,7 @@ void Game::gainExperience(int amount) {
     // A new level heals fully and refills magic, as in the original.
     playerHp_ = playerMaxHp();
     playerMp_ = playerMaxMp();
-    log::info("Level {}, {}", playerLevel_, className(career_.current));
+    log::info("Level {}, {}", playerLevel_, className(career_.current, heroSex_));
     std::string spells;
     for (const int spell : learned) {
         log::info("Learned {}", magic_.spell(spell).name);
@@ -367,10 +367,10 @@ void Game::gainExperience(int amount) {
     }
     // The level-up window's lines about the class (0x451771).
     if (playerLevel_ == 5) {
-        showMessage(std::format("Level {}! Changed your occupation to [{}]{}", playerLevel_, className(career_.current), spells));
+        showMessage(std::format("Level {}! Changed your occupation to [{}]{}", playerLevel_, className(career_.current, heroSex_), spells));
     } else if (career_.canChange()) {
         showMessage(std::format("Level {}! It is possible to change your occupation to [{}]{}", playerLevel_,
-                                className(career_.offered), spells));
+                                className(career_.offered, heroSex_), spells));
     } else {
         showMessage(std::format("Level {}!{}", playerLevel_, spells));
     }

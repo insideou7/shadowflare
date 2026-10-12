@@ -29,6 +29,8 @@ bool Game::saveGame() {
     save.level = playerLevel_;
     save.experience = playerExperience_;
     save.career = career_;
+    save.sex = heroSex_;
+    save.name = heroName_;
     save.partner = partnerRecord_;
     save.partnerHp = !partner_ ? partnerHpCarried_ : partnerAlive() ? partner_->hp : 0;
     save.store(inventory_);
@@ -81,6 +83,7 @@ bool Game::loadGame() {
     partnerRecord_ = save.partner.value_or(PartnerRecord{});
     partner_.reset();
     partnerHpCarried_ = save.partnerHp;
+    setHero(save.sex, save.name);
     loadMap(index, save.scenario);
     if (!map_ || !player_) return false;
     player_->x = save.x;
