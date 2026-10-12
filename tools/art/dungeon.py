@@ -52,6 +52,7 @@ def landing():
 DARK = dict(colour=(0.05, 0.05, 0.05), dark=(0.02, 0.02, 0.02), scale=4, bump=0)
 
 WALL_L, WALL_H, WALL_T = 6.4, 5.9, 0.7
+DWALL_L = 5.8  # the dungeon's own walls are a little shorter, like the original's
 
 
 def solid(o):
@@ -71,11 +72,11 @@ def wall(along_y=False, fittings=None, seed=1):
     rng = random.Random(seed)
     blocks = mat("blocks", BLOCKS)
     copper, iron = mat("copper", OLDCOPPER), mat("iron", IRON)
-    solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), blocks))
+    solid(box((DWALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), blocks))
     face = -WALL_T / 2  # the side facing the camera (Blender -y)
     if fittings == "pipes":
-        cyl(0.34, WALL_L, (0, face - 0.40, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
-        for x in (-WALL_L / 2 + 0.4, 0.6, WALL_L / 2 - 0.4):
+        cyl(0.34, DWALL_L, (0, face - 0.40, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
+        for x in (-DWALL_L / 2 + 0.4, 0.6, DWALL_L / 2 - 0.4):
             cyl(0.42, 0.2, (x, face - 0.40, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
             box((0.14, 0.45, 0.6), (x, face - 0.15, WALL_H - 1.3), iron)
         x2 = rng.uniform(1.2, 2.2)
@@ -99,7 +100,7 @@ def wall(along_y=False, fittings=None, seed=1):
         # A rusty iron frame over most of the face, braced corner to
         # corner.
         frame = mat("redrust", REDRUST)
-        w, h = WALL_L - 0.8, WALL_H - 0.8
+        w, h = DWALL_L - 0.8, WALL_H - 0.8
         for dz in (-h / 2, h / 2):
             box((w + 0.2, 0.24, 0.24), (0, face - 0.12, WALL_H / 2 + dz), frame)
         for dx in (-w / 2, w / 2):
