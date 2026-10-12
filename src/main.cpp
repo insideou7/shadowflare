@@ -37,6 +37,9 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    std::string saveFile;     // default: save.txt in the user's settings folder
+    bool load = false;        // start from the saved game
+    bool saveAtEnd = false;   // save when the run ends (for tests)
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -67,6 +70,12 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--save-file" && i + 1 < argc) {
+            options.saveFile = argv[++i];
+        } else if (arg == "--load") {
+            options.load = true;
+        } else if (arg == "--save-at-end") {
+            options.saveAtEnd = true;
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -242,6 +251,13 @@ int main(int argc, char** argv) {
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     app.game->setInventoryOpen(options.inventory);
+    if (!options.saveFile.empty()) {
+        app.game->setSaveFile(options.saveFile);
+    } else if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
+        app.game->setSaveFile(std::string(prefs) + "save.txt");
+        SDL_free(prefs);
+    }
+    if (options.load) app.game->loadGame();
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
@@ -253,6 +269,7 @@ int main(int argc, char** argv) {
     while (app.running) frame(&app);
 #endif
 
+    if (options.saveAtEnd) app.game->saveGame();
     if (!options.screenshot.empty()) {
         app.game->render(0.0);
         saveScreenshot(app.renderer, options.screenshot);

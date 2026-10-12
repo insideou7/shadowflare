@@ -38,7 +38,9 @@ map, Home returns to the start point, J shows the walkability grid, Esc quits.
 Walk onto an item to pick it up. I opens the inventory: click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
-at the hero's feet.
+at the hero's feet. F5 saves the game and F9 loads it. The save is a small
+text file, `save.txt` in SDL's settings folder for the game (on Linux
+`~/.local/share/ShadowFlare/open/`, on Windows `%APPDATA%\ShadowFlare\open\`).
 
 ## Building
 
@@ -69,6 +71,8 @@ Options:
 - `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
+- `--save-file <path>` save to and load from this file instead
+- `--load` start from the saved game; `--save-at-end` saves when the run ends
 
 Run the unit tests with `ctest --test-dir build`.
 

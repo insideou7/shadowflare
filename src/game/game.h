@@ -71,6 +71,12 @@ public:
     void setShowJudge(bool show) { showJudge_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
+    // Saves the game to a text file (F5) or loads it back (F9). False, with
+    // a message on screen, when that fails.
+    void setSaveFile(std::string path) { saveFile_ = std::move(path); }
+    bool saveGame();
+    bool loadGame();
+
 private:
     // People and monsters placed by the map's scenario file.
     struct Actor {
@@ -195,6 +201,7 @@ private:
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
     int playerLevel_ = 1;
+    std::string saveFile_ = "save.txt";
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     std::string message_;

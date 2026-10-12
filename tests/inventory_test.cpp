@@ -6,7 +6,9 @@
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "formats/binary_reader.h"
 #include "logic/inventory.h"
+#include "logic/save_game.h"
 
 namespace {
 
@@ -181,6 +183,63 @@ void testLoot() {
     check(sf::pickDrop(none, 5, random) == nullptr, "nothing to drop");
 }
 
+void testSaveGame() {
+    sf::ItemTable table;
+    auto sword = def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12);
+    sword.code = 7;
+    auto potion = def(Class::Consumable, 0, 1, 1);
+    potion.code = 3;
+    table.items = {sword, potion};
+
+    sf::Inventory inventory;
+    inventory.addGold(120);
+    check(inventory.addAt({&table.items[1], 1}, 2, 1), "potion goes in the bag");
+    inventory.equip(Slot::Weapon, {&table.items[0], 1});
+
+    sf::SaveGame save;
+    save.map = "waterworks";
+    save.scenario = "Scenario/00000002";
+    save.x = 1280;
+    save.y = 1472;
+    save.direction = 5;
+    save.hp = 92;
+    save.level = 3;
+    save.experience = 140;
+    save.flags[{sf::ScenarioScript::kSave, 71}] = 1;
+    save.store(inventory);
+
+    const auto loaded = sf::SaveGame::parse(save.write());
+    check(loaded.map == "waterworks" && loaded.scenario == "Scenario/00000002", "map and scenario survive");
+    check(loaded.x == 1280 && loaded.y == 1472 && loaded.direction == 5, "position survives");
+    check(loaded.hp == 92 && loaded.level == 3 && loaded.experience == 140 && loaded.gold == 120, "stats survive");
+    check(loaded.flags.at({sf::ScenarioScript::kSave, 71}) == 1, "story flags survive");
+
+    sf::Inventory restored;
+    restored.addGold(5);
+    check(loaded.restore(restored, table) == 0, "every item is known");
+    check(restored.gold() == 120, "gold is replaced, not added");
+    check(restored.bag().size() == 1 && restored.bag()[0].x == 2 && restored.bag()[0].y == 1, "bag items keep their place");
+    const auto& worn = restored.equipped(Slot::Weapon);
+    check(worn && worn->def == &table.items[0], "worn items are worn again");
+
+    table.items.pop_back();
+    sf::Inventory partial;
+    check(loaded.restore(partial, table) == 1, "unknown items are skipped");
+
+    auto threw = [](std::string_view text) {
+        try {
+            sf::SaveGame::parse(text);
+        } catch (const sf::FormatError&) {
+            return true;
+        }
+        return false;
+    };
+    check(threw("hello"), "junk is rejected");
+    check(threw("version=1\n"), "a save without a map is rejected");
+    check(threw("version=1\nmap=a\nat=1,x,2\n"), "bad numbers are rejected");
+    check(!threw("version=1\nmap=a\nfuture=thing\n"), "unknown keys are skipped");
+}
+
 }  // namespace
 
 int main() {
@@ -190,6 +249,7 @@ int main() {
     testStatsAndLayers();
     testUse();
     testLoot();
+    testSaveGame();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
