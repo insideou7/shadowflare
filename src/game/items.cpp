@@ -247,16 +247,18 @@ void Game::loadLevelCurve() {
             log::warn("Table.Tbd: {}", e.what());
         }
     }
-    if (levels_.thresholds.empty()) levels_ = LevelCurve::standard();
+    if (levels_.needs.empty()) levels_ = LevelCurve::standard();
 }
 
 void Game::gainExperience(int amount) {
+    if (playerLevel_ >= levels_.maxLevel()) return;
     playerExperience_ += amount;
-    const int level = levels_.levelFor(playerExperience_);
-    if (level <= playerLevel_) return;
-    playerLevel_ = level;
-    playerHp_ = playerMaxHp();  // a new level heals, as in most games of its kind
-    log::info("Level {} ({} experience)", playerLevel_, playerExperience_);
+    if (playerExperience_ < levels_.need(playerLevel_)) return;
+    // As in the original: one level at a time, counting again from 0.
+    ++playerLevel_;
+    playerExperience_ = 0;
+    playerHp_ = playerMaxHp();  // a new level heals fully, as in the original
+    log::info("Level {}", playerLevel_);
     showMessage(std::format("Level {}!", playerLevel_));
 }
 
@@ -464,7 +466,7 @@ void Game::renderInventory() {
         // Totals on the left.
         const auto stats = inventory_.stats();
         int ty = 20;
-        for (const auto& line : {std::format("LV {}", playerLevel_), std::format("EXP {}", playerExperience_),
+        for (const auto& line : {std::format("LV {}", playerLevel_), std::format("EXP {}/{}", playerExperience_, levels_.need(playerLevel_)),
                                  std::format("ATK {}", playerDamage()),
                                  std::format("DEF {}", playerDefense()), std::format("HIT {}", stats[ItemDef::kHit]),
                                  std::format("EVA {}", stats[ItemDef::kEvasion])}) {
