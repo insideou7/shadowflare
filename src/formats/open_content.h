@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <span>
 #include <string>
 #include <vector>
@@ -68,8 +69,24 @@ struct Scenario {
 };
 Scenario parseScenario(std::span<const std::uint8_t> text);
 
+// Scenario/<number>/script.txt: the scenario's events, written in the
+// original's command names (see docs/content.md). Adds its people,
+// objects, messages, sentences and triggers to a parsed scenario.txt.
+// Throws FormatError.
+void parseScript(std::span<const std::uint8_t> text, Scenario& scenario);
+
 // items.txt: item definitions, standing in for Item.Ibn.
 ItemTable parseItems(std::span<const std::uint8_t> text);
+
+// shops.txt: the goods INITTRADE stocks a shop with, by list number,
+// standing in for Table.Tbd tables 32 and 33.
+struct ShopGoods {
+    ItemDef::Class cls = ItemDef::Class::Weapon;
+    std::int32_t code = 0;
+    int count = 1;
+};
+using ShopLists = std::map<int, std::vector<ShopGoods>>;
+ShopLists parseShops(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);

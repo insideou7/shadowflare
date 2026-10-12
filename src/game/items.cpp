@@ -79,6 +79,13 @@ void Game::loadItems() {
         } catch (const FormatError& e) {
             log::warn("items.txt: {}", e.what());
         }
+        if (auto shops = data_->read("shops.txt")) {
+            try {
+                openShops_ = open::parseShops(*shops);
+            } catch (const FormatError& e) {
+                log::warn("shops.txt: {}", e.what());
+            }
+        }
     }
     log::info("Loaded {} item definitions", items_.items.size());
 }

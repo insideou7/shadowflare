@@ -90,6 +90,12 @@ bool keyValue(std::string_view line, std::string_view& key, std::string_view& va
     return true;
 }
 
+const std::map<std::string_view, ItemDef::Class, std::less<>> kClasses = {
+    {"weapon", ItemDef::Class::Weapon},         {"armour", ItemDef::Class::Armour},
+    {"accessory", ItemDef::Class::Accessory}, {"consumable", ItemDef::Class::Consumable},
+    {"special", ItemDef::Class::Special},
+};
+
 bool isSection(std::string_view line) { return line.size() >= 2 && line.front() == '[' && line.back() == ']'; }
 
 std::string_view sectionName(std::string_view line) { return trim(line.substr(1, line.size() - 2)); }
@@ -348,11 +354,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
         } else if (key == "enemy" || key == "person") {
             // enemy=kind,x,y,direction,hp,attack,wander radius,ai list name
             //       [,level,gold chance,gold min,gold max[,experience[,defense,hit,evasion[,magic defense,element]]]]
-            // person=kind,x,y,direction
+            // person=kind,x,y,direction[,name]: the name is what script.txt
+            // calls them.
             const bool enemy = key == "enemy";
             auto fields = Lines::split(value, ',');
-            if (enemy ? fields.size() != 8u && fields.size() != 12u && fields.size() != 13u && fields.size() != 16u && fields.size() != 18u : fields.size() != 4u) {
-                lines.fail(enemy ? "enemy needs 8, 12, 13, 16 or 18 fields" : "person needs 4 fields");
+            if (enemy ? fields.size() != 8u && fields.size() != 12u && fields.size() != 13u && fields.size() != 16u && fields.size() != 18u
+                      : fields.size() != 4u && fields.size() != 5u) {
+                lines.fail(enemy ? "enemy needs 8, 12, 13, 16 or 18 fields" : "person needs 4 or 5 fields");
             }
             ScenarioControl::Placement p;
             p.group = enemy ? Group::Enemy : Group::Person;
@@ -361,6 +369,7 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             p.x = lines.toInt(fields[1]);
             p.y = lines.toInt(fields[2]);
             p.direction = lines.toInt(fields[3]);
+            if (!enemy && fields.size() == 5) p.name = fields[4];
             // A collision box of about one walkability cell.
             p.rect[0] = p.rect[1] = -60;
             p.rect[2] = p.rect[3] = 60;
@@ -426,13 +435,189 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
     return s;
 }
 
+// Top-level person=, object= and temp= lines, then [message <id>] and
+// [sentence <name>] sections; see docs/content.md.
+void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
+    using Group = ScenarioControl::Group;
+    using S = ScenarioScript;
+    Lines lines(text);
+    auto& script = scenario.script;
+    auto& control = scenario.control;
+    // In-game ids of named people and objects.
+    std::map<std::string, std::int32_t, std::less<>> characters;
+    int next[4] = {};
+    for (const auto& p : control.placements) {
+        next[static_cast<int>(p.group)] = std::max(next[static_cast<int>(p.group)], p.id + 1);
+        if (!p.name.empty()) characters.emplace(p.name, ScenarioControl::idBase(p.group) + p.id);
+    }
+    auto place = [&](ScenarioControl::Placement p) {
+        p.id = next[static_cast<int>(p.group)]++;
+        if (!p.name.empty() && !characters.emplace(p.name, ScenarioControl::idBase(p.group) + p.id).second) {
+            lines.fail(std::format("'{}' is named twice", p.name));
+        }
+        control.placements.push_back(std::move(p));
+    };
+    auto character = [&](std::string_view word) {
+        if (const auto it = characters.find(word); it != characters.end()) return it->second;
+        if (!word.empty() && (word.front() == '-' || (word.front() >= '0' && word.front() <= '9'))) return lines.toInt(word);
+        lines.fail(std::format("no one is called '{}'", word));
+    };
+
+    // Sentence names, and the operands waiting for them.
+    std::map<std::string, std::int32_t, std::less<>> sentenceNumbers;
+    struct Reference {
+        std::size_t sentence, command, operand;
+        std::string name;
+    };
+    std::vector<Reference> references;
+    std::string* message = nullptr;
+    std::optional<std::size_t> sentence;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            message = nullptr;
+            sentence.reset();
+            if (words.size() == 2 && words[0] == "message") {
+                const int id = lines.toInt(words[1]);
+                if (script.messages.contains(id)) lines.fail("message defined twice");
+                message = &script.messages[id];
+            } else if (words.size() == 2 && words[0] == "sentence") {
+                if (!sentenceNumbers.emplace(words[1], static_cast<std::int32_t>(script.sentences.size())).second) {
+                    lines.fail("sentence defined twice");
+                }
+                sentence = script.sentences.size();
+                script.sentences.emplace_back();
+            } else {
+                lines.fail("expected [message <id>] or [sentence <name>]");
+            }
+            continue;
+        }
+        if (message) {
+            // Each line of a message ends in a line break, as in the original.
+            *message += std::string(*line) + "\n";
+            continue;
+        }
+        std::string_view key, value;
+        if (sentence && line->starts_with("on=")) {
+            // on=<event> <character>
+            static const std::map<std::string_view, std::int32_t, std::less<>> kEvents = {
+                {"talk", S::kOnTalk}, {"talk-end", S::kOnTalkEnd}, {"judge", S::kOnJudge},
+                {"enemy-dead", S::kOnEnemyDead}, {"tick", S::kEveryTick}, {"start", S::kOnStart},
+            };
+            const auto words = Lines::split(trim(line->substr(3)), ' ');
+            const auto event = kEvents.find(words[0]);
+            if (event == kEvents.end() || words.size() > 2) lines.fail("expected on=<event> [<character>]");
+            script.triggers.push_back({0, event->second, words.size() == 2 ? character(words[1]) : -1, static_cast<std::int32_t>(*sentence)});
+        } else if (sentence) {
+            // A command and its operands, separated by spaces.
+            std::vector<std::string_view> words;
+            for (auto w : Lines::split(*line, ' ')) {
+                if (!w.empty()) words.push_back(w);
+            }
+            const auto opcode = S::commandNumber(words[0]);
+            if (!opcode) lines.fail(std::format("unknown command '{}'", words[0]));
+            S::Command command{*opcode, {}};
+            static const std::map<std::string_view, std::int32_t, std::less<>> kKinds = {
+                {"temp", S::kTemp}, {"save", S::kSave}, {"quest", S::kQuest}, {"net", S::kNet}, {"msg", S::kMessage},
+                {"x", S::kCharacterX}, {"y", S::kCharacterY},
+            };
+            static const std::map<std::string_view, std::int32_t, std::less<>> kOperators = {
+                {"=", 0}, {"!", 1}, {"!=", 1}, {">", 2}, {"<", 3},
+            };
+            for (std::size_t i = 1; i < words.size(); ++i) {
+                const auto w = words[i];
+                if (const auto op = kOperators.find(w); op != kOperators.end()) {
+                    command.operands.push_back({S::kOperator, op->second});
+                } else if (w.front() == '@') {
+                    references.push_back({*sentence, script.sentences[*sentence].size(), command.operands.size(), std::string(w.substr(1))});
+                    command.operands.push_back({S::kOperator, 0});
+                } else if (const auto colon = w.find(':'); colon != std::string_view::npos) {
+                    const auto kind = kKinds.find(w.substr(0, colon));
+                    if (kind == kKinds.end()) lines.fail(std::format("unknown operand '{}'", w));
+                    const auto rest = w.substr(colon + 1);
+                    const bool position = kind->second == S::kCharacterX || kind->second == S::kCharacterY;
+                    command.operands.push_back({kind->second, position ? character(rest) : lines.toInt(rest)});
+                } else {
+                    command.operands.push_back({S::kConstant, character(w)});
+                }
+            }
+            script.sentences[*sentence].push_back(std::move(command));
+        } else if (keyValue(*line, key, value)) {
+            if (key == "person") {
+                // person=kind,x,y,direction,name
+                const auto f = Lines::split(value, ',');
+                if (f.size() != 5) lines.fail("person needs kind, x, y, direction and name");
+                ScenarioControl::Placement p;
+                p.group = Group::Person;
+                p.kind = lines.toInt(f[0]);
+                p.x = lines.toInt(f[1]);
+                p.y = lines.toInt(f[2]);
+                p.direction = lines.toInt(f[3]);
+                p.name = f[4];
+                p.rect[0] = p.rect[1] = -60;
+                p.rect[2] = p.rect[3] = 60;
+                place(std::move(p));
+            } else if (key == "object") {
+                // object=left,top,right,bottom,name: an unseen thing to click on
+                const auto f = Lines::split(value, ',');
+                if (f.size() != 5) lines.fail("object needs left, top, right, bottom and name");
+                const int l = lines.toInt(f[0]), t = lines.toInt(f[1]), r = lines.toInt(f[2]), b = lines.toInt(f[3]);
+                ScenarioControl::Placement p;
+                p.group = Group::Object;
+                p.x = (l + r) / 2;
+                p.y = (t + b) / 2;
+                p.rect[0] = l - p.x;
+                p.rect[1] = t - p.y;
+                p.rect[2] = r - p.x;
+                p.rect[3] = b - p.y;
+                p.direction = 8;
+                p.name = f[4];
+                place(std::move(p));
+            } else if (key == "temp") {
+                // temp=id,value: a TEMP flag's value when the scenario starts
+                const auto v = lines.ints(value, 2);
+                script.tempFlags.emplace_back(v[0], v[1]);
+            } else {
+                lines.fail(std::format("unknown key '{}'", key));
+            }
+        } else {
+            lines.fail("expected key=value, a command, or a [section]");
+        }
+    }
+    for (const auto& r : references) {
+        const auto it = sentenceNumbers.find(r.name);
+        if (it == sentenceNumbers.end()) throw FormatError(std::format("no sentence called '{}'", r.name));
+        script.sentences[r.sentence][r.command].operands[r.operand].value = it->second;
+    }
+}
+
+// [shop <list>] sections of sell=<class>,<code>[,<count>] lines.
+ShopLists parseShops(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    ShopLists lists;
+    std::vector<ShopLists::mapped_type::value_type>* list = nullptr;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "shop") lines.fail("expected [shop <list>]");
+            const int number = lines.toInt(words[1]);
+            if (lists.contains(number)) lines.fail("shop list defined twice");
+            list = &lists[number];
+            continue;
+        }
+        std::string_view key, value;
+        if (!list || !keyValue(*line, key, value) || key != "sell") lines.fail("expected [shop <list>] then sell= lines");
+        const auto f = Lines::split(value, ',');
+        if (f.size() != 2 && f.size() != 3) lines.fail("expected sell=<class>,<code>[,<count>]");
+        const auto cls = kClasses.find(f[0]);
+        if (cls == kClasses.end()) lines.fail(std::format("unknown item class '{}'", f[0]));
+        list->push_back({cls->second, lines.toInt(f[1]), f.size() == 3 ? lines.toInt(f[2]) : 1});
+    }
+    return lists;
+}
+
 // [item <class> <code>] sections of key=value lines; see docs/content.md.
 ItemTable parseItems(std::span<const std::uint8_t> text) {
-    static const std::map<std::string_view, ItemDef::Class, std::less<>> kClasses = {
-        {"weapon", ItemDef::Class::Weapon},         {"armour", ItemDef::Class::Armour},
-        {"accessory", ItemDef::Class::Accessory}, {"consumable", ItemDef::Class::Consumable},
-        {"special", ItemDef::Class::Special},
-    };
     Lines lines(text);
     ItemTable table;
     ItemDef* item = nullptr;

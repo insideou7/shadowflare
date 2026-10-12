@@ -20,6 +20,7 @@
 #include "logic/script_runner.h"
 #include "logic/shop.h"
 #include "formats/table_data.h"
+#include "formats/open_content.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
 #include "formats/scenario.h"
@@ -365,6 +366,7 @@ private:
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     GameTables tables_;  // Table.Tbd; empty with open content
+    open::ShopLists openShops_;  // shops.txt, INITTRADE's lists with open content
     Career career_;  // the hero's class, its history and the class on offer
     bool showStatus_ = false;
     std::optional<Dialogue> dialogue_;

@@ -74,8 +74,19 @@ public:
 
     void talk(const Talk& t) override { g_.openDialogue(t); }
     void initTrade(int shop, int list) override {
-        if (g_.tables_.tables.empty()) return;
-        g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.random_);
+        if (!g_.tables_.tables.empty()) {
+            g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.random_);
+            return;
+        }
+        const auto goods = g_.openShops_.find(list);
+        if (goods == g_.openShops_.end()) return;
+        auto& stock = g_.shops_[shop];
+        stock.goods.clear();
+        for (const auto& g : goods->second) {
+            const ItemDef* def = g_.items_.find(g.cls, g.code);
+            if (!def) continue;
+            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def));
+        }
     }
     void trade(int shop) override {
         g_.shops_.try_emplace(shop);
