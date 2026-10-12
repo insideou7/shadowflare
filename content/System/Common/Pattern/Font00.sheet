@@ -1,0 +1,4 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The font: 6 x 12 cells by byte value, 16 to a row.
+image=Font00.png
+frame=0,0,96,192,0,0

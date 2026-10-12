@@ -44,6 +44,7 @@ struct Options {
     int level = 0;            // start at this level (for tests)
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
+    std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -86,6 +87,9 @@ Options parseArgs(int argc, char** argv) {
                 if (*p == ',') ++p;
                 else break;
             }
+        } else if (arg == "--save-flag" && i + 1 < argc) {
+            int id = 0, value = 0;
+            if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.saveFlags.emplace_back(id, value);
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -284,6 +288,7 @@ int main(int argc, char** argv) {
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
+    for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
     app.lastCounter = SDL_GetPerformanceCounter();

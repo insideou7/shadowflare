@@ -93,6 +93,8 @@ public:
     // tests); `answers` close the messages that follow, one each.
     void talkToId(std::int32_t id);
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
+    // Sets a SAVE story flag, for testing scripts part way through the story.
+    void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
 
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
@@ -158,6 +160,8 @@ private:
     void renderDialogue();
     bool shopClick(int x, int y, bool right);
     void renderShop();
+    bool drawShopPicture();
+    void closeShop();
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
     Actor* actorById(std::int32_t id);
     const Actor* actorById(std::int32_t id) const;

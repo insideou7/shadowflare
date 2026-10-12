@@ -328,8 +328,7 @@ void Game::handleEvent(const SDL_Event& event) {
             switch (event.key.keysym.sym) {
                 case SDLK_ESCAPE:
                     if (openShop_ && !hand_) {
-                        openShop_.reset();
-                        showInventory_ = false;
+                        closeShop();
                     } else {
                         openMenu(false);
                     }
@@ -344,6 +343,10 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
                 case SDLK_i:
+                    if (openShop_) {
+                        closeShop();
+                        break;
+                    }
                     showInventory_ = !showInventory_;
                     // Closing the panel puts a held item back, or drops it.
                     if (!showInventory_ && hand_) {
