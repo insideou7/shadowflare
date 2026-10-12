@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "formats/table_data.h"
+#include "logic/inventory.h"
 
 namespace sf {
 
@@ -52,7 +53,24 @@ PartnerStats PartnerTables::stats(int kind, int level) const {
     s.magicHit = sum(11);
     s.magicEvasion = sum(12);
     s.element = t.value(13, columns - 1);
+    s.jumpStunChance = t.value(14, columns - 1);
+    s.jumpStunLength = t.value(15, columns - 1);
+    s.jumpStunUncapped = t.value(16, columns - 1) != 0;
+    s.jumpArea = t.value(17, columns - 1);
     return s;
+}
+
+void addItemBonuses(PartnerStats& s, const Inventory& worn) {
+    auto add = [&](int& stat, ItemDef::Modifier m) { stat = std::max(1, stat + worn.modifier(m)); };
+    add(s.maxHp, ItemDef::kModCompanionHp);
+    add(s.attack, ItemDef::kModCompanionAttack);
+    add(s.hit, ItemDef::kModCompanionHit);
+    add(s.defense, ItemDef::kModCompanionDefense);
+    add(s.evasion, ItemDef::kModCompanionEvasion);
+    add(s.magicAttack, ItemDef::kModCompanionMagicAttack);
+    add(s.magicHit, ItemDef::kModCompanionMagicHit);
+    add(s.magicDefense, ItemDef::kModCompanionMagicDefense);
+    add(s.magicEvasion, ItemDef::kModCompanionMagicEvasion);
 }
 
 int PartnerTables::need(int kind, int level) const {

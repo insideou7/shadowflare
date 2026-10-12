@@ -111,6 +111,10 @@ public:
     void castBy(int slot, int screenDx, int screenDy);
     // Teaches a spell at a level and puts it on F1, with MP to spare (for tests).
     void teachSpell(int spell, int level);
+    // Gives the companion a Tab order (jump, dash or fetch) at a point
+    // relative to the hero in world units; fetch takes the nearest item
+    // (for scripted tests).
+    void orderPartnerBy(const std::string& kind, int dx, int dy);
 
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
@@ -150,6 +154,7 @@ private:
         Character character;
         State state = State::Idle;
         int hp = 0, maxHp = 0;
+        int stunTicks = 0;  // a stun holds it in its hit pose this long
 
         // Control.aid state; aiList -1 = no list, use the simple chase.
         int aiList = -1;
@@ -185,6 +190,7 @@ private:
         int choice = 0;
         ScenarioScript::Operand answer;
         std::int32_t speaker = -1;
+        bool scripted = true;  // a script waits for the answer
     };
     void runScript(std::int32_t sentence, std::int32_t character = -1);
     void runEvent(std::int32_t event, std::int32_t character = -1);
@@ -369,12 +375,25 @@ private:
         Character character;
         PartnerStats stats{};
         int hp = 1;
-        enum class State { Idle, Walk, Run, Bite, Hit, Dead } state = State::Idle;
+        enum class State { Idle, Walk, Run, Bite, Hit, Dead, Jump, Dash } state = State::Idle;
         std::optional<std::size_t> target{};  // the monster it fights, in actors_
         int walkDelay = 5;   // ticks before it starts walking after the hero
         int regenCarry = 0;  // thousandths of a point of health
         int deadTicks = 0;   // since it fell, for the fade
         bool struck = false;  // the current bite has landed
+
+        // The hero's orders, Tab and a click (partner.cpp): where it jumps
+        // or dashes to, and what it jumps on or fetches.
+        enum class Order { None, Fetch, Jump, Dash } order = Order::None;
+        double orderX = 0, orderY = 0;
+        std::optional<std::size_t> orderActor{};   // a monster to land on, in actors_
+        std::optional<std::size_t> orderObject{};  // a switch to land on, in control_.placements
+        int orderCooldown = 0;  // ticks until it takes a new order on open ground (+0x210)
+        int skillTick = 0;      // ticks into the jump or dash (+0x158)
+        bool landed = false;    // the jump has come down
+        double dashAngle = 0, dashSpeed = 0;
+        int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
+        int restDirection = 0;  // its facing before a jump
     };
     void spawnPartner();
     void changePartner(int kind);
@@ -388,7 +407,18 @@ private:
     void hurtPartner(int damage);
     void partnerCountKill();
     double partnerSpeed(int stat) const;
-    std::string partnerStatusText(int kind) const;
+    PartnerStats partnerStats() const;
+    std::string partnerStatusText(int kind, bool withItems = false) const;
+    // Tab and a click: orders for the companion. True when it took the click.
+    bool partnerOrder(float screenX, float screenY, bool right);
+    bool partnerAt(float screenX, float screenY) const;
+    void startPartnerJump();
+    void tickPartnerJump();
+    void tickPartnerDash();
+    bool tickPartnerFetch(double toHero);
+    void partnerLands(double left, double top, double right, double bottom, bool dash);
+    bool partnerCanStand(double x, double y) const;
+    void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1);
     void renderPartnerGauge();
     bool partnerGaugeClick(int x, int y);
     void renderSpellBar();
@@ -496,6 +526,7 @@ private:
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     GameTables tables_;  // Table.Tbd; empty with open content
+    ModifierPrices modifierPrices_;  // Table.Tbd table 34
     open::ShopLists openShops_;  // shops.txt, INITTRADE's lists with open content
     Career career_;  // the hero's class, its history and the class on offer
     bool showStatus_ = false;

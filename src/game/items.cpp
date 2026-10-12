@@ -105,7 +105,7 @@ bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
         log::warn("No item {}/{}", itemClass, code);
         return false;
     }
-    Item item = Item::make(def, def->isGold() ? count : 1);
+    Item item = Item::make(def, random_, def->isGold() ? count : 1);
     item.wear = wear;
     if (to == GiveTo::Ground) {
         if (!player_) return false;
@@ -142,7 +142,7 @@ void Game::spawnGroundItems() {
             ++unknown;
             continue;
         }
-        dropItem(Item::make(def), p.x, p.y);
+        dropItem(Item::make(def, random_), p.x, p.y);
     }
     if (unknown > 0) log::warn("{} placed items are not in the item table", unknown);
 }
@@ -188,7 +188,7 @@ void Game::dropLoot(const Actor& enemy) {
     }
     if (random_.next(100) < kItemDropChance) {
         if (const ItemDef* def = pickDrop(items_, stats.level, random_)) {
-            dropItem(Item::make(def), x + 60, y + 60);
+            dropItem(Item::make(def, random_), x + 60, y + 60);
             log::info("A monster dropped {}", def->name);
         }
     }
@@ -225,10 +225,12 @@ void Game::pickUpItems() {
 
 void Game::updateEquipment() {
     if (player_) player_->visibleLayers = inventory_.heroLayers();
+    // What the hero wears can raise the companion's stats.
+    refreshPartnerStats();
 }
 
-// As 0x44ea60 sums them: the hero's own stats, what they wear, their
-// element levels, then Berserker while it is on.
+// As 0x44ea60 sums them: the hero's own stats, what they wear and its
+// modifiers, their element levels, then Berserker while it is on.
 HeroStats Game::playerStats() const {
     HeroStats stats = heroStats();
     const auto worn = inventory_.stats();
@@ -243,6 +245,9 @@ HeroStats Game::playerStats() const {
     v[HeroStats::kMagicEvasion] += worn[ItemDef::kMagicEvasion];
     v[HeroStats::kAttackSpeed] += worn[ItemDef::kAttackSpeed];
     v[HeroStats::kWalkSpeed] += worn[ItemDef::kWalkSpeed];
+    v[HeroStats::kHp] += inventory_.modifier(ItemDef::kModMaxHp);
+    v[HeroStats::kMp] += inventory_.modifier(ItemDef::kModMaxMp);
+    v[HeroStats::kStrength] += inventory_.modifier(ItemDef::kModStrength);
     int chant = 0;  // chant speed has no source yet besides elements
     applyElementLevels(stats, chant, playerElements());
     if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, spells_.castLevel(kBerserker));
@@ -253,12 +258,41 @@ HeroStats Game::playerStats() const {
 // levels are all 0; what they wear adds to that.
 ElementLevels Game::playerElements() const { return elementLevels({}, inventory_.elements()); }
 
+// Using a consumable (0x44a240). Effect words 1 and 3 restore health (3 in
+// percent of the most), 2 and 4 mental power, raised by the stamina and
+// mental medicine modifiers; only what is not full takes them. When the
+// hero takes nothing, words 5 and 6 heal the companion likewise (meat),
+// while it is up and hurt. Something that does nothing is not used up.
 void Game::useItem(int index) {
-    const ItemDef* def = inventory_.use(index);
-    if (!def) return;
-    // Effect words 1 and 2 restore health and mental power.
-    if (def->effect[1] > 0) playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
-    if (def->effect[2] > 0) playerMp_ = std::min(playerMaxMp(), playerMp_ + def->effect[2]);
+    if (index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
+    const ItemDef* def = inventory_.bag()[static_cast<std::size_t>(index)].item.def;
+    if (def->cls != ItemDef::Class::Consumable) return;
+    const auto& e = def->effect;
+    bool used = false;
+    auto restore = [&](int& value, int max, int amount, int percent, int bonus) {
+        if (value == max) return;
+        const int before = value;
+        value += amount * (bonus + 100) / 100;
+        value += percent * max / 100 * (bonus + 100) / 100;
+        value = std::min(value, max);
+        used = used || value != before;
+    };
+    restore(playerHp_, playerMaxHp(), e[1], e[3], inventory_.modifier(ItemDef::kModStaminaMedicine));
+    restore(playerMp_, playerMaxMp(), e[2], e[4], inventory_.modifier(ItemDef::kModMentalMedicine));
+    if (!used && partnerAlive() && partner_->hp > 0) {
+        Partner& p = *partner_;
+        const int before = p.hp;
+        if (p.hp != p.stats.maxHp) {
+            p.hp += e[5];
+            p.hp += e[6] * p.stats.maxHp / 100;
+            p.hp = std::min(p.hp, p.stats.maxHp);
+        }
+        used = p.hp != before;
+    }
+    // Words 7 and 8 (the medicines and fruits) are not in yet; those are
+    // used up as before.
+    if (!used && e[7] == -1) return;
+    inventory_.use(index);
     showMessage(std::format("Used {}", def->name));
 }
 
@@ -268,6 +302,7 @@ void Game::loadLevelCurve() {
         try {
             tables_ = GameTables::parse(*raw);
             levels_ = LevelCurve::fromTables(tables_);
+            modifierPrices_ = ModifierPrices::load(tables_);
         } catch (const FormatError& e) {
             log::warn("Table.Tbd: {}", e.what());
         }
@@ -535,6 +570,19 @@ void Game::renderInventory() {
             if (def.effect[1] > 0) text += std::format("  +{} HP", def.effect[1]);
             if (text.size() > 40) text.resize(40);
             drawText(renderer_, 336, kBagY - 18, text, def.requiredLevel > playerLevel_ || hover->broken() ? kRed : kWhite);
+            // Its rolled modifiers on the line above, shortened.
+            static constexpr const char* kModNames[ItemDef::kModifierCount] = {
+                "ATK", "DEF", "HIT", "EVA", "MATK", "MDEF", "MHIT", "MEVA", "SPD", "WALK", "HP", "MP", "STR",
+                "MLV", "STUN%", "STUN", nullptr, "REGEN", "MREGEN", "MCOST", "REFL", "REFL", "TABLET", "CAPSULE",
+                "ABS", "ABS", "GOLD", "MINE", "MINES", "CHANT", "DOG HP", "DOG ATK", "DOG HIT", "DOG DEF",
+                "DOG EVA", "DOG MATK", "DOG MHIT", "DOG MDEF", "DOG MEVA"};
+            std::string mods;
+            for (int i = 0; i < ItemDef::kModifierCount && !hover->unidentified; ++i) {
+                const int v = hover->modifiers[static_cast<std::size_t>(i)];
+                if (v != 0 && kModNames[i]) mods += std::format("{}{}{:+d}", mods.empty() ? "" : " ", kModNames[i], v);
+            }
+            if (mods.size() > 40) mods.resize(40);
+            if (!mods.empty()) drawText(renderer_, 336, kBagY - 34, mods, {150, 200, 255, 255});
         }
     }
     if (hand_) {

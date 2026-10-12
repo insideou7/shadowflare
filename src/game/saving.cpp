@@ -107,6 +107,8 @@ bool Game::loadGame() {
         log::warn("{}: {} stored items are unknown", saveFile_, skipped);
     }
     updateEquipment();
+    // The companion came before the hero's things, which can raise its health.
+    if (partnerAlive() && save.partnerHp > 0) partner_->hp = std::min(save.partnerHp, partner_->stats.maxHp);
     playerHp_ = std::clamp(save.hp, 1, playerMaxHp());
     playerMp_ = std::clamp(save.mp.value_or(playerMaxMp()), 0, playerMaxMp());
     checkTriggers(false);  // loading inside an exit does not take it

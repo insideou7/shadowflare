@@ -36,9 +36,10 @@ struct ShopStock {
 // left out.
 ShopStock stockShop(const GameTables& tables, const ItemTable& items, int list, Random& random);
 
-// What a shop asks for an item, and what it pays for one (a quarter, at
-// least 1; ShadowFlare.exe 0x4661c0).
-int buyPrice(const ItemDef& def);
-int sellPrice(const ItemDef& def);
+// What a shop asks for an item, its value with its modifiers, and what it
+// pays for one (a quarter, of the durability left; ShadowFlare.exe
+// 0x4661c0).
+int buyPrice(const Item& item, const ModifierPrices& prices);
+int sellPrice(const Item& item, const ModifierPrices& prices);
 
 }  // namespace sf

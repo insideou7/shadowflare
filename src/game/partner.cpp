@@ -1,8 +1,8 @@
 // The hero's animal companion, as ShadowFlare.exe runs it (per-tick update
 // 0x45f670, following 0x4622b0, fighting 0x462610). It follows the hero;
 // when ACTIVE it bites monsters near them and can be hurt, and when
-// INACTIVE it just follows and heals. The jump, dash and fetch orders are
-// not in yet.
+// INACTIVE it just follows and heals. Tab and a click order it to jump
+// (0x460420), dash (0x460a00) or fetch an item (0x4624e0).
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -17,8 +17,8 @@ namespace sf {
 namespace {
 
 // Partner charts (Character/PARTNER/*/Animation.Caf).
-constexpr int kRun = 2, kHit = 3, kDeath = 4, kBite = 5;
-constexpr int kNoDirection = 8;  // the death chart's only direction
+constexpr int kRun = 2, kHit = 3, kDeath = 4, kBite = 5, kJumpUp = 6, kJumpDown = 7;
+constexpr int kNoDirection = 8;  // the death and jump charts' only direction
 
 constexpr double kSeekRange = 1200;   // looks for monsters this close to the hero
 constexpr double kLeashRange = 1500;  // stops fighting this far from the hero
@@ -30,6 +30,20 @@ constexpr double kBox = 80;           // half the partner's collision box (+0x13
 constexpr double kHeroWalkStat = 128;  // the hero's walking speed stat, which moves them kWalkSpeed
 constexpr int kFadeTicks = 60;
 constexpr std::int32_t kCompanionStone = 98000002;  // special item
+
+// Orders (0x441c00, 0x448b50, 0x4490b0).
+constexpr int kOrderCooldown = 45;     // ticks before it takes another order on open ground (+0x210)
+constexpr double kDashFromHero = 160;  // it only dashes from the hero's side
+constexpr double kFetchGiveUp = 4000;  // gives up fetching this far from the hero
+// The dash (0x460a00): 10 ticks to set off, then it runs at 30 a tick,
+// 8 faster each tick, until tick 27, biting in a box 1.9 times its own
+// every 4th tick; a bite stuns for sure (chance 100, 10 ticks) and holds
+// the dash for 5 ticks.
+constexpr int kDashWindUp = 10, kDashLastTick = 27, kDashHitEvery = 4, kDashHitPause = 5;
+constexpr int kDashStartSpeed = 30, kDashSpeedUp = 8;
+constexpr double kDashBoxScale = 1.9;
+constexpr int kDashStunChance = 100, kDashStunLength = 10;
+constexpr int kStunCap = 15;  // ticks, unless the blow or the monster says otherwise
 
 // r is the enemy's box around (ex, ey).
 template <class Rect>
@@ -44,6 +58,13 @@ double boxGap(const Character& c, const Rect& r, double ex, double ey) {
 // The original moves both at stat / 5 a tick (0x454210), so the partner
 // keeps the same ratio to the hero's step here.
 double Game::partnerSpeed(int stat) const { return kPlayerWalkSpeed * stat / kHeroWalkStat; }
+
+// Its stats at its level, with what the hero wears (0x4136f0, 0x4138b0).
+PartnerStats Game::partnerStats() const {
+    PartnerStats s = partnerTables_->stats(partnerRecord_.kind, partnerRecord_.level());
+    addItemBonuses(s, inventory_);
+    return s;
+}
 
 void Game::spawnPartner() {
     const int carried = partner_ ? partner_->hp : partnerHpCarried_;
@@ -65,7 +86,7 @@ void Game::spawnPartner() {
     }
     auto tint = [](int perMille) { return static_cast<Uint8>(std::clamp(perMille * 255 / 1000, 0, 255)); };
     p.character.tint = {tint(k.tint[0]), tint(k.tint[1]), tint(k.tint[2]), 255};
-    p.stats = partnerTables_->stats(kind, partnerRecord_.level());
+    p.stats = partnerStats();
     // HP carries over from the last map; 0 or less means full (0x450395).
     p.hp = carried > 0 ? std::min(carried, p.stats.maxHp) : p.stats.maxHp;
     if (partnerRecord_.reviveTicks > 0) {
@@ -95,7 +116,7 @@ void Game::bringPartner(int kind) {
 
 void Game::refreshPartnerStats() {
     if (!partner_ || !partnerTables_) return;
-    partner_->stats = partnerTables_->stats(partnerRecord_.kind, partnerRecord_.level());
+    partner_->stats = partnerStats();
     partner_->hp = std::min(partner_->hp, partner_->stats.maxHp);
 }
 
@@ -103,9 +124,8 @@ void Game::togglePartnerMode() {
     partnerRecord_.active = !partnerRecord_.active;
     if (partner_ && partner_->state != Partner::State::Dead) {
         partner_->target.reset();
-        if (partner_->state != Partner::State::Bite && partner_->state != Partner::State::Hit) {
-            partner_->state = Partner::State::Idle;
-        }
+        using State = Partner::State;
+        if (partner_->state == State::Walk || partner_->state == State::Run) partner_->state = State::Idle;
     }
     showMessage(partnerRecord_.active ? "Companion: ACTIVE" : "Companion: INACTIVE");
 }
@@ -146,6 +166,16 @@ void Game::tickPartner() {
         p.hp = std::min(p.hp, p.stats.maxHp);
     }
 
+    if (p.orderCooldown > 0) --p.orderCooldown;
+    if (p.state == State::Jump) {
+        tickPartnerJump();
+        return;
+    }
+    if (p.state == State::Dash) {
+        tickPartnerDash();
+        return;
+    }
+
     // A bite or a flinch plays out first.
     if (p.state == State::Bite) {
         if (!p.struck && c.frame() >= c.frameCount() / 2) {
@@ -169,7 +199,31 @@ void Game::tickPartner() {
         p.state = State::Idle;
     }
 
+    // Then the hero's order, if there is one.
+    if (p.order == Partner::Order::Jump) {
+        startPartnerJump();
+        return;
+    }
+    if (p.order == Partner::Order::Dash) {
+        p.order = Partner::Order::None;
+        p.state = State::Dash;
+        p.target.reset();
+        p.skillTick = 0;
+        p.hitPause = 0;
+        p.dashSpeed = kDashStartSpeed;
+        p.dashAngle = std::atan2(p.orderY - c.y, p.orderX - c.x);
+        p.orderCooldown = kOrderCooldown;
+        c.faceTowards(p.orderX - c.x, p.orderY - c.y);
+        c.restart(kRun);
+        log::info("The companion dashes");
+        return;
+    }
+
     const double toHero = std::hypot(player_->x - c.x, player_->y - c.y);
+    if (p.order == Partner::Order::Fetch && tickPartnerFetch(toHero)) {
+        c.tick();
+        return;
+    }
     auto moveTowards = [&](double tx, double ty, double speed, double stopAt) {
         const double dx = tx - c.x, dy = ty - c.y;
         const double length = std::hypot(dx, dy);
@@ -297,8 +351,10 @@ void Game::hurtPartner(int damage) {
         return;
     }
     // Hard blows make it flinch (the original rolls on table 25; here,
-    // blows of a tenth of its health or more).
-    if (damage * 10 >= p.stats.maxHp && p.state != Partner::State::Bite) {
+    // blows of a tenth of its health or more), but not out of a jump or a
+    // dash.
+    using State = Partner::State;
+    if (damage * 10 >= p.stats.maxHp && p.state != State::Bite && p.state != State::Jump && p.state != State::Dash) {
         p.state = Partner::State::Hit;
         p.character.restart(p.character.hasChart(kHit) ? kHit : chart::kIdle);
     }
@@ -316,10 +372,13 @@ void Game::partnerCountKill() {
 
 // The status text, as TALKPARTNERSTATUS and the field window show it
 // (0x43167d, 0x4507a0).
-std::string Game::partnerStatusText(int kind) const {
+std::string Game::partnerStatusText(int kind, bool withItems) const {
     if (!partnerTables_ || kind < 0 || kind >= kPartnerKinds) return {};
     const int level = partnerRecord_.levels[static_cast<std::size_t>(kind)];
-    const PartnerStats s = partnerTables_->stats(kind, level);
+    PartnerStats s = partnerTables_->stats(kind, level);
+    // The field window counts what the hero wears; the kennel's sheet
+    // does not (0x4507a0, 0x43167d).
+    if (withItems) addItemBonuses(s, inventory_);
     const std::string_view name = elementName(s.element);
     const std::string_view element = name.empty() ? "-" : name;
     const int cap = partnerLevelCap(playerLevel_);
@@ -382,4 +441,301 @@ bool Game::partnerGaugeClick(int x, int y) {
     return true;
 }
 
+// ---- Orders: Tab and a click ----
+
+bool Game::partnerAt(float screenX, float screenY) const {
+    if (!partner_ || partner_->state == Partner::State::Dead) return false;
+    int sx, sy;
+    worldToScreen(static_cast<int>(partner_->character.x), static_cast<int>(partner_->character.y), sx, sy);
+    return inClickRange(sx - cameraX_ - screenX, sy - 20 - cameraY_ - screenY);
+}
+
+bool Game::partnerCanStand(double x, double y) const { return map_ && map_->ground().walkable(x, y); }
+
+// With Tab held, the left button sends the companion to jump on a monster,
+// a switch or open ground, to fetch an item, or shows its status when
+// clicked itself; the right button dashes at a monster or towards the
+// cursor, from the hero's side only (0x441c00, 0x448b50, 0x4490b0).
+bool Game::partnerOrder(float screenX, float screenY, bool right) {
+    if (!partner_ || !player_ || !map_) return false;
+    Partner& p = *partner_;
+    using State = Partner::State;
+    using Order = Partner::Order;
+    const bool alive = p.state != State::Dead;
+    const bool leaping = p.state == State::Jump || p.state == State::Dash;
+    double wx, wy;
+    screenToWorld(cameraX_ + screenX, cameraY_ + screenY, wx, wy);
+    const auto target = clickTarget(screenX, screenY, ~0u);
+    auto order = [&](Order o, double x, double y) {
+        p.order = o;
+        p.orderX = x;
+        p.orderY = y;
+        p.orderActor.reset();
+        p.orderObject.reset();
+    };
+
+    if (right) {
+        // Dashing needs it next to the hero and not already dashing.
+        const Character& c = p.character;
+        if (!alive || p.state == State::Dash || std::hypot(player_->x - c.x, player_->y - c.y) >= kDashFromHero) return true;
+        if (target.kind == Settings::kEnemy) {
+            const auto& a = actors_[target.index].character;
+            order(Order::Dash, a.x, a.y);
+        } else if (p.orderCooldown == 0) {
+            order(Order::Dash, wx, wy);
+        }
+        return true;
+    }
+
+    switch (target.kind) {
+        case Settings::kEnemy: {
+            const auto& a = actors_[target.index].character;
+            if (alive && !leaping && partnerCanStand(a.x, a.y)) {
+                order(Order::Jump, a.x, a.y);
+                p.orderActor = target.index;
+            }
+            return true;
+        }
+        case Settings::kItem:
+            if (alive) order(Order::Fetch, groundItems_[target.index].x, groundItems_[target.index].y);
+            return true;
+        case Settings::kObject: {
+            const auto& o = control_.placements[target.index];
+            if (o.companionSwitch && alive && !leaping && partnerCanStand(o.x, o.y)) {
+                order(Order::Jump, o.x, o.y);
+                p.orderObject = target.index;
+            }
+            return true;
+        }
+        case Settings::kCompanion:
+            // Its status, while it stands still (0x4507a0).
+            if (p.state == State::Idle) {
+                ScriptHost::Talk talk;
+                talk.text = partnerStatusText(partnerRecord_.kind, true);
+                openDialogue(talk);
+                if (dialogue_) dialogue_->scripted = false;
+            }
+            return true;
+        case Settings::kPerson: return true;
+        default: break;
+    }
+    if (alive && !leaping && p.orderCooldown == 0 && partnerCanStand(wx, wy)) order(Order::Jump, wx, wy);
+    return true;
+}
+
+void Game::orderPartnerBy(const std::string& kind, int dx, int dy) {
+    if (!partner_ || !player_) return;
+    Partner& p = *partner_;
+    p.orderX = player_->x + dx;
+    p.orderY = player_->y + dy;
+    p.orderActor.reset();
+    p.orderObject.reset();
+    if (kind == "jump") {
+        p.order = Partner::Order::Jump;
+        // Aimed at a monster, as clicking one does: it lands where the
+        // monster is by then.
+        for (std::size_t i = 0; i < actors_.size(); ++i) {
+            const auto& a = actors_[i];
+            if (a.hostile() && a.alive() && std::hypot(a.character.x - p.orderX, a.character.y - p.orderY) < 200) p.orderActor = i;
+        }
+    } else if (kind == "dash") {
+        p.order = Partner::Order::Dash;
+    } else if (kind == "fetch") {
+        double best = INFINITY;
+        for (const auto& g : groundItems_) {
+            const double d = std::hypot(g.x - player_->x, g.y - player_->y);
+            if (d < best) {
+                best = d;
+                p.orderX = g.x;
+                p.orderY = g.y;
+                p.order = Partner::Order::Fetch;
+            }
+        }
+    } else {
+        log::warn("--companion expects jump:dx,dy, dash:dx,dy or fetch");
+    }
+}
+
+void Game::startPartnerJump() {
+    Partner& p = *partner_;
+    Character& c = p.character;
+    p.order = Partner::Order::None;
+    p.state = Partner::State::Jump;
+    p.target.reset();
+    p.landed = false;
+    p.struck = false;
+    p.orderCooldown = kOrderCooldown;
+    p.restDirection = c.direction;
+    c.direction = kNoDirection;
+    c.restart(c.hasChart(kJumpUp) ? kJumpUp : chart::kIdle);
+    log::info("The companion jumps");
+}
+
+// Up, across to where it was sent (or to the monster it was sent at,
+// wherever that is now), then down: the landing hits what is under it.
+void Game::tickPartnerJump() {
+    Partner& p = *partner_;
+    Character& c = p.character;
+    if (!p.landed) {
+        if (!c.finished()) {
+            c.tick();
+            return;
+        }
+        double x = p.orderX, y = p.orderY;
+        if (p.orderActor && *p.orderActor < actors_.size()) {
+            const Actor& a = actors_[*p.orderActor];
+            if (a.alive() && partnerCanStand(a.character.x, a.character.y)) {
+                x = a.character.x;
+                y = a.character.y;
+            }
+        }
+        c.x = x;
+        c.y = y;
+        p.landed = true;
+        log::info("The companion lands at {:.0f},{:.0f}", x, y);
+        c.restart(c.hasChart(kJumpDown) ? kJumpDown : chart::kIdle);
+        return;
+    }
+    if (!p.struck && c.frame() >= c.frameCount() / 2) {
+        p.struck = true;
+        const double half = p.stats.jumpArea / 2.0;
+        partnerLands(c.x - half, c.y - half, c.x + half, c.y + half, false);
+    }
+    if (!c.finished()) {
+        c.tick();
+        return;
+    }
+    p.state = Partner::State::Idle;
+    p.orderActor.reset();
+    p.orderObject.reset();
+    c.direction = p.restDirection;
+    c.restart(chart::kIdle);
+}
+
+void Game::tickPartnerDash() {
+    Partner& p = *partner_;
+    Character& c = p.character;
+    if (p.hitPause == 0) {
+        if (p.skillTick >= kDashWindUp) {
+            const double step = partnerSpeed(static_cast<int>(p.dashSpeed * 5));
+            const double dx = std::cos(p.dashAngle) * step, dy = std::sin(p.dashAngle) * step;
+            if (!tryMove(c, dx, dy) && !tryMove(c, dx, 0)) tryMove(c, 0, dy);
+            p.dashSpeed += kDashSpeedUp;
+        }
+        if (p.skillTick > kDashWindUp - 1 && p.skillTick % kDashHitEvery == 0) {
+            const double half = kBox * kDashBoxScale;
+            partnerLands(c.x - half, c.y - half, c.x + half, c.y + half, true);
+        }
+    }
+    if (p.skillTick > kDashLastTick) {
+        p.state = Partner::State::Idle;
+        c.restart(chart::kIdle);
+        return;
+    }
+    if (p.hitPause > 0) --p.hitPause;
+    if (p.hitPause == 0) {
+        ++p.skillTick;
+        c.tick();
+        // The legs go faster once it is off (0x460a87).
+        if (p.skillTick > kDashWindUp) c.tick();
+    }
+}
+
+// A jump's landing or a dash's bite: every living monster whose box
+// meets the square is bitten, with the partner's hit against its
+// evasion, and may be stunned; switches in it are pressed. A dash holds
+// for a moment after it bites.
+void Game::partnerLands(double left, double top, double right, double bottom, bool dash) {
+    Partner& p = *partner_;
+    const PartnerStats& st = p.stats;
+    bool bit = false;
+    for (auto& enemy : actors_) {
+        if (!enemy.hostile() || !enemy.alive() || !enemy.active) continue;
+        const auto& r = enemy.placement.rect;
+        const double ex = enemy.character.x, ey = enemy.character.y;
+        if (ex + r[2] < left || ex + r[0] > right || ey + r[3] < top || ey + r[1] > bottom) continue;
+        const auto& s = enemy.placement.stats;
+        if (random_.next(100) >= hitChance(st.hit, s.evasion)) continue;
+        bit = true;
+        const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
+        log::info("The companion's {} hits {} for {}", dash ? "dash" : "jump", enemy.gameId(), damage);
+        hurtEnemy(enemy, damage, false, true);
+        if (dash) {
+            stunEnemy(enemy, kDashStunChance, kDashStunLength, false, st.element);
+        } else {
+            stunEnemy(enemy, st.jumpStunChance, st.jumpStunLength, st.jumpStunUncapped, st.element);
+        }
+    }
+    for (const auto& o : control_.placements) {
+        if (o.group != ScenarioControl::Group::Object || !o.companionSwitch) continue;
+        if (o.x + o.rect[2] < left || o.x + o.rect[0] > right || o.y + o.rect[3] < top || o.y + o.rect[1] > bottom) continue;
+        log::info("The companion presses object {}", o.id);
+        runEvent(ScenarioScript::kOnTalk, ScenarioControl::idBase(o.group) + o.id);
+    }
+    if (dash && bit) p.hitPause = kDashHitPause;
+}
+
+// How a blow stuns a monster (0x459690): `chance` less its resistance in
+// percent, for `length` less its resistance in ticks, at least 1 and at
+// most 15 unless the blow or the monster lifts that. A companion of the
+// monster's opposite element stuns more readily and for longer (Table.Tbd
+// table 24 row 5).
+void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement) {
+    if (!enemy.alive()) return;
+    const auto& s = enemy.placement.stats;
+    if (attackerElement >= 0 && s.element >= 0 && attackerElement == (s.element ^ 1)) {
+        if (const auto* t = tables_.find(24); t && t->rows > 5 && t->cols > 1) {
+            chance += t->value(5, 0);
+            length += t->value(5, 1);
+        }
+    }
+    if (random_.next(100) >= chance - s.stunChanceResist) return;
+    int ticks = std::max(1, length - s.stunLengthResist);
+    if (!uncapped && !s.stunUncapped) ticks = std::min(ticks, kStunCap);
+    enemy.stunTicks = ticks;
+    log::info("{} is stunned for {} ticks", enemy.gameId(), ticks);
+    enemy.state = Actor::State::Hit;
+    enemy.character.restart(chart::kEnemyHit);
+    enemy.action = -1;
+    enemy.event = AiControl::kHit;
+}
+
+// Running to an item it was sent for, then handing it to the hero
+// (0x4624e0): it gives up when the item is gone or the hero is far away.
+bool Game::tickPartnerFetch(double toHero) {
+    Partner& p = *partner_;
+    Character& c = p.character;
+    auto it = std::ranges::find_if(groundItems_, [&](const GroundItem& g) { return std::hypot(g.x - p.orderX, g.y - p.orderY) < 1; });
+    if (it == groundItems_.end() || toHero >= kFetchGiveUp) {
+        p.order = Partner::Order::None;
+        return false;
+    }
+    p.target.reset();
+    const double dx = it->x - c.x, dy = it->y - c.y;
+    const double length = std::hypot(dx, dy);
+    if (length - kBox > kBiteReach) {
+        const double step = std::min(partnerSpeed(p.stats.runSpeed), length - kBox - kBiteReach * 0.5);
+        c.faceTowards(dx, dy);
+        if (!tryMove(c, dx / length * step, dy / length * step)) {
+            if (!tryMove(c, dx / length * step, 0)) tryMove(c, 0, dy / length * step);
+        }
+        c.play(kRun);
+        p.state = Partner::State::Run;
+        return true;
+    }
+    p.order = Partner::Order::None;
+    p.state = Partner::State::Idle;
+    c.play(chart::kIdle);
+    const Item item = it->item;
+    if (!inventory_.add(item)) {
+        showMessage(std::format("No room for {}", item.shownName()));
+        return true;
+    }
+    showMessage(item.def->isGold() ? std::format("{} gold", item.count) : item.shownName());
+    log::info("The companion fetched {}", item.def->name);
+    groundItems_.erase(it);
+    return true;
+}
+
 }  // namespace sf
+

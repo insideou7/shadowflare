@@ -70,10 +70,18 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         p.stats.goldChance = words[49];
         p.stats.goldMin = words[50];
         p.stats.goldMax = words[51];
+        p.stats.stunChanceResist = words[61];
+        p.stats.stunLengthResist = words[62];
+        p.stats.stunUncapped = words[63] == 1;
     } else if (group == ScenarioControl::Group::Item) {
         p.itemClass = in.i32();
         p.itemCode = in.i32();
         in.skip(extraSize - 8);
+    } else if (group == ScenarioControl::Group::Object) {
+        const auto raw = in.bytes(extraSize);
+        BinaryReader block(raw);
+        block.skip(4 * 5);
+        p.companionSwitch = block.i32() == 1;
     } else {
         in.skip(extraSize);
     }

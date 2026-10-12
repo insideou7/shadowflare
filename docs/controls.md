@@ -31,7 +31,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | Ctrl | run while held | yes |
 | Shift | stop where you are; with a left click, attack in place | yes |
 | Caps Lock | swap between the two equipment sets | no |
-| Tab + click | companion: pick up, jump, dash, status | no |
+| Tab + click | companion: left click jumps (onto a monster, switch or spot), fetches an item, or shows its status; right click dashes; see [partners.md](partners.md) | yes |
 | Space | companion active / inactive (or click its gauge at the bottom left); see [partners.md](partners.md) | yes |
 | S | status window | yes |
 | I | items window | yes |

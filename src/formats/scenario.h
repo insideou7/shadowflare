@@ -56,6 +56,12 @@ struct ScenarioControl {
             std::int32_t goldChance = 0;  // percent; word 49, read by the exe at 0x45a030
             std::int32_t goldMin = 0, goldMax = 0;
             std::int32_t speed = 1000;    // per mille, scales the AI's movement speeds
+            // What it takes off a stun's chance (percent) and length
+            // (ticks), and whether its stuns may run past 15 ticks: words
+            // 61-63, read by the damage code at 0x459690 from monster
+            // + 0x1cc-0x1d4. Inferred: 999 marks bosses that never stun.
+            std::int32_t stunChanceResist = 0, stunLengthResist = 0;
+            bool stunUncapped = false;
             std::int32_t area[4] = {};    // where it wanders: left, top, right, bottom around (x, y)
             std::string ai;               // name of its list in Control.aid (Shift-JIS)
 
@@ -63,6 +69,10 @@ struct ScenarioControl {
             std::int32_t attack() const { return attacks[0]; }
             std::int32_t hit() const { return hits[0]; }
         } stats;
+
+        // Objects: the companion's jump or dash presses it (word 5, the
+        // object's + 0xe8 at 0x460420; inferred from which objects have it).
+        bool companionSwitch = false;
 
         // Items lying on the map: which one, as an Item.Ibn (class, code).
         std::int32_t itemClass = -1, itemCode = 0;

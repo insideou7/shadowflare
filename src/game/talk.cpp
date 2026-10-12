@@ -85,7 +85,7 @@ public:
         for (const auto& g : goods->second) {
             const ItemDef* def = g_.items_.find(g.cls, g.code);
             if (!def) continue;
-            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def));
+            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def, g_.random_));
         }
     }
     void trade(int shop) override {
@@ -103,7 +103,7 @@ public:
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def) return;
         if (!def->isGold()) {
-            g_.dropItem(Item::make(def), x, y);
+            g_.dropItem(Item::make(def, g_.random_), x, y);
             return;
         }
         // Gold comes in piles of at most 10,000, spread out a little.
@@ -152,7 +152,7 @@ public:
     void identifyItems() override { g_.inventory_.identifyAll(); }
     bool hasUnidentifiedItems() const override { return g_.inventory_.hasUnidentified(); }
     void repair(int part) override { g_.inventory_.repair(part); }
-    int repairPrice(int part) const override { return g_.inventory_.repairPrice(part); }
+    int repairPrice(int part) const override { return g_.inventory_.repairPrice(part, g_.modifierPrices_); }
     void showLabel(const Label& l) override { g_.showLabel(l); }
     int partnerKind() const override { return g_.partnerRecord_.kind; }
     void changePartner(int kind) override { g_.changePartner(kind); }
@@ -347,6 +347,7 @@ void Game::closeDialogue(int answer) {
     if (!dialogue_) return;
     const Dialogue d = std::move(*dialogue_);
     dialogue_.reset();
+    if (!d.scripted) return;
     if (script_) {
         ScriptRunner(*script_, flags_).store(d.answer, answer);
     }
@@ -533,12 +534,12 @@ bool Game::shopClick(int x, int y, bool right) {
         return true;
     }
     if (hand_) {
-        // Selling: the shop takes the item and pays a quarter of its price.
+        // Selling: the shop takes the item and pays a quarter of its value.
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             showMessage("Not for sale");
             return true;
         }
-        const int price = sellPrice(*hand_->def) * std::max(1, hand_->count);
+        const int price = sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count);
         inventory_.addGold(price);
         stock.add(*hand_);
         showMessage(std::format("Sold for {} gold", price));
@@ -553,7 +554,7 @@ bool Game::shopClick(int x, int y, bool right) {
     }
     if (i < 0 || right) return true;
     const Item item = stock.goods[static_cast<std::size_t>(i)].item;
-    const int price = buyPrice(*item.def);
+    const int price = buyPrice(item, modifierPrices_);
     if (inventory_.gold() < price) {
         showMessage("You're running short of money.");
         return true;
@@ -643,11 +644,11 @@ void Game::renderShop() {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
         } else {
-            lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_->def) * std::max(1, hand_->count)), kGold);
+            lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count)), kGold);
         }
     } else if (hover && !hand_) {
         lines.emplace_back(hover->shownName(), kWhite);
-        lines.emplace_back(std::format("{} gold", buyPrice(*hover->def)), buyPrice(*hover->def) > inventory_.gold() ? kGrey : kGold);
+        lines.emplace_back(std::format("{} gold", buyPrice(*hover, modifierPrices_)), buyPrice(*hover, modifierPrices_) > inventory_.gold() ? kGrey : kGold);
     }
     if (!lines.empty()) {
         int w = 0;
