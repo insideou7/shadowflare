@@ -678,34 +678,91 @@ def ice_gather(e, colour=(200, 215, 240), ring=(225, 235, 255), n=15):
 
 
 # Ice Blast: great blocks of ice heaving up from the ground.
-def ice_block(draw, ox, oy, x, y, height, width, colour, seed):
+def ice_spindle(draw, ox, oy, x, y, height, width, seed, light=-0.5, k=1.0):
+    """A long six-sided crystal pointed at both ends, its foot on (x, y), as
+    light: bright faces read as solid ice, dark ones let the ground through."""
     rng = np.random.default_rng(seed)
-    # A tall lumpy column of ice: a long block with a second grown into
-    # its upper half.
-    lean = rng.normal(0, width * 0.1)
-    ice_lump(draw, ox, oy, x, y, height * 0.7, width, colour, seed * 7, points=16)
-    ice_lump(draw, ox, oy, x + lean, y - height * 0.32, height * 0.68, width * rng.uniform(0.8, 0.95), colour,
-             seed * 7 + 1, points=16)
+    if height < 3 or width < 2:
+        return
+    lean = rng.normal(0, 0.06)
+    top = rng.uniform(0.62, 0.78)  # where the point begins
+    foot = rng.uniform(0.12, 0.22)
+    steps = 14
+
+    def half(t):  # half the width at height t (0 = bottom point, 1 = top)
+        if t < foot:
+            return width / 2 * (t / foot) ** 0.8
+        if t > top:
+            return width / 2 * ((1 - t) / (1 - top)) ** 0.9
+        return width / 2 * (0.78 + 0.22 * math.sin(math.pi * (t - foot) / (top - foot)))
+
+    # Facet edges across the crystal: -1 .. 1, drifting with height so the
+    # faces run slantwise like cut ice.
+    edges = sorted([-1.0, 1.0] + [rng.uniform(-0.88, 0.88) for _ in range(7)])
+    drift = [rng.normal(0, 0.45) for _ in edges]
+    drift[0] = drift[-1] = 0.0
+    ts = [i / steps for i in range(steps + 1)]
+    for i in range(len(edges) - 1):
+        def at(j, t):
+            u = np.clip(edges[j] + drift[j] * (t - 0.5), -1, 1)
+            return (x + u * half(t) + lean * t * height, y - t * height)
+        left = [at(i, t) for t in ts]
+        right = [at(i + 1, t) for t in reversed(ts)]
+        mid = (edges[i] + edges[i + 1]) / 2
+        shade = np.clip(0.42 + 0.7 * (-mid * light) + rng.normal(0, 0.2), 0.08, 1.0) * k
+        col = tuple(int(c * shade) for c in (225, 235, 255))
+        draw.polygon([(px + ox, py + oy) for px, py in left + right], fill=col + (255,))
+        # A glint along some edges.
+        if rng.random() < 0.3:
+            pts = [(px + ox, py + oy) for px, py in left]
+            draw.line(pts, fill=tuple(int(min(255, c * 0.75 * k)) for c in (235, 242, 255)) + (255,), width=1)
+    # A bright highlight down the lit side of the point.
+    hx = x - width * 0.18 * light
+    draw.line([(hx + ox + lean * top * height, y - top * height + oy),
+               (x + ox + lean * height, y - height + oy)], fill=(255, 255, 255, 255), width=1)
 
 
 def ice_crystals(e):
     layers = []
-    # Back and front rows of columns: (x, y, height, delay) for each. They
-    # start as a scatter of small lumps and heave up together.
-    rows = [[(-50, -28, 150, 1), (2, -40, 160, 0), (54, -26, 150, 2)],
-            [(-46, 30, 110, 3), (4, 40, 120, 2), (52, 32, 108, 4)]]
-    for li, row in enumerate(rows):
+    # Columns left, middle and right (one layer each, as the original has
+    # three), a back and a front crystal in each: (x, foot y, height,
+    # delay). Each crystal is full size from the start and is pushed up
+    # through the ground: only what is above its foot shows. Drawn as
+    # light, so the ice is see-through where its faces are dark.
+    cols = [[(-60, -45, 122, 3), (-50, -20, 94, 5)],
+            [(0, -85, 120, 2), (2, -8, 98, 4)],
+            [(60, -45, 122, 4), (50, -20, 92, 6)]]
+    ox, oy = 170, 220
+    for li, col in enumerate(cols):
+        # Each crystal drawn once at full size, standing on its foot.
+        crystals = []
+        for bi, (x, y, height, delay) in enumerate(col):
+            im = Image.new("RGBA", (340, 320))
+            ice_spindle(ImageDraw.Draw(im), ox, oy, x, y + 10, height + 10, 48, (li * 7 + bi + 1) * 7, k=0.95)
+            crystals.append((np.asarray(im).copy(), y, height, delay))
         frames = [None]
         for f in range(1, 21):
-            im = Image.new("RGBA", (340, 320))
-            dr = ImageDraw.Draw(im)
-            for bi, (x, y, height, delay) in enumerate(row):
-                g = ease(min(1, max(0, (f - delay) / 10)))
+            acc = np.zeros((320, 340, 4), np.uint16)
+            for arr, y, height, delay in crystals:
+                g = ease(min(1, max(0, (f - delay) / 12)))
                 if g <= 0:
                     continue
-                ice_block(dr, 170, 220, x, y, height * g, 52 * (0.35 + 0.65 * g), (226, 232, 248), li * 7 + bi + 1)
-            frames.append(e.frame(im, 170, 220 - 60))
-        layers.append((False, li, frames, [1000] * 18 + [800, 600, 400]))
+                # Push it up from below the ground, then cut it off at the
+                # ground line.
+                rise = int(round((1 - g) * height * 1.05))
+                moved = np.zeros_like(arr)
+                moved[rise:] = arr[:arr.shape[0] - rise] if rise else arr
+                # The ground is a plane seen at a slant, so it cuts the
+                # crystal on a curve: its front face shows lower down.
+                xs = np.arange(arr.shape[1]) - (ox + x)
+                bulge = np.sqrt(np.clip(1 - (xs / 24.0) ** 2, 0, 1)) * 9
+                rows = np.arange(arr.shape[0])[:, None]
+                moved[rows > (oy + y + bulge)[None, :]] = 0
+                acc[..., :3] += moved[..., :3]
+                acc[..., 3] = np.maximum(acc[..., 3], moved[..., 3])
+            im = Image.fromarray(np.clip(acc, 0, 255).astype(np.uint8), "RGBA")
+            frames.append(e.frame(im, ox, oy - 60))
+        layers.append((True, li, frames, [1000] * 18 + [800, 600, 400]))
     e.chart(True, {8: layers})
 
 
