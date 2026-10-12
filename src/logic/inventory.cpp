@@ -1,16 +1,70 @@
 #include "logic/inventory.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <utility>
 
+#include "formats/table_data.h"
 #include "logic/ai_select.h"
 
 namespace sf {
+
+ModifierPrices ModifierPrices::load(const GameTables& tables) {
+    ModifierPrices p;
+    const auto* t = tables.find(34);
+    if (!t || t->cols < 1) return p;
+    for (int r = 0; r < t->rows; ++r) {
+        if (r < 8) {
+            p.element[static_cast<std::size_t>(r)] = t->value(r, 0);
+        } else if (r - 8 < ItemDef::kModifierCount) {
+            p.modifier[static_cast<std::size_t>(r - 8)] = t->value(r, 0);
+        }
+    }
+    return p;
+}
 
 Item Item::make(const ItemDef* def, int count) {
     Item item{def, count};
     item.unidentified = def && (def->quality == 1 || def->quality == 2);
     return item;
+}
+
+Item Item::make(const ItemDef* def, Random& random, int count) {
+    Item item = make(def, count);
+    if (def) item.rollModifiers(random);
+    return item;
+}
+
+void Item::rollModifiers(Random& random) {
+    auto roll = [&](const ItemDef::ModifierRange& r) {
+        if (random.next(100) >= r.chance) return 0;
+        return r.max > r.min ? r.min + random.next(r.max - r.min + 1) : r.min;
+    };
+    for (std::size_t i = 0; i < modifiers.size(); ++i) modifiers[i] = roll(def->modifiers[i]);
+    for (std::size_t i = 0; i < elementModifiers.size(); ++i) elementModifiers[i] = roll(def->elementModifiers[i]);
+}
+
+int Item::value(const ModifierPrices& prices) const {
+    int total = def->price;
+    if (def->fixedPrice) return total;
+    for (std::size_t i = 0; i < elementModifiers.size(); ++i) total += prices.element[i] * std::abs(elementModifiers[i]);
+    for (std::size_t i = 0; i < modifiers.size(); ++i) {
+        int points = modifiers[i];
+        // Weapons count the high-damage modifier from 1, which all of them
+        // have, everything else from 0.
+        if (i == ItemDef::kModHighDamage && def->cls == ItemDef::Class::Weapon) points = 1 - points;
+        total += prices.modifier[i] * std::abs(points);
+    }
+    return total;
+}
+
+int Item::sellValue(const ModifierPrices& prices) const {
+    int v = value(prices);
+    if (def->cls == ItemDef::Class::Weapon || def->cls == ItemDef::Class::Armour) {
+        const int left = durability();
+        v = def->durability > 0 && left > 0 ? left * v / def->durability : 1;
+    }
+    return std::max(1, v / 4);
 }
 
 int Item::durability() const { return std::max(0, def->durability - wear); }
@@ -19,11 +73,11 @@ const std::string& Item::shownName() const {
     return unidentified && !def->unidentifiedName.empty() ? def->unidentifiedName : def->name;
 }
 
-int Item::repairPrice() const {
+int Item::repairPrice(const ModifierPrices& prices) const {
     const int max = def->durability;
     const int worn = std::min(wear, max);
     if (max <= 0 || worn <= 0) return 0;
-    return std::max(1, worn * (def->price / 10) / max);
+    return std::max(1, worn * (value(prices) / 10) / max);
 }
 
 namespace {
@@ -213,14 +267,14 @@ void Inventory::identifyAll() {
     }
 }
 
-int Inventory::repairPrice(int part) const {
+int Inventory::repairPrice(int part, const ModifierPrices& prices) const {
     if (const auto slot = partSlot(part)) {
         const auto& worn = equipped(*slot);
-        return worn ? worn->repairPrice() : 0;
+        return worn ? worn->repairPrice(prices) : 0;
     }
     int total = 0;
     for (const auto& p : bag_) {
-        if (p.item.def->cls == Class::Weapon || p.item.def->cls == Class::Armour) total += p.item.repairPrice();
+        if (p.item.def->cls == Class::Weapon || p.item.def->cls == Class::Armour) total += p.item.repairPrice(prices);
     }
     return total;
 }
@@ -241,14 +295,38 @@ std::array<int, ItemDef::kStatCount> Inventory::stats() const {
         if (!worn || worn->broken()) continue;
         for (int i = 0; i < ItemDef::kStatCount; ++i) total[static_cast<std::size_t>(i)] += worn->def->stats[static_cast<std::size_t>(i)];
     }
+    // The modifiers come in a different order from the stats.
+    static constexpr std::pair<ItemDef::Stat, ItemDef::Modifier> kStatModifiers[] = {
+        {ItemDef::kAttack, ItemDef::kModAttack},          {ItemDef::kHit, ItemDef::kModHit},
+        {ItemDef::kDefense, ItemDef::kModDefense},        {ItemDef::kEvasion, ItemDef::kModEvasion},
+        {ItemDef::kMagicAttack, ItemDef::kModMagicAttack}, {ItemDef::kMagicHit, ItemDef::kModMagicHit},
+        {ItemDef::kMagicDefense, ItemDef::kModMagicDefense}, {ItemDef::kMagicEvasion, ItemDef::kModMagicEvasion},
+        {ItemDef::kAttackSpeed, ItemDef::kModAttackSpeed}, {ItemDef::kWalkSpeed, ItemDef::kModWalkSpeed}};
+    for (const auto& [stat, mod] : kStatModifiers) total[stat] += modifier(mod);
+    return total;
+}
+
+int Inventory::modifier(ItemDef::Modifier which) const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || worn->broken()) continue;
+        if (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden) continue;
+        total += worn->modifiers[static_cast<std::size_t>(which)];
+    }
     return total;
 }
 
 std::array<int, 8> Inventory::elements() const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
     std::array<int, 8> total{};
-    for (const auto& worn : equipped_) {
-        if (!worn) continue;
-        for (std::size_t i = 0; i < total.size(); ++i) total[i] += worn->def->elements[i];
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
+        for (std::size_t i = 0; i < total.size(); ++i) total[i] += worn->def->elements[i] + worn->elementModifiers[i];
     }
     return total;
 }

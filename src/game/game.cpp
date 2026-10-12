@@ -435,6 +435,11 @@ void Game::handleEvent(const SDL_Event& event) {
             if (statusClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            // Tab and a click give the companion an order.
+            if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
+                partnerOrder(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) {
+                break;
+            }
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
                 if (spells_.knows(spells_.selected)) {
                     // The right button casts the chosen spell at the cursor.
@@ -500,7 +505,10 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
             case Settings::kItem: found = groundItemAt(screenX, screenY); break;
             case Settings::kObject: found = objectAt(screenX, screenY); break;
             case Settings::kPerson: found = personAt(screenX, screenY); break;
-            default: break;  // clicking the companion (its Tab skills) is not in yet
+            case Settings::kCompanion:
+                if (partnerAt(screenX, screenY)) found = 0;
+                break;
+            default: break;
         }
         if (found) return {kind, *found};
     }
@@ -804,7 +812,8 @@ void Game::tickEnemy(Actor& enemy) {
     switch (enemy.state) {
         case State::Dead: return;
         case State::Hit:
-            if (!c.finished()) return;
+            if (enemy.stunTicks > 0) --enemy.stunTicks;
+            if (!c.finished() || enemy.stunTicks > 0) return;
             enemy.state = State::Chase;
             break;
         case State::Attack:
@@ -864,6 +873,8 @@ void Game::sayBroken(const std::vector<EquipSlot>& slots) {
             log::info("{} broke", item->def->name);
         }
     }
+    // Broken things stop raising the companion's stats.
+    if (!slots.empty()) refreshPartnerStats();
 }
 
 void Game::strikePlayer(Actor& enemy, int slot, bool magic) {

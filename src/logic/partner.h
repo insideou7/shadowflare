@@ -7,6 +7,7 @@
 namespace sf {
 
 struct GameTables;
+class Inventory;
 
 // The hero's animal companion, as ShadowFlare.exe runs it (the partner
 // object, ctor 0x45f410). Pure rules; the game moves and draws it.
@@ -32,7 +33,18 @@ struct PartnerStats {
     int attack = 0, hit = 0, defense = 0, evasion = 0;
     int magicAttack = 0, magicDefense = 0, magicHit = 0, magicEvasion = 0;
     int element = -1;  // 0 fire ... 7 metal
+    // The jump (rows 14-17): how likely its landing stuns a monster, in
+    // percent, for how many ticks, whether that may run past 15 ticks, and
+    // the side of the square it lands on.
+    int jumpStunChance = 0, jumpStunLength = 0;
+    bool jumpStunUncapped = false;
+    int jumpArea = 0;
 };
+
+// What the hero's worn items add (modifiers 30-38, 0x4138b0): health,
+// attack, hit, defence, evasion and the four magic stats, each left at
+// least 1.
+void addItemBonuses(PartnerStats& stats, const Inventory& worn);
 
 class PartnerTables {
 public:

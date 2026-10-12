@@ -24,6 +24,27 @@ struct ItemDef {
     enum Stat { kAttack, kHit, kDefense, kEvasion, kMagicAttack, kMagicHit, kMagicDefense, kMagicEvasion,
                 kAttackSpeed, kWalkSpeed, kStatCount };
 
+    // Magic modifiers (weapons, armour and accessories): what a magic or
+    // unique item may add, rolled once when the item is made (0x467310).
+    // Indices in the order of the tooltip at 0x40af26; 14-21 are named
+    // from the tooltip strings only.
+    enum Modifier {
+        kModAttack, kModDefense, kModHit, kModEvasion, kModMagicAttack, kModMagicDefense, kModMagicHit,
+        kModMagicEvasion, kModAttackSpeed, kModWalkSpeed, kModMaxHp, kModMaxMp, kModStrength, kModMagicLevel,
+        kModStunChance, kModStunLength, kModHighDamage, kModLifeRecovery, kModMentalRecovery, kModMentalCost,
+        kModReflection, kModReflection2, kModStaminaMedicine, kModMentalMedicine, kModAbsorption,
+        kModAbsorption2, kModGold, kModMineEffect, kModMineCount, kModChantSpeed,
+        // What the companion gets while the hero wears the item (0x4138b0).
+        kModCompanionHp, kModCompanionAttack, kModCompanionHit, kModCompanionDefense, kModCompanionEvasion,
+        kModCompanionMagicAttack, kModCompanionMagicHit, kModCompanionMagicDefense, kModCompanionMagicEvasion,
+        kModifierCount
+    };
+    // One modifier's range: with `chance` percent it is a number from min
+    // to max, otherwise 0.
+    struct ModifierRange {
+        std::int32_t min = 0, max = 0, chance = 0;
+    };
+
     Class cls = Class::Special;
     std::int32_t code = 0;  // the item's id within its class; Mct placements use (class, code)
     std::string name;       // as shown once identified
@@ -32,6 +53,7 @@ struct ItemDef {
     std::int32_t quality = 0;  // 0 normal, 1 magic, 2 unique, 3 quest
     std::int32_t width = 1, height = 1;  // in 32-pixel inventory cells
     std::int32_t price = 0;
+    bool fixedPrice = false;  // 0x44: its modifiers add nothing to the price
     // Picture in the bag: pattern `invPattern` of System/Game/Pattern/Item<invBank as %04d>.
     std::int32_t invBank = -1, invPattern = -1;
     // Picture on the ground: Character/ITEM/<groundFolder as %08d>, either a
@@ -50,6 +72,9 @@ struct ItemDef {
     // element (fire, water, earth, thunder, holy, dark, gel, metal; see
     // logic/magic.h).
     std::array<std::int32_t, 8> elements{};
+    std::array<ModifierRange, kModifierCount> modifiers{};
+    // Rolled the same way, then added to `elements` (0x44fe30).
+    std::array<ModifierRange, 8> elementModifiers{};
     // Layers of the hero's Animation00.Caf turned on while worn (weapons,
     // body armour, shields), -1 = none.
     std::int32_t heroLayer = -1;

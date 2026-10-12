@@ -58,6 +58,11 @@ struct Options {
         int slot = 0, dx = 0, dy = 0;
     };
     std::optional<Cast> cast;  // cast the spell on F1-F8 at a point from the player
+    struct Order {
+        std::string kind;  // jump, dash or fetch
+        int dx = 0, dy = 0;
+    };
+    std::optional<Order> companion;  // a Tab order for the companion, in world units from the hero
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -119,6 +124,13 @@ Options parseArgs(int argc, char** argv) {
             } else {
                 sf::log::warn("--cast expects slot:x,y");
             }
+        } else if (arg == "--companion" && i + 1 < argc) {
+            // jump:dx,dy, dash:dx,dy or fetch (the nearest item).
+            const std::string order = argv[++i];
+            Options::Order o;
+            o.kind = order.substr(0, order.find(':'));
+            if (order.find(':') != std::string::npos) std::sscanf(order.c_str() + order.find(':') + 1, "%d,%d", &o.dx, &o.dy);
+            options.companion = o;
         } else if (arg == "--options") {
             options.options = true;
         } else if (arg == "--options-file" && i + 1 < argc) {
@@ -340,7 +352,8 @@ int main(int argc, char** argv) {
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast;
+                          options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast ||
+                          options.companion;
     // The player's options (Esc in the game); scripted runs keep the
     // defaults so they come out the same on every machine.
     if (!options.optionsFile.empty()) {
@@ -365,6 +378,7 @@ int main(int argc, char** argv) {
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
+    if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

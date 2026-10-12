@@ -21,12 +21,15 @@ namespace sf {
 // read and fixed by hand; items are kept by their (class, code), so a save
 // works with whichever item list the game data has, original or open.
 struct SaveGame {
+    static constexpr std::size_t kSavedModifiers = ItemDef::kModifierCount + 8;
     struct ItemRef {
         int cls = 0;
         std::int32_t code = 0;
         int count = 1;
         int wear = 0;               // Item::wear
         bool unidentified = false;  // Item::unidentified
+        // Item::modifiers then Item::elementModifiers, as one list.
+        std::array<std::int32_t, kSavedModifiers> modifiers{};
     };
     struct BagEntry {
         ItemRef item;

@@ -425,7 +425,7 @@ void testShopStock() {
     check(weapons == 2, "random picks honour level and quality");
     check(stock.goods.size() >= 4 && stock.goods[0].x == 0 && stock.goods[1].x == 1 && stock.goods[3].x == 3 && stock.goods[3].y == 0,
           "goods fill the top row from the left");
-    check(sf::sellPrice(*stock.goods[0].item.def) == 25 && sf::buyPrice(*stock.goods[0].item.def) == 100, "sell for a quarter");
+    check(sf::sellPrice(stock.goods[0].item, {}) == 25 && sf::buyPrice(stock.goods[0].item, {}) == 100, "sell for a quarter");
 }
 
 void testCareer() {
