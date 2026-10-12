@@ -115,13 +115,14 @@ def door(along_y=False):
 
 
 def pillar(black=""):
-    """A square stone pillar with a dark cap and base. black: which of
+    """A square stone pillar as tall as the walls, its top flush with
+    theirs, so the wall tops run on in one straight line. black: which of
     its faces are blacked out, "l" (the screen's left), "r" or "lr"."""
     stone, cap = mat("stone", STONE), mat("capstone", CAPSTONE)
-    solid(box((2.0, 2.0, WALL_H + 1.0), (0, 0, (WALL_H + 1.0) / 2), stone))
-    box((2.2, 2.2, 0.35), (0, 0, WALL_H + 1.1), cap)
-    box((2.2, 2.2, 0.4), (0, 0, 0.2), cap)
-    h = WALL_H + 1.1 + 0.175
+    solid(box((2.0, 2.0, WALL_H), (0, 0, WALL_H / 2), stone))
+    box((2.1, 2.1, 0.3), (0, 0, WALL_H + 0.1), cap)
+    box((2.1, 2.1, 0.35), (0, 0, 0.17), cap)
+    h = WALL_H + 0.25
     if "l" in black:
         blackout((2.24, 0.02, h), (0, -1.12, h / 2))
     if "r" in black:
@@ -150,13 +151,15 @@ def stairway(side=False):
         parapet(w / 2 + 0.3)
         return
     dais = mat("dais", DAIS)
-    # The gateway: two jambs and a lintel, as thick as the fort's walls.
-    jamb = 1.0
+    # The gateway: two jambs and a lintel. It stands a little in front of
+    # the wall line, so it is built taller for its top to run on in line
+    # with the walls beside it.
+    jamb, top = 1.0, WALL_H + 0.6
     for x in (-w / 2 - jamb / 2, w / 2 + jamb / 2):
-        solid(box((jamb, WALL_T, WALL_H), (x, WALL_T / 2, WALL_H / 2), stone))
-    gate = 3.8
-    solid(box((w, WALL_T, WALL_H - gate), (0, WALL_T / 2, (WALL_H + gate) / 2), stone))
-    box((w + 2 * jamb + 0.1, WALL_T + 0.2, 0.3), (0, WALL_T / 2, WALL_H + 0.1), cap)
+        solid(box((jamb, WALL_T, top), (x, WALL_T / 2, top / 2), stone))
+    gate = 4.6
+    solid(box((w, WALL_T, top - gate), (0, WALL_T / 2, (top + gate) / 2), stone))
+    box((w + 2 * jamb + 0.1, WALL_T + 0.2, 0.3), (0, WALL_T / 2, top + 0.1), cap)
     # Darkness beyond the gateway, the flight climbing into it.
     box((w, 2.0, gate), (0, 0.25 + 1.0, gate / 2), hole)
     for k in range(n):

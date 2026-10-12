@@ -388,7 +388,7 @@ none=
 
 # The fort and the castle dungeon walls.
 [objects Fort01.njp]
-0=fstairs@-203,-257
+0=fstairs@-203,-241
 1=fstairs_side@-203,-197
 2=fstairs@-212,-258
 3=fstairs_side@-232,-198
