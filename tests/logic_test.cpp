@@ -545,6 +545,8 @@ void testMagic() {
 
     check(sf::Rules::ours().shieldsCostTheirOwnMp && !sf::Rules::ours().originalMode(), "our fixes are on by default");
     check(!sf::Rules::original().shieldsCostTheirOwnMp && sf::Rules::original().originalMode(), "original mode turns them off");
+    check(sf::Rules::ours().explosionUsesItsOwnLevel && !sf::Rules::original().explosionUsesItsOwnLevel,
+          "Explosion's level is a switchable fix");
 }
 
 void testSettings() {

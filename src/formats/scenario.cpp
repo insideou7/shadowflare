@@ -82,6 +82,7 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         BinaryReader block(raw);
         block.skip(4 * 5);
         p.companionSwitch = block.i32() == 1;
+        p.linkedEnemy = block.i32();
     } else {
         in.skip(extraSize);
     }

@@ -59,15 +59,15 @@ int hitOptionOf(int spell) {
     }
 }
 
-enum class Kind { NotYet, Toggle, Heal, Cast };
+enum class Kind { NotYet, Toggle, Heal, Cast, Companion };
 
 Kind kindOf(int spell) {
     switch (spell) {
         case kTransport:
         case kMoon:
         case kMedusa:
-        case kIdentify:
-        case kExplosion: return Kind::NotYet;
+        case kIdentify: return Kind::NotYet;
+        case kExplosion: return Kind::Companion;  // the companion blows up (partner.cpp)
         case kHeal: return Kind::Heal;
         default: break;
     }
@@ -217,6 +217,7 @@ void Game::releaseSpell() {
     log::info("Cast {} at level {}", magic_.spell(spell).name, level);
     switch (kindOf(spell)) {
         case Kind::NotYet: break;
+        case Kind::Companion: orderPartnerExplosion(castTarget_.first, castTarget_.second); break;
         case Kind::Toggle:
             setSpellOn(spell, true);
             if (spell == kBerserker) berserkerCarry_ = 0;

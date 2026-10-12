@@ -84,9 +84,10 @@ Orders on the ground wait out a 45-tick pause after the last one.
 
 - **Left click on a monster, or on open ground: jump.** It crouches
   (chart 6), lands on the spot and gets up (chart 7, facing the camera)
-  (0x460420). Landing hits every monster in a square of row 17 of its
-  table around it, and each one hit may be stunned: row 14 is the chance,
-  row 15 the length in ticks (at most 15 unless row 16 is set).
+  (0x460420). Landing tries every monster in a square of row 17 of its
+  table around it; the blow does no damage (its power is 0), but each
+  one hit may be stunned: row 14 is the chance, row 15 the length in
+  ticks (at most 15 unless row 16 is set).
 - **Left click on a switch: jump onto it**, pressing it. Switches are
   Mct objects whose word 5 is 1 (inferred from the click code).
 - **Left click on an item: fetch.** It runs to the item (giving up past
@@ -98,6 +99,26 @@ Orders on the ground wait out a 45-tick pause after the last one.
   gaining 8 a tick until tick 27. From tick 12, every fourth tick it hits
   what is in its box grown 1.9 times, stunning with chance 100 and
   length 10 (at most 15), and pauses 5 ticks after a hit (0x460a00).
+
+**The hero's Explosion spell** (spell 20) sends the partner to the point
+cast at, if it is up, not jumping or dashing and past its 45-tick pause
+(0x43fcc0). It jumps there as above and blows up (0x461c40), with the
+fire spray Hell Fire uses (effect 10000000, both charts; 0x42f890): every
+monster in a square 320 each way that it hits (its hit against their
+evasion) takes the spell's blow, with power 1, so 1 damage, and is
+stunned as Table.Tbd tables 70-78 say for the spell at its level (one
+table per monster element, three columns per level: chance, length, and
+1 to lift the cap). Explosion's are chance 800, 10 ticks at level 1 up to
+19 at level 20, capped at 15. Each monster hit trains the spell. The
+original reads the level of spell 21, Elemental Strike, instead
+(level 1 for a hero who does not know it); we use Explosion's own unless
+original mode is on (`explosionUsesItsOwnLevel`).
+
+A blow landing on an object whose Mct word 6 is not -1 goes to the
+monster with that id instead (0x460420 looks up character 14000000 +
+the word). Only some parts of object 2 in scenarios 04120000 and 04900002
+have it, linked to monster 30000, which neither scenario places, so it
+does nothing in the shipped game.
 
 A monster's stun chance and length are cut by its Mct enemy words 61 and
 62, and word 63 lifts the 15-tick cap (all three inferred from where
@@ -114,9 +135,7 @@ add to the partner's stats (see formats.md).
 
 ## Not in yet
 
-The Explosion order (command 6), and switches' linked objects (object
-word 6). Open content has no partner tables, so open-pack heroes play
-alone.
+Open content has no partner tables, so open-pack heroes play alone.
 
 ## Code
 

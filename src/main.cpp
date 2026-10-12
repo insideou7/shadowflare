@@ -128,7 +128,7 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--spell" && i + 1 < argc) {
             if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
         } else if (arg == "--companion" && i + 1 < argc) {
-            // jump:dx,dy, dash:dx,dy or fetch (the nearest item).
+            // jump:dx,dy, dash:dx,dy, explode:dx,dy or fetch (the nearest item).
             const std::string order = argv[++i];
             Options::Order o;
             o.kind = order.substr(0, order.find(':'));
