@@ -175,6 +175,13 @@ public:
     }
     bool hasItem(int cls, int code) const override { return g_.inventory_.has(static_cast<ItemDef::Class>(cls), code); }
     void deleteItem(int cls, int code) override { g_.inventory_.removeOne(static_cast<ItemDef::Class>(cls), code); }
+    void giveItem(int cls, int code) override {
+        const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
+        if (!def || g_.inventory_.has(def->cls, code)) return;
+        const Item item = Item::make(def, g_.random_);
+        // No special items window yet: the bag, or the ground when it is full.
+        if (!g_.inventory_.add(item) && g_.player_) g_.dropItem(item, g_.player_->x, g_.player_->y);
+    }
     void playerLife(int& hp, int& max) const override {
         hp = g_.playerHp_;
         max = g_.playerMaxHp();

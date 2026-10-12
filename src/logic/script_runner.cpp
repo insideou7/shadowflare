@@ -10,7 +10,11 @@ namespace {
 using S = ScenarioScript;
 
 // Operand types that hold a value the script can change.
-bool writable(std::int32_t type) { return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == 10; }
+// 10 is WARP (the warp gates found) and 13 EXSTRG (a word list on the
+// player, + 0x55c, its use not traced).
+bool writable(std::int32_t type) {
+    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == 10 || type == 13;
+}
 
 }  // namespace
 
@@ -28,6 +32,7 @@ bool ScriptRunner::implemented(std::int32_t opcode) {
         case S::kGetPartnerLife: case S::kEnableClassChange: case S::kGetClass:
         case S::kRoutine: case S::kCheckEnemyLive: case S::kCheckEnemyDead: case S::kCheckItemExist:
         case S::kDeleteItem: case S::kGetPlayerLife: case S::kGetPlayerMental: case S::kGetExperience:
+        case S::kSetItemDirect:
         // Network play only: single play never reaches them.
         case S::kRoutineNet:
             return true;
@@ -266,6 +271,9 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 break;
             }
             case S::kGetExperience: host_->giveExperiencePercent(arg(0)); break;
+            case S::kSetItemDirect:
+                if (ops.size() >= 2) host_->giveItem(arg(0), arg(1));
+                break;
             case S::kDrawQuestName: host_->showQuestName(arg(0)); break;
             case S::kSetCompasses:
                 if (ops.empty()) break;

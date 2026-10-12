@@ -105,6 +105,9 @@ public:
     // GETPLAYERLIFE and GETPLAYERMENTAL: the hero's HP or MP and its most.
     virtual void playerLife(int& /*hp*/, int& /*max*/) const {}
     virtual void playerMental(int& /*mp*/, int& /*max*/) const {}
+    // SETITEMDIRECT class code: hands the player the item, unless they
+    // already have one (the original keeps it with the special items).
+    virtual void giveItem(int /*cls*/, int /*code*/) {}
     // GETEXPERIENCE: `percent` of the experience the hero's level needs.
     virtual void giveExperiencePercent(int /*percent*/) {}
     // A command the engine does not carry out yet ran (sound aside), so a

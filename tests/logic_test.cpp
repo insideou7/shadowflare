@@ -388,6 +388,7 @@ struct QuestHost : sf::ScriptHost {
     void playerMental(int& mp, int& max) const override { mp = 20, max = 30; }
     int percent = 0;
     void giveExperiencePercent(int p) override { percent += p; }
+    void giveItem(int cls, int code) override { items.emplace_back(cls, code); }
 };
 
 void testScriptQuestChecks() {
@@ -403,13 +404,15 @@ void testScriptQuestChecks() {
                          {S::kCheckItemExist, {constant(4), constant(99000000), gone}},
                          {S::kGetPlayerLife, {hp, hpMax}},
                          {S::kGetPlayerMental, {mp, mpMax}},
-                         {S::kGetExperience, {constant(30)}}}};
+                         {S::kGetExperience, {constant(30)}},
+                         {S::kSetItemDirect, {constant(4), constant(99000010)}}}};
     sf::ScriptFlags flags;
     QuestHost host;
     sf::ScriptRunner(script, flags, &host).run(0);
     check(flags[{S::kTemp, 1}] == 14000001 && flags[{S::kTemp, 2}] == 14000000, "CHECKENEMYLIVE / DEAD give the first match");
     check(flags[{S::kTemp, 3}] == -1, "CHECKENEMYLIVE gives -1 when none is alive");
-    check(flags[{S::kTemp, 4}] == 1 && flags[{S::kTemp, 5}] == 0 && host.items.empty(), "CHECKITEMEXIST and DELETEITEM");
+    check(flags[{S::kTemp, 4}] == 1 && flags[{S::kTemp, 5}] == 0, "CHECKITEMEXIST and DELETEITEM");
+    check(host.items == std::vector<std::pair<int, int>>{{4, 99000010}}, "SETITEMDIRECT hands the item over");
     check(flags[{S::kTemp, 6}] == 80 && flags[{S::kTemp, 7}] == 150 && flags[{S::kTemp, 8}] == 20 && flags[{S::kTemp, 9}] == 30,
           "GETPLAYERLIFE and GETPLAYERMENTAL");
     check(host.percent == 30, "GETEXPERIENCE gives a share of the level's experience");
