@@ -222,6 +222,19 @@ over each other, with the foot marked.
 
     python3 tools/content/skin_preview.py game 00f_obj00.njp /tmp/fences.png 13 14
 
+`tools/content/skin_fit.py` suggests the lines in the first place: given
+a bank, some of its pieces and the props that might stand in for them, it
+slides each prop's silhouette over each piece's (keeping their feet close)
+and prints the prop and `@x,y` that overlap best.
+
+    python3 tools/content/skin_fit.py game nomal.njp 23-40 conifer_green conifer_gold
+
+Nearly every piece of the original's maps is covered. Still drawn from the
+original: the village's tall stone walls and gate towers (00f_city02,
+mon01; none of our props is tall enough yet), blood, bodies and the pits
+and holes in the ground (blood00, deadbody00, 00d_blood, jimen_x00,
+map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
+
 ## Rebuilding content/
 
 The art is rendered with Blender's Python module (`bpy`) and laid out
