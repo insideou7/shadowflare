@@ -188,7 +188,7 @@ double castSpeedFactor(const MagicTables& t, int spell, int chantSpeed, bool pow
 // P at 0x4429b0, the button at 0x445bd0). While it runs:
 // walking, running, attacking and casting all take the fastest step of their
 // speed scales (step 9), spells are cast two levels higher (0x451e60), the
-// hero's defence against blows is 20% higher (0x443cb0), and Berserker, Moon
+// hero's defense against blows is 20% higher (0x443cb0), and Berserker, Moon
 // and Energy Shield cannot be cast (0x441c00). The charge is not saved.
 struct PowerMode {
     static constexpr int kCharge = 50;               // kills needed

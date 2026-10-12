@@ -109,6 +109,44 @@ each time they soak a blow of 20 or more.
 There is no MP or HP recovery over time of the hero's own; only
 equipment gives it.
 
+## Increased-power mode (0x4134a0, 0x451a00, 0x4429b0)
+
+Each monster the hero kills themself (not the companion) adds one to a
+charge (player + 0x1550). At 50, or 30 while the Spirit Stone (special
+item 98000001) is in the bag, the power button over the panel's crossed
+swords blinks (Bar.njp pattern 12, added to what is behind, at full
+brightness for two frames and 80% for two; 0x4039f0). P or a click on it
+(x 25-58, y 408-430; 0x445bd0) starts the mode: the charge empties,
+Berserker goes off, and for 900 frames (30 seconds) the hero
+
+- walks, runs, attacks and casts at the fastest step of each speed scale
+  (0x450d40, 0x450c60);
+- casts every spell two levels higher, at most 20 (0x451e60);
+- has defense x 12/10 against blows (0x443cb0);
+- can't cast Berserker, Moon or Energy Shield (0x441c00);
+- glows: Player/Common/Powerup, one 30-frame chart added to what is
+  behind, a frame each tick at the hero's feet (0x4448b0).
+
+The charge is not saved. Not in yet: the sound every 15 frames, and the
+hunter's 1-in-3 special attack (0x438a90).
+
+## The magic window (0x407a60, 0x447790)
+
+M (or the MAGIC tab of the STATUS window) opens it on the left of the
+screen (Status.njp pattern 6), six spells a page over four pages. Each
+learned spell shows its icon (MagicIcon.njp, spell + 2), name, the level
+it is cast at (gold when power mode raises it), uses towards the next
+level out of table 27 (Max at 20), MP cost (table 16) and power (table
+17; a percentage for Heal, Energy Shield, Sonic Blade, Magic Shield and
+Counter Burst; nothing for Transport, Moon, Berserker and Identify).
+Hovering a name shows the description (tables 600-621) under the mouse.
+
+The bar along the bottom is the one F1-F8 choose from. Drag a spell's
+icon, or one already on the bar, onto a slot: it leaves any other slot
+and goes there. Let go anywhere else and nothing changes. S, Q, the
+STATUS tab, a shop and Esc close the window. `--magic-window[=page]`,
+`--power-charge n` and `--power` open or start them for screenshots.
+
 ## In the engine
 
 `src/logic/magic.h` has the rules and tables, `src/game/spells.cpp` the
