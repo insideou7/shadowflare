@@ -29,6 +29,34 @@ bool ShopStock::add(const Item& item) {
     return false;
 }
 
+Inventory::Result ShopStock::click(std::optional<Item>& hand, int x, int y) {
+    if (!hand) {
+        const int index = indexAt(x, y);
+        if (index < 0) return Inventory::Result::Nothing;
+        hand = goods[static_cast<std::size_t>(index)].item;
+        goods.erase(goods.begin() + index);
+        return Inventory::Result::Done;
+    }
+    const int w = hand->def->width, h = hand->def->height;
+    if (x < 0 || y < 0 || x + w > kWidth || y + h > kHeight) return Inventory::Result::NoRoom;
+    int covered = -1;
+    for (std::size_t i = 0; i < goods.size(); ++i) {
+        const auto& g = goods[i];
+        if (x < g.x + g.item.def->width && g.x < x + w && y < g.y + g.item.def->height && g.y < y + h) {
+            if (covered >= 0) return Inventory::Result::NoRoom;
+            covered = static_cast<int>(i);
+        }
+    }
+    std::optional<Item> picked;
+    if (covered >= 0) {
+        picked = goods[static_cast<std::size_t>(covered)].item;
+        goods.erase(goods.begin() + covered);
+    }
+    goods.push_back({*hand, x, y});
+    hand = picked;
+    return Inventory::Result::Done;
+}
+
 int ShopStock::indexAt(int x, int y) const {
     for (std::size_t i = 0; i < goods.size(); ++i) {
         const auto& g = goods[i];

@@ -26,6 +26,7 @@ bool Game::saveGame() {
     save.experience = playerExperience_;
     save.career = career_;
     save.store(inventory_);
+    if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
     for (const auto& [key, value] : flags_) {
         if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
     }
@@ -83,6 +84,9 @@ bool Game::loadGame() {
     career_ = save.career && save.career->history.size() == static_cast<std::size_t>(playerLevel_ - 1) ? *save.career
                                                                                                     : Career::at(playerLevel_);
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
+    if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
+        log::warn("{}: {} stored items are unknown", saveFile_, skipped);
+    }
     updateEquipment();
     playerHp_ = std::clamp(save.hp, 1, playerMaxHp());
     checkTriggers(false);  // loading inside an exit does not take it

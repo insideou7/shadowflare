@@ -9,6 +9,7 @@
 
 #include "logic/inventory.h"
 #include "logic/progression.h"
+#include "logic/shop.h"
 #include "logic/script_runner.h"
 
 namespace sf {
@@ -37,6 +38,7 @@ struct SaveGame {
     std::optional<Career> career;
     int gold = 0;
     std::vector<BagEntry> bag;
+    std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
     ScriptFlags flags;  // the persistent scenario flags
 
@@ -48,6 +50,8 @@ struct SaveGame {
     // does not have. Returns how many were skipped.
     int restore(Inventory& inventory, const ItemTable& items) const;
     void store(const Inventory& inventory);
+    int restoreStorage(ShopStock& stock, const ItemTable& items) const;
+    void storeStorage(const ShopStock& stock);
 };
 
 }  // namespace sf

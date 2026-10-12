@@ -99,11 +99,11 @@ public:
         }
     }
     std::int32_t characterX(std::int32_t id) const override {
-        if (const auto* a = g_.actorById(id)) return static_cast<std::int32_t>(a->character.x);
+        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->first);
         return g_.player_ ? static_cast<std::int32_t>(g_.player_->x) : 0;
     }
     std::int32_t characterY(std::int32_t id) const override {
-        if (const auto* a = g_.actorById(id)) return static_cast<std::int32_t>(a->character.y);
+        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->second);
         return g_.player_ ? static_cast<std::int32_t>(g_.player_->y) : 0;
     }
     void stopCharacter(std::int32_t id, bool stop) override {
@@ -133,6 +133,8 @@ public:
         if (titles && quest >= 0 && quest < titles->rows) g_.showMessage(toAscii(titles->string(quest, 0)));
     }
     int entryPoint() const override { return g_.entryPoint_; }
+    void openStorage() override { trade(Game::kStorage); }
+    void showLabel(const Label& l) override { g_.showLabel(l); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
         log::info("{} offered", className(g_.career_.offered));
@@ -150,6 +152,62 @@ const Game::Actor* Game::actorById(std::int32_t id) const {
 }
 
 Game::Actor* Game::actorById(std::int32_t id) { return const_cast<Actor*>(std::as_const(*this).actorById(id)); }
+
+std::optional<std::pair<double, double>> Game::positionOf(std::int32_t id) const {
+    if (const auto* a = actorById(id)) return std::pair(a->character.x, a->character.y);
+    for (const auto& p : control_.placements) {
+        if (ScenarioControl::idBase(p.group) + p.id == id) return std::pair(double(p.x), double(p.y));
+    }
+    return std::nullopt;
+}
+
+std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
+    if (!script_) return std::nullopt;
+    double wx, wy;
+    screenToWorld(cameraX_ + screenX, cameraY_ + screenY, wx, wy);
+    for (std::size_t i = 0; i < control_.placements.size(); ++i) {
+        const auto& p = control_.placements[i];
+        if (p.group != ScenarioControl::Group::Object) continue;
+        if (wx < p.x + p.rect[0] || wx > p.x + p.rect[2] || wy < p.y + p.rect[1] || wy > p.y + p.rect[3]) continue;
+        const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
+        for (const auto& t : script_->triggers) {
+            if (t.event == ScenarioScript::kOnTalk && t.character == id) return i;
+        }
+    }
+    return std::nullopt;
+}
+
+// A newer label on the same character replaces the old one.
+void Game::showLabel(const ScriptHost::Label& label) {
+    std::erase_if(labels_, [&](const Label& l) { return l.label.character == label.character; });
+    labels_.push_back({label, std::max(1, label.duration * kTicksPerSecond / 1000)});
+}
+
+void Game::renderLabels(int camX, int camY) {
+    for (const auto& l : labels_) {
+        const auto at = positionOf(l.label.character);
+        if (!at) continue;
+        int sx, sy;
+        worldToScreen(static_cast<int>(at->first), static_cast<int>(at->second), sx, sy);
+        // Messages end in line breaks; each line is centred.
+        std::vector<std::string> lines;
+        std::string line;
+        for (const char c : toAscii(l.label.text) + '\n') {
+            if (c != '\n') {
+                line += c;
+            } else if (!line.empty()) {
+                lines.push_back(std::exchange(line, {}));
+            }
+        }
+        int y = sy - camY + l.label.dy;
+        for (const auto& text : lines) {
+            const int x = sx - camX + l.label.dx - uiTextWidth(text) / 2;
+            uiText(x + 1, y + 1, text, {0, 0, 0, 255});  // a shadow, as the exe draws text
+            uiText(x, y, text, {l.label.r, l.label.g, l.label.b, 255});
+            y += kLineHeight;
+        }
+    }
+}
 
 void Game::runScript(std::int32_t sentence, std::int32_t character) {
     if (!script_ || pendingScenario_) return;
@@ -199,6 +257,16 @@ void Game::talkToId(std::int32_t id) {
             player_->y = actors_[i].character.y + 150;
         }
         talkTarget_ = i;
+        return;
+    }
+    for (std::size_t i = 0; i < control_.placements.size(); ++i) {
+        const auto& p = control_.placements[i];
+        if (p.group != ScenarioControl::Group::Object || ScenarioControl::idBase(p.group) + p.id != id) continue;
+        if (player_) {
+            player_->x = p.x + p.rect[2] + 100;
+            player_->y = p.y + p.rect[3] + 100;
+        }
+        objectTarget_ = i;
         return;
     }
     log::warn("No character {} here", id);
@@ -417,6 +485,23 @@ bool Game::shopClick(int x, int y, bool right) {
     if (!openShop_) return false;
     if (!inside(kShopPanel, x, y)) return false;
     auto& stock = shops_[*openShop_];
+    const SDL_Rect grid{kShopX, kShopY, ShopStock::kWidth * kCell, ShopStock::kHeight * kCell};
+    if (*openShop_ == kStorage) {
+        // The warehouse: items are put down and picked up as in the bag; a
+        // right click on an empty spot leaves.
+        const int cx = (x - kShopX) / kCell, cy = (y - kShopY) / kCell;
+        if (right) {
+            if (!hand_ && (!inside(grid, x, y) || stock.indexAt(cx, cy) < 0)) closeShop();
+        } else if (hand_ && inside(grid, x, y)) {
+            const double left = x - hand_->def->width * kCell / 2.0 - kShopX;
+            const double top = y - hand_->def->height * kCell / 2.0 - kShopY;
+            const int tx = static_cast<int>(std::lround(left / kCell)), ty = static_cast<int>(std::lround(top / kCell));
+            if (stock.click(hand_, tx, ty) == Inventory::Result::NoRoom) showMessage("No room there");
+        } else if (inside(grid, x, y)) {
+            stock.click(hand_, cx, cy);
+        }
+        return true;
+    }
     if (hand_) {
         // Selling: the shop takes the item and pays a quarter of its price.
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
@@ -431,7 +516,6 @@ bool Game::shopClick(int x, int y, bool right) {
         return true;
     }
     // A right click anywhere else in the window leaves the shop.
-    const SDL_Rect grid{kShopX, kShopY, ShopStock::kWidth * kCell, ShopStock::kHeight * kCell};
     const int i = inside(grid, x, y) ? stock.indexAt((x - kShopX) / kCell, (y - kShopY) / kCell) : -1;
     if (right && i < 0) {
         closeShop();
@@ -462,11 +546,14 @@ void Game::closeShop() {
 // The shop window's background: the open pack's Shop.sheet or the
 // original's Status.njp patterns 7 and 8, at their own screen positions.
 bool Game::drawShopPicture() {
+    // The warehouse has its own copy of the window in the original
+    // (patterns 14 and 15); the open pack uses the shop's.
+    const bool storage = openShop_ == kStorage;
     const SpriteBank* bank = itemBank("System/Game/Pattern/Shop");
     std::vector<int> patterns = {0};
     if (!bank) {
         bank = itemBank("System/Game/Pattern/Status");
-        patterns = {7, 8};
+        patterns = storage ? std::vector<int>{14, 15} : std::vector<int>{7, 8};
     }
     bool drawn = false;
     for (int pattern : patterns) {
@@ -520,7 +607,9 @@ void Game::renderShop() {
     // What the item under the mouse costs, or what the held one sells for,
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
-    if (hand_ && inside(kShopPanel, mx, my)) {
+    if (*openShop_ == kStorage) {
+        if (hover && !hand_) lines.emplace_back(hover->name, kWhite);
+    } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
         } else {

@@ -297,8 +297,8 @@ a switch at 0x430ffe (jump table 0x4344f0):
 
 | # | Command | # | Command | # | Command |
 |---|---------|---|---------|---|---------|
-| 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE` | 52 | `GETREPAIRPRICE slot var` |
-| 1 | `SETFLAG var value` | 27 | `MESSAGEBOX` (floating label) | 53 | `GETTOTALGOLD var` |
+| 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE char dx dy value r g b` | 52 | `GETREPAIRPRICE slot var` |
+| 1 | `SETFLAG var value` | 27 | `MESSAGEBOX char dx dy msg r g b time` | 53 | `GETTOTALGOLD var` |
 | 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
 | 3 | `TALKPARTNERSTATUS` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
 | 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
@@ -312,7 +312,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
-| 19 | `C_MOVABLE char` | 41 | `STORAGE` | 67 | `MEMORIZEMAGIC` |
+| 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC` |
 | 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
 | 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
@@ -323,6 +323,14 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | | | 49 | `SETCOMPASSES msg` | 75 | `SETITEMDIRECT` |
 | | | 50 | `GETENTRYPOINT var` | | |
 | | | 51 | `SETMSGDEFINE v0 ... v19` | | |
+
+`MESSAGEBOX` floats a message at (dx, dy) screen pixels from a character
+or map object, such as an area's name over its warp gate (Remote Town runs
+it every frame near the gate); `MESSAGEBOXVALUE` does the same with a
+number. The colour is red, green, blue; `time` is 1000 where it appears,
+taken as a second. `STORAGE` opens the warehouse, the shop window's twin
+(Status.njp patterns 14 and 15, a 9 x 10 grid); Remote Town runs it when
+the player uses the Warehouse object (10000300).
 
 `TALK` shows a message over the speaker (-1 = the character whose trigger
 is running), filled in with sprintf from the values `SETMSGDEFINE` set.

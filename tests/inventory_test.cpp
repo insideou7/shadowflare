@@ -219,6 +219,15 @@ void testSaveGame() {
           "the class, its history and the kills survive");
     check(!sf::SaveGame::parse("version=1\nmap=a\n").career, "older saves have no class");
 
+    sf::ShopStock warehouse;
+    warehouse.goods.push_back({{&table.items[0], 1}, 4, 6});
+    save.storeStorage(warehouse);
+    const auto withStorage = sf::SaveGame::parse(save.write());
+    sf::ShopStock reloaded;
+    check(withStorage.restoreStorage(reloaded, table) == 0 && reloaded.goods.size() == 1 && reloaded.goods[0].x == 4 &&
+              reloaded.goods[0].y == 6 && reloaded.goods[0].item.def == &table.items[0],
+          "the warehouse survives");
+
     sf::Inventory restored;
     restored.addGold(5);
     check(loaded.restore(restored, table) == 0, "every item is known");
@@ -246,6 +255,21 @@ void testSaveGame() {
     check(!threw("version=1\nmap=a\nfuture=thing\n"), "unknown keys are skipped");
 }
 
+void testStorageClicks() {
+    sf::ItemTable table;
+    table.items = {def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12), def(Class::Consumable, 0, 1, 1)};
+    sf::ShopStock storage;
+    std::optional<sf::Item> hand = sf::Item{&table.items[0], 1};
+    check(storage.click(hand, 8, 0) == sf::Inventory::Result::Done && !hand && storage.goods.size() == 1, "an item is put away");
+    check(storage.click(hand, 8, 9) == sf::Inventory::Result::Nothing, "an empty cell gives nothing");
+    hand = sf::Item{&table.items[1], 1};
+    check(storage.click(hand, 9, 0) == sf::Inventory::Result::NoRoom && hand, "nothing goes off the grid");
+    check(storage.click(hand, 8, 2) == sf::Inventory::Result::Done && hand && hand->def == &table.items[0] && storage.goods.size() == 1,
+          "putting an item on another swaps them");
+    check(storage.click(hand, 0, 0) == sf::Inventory::Result::Done && storage.goods.size() == 2, "the sword goes back");
+    check(storage.click(hand, 0, 3) == sf::Inventory::Result::Done && hand && hand->def == &table.items[0], "and is picked up again");
+}
+
 }  // namespace
 
 int main() {
@@ -256,6 +280,7 @@ int main() {
     testUse();
     testLoot();
     testSaveGame();
+    testStorageClicks();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
