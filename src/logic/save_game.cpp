@@ -53,6 +53,7 @@ std::string SaveGame::write() const {
     }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
+    for (const auto& e : storage) out += std::format("stored={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         if (const auto& e = equipped[static_cast<std::size_t>(slot)]) {
             out += std::format("wear={},{},{},{}\n", slot, e->cls, e->code, e->count);
@@ -114,6 +115,10 @@ SaveGame SaveGame::parse(std::string_view text) {
             const auto v = numbers(value, 5, lineNumber);
             save.bag.push_back({{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])},
                                 static_cast<int>(v[3]), static_cast<int>(v[4])});
+        } else if (key == "stored") {
+            const auto v = numbers(value, 5, lineNumber);
+            save.storage.push_back({{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])},
+                                    static_cast<int>(v[3]), static_cast<int>(v[4])});
         } else if (key == "wear") {
             const auto v = numbers(value, 4, lineNumber);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
@@ -153,6 +158,25 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
         } else {
             ++skipped;
         }
+    }
+    return skipped;
+}
+
+void SaveGame::storeStorage(const ShopStock& stock) {
+    storage.clear();
+    for (const auto& g : stock.goods) storage.push_back({ref(g.item), g.x, g.y});
+}
+
+int SaveGame::restoreStorage(ShopStock& stock, const ItemTable& items) const {
+    stock.goods.clear();
+    int skipped = 0;
+    for (const auto& e : storage) {
+        const ItemDef* def = items.find(static_cast<ItemDef::Class>(e.item.cls), e.item.code);
+        if (!def || !stock.fits(def->width, def->height, e.x, e.y)) {
+            ++skipped;
+            continue;
+        }
+        stock.goods.push_back({{def, e.item.count}, e.x, e.y});
     }
     return skipped;
 }

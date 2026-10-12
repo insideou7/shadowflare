@@ -163,6 +163,18 @@ private:
     int uiTextWidth(std::string_view text);
     void uiText(int x, int y, std::string_view text, SDL_Color color);
     void renderDialogue();
+    // Floating text from MESSAGEBOX (talk.cpp).
+    struct Label {
+        ScriptHost::Label label;
+        int ticks = 0;  // left to show
+    };
+    void showLabel(const ScriptHost::Label& label);
+    void renderLabels(int camX, int camY);
+    // Where a character or a map object is, in world units.
+    std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
+    // A map object with a talk script (the warehouse) under the mouse,
+    // as an index into control_.placements.
+    std::optional<std::size_t> objectAt(float screenX, float screenY) const;
     bool shopClick(int x, int y, bool right);
     void renderShop();
     bool drawShopPicture();
@@ -275,6 +287,8 @@ private:
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_
     std::optional<std::size_t> talkTarget_;                // a person the player is walking up to
+    std::optional<std::size_t> objectTarget_;              // a map object likewise, in control_.placements
+    std::vector<Label> labels_;
     int playerHp_ = 0;
     bool mouseHeld_ = false;
     bool showJudge_ = false;
@@ -294,7 +308,8 @@ private:
     Career career_;  // the hero's class, its history and the class on offer
     bool showStatus_ = false;
     std::optional<Dialogue> dialogue_;
-    std::map<int, ShopStock> shops_;  // by INITTRADE's shop number
+    std::map<int, ShopStock> shops_;  // by INITTRADE's shop number; kStorage is the warehouse
+    static constexpr int kStorage = -1;
     std::optional<int> openShop_;
     int entryPoint_ = 0;
     std::vector<int> answers_;

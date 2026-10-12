@@ -215,7 +215,30 @@ struct TestHost : sf::ScriptHost {
     std::int64_t gold() const override { return purse; }
     void payGold(std::int64_t amount) override { purse -= amount; }
     void offerClass(int cls) override { chosenClass = cls; }
+    int storages = 0;
+    std::vector<Label> labels;
+    void openStorage() override { ++storages; }
+    void showLabel(const Label& l) override { labels.push_back(l); }
 };
+
+void testScriptStorageAndLabels() {
+    using S = sf::ScenarioScript;
+    S script;
+    script.messages[1000060] = "Remote Town";
+    script.sentences = {{{S::kStorage, {raw(0)}},
+                         {S::kMessageBox, {constant(10000200), constant(0), constant(-160), {S::kMessage, 1000060}, constant(224),
+                                           constant(200), constant(100), raw(1000)}},
+                         {S::kMessageBoxValue, {constant(10041000), constant(20), constant(-60), constant(29), constant(224),
+                                                constant(224), constant(224)}}}};
+    sf::ScriptFlags flags;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(host.storages == 1, "STORAGE opens the warehouse");
+    check(host.labels.size() == 2 && host.labels[0].text == "Remote Town" && host.labels[0].character == 10000200 &&
+              host.labels[0].dy == -160 && host.labels[0].g == 200 && host.labels[0].duration == 1000,
+          "MESSAGEBOX floats a message over a character");
+    check(host.labels.size() == 2 && host.labels[1].text == "29" && host.labels[1].dx == 20, "MESSAGEBOXVALUE floats a number");
+}
 
 void testScriptTalkAndShop() {
     using S = sf::ScenarioScript;
@@ -336,6 +359,7 @@ void testCareer() {
 int main() {
     testScriptTalkAndShop();
     testShopStock();
+    testScriptStorageAndLabels();
     testCareer();
     testScriptExit();
     testScriptFlagsAndOperators();

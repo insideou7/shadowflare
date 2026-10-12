@@ -123,6 +123,8 @@ void Game::loadScenario(const std::string& dir) {
     dialogue_.reset();
     openShop_.reset();
     talkTarget_.reset();
+    objectTarget_.reset();
+    labels_.clear();
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
     startScripts_ = true;
@@ -379,6 +381,10 @@ void Game::handleEvent(const SDL_Event& event) {
                     talkTarget_ = person;
                     attackTarget_.reset();
                     mouseHeld_ = false;
+                } else if (const auto object = objectAt(event.button.x, event.button.y); object && player_) {
+                    objectTarget_ = object;
+                    attackTarget_.reset();
+                    mouseHeld_ = false;
                 }
             }
             break;
@@ -428,6 +434,8 @@ void Game::tick() {
         if (g.sprite) g.sprite->tick();
     }
     if (messageTicks_ > 0) --messageTicks_;
+    for (auto& l : labels_) --l.ticks;
+    std::erase_if(labels_, [](const Label& l) { return l.ticks <= 0; });
     checkTriggers();
     if (pendingScenario_) {
         const auto [number, entry] = *pendingScenario_;
@@ -523,6 +531,7 @@ void Game::tickPlayer() {
         SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
         attackTarget_ = enemyAt(lx, ly);
         talkTarget_.reset();
+        objectTarget_.reset();
         if (attackTarget_) {
             walkTarget_.reset();
         } else if (const auto item = groundItemAt(lx, ly)) {
@@ -544,6 +553,21 @@ void Game::tickPlayer() {
             return;
         }
         walkTarget_.emplace(person.character.x, person.character.y);
+    }
+    if (objectTarget_) {
+        // Objects are used from anywhere in their rectangle or close to it.
+        const auto& p = control_.placements[*objectTarget_];
+        const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));
+        const double ny = std::clamp(player_->y, double(p.y + p.rect[1]), double(p.y + p.rect[3]));
+        if (std::hypot(nx - player_->x, ny - player_->y) <= kTalkRange) {
+            const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
+            objectTarget_.reset();
+            walkTarget_.reset();
+            player_->setAction(Action::Idle);
+            runEvent(ScenarioScript::kOnTalk, id);
+            return;
+        }
+        walkTarget_.emplace(nx, ny);
     }
     if (autoFight_ && !attackTarget_) {
         double best = kAggroRange;
@@ -580,6 +604,7 @@ void Game::tickPlayer() {
     if (kx != 0 || ky != 0) {
         walkTarget_.reset();
         talkTarget_.reset();
+        objectTarget_.reset();
         attackTarget_.reset();
         // A screen-space step converted to world space.
         screenToWorld(kx * projection.x, ky * projection.y, dx, dy);
@@ -804,6 +829,7 @@ void Game::renderMap() {
     }
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
+    renderLabels(camX, camY);
     renderShop();
     renderStatus();
     renderInventory();

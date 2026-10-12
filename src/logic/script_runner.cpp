@@ -183,6 +183,26 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kGetClass:
                 if (!ops.empty()) store(ops[0], host_->offeredClass());
                 break;
+            case S::kStorage: host_->openStorage(); break;
+            case S::kMessageBox:
+            case S::kMessageBoxValue: {
+                // character dx dy text r g b [duration]; the text is a MSG id
+                // or a variable holding one, or for MESSAGEBOXVALUE a number.
+                if (ops.size() < 7) break;
+                ScriptHost::Label l;
+                l.character = arg(0);
+                l.dx = arg(1);
+                l.dy = arg(2);
+                const std::int32_t v = value(ops[3]);
+                const auto msg = script_.messages.find(v);
+                l.text = c.opcode == S::kMessageBox && msg != script_.messages.end() ? format(msg->second) : std::to_string(v);
+                l.r = static_cast<std::uint8_t>(arg(4));
+                l.g = static_cast<std::uint8_t>(arg(5));
+                l.b = static_cast<std::uint8_t>(arg(6));
+                if (ops.size() >= 8) l.duration = arg(7);
+                host_->showLabel(l);
+                break;
+            }
             // Nothing wears out or needs identifying in the engine yet.
             case S::kGetRepairPrice:
                 if (ops.size() >= 2) store(ops[1], 0);
