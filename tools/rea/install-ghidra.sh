@@ -12,8 +12,16 @@ if [ -x "$DEST/support/analyzeHeadless" ]; then
 fi
 command -v javac >/dev/null || { echo "Install a JDK 21 or newer first (javac not found)." >&2; exit 1; }
 
-url=$(curl -fsSL "https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/tags/$TAG" |
-  python3 -c 'import json,sys; print(next(a["browser_download_url"] for a in json.load(sys.stdin)["assets"] if a["name"].endswith(".zip")))')
+# Find the release zip. Try the GitHub API first, then the release page,
+# since cloud sessions may only be allowed to reach one of them.
+url=$(curl -fsSL "https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/tags/$TAG" 2>/dev/null |
+  grep -o '"browser_download_url": *"[^"]*\.zip"' | sed 's/.*"\(https[^"]*\)"/\1/' | head -n 1) || true
+if [ -z "$url" ]; then
+  path=$(curl -fsSL "https://github.com/NationalSecurityAgency/ghidra/releases/expanded_assets/$TAG" |
+    grep -o "/NationalSecurityAgency/ghidra/releases/download/$TAG/[^\"]*\.zip" | head -n 1) || true
+  [ -n "$path" ] && url="https://github.com$path"
+fi
+[ -n "$url" ] || { echo "Could not find the Ghidra download. Is github.com reachable?" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 echo "Downloading $url"
