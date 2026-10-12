@@ -72,8 +72,8 @@ void Game::changeCareer() {
     if (!career_.change()) return;
     playerHp_ = std::min(playerHp_, playerMaxHp());
     playerMp_ = std::min(playerMp_, playerMaxMp());
-    log::info("Changed class to {}", className(career_.current));
-    showMessage(std::format("Changed your occupation to [{}]", className(career_.current)));
+    log::info("Changed class to {}", className(career_.current, heroSex_));
+    showMessage(std::format("Changed your occupation to [{}]", className(career_.current, heroSex_)));
 }
 
 void Game::renderStatus() {
@@ -125,13 +125,18 @@ void Game::renderStatus() {
         if (f == kClass) continue;
         drawText(renderer_, r.x + r.w - 4 - textWidth(values[f]), r.y + 3, values[f], kWhite);
     }
-    drawText(renderer_, kFields[kClass].box.x + 2, kFields[kClass].box.y + 3, className(career_.current), kWhite);
+    drawText(renderer_, kFields[kClass].box.x + 2, kFields[kClass].box.y + 3, className(career_.current, heroSex_), kWhite);
+    // The hero's name, in the long box beside the class (where it goes is
+    // inferred from the window's layout).
+    constexpr SDL_Rect kNameBox{88, 40, 136, 16};
+    if (!window && !heroName_.empty()) frame(renderer_, kNameBox, {45, 40, 50, 255}, {110, 100, 80, 255});
+    uiText(kNameBox.x + 4, kNameBox.y + 2, heroName_, kWhite);
 
     // The button only shows while another class is on offer.
     if (career_.canChange()) {
         const bool hover = inside(kChangeButton, mx, my);
         frame(renderer_, kChangeButton, hover ? SDL_Color{80, 80, 160, 255} : SDL_Color{50, 50, 110, 255}, {120, 120, 190, 255});
-        const std::string text = std::format("CHANGE CAREER: {}", className(career_.offered));
+        const std::string text = std::format("CHANGE CAREER: {}", className(career_.offered, heroSex_));
         drawText(renderer_, kChangeButton.x + (kChangeButton.w - textWidth(text, 1)) / 2, kChangeButton.y + 6, text,
                  hover ? kGold : kWhite, 1);
     }

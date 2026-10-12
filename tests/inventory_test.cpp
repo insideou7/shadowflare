@@ -306,9 +306,12 @@ void testSaveGame() {
     save.spellsOn[sf::kEnergyShield] = true;
     save.originalMode = true;
     save.mines = 7;
+    save.sex = sf::HeroSex::Female;
+    save.name = "Ada, of the Hills";
 
     const auto loaded = sf::SaveGame::parse(save.write());
     check(loaded.mines == 7, "mines in hand survive");
+    check(loaded.sex == sf::HeroSex::Female && loaded.name == "Ada, of the Hills", "the heroine and her name survive");
     check(loaded.map == "waterworks" && loaded.scenario == "Scenario/00000002", "map and scenario survive");
     check(loaded.x == 1280 && loaded.y == 1472 && loaded.direction == 5, "position survives");
     check(loaded.hp == 92 && loaded.level == 3 && loaded.experience == 140 && loaded.gold == 120, "stats survive");
@@ -332,6 +335,7 @@ void testSaveGame() {
     check(!older.spells && !older.mp && !older.originalMode, "older saves have no magic");
     check(!older.mines, "older saves have no mine count");
     check(!older.partner, "older saves have no companion");
+    check(older.sex == sf::HeroSex::Male && older.name.empty(), "older saves are the hero's");
 
     save.partner.emplace();
     save.partner->kind = 4;

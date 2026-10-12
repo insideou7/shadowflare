@@ -214,6 +214,9 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kGetClass:
                 if (!ops.empty()) store(ops[0], host_->offeredClass());
                 break;
+            case S::kGetPlayerSex:
+                if (!ops.empty()) store(ops[0], host_->playerSex());
+                break;
             case S::kStorage: host_->openStorage(); break;
             case S::kMessageBox:
             case S::kMessageBoxValue: {

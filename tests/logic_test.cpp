@@ -246,6 +246,19 @@ void testLevels() {
     check(sf::heroStats(16)[S::kAttack] == 26 + 90 + 7, "a warrior's attack: 9 for 10 levels, then 7");
     check(sf::heroStats(10, sf::HeroClass::Wizard)[S::kMagicAttack] == 18 + 60, "a wizard's magic");
     check(sf::heroStats(9, sf::HeroClass::Hunter)[S::kAttackSpeed] == 102, "a hunter's speed every second level");
+    // The heroine: table 901, then 903/905/907.
+    using C = sf::HeroClass;
+    constexpr auto F = sf::HeroSex::Female;
+    const auto her = sf::heroStats(1, C::Warrior, F);
+    check(her[S::kHp] == 140 && her[S::kMp] == 160 && her[S::kAttack] == 8 && her[S::kDefense] == 12,
+          "the heroine starts with table 901's stats");
+    const auto herFive = sf::heroStats(5, C::Mercenary, F);
+    check(herFive[S::kHp] == 300 && herFive[S::kAttack] == 20 && herFive[S::kDefense] == 32, "her classless levels");
+    check(sf::heroStats(27, C::Wizard)[S::kMp] == 1230 && sf::heroStats(27, C::Wizard, F)[S::kMp] == 1250,
+          "a witch gains 50 magic a level for one level longer than a wizard");
+    check(sf::heroStats(20, C::Warrior, F)[S::kHp] - sf::heroStats(20, C::Warrior)[S::kHp] == -10,
+          "a heroine warrior grows as the hero does");
+    check(sf::className(C::Wizard, F) == "Witch" && sf::className(C::Wizard) == "Wizard", "a wizard heroine is a witch");
 
     check(sf::hitChance(140, 0) == 98 && sf::hitChance(50, 60) == 20 && sf::hitChance(70, 20) == 50,
           "hit chance is hit minus evasion, from 20 to 98");

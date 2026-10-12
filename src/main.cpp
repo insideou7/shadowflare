@@ -41,6 +41,10 @@ struct Options {
     bool inventory = false;   // start with the inventory panel open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
+    std::optional<sf::HeroSex> hero;  // --hero male|female: who plays
+    std::string heroName;             // --name
+    bool newCharacter = false;        // open the Create New Character screen
+    std::vector<std::string> presses;  // --press left,enter,text:Ada,...: keys queued at the start
     bool options = false;     // open the Settings Menu at the start (for screenshots)
     bool help = false;        // open the Help window at the start
     std::string optionsFile;  // default: options.txt in the user's settings folder
@@ -153,6 +157,22 @@ Options parseArgs(int argc, char** argv) {
             options.optionsFile = argv[++i];
         } else if (arg == "--help-window") {
             options.help = true;
+        } else if (arg == "--hero" && i + 1 < argc) {
+            const std::string sex = argv[++i];
+            if (sex == "male" || sex == "hero") options.hero = sf::HeroSex::Male;
+            else if (sex == "female" || sex == "heroine") options.hero = sf::HeroSex::Female;
+            else sf::log::warn("--hero expects male or female");
+        } else if (arg == "--name" && i + 1 < argc) {
+            options.heroName = argv[++i];
+        } else if (arg == "--new-character") {
+            options.newCharacter = true;
+        } else if (arg == "--press" && i + 1 < argc) {
+            std::string_view rest = argv[++i];
+            while (!rest.empty()) {
+                const auto comma = rest.find(',');
+                options.presses.emplace_back(rest.substr(0, comma));
+                rest.remove_prefix(comma == std::string_view::npos ? rest.size() : comma + 1);
+            }
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -370,7 +390,7 @@ int main(int argc, char** argv) {
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
                           options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast ||
-                          options.companion || options.mine;
+                          options.companion || options.mine || options.hero.has_value();
     // The player's options (Esc in the game); scripted runs keep the
     // defaults so they come out the same on every machine.
     if (!options.optionsFile.empty()) {
@@ -384,7 +404,24 @@ int main(int argc, char** argv) {
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level);
     if (options.original) app.game->setOriginalMode(true);
-    if (!scripted) app.game->openMenu();
+    if (options.hero || !options.heroName.empty()) {
+        app.game->setHero(options.hero.value_or(sf::HeroSex::Male), options.heroName);
+        if (options.level <= 0 && !options.load) app.game->setLevel(1);  // full with the hero's own stats
+    }
+    if (!scripted && !options.newCharacter) app.game->openMenu();
+    if (options.newCharacter) app.game->openNewCharacter();
+    // Queued key presses, for scripted runs of the menus.
+    for (const auto& press : options.presses) {
+        SDL_Event e{};
+        if (press.starts_with("text:")) {
+            e.type = SDL_TEXTINPUT;
+            std::snprintf(e.text.text, sizeof e.text.text, "%s", press.c_str() + 5);
+        } else {
+            e.type = SDL_KEYDOWN;
+            e.key.keysym.sym = press == "enter" ? SDLK_RETURN : press == "esc" ? SDLK_ESCAPE : SDL_GetKeyFromName(press.c_str());
+        }
+        SDL_PushEvent(&e);
+    }
     if (options.options) app.game->openOptions(true);
     if (options.help) app.game->setHelpOpen(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);

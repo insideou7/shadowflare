@@ -89,6 +89,8 @@ Item toItem(const ItemDef* def, const SaveGame::ItemRef& r) {
 std::string SaveGame::write() const {
     std::string out = std::format("# ShadowFlare saved game\nversion={}\nmap={}\nscenario={}\n", kVersion, map, scenario);
     out += std::format("at={},{},{}\nhp={}\nlevel={}\nexperience={}\ngold={}\n", x, y, direction, hp, level, experience, gold);
+    // hero=sex (1 the hero, 0 the heroine),name
+    out += std::format("hero={},{}\n", static_cast<int>(sex), name);
     if (career) {
         // career=class,offered,kills,kills by weapon type x 9; classes= the
         // class at each level-up, one digit each.
@@ -196,6 +198,11 @@ SaveGame SaveGame::parse(std::string_view text) {
                 p.experience[i] = static_cast<int>(std::max(0LL, v[5 + 2 * i]));
             }
             save.partner = p;
+        } else if (key == "hero") {
+            const auto comma = value.find(',');
+            const auto v = numbers(value.substr(0, comma), 1, lineNumber);
+            save.sex = v[0] == 0 ? HeroSex::Female : HeroSex::Male;
+            save.name = comma == std::string_view::npos ? std::string() : std::string(value.substr(comma + 1));
         } else if (key == "original") {
             save.originalMode = numbers(value, 1, lineNumber)[0] != 0;
         } else if (key == "level") {

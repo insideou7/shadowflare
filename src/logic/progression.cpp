@@ -23,9 +23,12 @@ constexpr std::array<std::int64_t, 98> kExperiencePerLevel = {
     350000000, 400000000, 450000000, 500000000, 550000000, 600000000, 650000000, 700000000,
 };
 
-// Table.Tbd table 900, column 0, and what columns 1-4 add.
+// Table.Tbd table 900, column 0, and what columns 1-4 add; table 901 for
+// the heroine.
 constexpr std::array<int, HeroStats::kCount> kStartingStats = {100, 128, 150, 150, 140, 10, 10, 10, 10, 40, 40, 40, 40};
 constexpr std::array<int, HeroStats::kCount> kClasslessGain = {0, 0, 40, 0, 10, 4, 4, 2, 2, 0, 0, 0, 0};
+constexpr std::array<int, HeroStats::kCount> kHeroineStartingStats = {100, 128, 140, 160, 140, 8, 12, 10, 10, 40, 40, 40, 40};
+constexpr std::array<int, HeroStats::kCount> kHeroineClasslessGain = {0, 0, 40, 0, 10, 3, 5, 2, 2, 0, 0, 0, 0};
 
 // What each level in a class adds, as runs of (amount, levels); the last
 // run lasts for the rest. Tables 902, 904 and 906.
@@ -72,6 +75,16 @@ const Gains kHunterGain = {{
     {}, {}, {},
 }};
 
+// Table 905, the witch: as table 904 but for health, 15 for 25 levels, and
+// magic, 50 for 21 levels. The warrior's and hunter's tables (903, 907) are
+// the same as the hero's.
+const Gains kWitchGain = [] {
+    Gains gains = kMagicianGain;
+    gains[HeroStats::kHp] = {{15, 25}, {10, 0}};
+    gains[HeroStats::kMp] = {{50, 21}, {40, 9}, {30, 0}};
+    return gains;
+}();
+
 int gainAt(const std::vector<Run>& runs, int column) {
     for (const auto& run : runs) {
         if (run.levels == 0 || column < run.levels) return run.amount;
@@ -103,29 +116,32 @@ std::int64_t LevelCurve::need(int level) const {
     return needs[static_cast<std::size_t>(level - 1)];
 }
 
-std::string_view className(HeroClass cls) {
+std::string_view className(HeroClass cls, HeroSex sex) {
     switch (cls) {
         case HeroClass::Mercenary: return "Mercenary";
         case HeroClass::Warrior: return "Warrior";
         case HeroClass::Hunter: return "Hunter";
-        case HeroClass::Wizard: return "Wizard";
+        case HeroClass::Wizard: return sex == HeroSex::Female ? "Witch" : "Wizard";
     }
     return "";
 }
 
-HeroStats heroStats(const std::vector<HeroClass>& history) {
+HeroStats heroStats(const std::vector<HeroClass>& history, HeroSex sex) {
+    const bool heroine = sex == HeroSex::Female;
+    const auto& classless = heroine ? kHeroineClasslessGain : kClasslessGain;
+    const Gains& wizard = heroine ? kWitchGain : kMagicianGain;
     HeroStats stats;
-    stats.value = kStartingStats;
+    stats.value = heroine ? kHeroineStartingStats : kStartingStats;
     std::array<int, kHeroClassCount> levels{};
     levels[static_cast<int>(HeroClass::Mercenary)] = 1;  // the new hero's column 0
     for (const HeroClass cls : history) {
         const int column = levels[static_cast<int>(cls)]++;
         for (int s = 0; s < HeroStats::kCount; ++s) {
             switch (cls) {
-                case HeroClass::Mercenary: stats.value[s] += column <= 4 ? kClasslessGain[s] : 0; break;
+                case HeroClass::Mercenary: stats.value[s] += column <= 4 ? classless[s] : 0; break;
                 case HeroClass::Warrior: stats.value[s] += gainAt(kWarriorGain[s], column); break;
                 case HeroClass::Hunter: stats.value[s] += gainAt(kHunterGain[s], column); break;
-                case HeroClass::Wizard: stats.value[s] += gainAt(kMagicianGain[s], column); break;
+                case HeroClass::Wizard: stats.value[s] += gainAt(wizard[s], column); break;
             }
         }
         // The hunter's attack speed rises every second level (odd columns).

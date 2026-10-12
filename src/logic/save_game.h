@@ -44,6 +44,8 @@ struct SaveGame {
     int level = 1;
     std::int64_t experience = 0;
     std::optional<Career> career;
+    HeroSex sex = HeroSex::Male;  // saves from before the heroine: the hero
+    std::string name;
     int gold = 0;
     std::optional<int> mines;  // mines in hand; none in saves from before mines
     std::vector<BagEntry> bag;

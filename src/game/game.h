@@ -138,6 +138,16 @@ public:
     void openMenu();
     bool menuOpen() const { return menuOpen_; }
 
+    // The Create New Character screen that New Game opens (new_character.cpp):
+    // the hero or the heroine, a name, then the game mode.
+    void openNewCharacter();
+    bool newCharacterOpen() const { return newCharacter_.has_value(); }
+    // Makes the hero who they are: their sex and name (for scripted runs,
+    // and what the Create New Character screen settles on).
+    void setHero(HeroSex sex, std::string name);
+    HeroSex heroSex() const { return heroSex_; }
+    const std::string& heroName() const { return heroName_; }
+
     // The Settings Menu, as the original's (Esc in the game); from the
     // title menu it is Options, without the save and exit rows.
     void openOptions(bool inGame);
@@ -302,7 +312,7 @@ private:
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
-    HeroStats heroStats() const { return sf::heroStats(career_.history); }
+    HeroStats heroStats() const { return sf::heroStats(career_.history, heroSex_); }
     // Everything counted: equipment, element levels and Berserker.
     HeroStats playerStats() const;
     ElementLevels playerElements() const;
@@ -492,6 +502,27 @@ private:
     void chooseMenuItem(MenuItem item);
     void newGame();
 
+    // The Create New Character screen (new_character.cpp), as ShadowFlare.exe
+    // runs it (0x423ca0 and the mode window 0x424d80).
+    struct NewCharacter {
+        enum class Step { Choose, Name, Mode, Starting, Leaving };
+        Step step = Step::Choose;
+        int hover = 0;          // Choose: 1 the hero, 0 the heroine; Mode: 0 online, 1 single, 2 back
+        HeroSex chosen = HeroSex::Male;
+        int fade = 0;           // ticks into the fade of the figure not chosen (0 = none)
+        int slideBack = 0;      // ticks into the chosen figure sliding back after Back
+        int ticks = 0;          // ticks into Starting or Leaving
+        std::string name;
+        bool mouseMoved = true;  // the mouse, not the keys, sets the hover
+    };
+    void tickNewCharacter();
+    void newCharacterEvent(const SDL_Event& event);
+    void renderNewCharacter();
+    void newCharacterClick(int x, int y);
+    void newCharacterKey(SDL_Keycode key);
+    void newCharacterHover(int x, int y);
+    void newCharacterPattern(int pattern, int alpha = 255, int dx = 0);
+
     // Missions (missions.cpp): the mission list (Q), the newest mission
     // named along the bottom of the screen, and the area's name by the
     // compass at the top left when the player arrives.
@@ -565,7 +596,10 @@ private:
     ScriptFlags flags_;
     std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
 
-    std::optional<CharacterModel> playerModel_;
+    std::array<std::optional<CharacterModel>, 2> playerModels_;  // by HeroSex
+    HeroSex heroSex_ = HeroSex::Male;
+    std::string heroName_;
+    std::optional<NewCharacter> newCharacter_;
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_

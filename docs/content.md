@@ -16,6 +16,8 @@ original format.
 | `Map/Ground`, `Object`, `Pattern`     | `Map/<name>.txt` + `.sheet` + `.png`     |
 | `Character/.../Animation.caf/.njp`    | `Character/.../Animation.anim` + `.sheet`|
 | `Player/Male/Animation00.caf/.njp`    | `Player/Male/Animation00.anim` + `.sheet`|
+| `Player/Female/Animation00.caf/.njp`  | `Player/Female/Animation00.anim` + `.sheet`|
+| `System/Select/Pattern/Select.njp`    | `System/Select/Pattern/Select.sheet`     |
 | `Scenario/<n>/Scenario.Mct` + `.Scs`  | `Scenario/<n>/scenario.txt`              |
 | `System/Game/Parameter/Control.aid`   | `ai.txt`                                 |
 | `System/Game/Parameter/Item.Ibn`      | `items.txt`                              |
