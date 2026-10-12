@@ -86,7 +86,7 @@ struct ScenarioScript {
         kCheckItemExist = 58, kDeleteItem = 59,
         kSetUnlockSwitch = 60,
         kGetPlayerLevel = 61,   // GETPLAYERLEVEL var
-        kSetQuestFlag = 62,
+        kSetQuestFlag = 62,     // SETQUESTFLAG quest state ?: 1 taken, 2 cleared
         kGetPartnerLife = 63,
         kStartVisual = 64,
         kSettingRain = 65,

@@ -75,8 +75,10 @@ Options:
   an open content pack.
 - `--original-art` draw the original game with its own art rather than ours
 - `--skin <path>` draw the original game with another content pack's art
-- `--map <name>` map to open first, e.g. `c02_00` (the default with the original
-  game) or `d02_01`
+- `--map <name>` map or scenario number to open first, e.g. `c02_00`, `d02_01`
+  or `0`. New games begin where the original's do, in Remote Town (scenario 0;
+  `10000000` in the open content); `--map meadow` opens the open content's
+  older demo village, Goblin Meadow
 - `--frames <n>` quit after n frames
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests

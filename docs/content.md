@@ -34,7 +34,7 @@ Sections start with a `[name]` line.
 ### content.txt
 
     name=ShadowFlare open content
-    start=meadow             # map to open first
+    start=10000000           # where a new game begins: a scenario number or a map name
     projection=15,10         # screen pixels per 100 world units, x and y
 
 The original game uses a 15/10 projection (a 3:2 diamond), and so does

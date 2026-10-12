@@ -1,0 +1,167 @@
+# Remote Town's people: where every new game begins, as in the original
+# (scenario 0). The talk follows the original's order in our own words:
+# the commander greets the hero over several boxes and hands over the
+# army's kit and a little gold, the healer tells of the monsters to the
+# north-east and gives the first mission, and the smith trades.
+#
+# temp:2 holds which of the commander's boxes is showing, so that closing
+# it shows the next one; save:4 and save:5 remember that the hero has met
+# the commander and the healer.
+
+[message 1]
+So the army did send someone. I command what is left of the
+garrison in this town, which is not much.
+
+[message 2]
+Most of the townsfolk have gone. Goblins and worse creep along
+the wall at night, and no more soldiers are coming.
+A few traders and the shrine's healer stayed. And now you.
+
+[message 3]
+Start with the goblins around the town. There are plenty,
+but they have no leader. Think of it as training.
+
+[message 4]
+Here, kit from the army stores, and some coin to go with it.
+It is not much, but it is all we were given.
+Put it on in your bag before you go out there.
+
+[message 5]
+Come and see me when you can. If I hear anything new,
+you will be the first to know.
+
+[message 10]
+Our stock is small, but it's honest work.
+~Buy and sell~  ~Leave~
+
+[message 20]
+You're the one the army sent? I keep the shrine.
+Come to me when you are hurt.
+
+[message 21]
+Something has been hunting along the road north-east of town.
+Drive it off, and the people here may sleep again.
+
+[message 22]
+Let the light close your wounds.
+~Heal me~  ~Leave~
+
+[message 23]
+There. Go carefully.
+
+# The commander
+[sentence commander]
+on=talk commander
+C_STOP commander
+C_SETANGLETO commander 0
+IF save:4 = 1 @commander-again
+IF save:4 = 0 @commander-first
+
+[sentence commander-first]
+SETFLAG save:4 1
+SETFLAG temp:2 1
+TALK msg:1 temp:1 0 0 -1 -1
+
+[sentence commander-again]
+SETFLAG temp:2 0
+TALK msg:5 temp:1 0 0 -1 -1
+
+[sentence commander-end]
+on=talk-end commander
+SETFLAG temp:5 temp:2
+SETFLAG temp:2 0
+IF temp:5 = 0 @commander-done
+IF temp:5 = 1 @commander-2
+IF temp:5 = 2 @commander-3
+IF temp:5 = 3 @commander-4
+IF temp:5 = 4 @commander-5
+
+[sentence commander-done]
+C_MOVABLE commander
+
+[sentence commander-2]
+SETFLAG temp:2 2
+TALK msg:2 temp:1 0 0 -1 -1
+
+[sentence commander-3]
+SETFLAG temp:2 3
+TALK msg:3 temp:1 0 0 -1 -1
+
+# The army's kit lands at the commander's feet, as in the original.
+[sentence commander-4]
+SETFLAG temp:2 4
+TALK msg:4 temp:1 0 0 -1 -1
+SETFLAG temp:3 x:commander
+SETFLAG temp:4 y:commander
+ADD temp:3 200
+CREATEITEM 0 0 temp:3 temp:4 -1 -1
+SETFLAG temp:3 x:commander
+SETFLAG temp:4 y:commander
+ADD temp:4 200
+CREATEITEM 1 1000000 temp:3 temp:4 -1 -1
+SETFLAG temp:3 x:commander
+SETFLAG temp:4 y:commander
+CREATEITEM 4 0 temp:3 temp:4 200 200
+
+[sentence commander-5]
+TALK msg:5 temp:1 0 0 -1 -1
+
+# The smith: list 0 of shops.txt
+[sentence smith]
+on=talk smith
+C_STOP smith
+C_SETANGLETO smith 0
+TALK msg:10 temp:10 0 0 -1 -1
+
+[sentence smith-end]
+on=talk-end smith
+C_MOVABLE smith
+IF temp:10 = 0 @smith-shop
+
+[sentence smith-shop]
+INITTRADE 0 0
+TRADE 0
+
+# The healer gives the first mission the first time, and heals after.
+# temp:21 says which question is showing: 1 the heal menu, 2 the
+# greeting. As IF carries on after its sentence, each check comes before
+# the sentence that would make it true.
+[sentence healer]
+on=talk healer
+C_STOP healer
+C_SETANGLETO healer 0
+IF save:5 = 1 @healer-menu
+IF save:5 = 0 @healer-first
+
+[sentence healer-first]
+SETFLAG save:5 1
+SETFLAG temp:21 2
+TALK msg:20 temp:20 0 0 -1 -1
+
+[sentence healer-menu]
+SETFLAG temp:21 1
+TALK msg:22 temp:20 0 0 -1 -1
+
+[sentence healer-end]
+on=talk-end healer
+SETFLAG temp:22 temp:21
+SETFLAG temp:21 0
+IF temp:22 = 0 @healer-done
+IF temp:22 = 1 @healer-choice
+IF temp:22 = 2 @healer-mission
+
+[sentence healer-done]
+C_MOVABLE healer
+
+[sentence healer-mission]
+SETQUESTFLAG 0 1 0
+TALK msg:21 temp:20 0 0 -1 -1
+
+[sentence healer-choice]
+IF temp:20 = 0 @healer-heal
+IF temp:20 ! 0 @healer-done
+
+[sentence healer-heal]
+HEALLIFE
+HEALMENTAL
+TALK msg:23 temp:20 0 0 -1 -1
