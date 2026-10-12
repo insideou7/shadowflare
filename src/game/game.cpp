@@ -1035,22 +1035,36 @@ void Game::renderMap() {
         if (sx - camX < -256 || sy - camY < -256 || sx - camX > kScreenWidth + 256 || sy - camY > kScreenHeight + 256) continue;
         characters.push_back(&actor.character);
     }
-    std::ranges::stable_sort(characters, [](const Character* a, const Character* b) { return a->x + a->y < b->x + b->y; });
+    // Spell effects are sorted in with them by where they stand, as the
+    // original sorts its effects, so a tree in front hides a burst behind it.
+    struct Drawable {
+        double x, y;
+        const Character* character;
+        const Effect* effect;
+    };
+    std::vector<Drawable> drawables;
+    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr});
+    for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e});
+    std::ranges::stable_sort(drawables, [](const Drawable& a, const Drawable& b) { return a.x + a.y < b.x + b.y; });
 
     // Semi-transparent Shadow off draws them solid black.
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     const auto& objects = map_->objects().objects;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
-        // Characters not drawn yet this pass, back to front.
-        std::vector<const Character*> pending = shadows ? std::vector<const Character*>{} : characters;
+        // Characters and effects not drawn yet this pass, back to front.
+        std::vector<Drawable> pending = shadows ? std::vector<Drawable>{} : drawables;
+        auto draw = [&](const Drawable& d) {
+            if (d.character) d.character->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+            if (d.effect) renderEffect(*d.effect, camX, camY);
+        };
         for (std::size_t i : drawOrder_) {
             const MapObject& o = objects[i];
             // Everyone this object hides goes first, even if someone nearer
             // the front is still waiting for a later object.
             for (auto it = pending.begin(); it != pending.end();) {
-                if (o.hides((*it)->x, (*it)->y)) {
-                    (*it)->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+                if (o.hides(it->x, it->y)) {
+                    draw(*it);
                     it = pending.erase(it);
                 } else {
                     ++it;
@@ -1078,7 +1092,7 @@ void Game::renderMap() {
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
-        for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+        for (const Drawable& d : pending) draw(d);
     }
     // Semi-transparent Player: a faint copy on top shows the hero through
     // walls; where nothing covers them it lands on itself and changes nothing.
