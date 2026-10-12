@@ -409,35 +409,52 @@ std::string Game::partnerStatusText(int kind, bool withItems) const {
         magicEvasion, s.attackSpeed, s.walkSpeed, expLine);
 }
 
-// The companion's health gauge at the bottom left (0x403a5f): Bar.njp
+// The companion's health gauge at the bottom left (0x4039f0): Bar.njp
 // pattern 30 is its frame, 29 the bar and 31 / 32 the ACTIVE / INACTIVE
-// label. Without the original's pictures, plain shapes stand in.
+// label, each where its picture puts it. The bar is 109 pixels at full
+// health and empties from the left: what is shown is its right-hand part,
+// x 110 - width to 109. Under 30% it flickers bright, two frames in four.
+// Without the pictures, plain shapes stand in.
 void Game::renderPartnerGauge() {
     if (!partner_ || menuOpen_ || missionsOpen_) return;
     const int hp = partner_->hp, max = std::max(1, partner_->stats.maxHp);
-    const bool blink = hp * 100 < max * 30 && (ticks_ / 5) % 2 == 0;
     const SpriteBank* bar = itemBank("System/Game/Pattern/Bar");
-    auto pattern = [&](int n, int x, int y, int width = -1) {
-        if (!bar) return false;
-        const SpriteTexture* t = sprites_.get(*bar, n, false);
-        if (!t) return false;
-        SDL_Rect src{0, 0, width >= 0 ? std::min(width, t->width) : t->width, t->height};
-        SDL_Rect dst{x, y, src.w, src.h};
-        SDL_RenderCopy(renderer_, t->texture, &src, &dst);
-        return true;
-    };
-    if (!pattern(30, 0, kPartnerGaugeY)) {
+    auto texture = [&](int n) { return bar ? sprites_.get(*bar, n, false) : nullptr; };
+    if (const SpriteTexture* t = texture(30)) {
+        const SDL_Rect dst{t->originX, t->originY, t->width, t->height};
+        SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+    } else {
         SDL_Rect back{0, kPartnerGaugeY, 112, 12};
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 200);
         SDL_RenderFillRect(renderer_, &back);
     }
-    const int width = hp * 109 / max;
-    if (!blink && !pattern(29, 1, kPartnerGaugeY + 2, width)) {
-        SDL_Rect fill{1, kPartnerGaugeY + 2, width, 6};
-        SDL_SetRenderDrawColor(renderer_, 220, 150, 40, 255);
-        SDL_RenderFillRect(renderer_, &fill);
+    const int width = hp >= max ? 109 : std::max(0, hp * 109 / max);
+    if (width > 0) {
+        if (const SpriteTexture* t = texture(29)) {
+            // The exe's rectangle, x 110 - width to 109, cut from the picture.
+            const int x0 = std::max(t->originX, 110 - width), x1 = std::min(t->originX + t->width, 109);
+            if (x1 > x0) {
+                const SDL_Rect src{x0 - t->originX, 0, x1 - x0, t->height};
+                const SDL_Rect dst{x0, t->originY, x1 - x0, t->height};
+                SDL_RenderCopy(renderer_, t->texture, &src, &dst);
+                if (width * 100 / 109 < 30 && (ticks_ * 3 / 2) % 4 < 2) {
+                    SDL_SetTextureBlendMode(t->texture, SDL_BLENDMODE_ADD);
+                    SDL_SetTextureAlphaMod(t->texture, 128);
+                    SDL_RenderCopy(renderer_, t->texture, &src, &dst);
+                    SDL_SetTextureAlphaMod(t->texture, 255);
+                    SDL_SetTextureBlendMode(t->texture, SDL_BLENDMODE_BLEND);
+                }
+            }
+        } else {
+            SDL_Rect fill{110 - width, kPartnerGaugeY + 2, width - 1, 6};
+            SDL_SetRenderDrawColor(renderer_, 220, 150, 40, 255);
+            SDL_RenderFillRect(renderer_, &fill);
+        }
     }
-    if (!pattern(partnerRecord_.active ? 31 : 32, 56, kPartnerGaugeY - 3)) {
+    if (const SpriteTexture* t = texture(partnerRecord_.active ? 31 : 32)) {
+        const SDL_Rect dst{t->originX, t->originY, t->width, t->height};
+        SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+    } else {
         drawText(renderer_, 58, kPartnerGaugeY - 12, partnerRecord_.active ? "ACTIVE" : "INACTIVE", {255, 255, 255, 255});
     }
 }

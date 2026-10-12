@@ -116,21 +116,91 @@ def tube_frame(p, x, y, w, h):
 STONE_DARK = ui.STONE * 0.55
 
 
+# The crack between the STATUS and ITEM stones, top to bottom, in screen
+# pixels. It keeps clear of both buttons' click areas (src/game/panel.cpp)
+# and of the original's highlight rectangles, which the stones fill.
+CRACK = [(592, 410), (588, 418), (583, 425), (580, 431), (581, 437), (578, 445), (575, 453), (573, 461)]
+BAND_TOP = 463  # the carved band below the two stones
+
+
+def crack_x(y):
+    """Where the crack runs at screen row y, with a little wobble."""
+    ys = [py for _, py in CRACK]
+    xs = [px for px, _ in CRACK]
+    return np.interp(y, ys, xs) + 0.8 * np.sin(y * 1.7)
+
+
+def stones(slate):
+    """Masks of the STATUS stone, the ITEM stone and the carved band."""
+    yy, xx = ui.yy, ui.xx
+    sy = yy + TOP
+    cx = crack_x(sy)
+    menu = (xx >= MENU_TAB[0] - 1) & (sy < MENU_TAB[1] + MENU_TAB[3] + 1)
+    under_band = sy >= BAND_TOP - 1 + 1.2 * np.sin(xx / 7)
+    status = slate & (sy >= 403) & (xx < cx - 1) & ~menu & ~under_band & (sy < BAND_TOP - 2)
+    item = slate & (sy >= 417) & (xx > cx + 1) & ~under_band & (sy < BAND_TOP - 2)
+    band = slate & (sy >= BAND_TOP + 1.2 * np.sin(xx / 7) + 1)
+    return status, item, band
+
+
+def bevel(mask):
+    """1 inside a mask, falling off over 2 pixels at its edges."""
+    m = mask.astype(float)
+    out = m.copy()
+    for shift in (1, 2):
+        for dy, dx in ((shift, 0), (-shift, 0), (0, shift), (0, -shift)):
+            out = np.minimum(out, np.roll(np.roll(m, dy, 0), dx, 1) * (1 - 0.3 * (shift - 1)) + 0.3 * (shift - 1))
+    return out * m
+
+
+def carve(p, band):
+    """The band below the stones: a row of carved rings and bars."""
+    yy, xx = ui.yy, ui.xx
+    mid = BAND_TOP - TOP + 9
+    for k, x in enumerate(range(PLAQUE_LEFT[1] + 8, 640, 13)):
+        if k % 2 == 0:
+            mark = np.abs(np.hypot(xx - x, (yy - mid) * 1.3) - 4) < 1.1
+        else:
+            mark = (np.abs(xx - x) < 1.1) & (np.abs(yy - mid) < 6)
+        mark &= band
+        p.colour[mark] = SLATE * 0.4
+        p.height[mark] -= 2
+
+
+def piece_mask(rect, which):
+    """A highlight for a clicked button: its stone, white, cut to the
+    original's rectangle for that highlight."""
+    ui.canvas(640, 80)
+    slate = np.ones((80, 640), bool)
+    left = np.where(ui.yy < 445 - TOP, PLAQUE_LEFT[0], PLAQUE_LEFT[1]) + 3 * np.sin(ui.yy / 5)
+    slate &= ui.xx >= left
+    if which == "menu":
+        mask = inside(MENU_TAB[0], MENU_TAB[1] - TOP, 640, MENU_TAB[1] - TOP + MENU_TAB[3])
+    else:
+        status, item, _ = stones(slate)
+        mask = status if which == "status" else item
+    x, y, w, h = rect
+    crop = mask[y - TOP:y - TOP + h, x:x + w]
+    out = np.zeros((h, w, 4), np.uint8)
+    out[..., :3] = 255
+    out[..., 3] = np.where(crop, 255, 0)
+    return Image.fromarray(out, "RGBA")
+
+
 def body():
     """Patterns 7 and 8 together: 640 x 80, from screen row 400."""
     ui.canvas(640, 80)
     p = Panel(41)
     wall(p)
     yy, xx = ui.yy, ui.xx
-    # The top of the wall: uneven block tops between 404 and 409.
-    rng = np.random.default_rng(5)
-    top = np.zeros(640)
-    x = 0
-    while x < 640:
-        bw = int(rng.integers(13, 21))
-        top[x:x + bw] = 8 + int(rng.integers(-3, 2))
-        x += bw
-    alpha = (yy >= top[None, :].repeat(80, 0)).astype(float)
+    # The top of the wall: a straight course of blocks from row 410, with
+    # a small notch where two blocks meet.
+    alpha = (yy >= 10).astype(float)
+    joints = np.where(p.height[13] < 0.5)[0]  # the mortar between the top course's blocks
+    for jx in joints:
+        for dx, depth in ((-1, 1), (0, 2), (1, 1)):
+            if 0 <= jx + dx < 640:
+                alpha[10:10 + depth, jx + dx] = 0
 
     # Smoke-dark stone behind the gauges, its edges ragged.
     ragged = 6 * p.noise(10, 2)
@@ -138,16 +208,21 @@ def body():
     p.colour[smoke] = (SMOKE * (0.7 + 0.6 * p.noise(14, 3))[..., None])[smoke]
     p.height[smoke] = 0.8 * p.noise(4, 2)[smoke]
 
-    # The slate plaque on the right, with a few cracks and a raised rim.
+    # The slate plaque on the right, broken by cracks into a stone button
+    # under each word: STATUS, ITEM, and below them a carved band.
     left = np.where(yy < 445 - TOP, PLAQUE_LEFT[0], PLAQUE_LEFT[1]) + 3 * np.sin(yy / 5)
     slate = (xx >= left) & (yy >= 1)
-    tone = 0.75 + 0.5 * p.noise(30, 4)
+    tone = 0.6 + 0.7 * p.noise(30, 4) + 0.25 * (p.noise(3, 2) - 0.5)
     p.colour[slate] = (SLATE * tone[..., None])[slate]
-    p.height[slate] = 4 + 1.5 * p.noise(12, 3)[slate]
-    vein = p.noise(40, 2)
-    crack = slate & (np.abs(vein - 0.5) < 0.012)
-    p.colour[crack] = SLATE * 0.3
-    p.height[crack] -= 2
+    p.height[slate] = 2.0 * p.noise(6, 3)[slate]
+    status, item, band = stones(slate)
+    for piece, lift in ((status, 4.0), (item, 4.0), (band, 2.0)):
+        p.height += lift * bevel(piece)
+    cracks = slate & ~(status | item | band)
+    cracks &= ~inside(MENU_TAB[0], 0, 640, MENU_TAB[1] - TOP + MENU_TAB[3])
+    p.colour[cracks] = SLATE * 0.25
+    p.height[cracks] -= 1.5
+    carve(p, band)
     edge = slate & ~((xx >= left + 2) & (yy >= 3))
     p.bronze(edge & (xx < 639), 1.5)
     alpha[slate] = 1
@@ -287,44 +362,54 @@ def tube(colour, kind):
     return Image.fromarray(out, "RGBA")
 
 
-def rail_rows(fx, step, rising):
-    """The two rows of a stepped gauge's track at column fx of its frame:
-    low on one side of the step and high on the other, sloping between."""
-    t = np.clip((fx - step) / 5, 0, 1)
+def rail_rows(fx, step, rising, low=6, high=2, slope=4):
+    """The five rows of a stepped gauge's track at column fx of its frame:
+    rows low..low+4 on one side of the step and high..high+4 on the other,
+    sloping between over `slope` columns. The EXP rail's stay inside the
+    rows the engine shows its gauge in (frame rows 2-10)."""
+    t = np.clip((fx - step) / slope, 0, 1)
     if not rising:
         t = 1 - t
-    top = int(round(9 - 6 * t))
-    return top, top + 1
+    top = int(round(low + (high - low) * t))
+    return tuple(range(top, top + 5))
 
 
-def rail_frame(w, h, step, rising, gauge_x, label, tag_x):
+def rail_frame(w, h, step, rising, gauge_x, label, tag_x, ink=(150, 200, 255, 255), label_row=8, bed=(22, 26, 44),
+               shape=None, plate=True):
     """A gauge's track: a dark channel in a black outline that steps up
-    (or down) once, with a lit inner edge, and its name on a small tag."""
+    (or down) once, and its name, beside the low part or under the high
+    part."""
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    for fx in range(gauge_x - 1, w):
-        r0, r1 = rail_rows(fx, step, rising)
-        for fy in range(r0 - 1, r1 + 2):
+    for fx in range(gauge_x, w):
+        rows = rail_rows(fx, step, rising, **(shape or {}))
+        for fy in range(rows[0] - 1, rows[-1] + 2):
             if 0 <= fy < h:
                 img.putpixel((fx, fy), (0, 0, 0, 255))
-        for fy in (r0, r1):
-            img.putpixel((fx, fy), (22, 26, 44, 255))
-        img.putpixel((fx, r1 + 2), (120, 100, 60, 255)) if r1 + 2 < h else None
+        for fy in rows:
+            img.putpixel((fx, fy), bed + (255,))
+    if not plate:  # the name on its own, with a shadow
+        tiny_text(img, tag_x, label_row, label, ink)
+        return img
+    # A black plate under the name, so it reads like part of the rail.
+    for fy in range(label_row - 1, min(h, label_row + 6)):
+        for fx in range(max(0, tag_x - 1), min(w, tag_x + 4 * len(label))):
+            img.putpixel((fx, fy), (0, 0, 0, 255))
     for k, ch in enumerate(label):
         for yy, row in enumerate(TINY[ch]):
             for xx, bit in enumerate(row):
                 if bit == "#":
-                    img.putpixel((tag_x + k * 4 + xx, 8 + yy), (150, 200, 255, 255))
+                    img.putpixel((tag_x + k * 4 + xx, label_row + yy), ink)
     return img
 
 
-def rail_gauge(w, h, offset, step, rising, colour, pale):
+def rail_gauge(w, h, offset, step, rising, colour, pale, start=0, shape=None):
     """What fills a rail_frame's track, from `colour` to `pale` along it."""
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    for gx in range(w):
-        r0, r1 = rail_rows(gx + offset[0], step, rising)
-        t = gx / (w - 1) if rising else 1 - gx / (w - 1)
+    for gx in range(max(0, start - offset[0]), w):
+        rows = rail_rows(gx + offset[0], step, rising, **(shape or {}))
+        t = gx / (w - 1)
         c = tuple(int(a + (b - a) * t) for a, b in zip(colour, pale))
-        for fy, shade in ((r0, 1.15), (r1, 0.8)):
+        for fy, shade in zip(rows, (1.2, 1.1, 1.0, 0.9, 0.7)):
             gy = fy - offset[1]
             if 0 <= gy < h:
                 img.putpixel((gx, gy), tuple(min(255, int(v * shade)) for v in c) + (255,))
@@ -336,17 +421,8 @@ TINY = {"E": ["###", "#..", "##.", "#..", "###"], "X": ["#.#", "#.#", ".#.", "#.
         "A": [".#.", "#.#", "###", "#.#", "#.#"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
         "T": ["###", ".#.", ".#.", ".#.", ".#."], "N": ["#.#", "###", "###", "###", "#.#"],
         "C": ["###", "#..", "#..", "#..", "###"], "I": ["###", ".#.", ".#.", ".#.", "###"],
-        "V": ["#.#", "#.#", "#.#", "#.#", ".#."], " ": ["...", "...", "...", "...", "..."]}
-
-
-def glow(w, h, cx, cy, rx, ry):
-    """A soft white patch for a button flashing when clicked."""
-    y, x = np.mgrid[0:h, 0:w].astype(float)
-    a = np.clip(1.2 - np.hypot((x - cx) / rx, (y - cy) / ry), 0, 1)
-    out = np.zeros((h, w, 4), np.uint8)
-    out[..., :3] = 255
-    out[..., 3] = (a * 255).astype(np.uint8)
-    return Image.fromarray(out, "RGBA")
+        "V": ["#.#", "#.#", "#.#", "#.#", ".#."], " ": ["...", "...", "...", "...", "..."],
+        "-": ["...", "...", "###", "...", "..."]}
 
 
 def digit(n):
@@ -361,15 +437,23 @@ def digit(n):
     return img
 
 
+def tiny_text(img, x, y, word, colour):
+    """TINY letters 4 apart with a black shadow below right."""
+    for dx, c in ((1, (0, 0, 0, 255)), (0, colour)):
+        cx = x
+        for ch in word:
+            for yy, row in enumerate(TINY[ch]):
+                for xx, bit in enumerate(row):
+                    if bit == "#" and 0 <= cx + xx + dx < img.width and 0 <= y + yy + dx < img.height:
+                        img.putpixel((cx + xx + dx, y + yy + dx), c)
+            cx += 4
+
+
 def mode_label(word, colour):
+    """-ACTIVE- or -INACTIVE- over the low end of the companion's gauge."""
     img = Image.new("RGBA", (56, 8), (0, 0, 0, 0))
-    x = (56 - len(word) * 4) // 2
-    for ch in word:
-        for yy, row in enumerate(TINY[ch]):
-            for xx, bit in enumerate(row):
-                if bit == "#":
-                    img.putpixel((x + xx, 1 + yy), colour)
-        x += 4
+    word = f"-{word}-"
+    tiny_text(img, (56 - len(word) * 4) // 2, 1, word, colour)
     return img
 
 
@@ -385,15 +469,22 @@ def main():
         (panel.crop((0, 0, 640, 12)), 0, 400), (panel.crop((0, 12, 640, 80)), 0, 412),
         (mine(True), *MINE[:2]), (button(WALK, "WALK", False), *WALK[:2]), (button(RUN, "RUN", False), *RUN[:2]),
         (power("lit"), *POWER[:2]), (power("pressed"), *POWER[:2]),
-        (rail_gauge(109, 10, (15, 2), 50, True, (40, 80, 220), (200, 230, 255)), 530, 395),
-        (rail_frame(126, 14, 50, True, 14, "EXP", 1), 515, 393),
-        (glow(68, 46, 42, 24, 30, 14), 572, 416), (glow(57, 13, 35, 6, 26, 7), 583, 401),
-        (glow(96, 54, 46, 20, 34, 13), 509, 408),
+        (rail_gauge(109, 10, (15, 2), 50, True, (40, 90, 220), (236, 244, 255), 15), 530, 395),
+        (rail_frame(126, 14, 50, True, 14, "EXP", 1, label_row=9, bed=(24, 32, 70)), 515, 393),
+        (piece_mask((572, 416, 68, 46), "item"), 572, 416), (piece_mask((583, 401, 57, 13), "menu"), 583, 401),
+        (piece_mask((509, 408, 96, 54), "status"), 509, 408),
     ]
     parts += [(digit(n), 0, 0) for n in range(10)]
-    parts += [(rail_gauge(109, 10, (1, 2), 80, False, (250, 200, 200), (220, 40, 40)), 1, 397),
-              (rail_frame(112, 14, 80, False, 0, "PARTNER HP", 70), 0, 395),
-              (mode_label("ACTIVE", (255, 120, 120, 255)), 56, 392), (mode_label("INACTIVE", (170, 170, 170, 255)), 56, 392)]
+    # The companion's gauge: its name low on the left, the rail stepping
+    # up beyond it; the exe fills it from the right (partner.cpp).
+    # The companion's gauge mirrors the EXP rail, with a longer drop: high
+    # on the left with its name under it, then down to the right, where
+    # ACTIVE or INACTIVE sits over it.
+    drop = {"low": 18, "high": 2, "slope": 10}
+    parts += [(rail_gauge(109, 26, (1, 0), 52, False, (250, 236, 236), (220, 50, 60), shape=drop), 1, 385),
+              (rail_frame(112, 26, 52, False, 0, "PARTNER HP", 4, (255, 110, 110, 255), label_row=10, bed=(80, 22, 28),
+                          shape=drop, plate=False), 0, 385),
+              (mode_label("ACTIVE", (255, 110, 110, 255)), 58, 393), (mode_label("INACTIVE", (170, 170, 170, 255)), 58, 393)]
     # One sheet: the panel's two pieces on top, the small parts in rows under them.
     width, x, y, row = 640, 0, 80, 0
     places = []

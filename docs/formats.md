@@ -782,6 +782,19 @@ their windows; the power button x 25-58, y 408-430 when it blinks; MINE x
 496-511, y 424-439. Any other click at y 412 or below is used up by the
 panel. Windows are drawn above it (layer 14 against the panel's 11).
 
+The magic/attack bar above it (0x404ee0, clicks 0x447570) is drawn in
+layer 13 from banks 9 (MagicIcon.njp, 26 x 26: 0 the attack, spell + 2)
+and 10 (MagicBarIcon.njp, 16 x 16: 2 the attack, 3 an empty slot, spell +
+4). The eight F1-F8 slots (+0xa714) run from x 224, 4 pixels more before
+each group of four: an empty slot or a spell not learned (player + 0x1440
++ spell x 4 is not 3) is MagicBarIcon 3 at y 392, the chosen spell
+(player + 0x127c) MagicIcon spell + 2 at y 382, 26 wide, any other
+MagicBarIcon spell + 4 at y 392, 16 wide. The attack follows 4 further
+on: MagicIcon 0 at y 382 while chosen (player + 0x1288), else
+MagicBarIcon 2. While a window covers the left of the screen the bar
+starts at 344, while the item window is open at 124, and with both it is
+hidden.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |

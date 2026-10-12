@@ -699,7 +699,6 @@ void Game::renderBelt() {
 
 void Game::renderHud() {
     if (menuOpen_) return;
-    renderSpellBar();
     if (player_) renderBelt();
     if (player_) renderMineButton();
     // The original shows the gold only in the item window.
