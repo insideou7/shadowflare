@@ -34,7 +34,10 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
     p.y = in.i32();
     for (auto& v : p.rect) v = in.i32();
     p.direction = in.i32();
-    in.skip(4 * static_cast<std::size_t>(count(in)));
+    for (std::int32_t i = 0, n = count(in); i < n; ++i) {
+        const std::int32_t v = in.i32();
+        if (i < 3) p.states[static_cast<std::size_t>(i)] = v;
+    }
     if (in.i32() == 1) {  // a table of 4 + 3 * 2 bytes per entry, not decoded yet
         in.skip(10 * static_cast<std::size_t>(count(in)));
     }

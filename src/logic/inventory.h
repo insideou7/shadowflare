@@ -158,6 +158,10 @@ public:
     bool carries(ItemDef::Class cls, std::int32_t code) const;  // in the bag  // CHECKUNOPINIONITEM (0x43397d)
     // Takes every such item out of the bag; returns how many there were.
     int takeAll(ItemDef::Class cls, std::int32_t code);
+    // CHECKITEMEXIST and DELETEITEM: such an item in the bag or worn, and
+    // taking the first one away, from the bag before what is worn.
+    bool has(ItemDef::Class cls, std::int32_t code) const;
+    bool removeOne(ItemDef::Class cls, std::int32_t code);
     void identifyAll();            // IDENTIFY: everything worn and in the bag (0x432296)
 
     // What REPAIR and GETREPAIRPRICE call a part (0x43234a, 0x4310d7):

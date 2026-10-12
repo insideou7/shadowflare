@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -673,6 +674,7 @@ private:
     std::optional<AiControl> ai_;
     Random random_;
     std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
+    std::set<std::int32_t> skippedCommands_;  // script commands not carried out, logged once per scenario
     ScenarioControl control_;
     std::optional<ScenarioScript> script_;
     std::vector<TriggerArea> triggers_;

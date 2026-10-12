@@ -91,6 +91,15 @@ struct ScenarioControl {
         // table, which the loader keeps at character + 0xc0 for the
         // darkness drawn in the frame code at 0x41e4f0.
         std::int32_t light = -1;
+
+        // The record's word list, which the loader copies to the character
+        // at + 0x4c on (0x4293d0): whether it starts active (+ 0x4c), then
+        // two more flags (+ 0x50 and + 0x54) whose use is not traced. Each
+        // scenario load turns them into the NET flags 100,000,000 + id,
+        // 300,000,000 + id and 200,000,000 + id (0x4300e0), which
+        // SETACTIVE and SETINACTIVE set (0x432c4c).
+        std::array<std::int32_t, 3> states{1, 1, 1};
+        bool startsActive() const { return states[0] != 0; }
     };
 
     // Where the party appears when the scenario is entered. Each entry
@@ -104,9 +113,11 @@ struct ScenarioControl {
 
     static constexpr std::int32_t kPartnerBase = 1000000;
 
-    // Offsets that turn a placement id into the in-game id scripts use.
+    // Offsets that turn a placement id into the in-game id scripts use
+    // (the loader at 0x427b50: objects 10,000,000, people 12,000,000,
+    // enemies 14,000,000, items 18,000,000).
     static constexpr std::int32_t idBase(Group group) {
-        constexpr std::int32_t bases[] = {10000000, 12000000, 20000000, 30000000};
+        constexpr std::int32_t bases[] = {10000000, 12000000, 14000000, 18000000};
         return bases[static_cast<int>(group)];
     }
 

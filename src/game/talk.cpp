@@ -165,6 +165,34 @@ public:
         return true;
     }
     std::string partnerStatus(int kind) const override { return g_.partnerStatusText(kind); }
+    std::optional<bool> enemyAlive(std::int32_t id) const override {
+        if (const auto* a = g_.actorById(id)) return a->hostile() ? std::optional(a->alive()) : std::nullopt;
+        // A monster the engine could not spawn still counts, as alive.
+        for (const auto& p : g_.control_.placements) {
+            if (p.group == ScenarioControl::Group::Enemy && ScenarioControl::idBase(p.group) + p.id == id) return true;
+        }
+        return std::nullopt;
+    }
+    bool hasItem(int cls, int code) const override { return g_.inventory_.has(static_cast<ItemDef::Class>(cls), code); }
+    void deleteItem(int cls, int code) override { g_.inventory_.removeOne(static_cast<ItemDef::Class>(cls), code); }
+    void playerLife(int& hp, int& max) const override {
+        hp = g_.playerHp_;
+        max = g_.playerMaxHp();
+    }
+    void playerMental(int& mp, int& max) const override {
+        mp = g_.playerMp_;
+        max = g_.playerMaxMp();
+    }
+    void giveExperiencePercent(int percent) override {
+        g_.gainExperience(static_cast<int>(static_cast<std::int64_t>(g_.levels_.need(g_.playerLevel_)) * percent / 100));
+    }
+    void skippedCommand(std::int32_t opcode) override {
+        // Once per scenario and command, so a playthrough log lists what
+        // each area still lacks without a line every frame.
+        if (g_.skippedCommands_.insert(opcode).second) {
+            log::warn("Script command {} ({}) in {} is not carried out yet", ScenarioScript::commandName(opcode), opcode, g_.scenarioDir_);
+        }
+    }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
         log::info("{} offered", className(g_.career_.offered, g_.heroSex_));

@@ -94,6 +94,22 @@ public:
     virtual bool partnerLife(int& /*hp*/, int& /*max*/) const { return false; }
     // TALKPARTNERSTATUS: the status sheet of a kind of companion.
     virtual std::string partnerStatus(int /*kind*/) const { return {}; }
+    // CHECKENEMYLIVE and CHECKENEMYDEAD: whether enemy `id` is alive,
+    // which every enemy placed in the scenario is until killed, active or
+    // not; empty when the scenario has no such enemy.
+    virtual std::optional<bool> enemyAlive(std::int32_t /*id*/) const { return std::nullopt; }
+    // CHECKITEMEXIST and DELETEITEM: an item anywhere the player keeps
+    // them (special items, the bag, worn), and taking one of them away.
+    virtual bool hasItem(int /*cls*/, int /*code*/) const { return false; }
+    virtual void deleteItem(int /*cls*/, int /*code*/) {}
+    // GETPLAYERLIFE and GETPLAYERMENTAL: the hero's HP or MP and its most.
+    virtual void playerLife(int& /*hp*/, int& /*max*/) const {}
+    virtual void playerMental(int& /*mp*/, int& /*max*/) const {}
+    // GETEXPERIENCE: `percent` of the experience the hero's level needs.
+    virtual void giveExperiencePercent(int /*percent*/) {}
+    // A command the engine does not carry out yet ran (sound aside), so a
+    // playthrough can list what a scenario still lacks.
+    virtual void skippedCommand(std::int32_t /*opcode*/) {}
 };
 
 // The scenario script interpreter (ShadowFlare.exe 0x430f80; command names
@@ -126,6 +142,10 @@ public:
     // Original mode's SETQUESTFLAG (see Rules::missionsClearOnlyWhenTaken).
     void setRules(const Rules& rules) { rules_ = rules; }
 
+    // Whether the engine carries the command out (PLAYSOUND counts, as sound
+    // is a separate piece of work).
+    static bool implemented(std::int32_t opcode);
+
 private:
     void run(std::int32_t sentence, int depth);
 
@@ -144,5 +164,8 @@ inline constexpr std::int32_t kMessageArgType = -100;
 // cleared a mission, taken or not. It is not saved, so it lives under a
 // negative type with the flags, which saving skips.
 inline constexpr std::int32_t kQuestClearedType = -101;
+// The NET flags a placement's activity is kept in (see
+// ScenarioControl::Placement::states): 100,000,000 + id (active) and so on.
+inline constexpr std::array<std::int32_t, 3> kStateFlagBases{100000000, 300000000, 200000000};
 
 }  // namespace sf

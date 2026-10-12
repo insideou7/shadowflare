@@ -54,7 +54,10 @@ ScenarioScript ScenarioScript::parse(std::span<const std::uint8_t> data) {
         const std::int32_t id = in.i32();
         s.tempFlags.emplace_back(id, in.i32());
     }
-    in.skip(8 * static_cast<std::size_t>(count(in, 8)));  // network flags
+    for (std::int32_t i = 0, n = count(in, 8); i < n; ++i) {
+        const std::int32_t id = in.i32();
+        s.netFlags.emplace_back(id, in.i32());
+    }
     for (std::int32_t i = 0, n = count(in, 8); i < n; ++i) {
         const std::int32_t id = in.i32();
         std::string text(in.chars(static_cast<std::size_t>(count(in, 1))));

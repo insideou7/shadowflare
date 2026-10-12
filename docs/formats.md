@@ -215,8 +215,8 @@ Record (same layout in every group; only the trailing block size differs):
 
 ```
 i32  id                 plus 10,000,000 (objects), 12,000,000 (people),
-                        20,000,000 (enemies) or 30,000,000 (items) gives
-                        the in-game object id
+                        14,000,000 (enemies) or 18,000,000 (items) gives
+                        the in-game id scripts use (0x427b50)
 i32  kind               Character/<OBJECT|PEOPLE|ENEMY>/<kind as %08d>;
                         people with kind >= 1,000,000 are PARTNER/<kind-1000000>;
                         -1 = no sprite (spawners, trigger areas)
@@ -225,7 +225,10 @@ i32  unknown
 i32  x, y               world position
 i32  rect[4]            left, top, right, bottom around (x, y)
 i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
-i32  n; i32 unknown[n]
+i32  n; i32 states[n]   copied to the character at + 0x4c on: [0] starts
+                        active, [1] and [2] use not traced; each scenario
+                        load makes them NET flags 100,000,000 + id,
+                        300,000,000 + id and 200,000,000 + id (0x4300e0)
 i32  hasTable; if 1: i32 m; i32 a[m]; i16 b[m], c[m], d[m]
 i32  light              the light it carries, Dark.njp part light + 1; -1 none
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
@@ -382,8 +385,34 @@ the same way, 0 for the mercenary (+0x30 = 16, 0x434186). Only the
 instructors in Scenario 03900003 use them.
 
 Trigger events (0x4304b0-0x430a40): 0 the player speaks to the character,
-1 its message box closed, 3 `ONJUDGE`, 4 an enemy died (inferred from the
-caller), 5 every frame, 7 the scenario was entered.
+1 its message box closed, 2 a NET flag changed (network play only:
+0x430a40 runs it when another player's change arrives; the character is
+the flag's number), 3 `ONJUDGE`, 4 an enemy died (inferred from the
+caller), 5 every frame, 6 `ROUTIN` called it (the character is
+ROUTIN's number, 0x4309f0), 7 the scenario was entered, 8 the card game
+ended (0x40da90).
+
+Activity flags: every placement's record carries three flags (see the
+Record above). Each scenario load puts them in the NET flags, as
+100,000,000 + id (whether the character or object is there),
+300,000,000 + id and 200,000,000 + id, after the script's own NET flags
+(0x4300e0). Out of network play the NET flags start again at every load,
+like TEMP ones. `SETACTIVE id` sets all three to 1 and `SETINACTIVE id`
+to 0; scripts also read and set them directly, such as a
+lever's `NET[110040000]`.
+
+`CHECKENEMYLIVE first last var` puts in `var` the first enemy id in
+first..last that is still alive, or -1 when none is; `CHECKENEMYDEAD`
+the first that is dead. Every enemy placed in the scenario
+counts as alive until killed, active or not (0x4300e0; a death clears it at 0x45bec0,
+`RESSURECT` sets it again through 0x45a140).
+`CHECKITEMEXIST class code var` sets `var` to 1 when the player has that
+item anywhere: special items, the bag or worn.
+`DELETEITEM class code` takes one away, looking in the same places.
+`GETPLAYERLIFE hp max` and `GETPLAYERMENTAL mp max` read
+the hero's. `GETEXPERIENCE percent` gives that share of the
+experience the hero's level needs, which can raise one level.
+All of these are cases of the script switch at 0x430ffe.
 
 Shops: `INITTRADE shop list` stocks shop `shop` from row `list` of
 Table.Tbd table 32, whose cells are rows of table 33 (0x430c10). A table
