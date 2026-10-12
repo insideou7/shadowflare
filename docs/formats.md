@@ -732,6 +732,73 @@ last frame.
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
 
+## The game panel (ShadowFlare.exe 0x4039f0)
+
+The bar along the bottom of the screen is `System/Game/Pattern/Bar.njp`,
+loaded as sprite bank 5 (the table at 0x47f6e8 numbers the game's UI banks:
+4 Status, 5 Bar, 6 JobIcon, 7 Dark, 8 Hukidasi, 9 MagicIcon, 10
+MagicBarIcon, 11 StatusIcon, 13 MapIcon, 14 WaitIcon, 15 Card). Every
+pattern carries its screen position, so it is drawn at (0, 0):
+
+| Pattern | What | Where |
+|---|---|---|
+| 0, 1, 2 | HP gauge: filled, being gained (bright), being lost (dark) | (81, 426), 206 x 12 |
+| 3 (4, 5) | MP gauge (4 and 5 are never drawn) | (106, 453) |
+| 6 | one pixel, the glints on the gauges | |
+| 7, 8 | the panel: its top edge, and the rest | (0, 400), (0, 412) |
+| 9 | MINE lit, with a mine in hand (+0x328) | (496, 424) |
+| 10, 11 | WALK dimmed (run is the default), RUN dimmed | (368, 464), (360, 448) |
+| 12, 13 | increased power: blinking when it can be raised, pressed | (25, 408) |
+| 14, 15 | EXP gauge and its rail | (530, 395), (515, 393) |
+| 16, 17, 18 | ITEM, MENU, STATUS lit (alpha 300) for a frame after a click | |
+| 19-28 | the level's digits, 6 x 9 | drawn where the code says |
+| 29-32 | the companion's gauge (see the partner notes) | |
+
+Each frame (30 a second):
+
+- HP is `hp * 206 / maxHp` pixels (at least 1 while alive). The drawn width
+  (+0xa028) follows it 2 pixels a frame; while it is longer, the part being
+  lost is pattern 2, while shorter the part being gained is pattern 1. The
+  clip rectangles end a pixel short of the width (RECT right is exclusive).
+- MP is the same at 4 pixels a frame, pattern 3 only.
+- Glints: 2 x fps slots per gauge. An empty slot starts one when
+  `(rand() & 0x7f) / 120 == 1`, with speed `(rand() & 7) + 5` and a row
+  `rand() & 7`. At age a it is at x = a * a * speed / 200 from (83, 427)
+  (MP: (108, 454)), one row lower at random, drawn additively, 2 pixels
+  wide and alpha 15 x speed for odd speeds, 1 pixel and 22 x speed for even
+  ones; it goes out at the gauge's end less 3.
+- The level (+0x194) is drawn with 1 to 3 digits; the ones digit's corner
+  is at x 60 (one digit), 65 (two, tens at 56) or 69 (three, 60 and 51),
+  y 465. When it changes, +0xa038 counts 10000 to 10008: the ones digit
+  is drawn 1.5 times bigger at 10000 and shrinks over 10001-10003 (scale
+  166/1000 a frame), the tens at 10004-10007 and the hundreds at 10008; a
+  digit grows up and left from its anchor (x + 8, 477).
+- EXP is `exp * 109 / need` (table 13, row level - 1), nothing at level
+  100, full once exp reaches the need. From 90% it blinks bright (1.5)
+  two frames in four.
+- RUN or WALK: pattern 11 while walking is the default, 10 while running
+  (0x48ce80, saved with the settings).
+
+Clicks on the panel (0x445d10): MENU x 589-639, y 402-413 opens the menu;
+RUN x 360-390, y 448-457 and WALK x 368-398, y 464-473 set the default;
+STATUS x 537-577, y 420-437 and ITEM x 583-636, y 429-448 open or close
+their windows; the power button x 25-58, y 408-430 when it blinks; MINE x
+496-511, y 424-439. Any other click at y 412 or below is used up by the
+panel. Windows are drawn above it (layer 14 against the panel's 11).
+
+The magic/attack bar above it (0x404ee0, clicks 0x447570) is drawn in
+layer 13 from banks 9 (MagicIcon.njp, 26 x 26: 0 the attack, spell + 2)
+and 10 (MagicBarIcon.njp, 16 x 16: 2 the attack, 3 an empty slot, spell +
+4). The eight F1-F8 slots (+0xa714) run from x 224, 4 pixels more before
+each group of four: an empty slot or a spell not learned (player + 0x1440
++ spell x 4 is not 3) is MagicBarIcon 3 at y 392, the chosen spell
+(player + 0x127c) MagicIcon spell + 2 at y 382, 26 wide, any other
+MagicBarIcon spell + 4 at y 392, 16 wide. The attack follows 4 further
+on: MagicIcon 0 at y 382 while chosen (player + 0x1288), else
+MagicBarIcon 2. While a window covers the left of the screen the bar
+starts at 344, while the item window is open at 124, and with both it is
+hidden.
+
 ## Darkness and the area map
 
 **Darkness** (frame code 0x41e4f0). With Display Darkness on (option

@@ -158,6 +158,7 @@ bool Game::mineButtonClick(int x, int y) {
 // The MINE button where the original's panel has it, with the mines in
 // hand and the most beside it.
 void Game::renderMineButton() {
+    if (hasPanelArt()) return;  // the panel has the button, lit by renderPanel
     const SDL_Rect& r = kMineButton;
     SDL_SetRenderDrawColor(renderer_, 20, 18, 26, 200);
     SDL_RenderFillRect(renderer_, &r);

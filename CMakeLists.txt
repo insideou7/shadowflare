@@ -74,6 +74,7 @@ add_executable(shadowflare
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
+    src/game/panel.cpp
     src/game/darkness.cpp
     src/game/area_map.cpp
     src/render/tiny_font.cpp
