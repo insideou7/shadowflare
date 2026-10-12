@@ -363,7 +363,7 @@ void Game::renderHelp() {
     static constexpr Key kKeys[] = {
         {"F1-F8", "SPELL ON RIGHT BUTTON", true},
         {"F9", "ATTACK ON RIGHT BUTTON", true},
-        {"1-8", "USE BELT POCKET ITEM", false},
+        {"1-8", "USE BELT POCKET ITEM", true},
         {"B", "LAY A MINE", false},
         {"P", "INCREASED-POWER MODE", false},
         {"CTRL", "RUN WHILE HELD", true},

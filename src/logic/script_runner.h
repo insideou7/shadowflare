@@ -39,6 +39,9 @@ public:
     // CREATEITEM: puts an item on the ground near (x, y); for gold
     // (class 4 code 0) `amount` is the number of coins.
     virtual void createItem(int /*cls*/, int /*code*/, int /*x*/, int /*y*/, int /*amount*/) {}
+    // CREATEITEMTABLE list x y: drops what a drop list gives there, as a
+    // dying monster's (0x417550).
+    virtual void createItemTable(int /*list*/, int /*x*/, int /*y*/) {}
     virtual std::int32_t characterX(std::int32_t /*id*/) const { return 0; }
     virtual std::int32_t characterY(std::int32_t /*id*/) const { return 0; }
     virtual void stopCharacter(std::int32_t /*id*/, bool /*stop*/) {}

@@ -97,6 +97,7 @@ std::optional<EquipSlot> partSlot(int part) {
 
 void Inventory::clear() {
     bag_.clear();
+    belt_ = {};
     equipped_ = {};
     gold_ = 0;
 }
@@ -134,6 +135,62 @@ bool Inventory::addAt(const Item& item, int x, int y) {
     if (!item.def || !fits(item.def->width, item.def->height, x, y)) return false;
     bag_.push_back({item, x, y});
     return true;
+}
+
+bool Inventory::pickUp(const Item& item) {
+    if (item.def && item.def->cls == Class::Consumable && item.def->effect[0] != 0 && addToBelt(item)) return true;
+    return add(item);
+}
+
+const std::optional<Item>& Inventory::beltAt(int x, int y) const {
+    static const std::optional<Item> kNone;
+    if (x < 0 || y < 0 || x >= kBeltWidth || y >= kBeltHeight) return kNone;
+    return belt_[static_cast<std::size_t>(y * kBeltWidth + x)];
+}
+
+bool Inventory::fitsBelt(const ItemDef& def) { return def.cls == Class::Consumable && def.width == 1 && def.height == 1; }
+
+bool Inventory::addToBelt(const Item& item) {
+    for (int y = 0; y < kBeltHeight; ++y) {
+        for (int x = 0; x < kBeltWidth; ++x) {
+            if (addToBeltAt(item, x, y)) return true;
+        }
+    }
+    return false;
+}
+
+bool Inventory::addToBeltAt(const Item& item, int x, int y) {
+    if (!item.def || !fitsBelt(*item.def) || x < 0 || y < 0 || x >= kBeltWidth || y >= kBeltHeight) return false;
+    auto& cell = belt_[static_cast<std::size_t>(y * kBeltWidth + x)];
+    if (cell) return false;
+    cell = item;
+    return true;
+}
+
+Inventory::Result Inventory::clickBelt(std::optional<Item>& hand, int x, int y) {
+    if (x < 0 || y < 0 || x >= kBeltWidth || y >= kBeltHeight) return Result::Nothing;
+    auto& cell = belt_[static_cast<std::size_t>(y * kBeltWidth + x)];
+    if (!hand) {
+        if (!cell) return Result::Nothing;
+        hand = std::move(cell);
+        cell.reset();
+        return Result::Done;
+    }
+    if (!fitsBelt(*hand->def)) return Result::WrongSlot;
+    std::swap(cell, hand);
+    return Result::Done;
+}
+
+void Inventory::useUpBelt(int x, int y) {
+    const auto& cell = beltAt(x, y);
+    if (!cell) return;
+    const auto spare = std::ranges::find_if(bag_, [&](const Placed& p) { return p.item.def == cell->def; });
+    if (spare != bag_.end()) {
+        use(static_cast<int>(spare - bag_.begin()));
+        return;
+    }
+    auto& slot = belt_[static_cast<std::size_t>(y * kBeltWidth + x)];
+    if (--slot->count <= 0) slot.reset();
 }
 
 Inventory::Result Inventory::clickBag(std::optional<Item>& hand, int x, int y) {
@@ -319,6 +376,18 @@ int Inventory::modifier(ItemDef::Modifier which) const {
     return total;
 }
 
+int Inventory::goldBonus() const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
+        total += worn->modifiers[ItemDef::kModGold];
+    }
+    return total;
+}
+
 std::array<int, 8> Inventory::elements() const {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();
@@ -346,30 +415,6 @@ std::vector<int> Inventory::heroLayers() const {
     }
     if (shield && !(weapon && weapon->def->twoHanded())) add(shield->def->heroLayer);
     return layers;
-}
-
-int rollGold(int chance, int min, int max, Random& random) {
-    if (chance <= 0 || random.next(100) >= chance) return 0;
-    if (max < min) std::swap(min, max);
-    return std::max(1, min + random.next(max - min + 1));
-}
-
-const ItemDef* pickDrop(const ItemTable& items, int level, Random& random) {
-    level = std::max(1, level);
-    std::vector<const ItemDef*> pool;
-    int total = 0;
-    for (const auto& def : items.items) {
-        if (def.cls == Class::Special || def.quality != 0 || def.itemLevel > level) continue;
-        pool.push_back(&def);
-        total += std::max(1, def.dropWeight);
-    }
-    if (pool.empty()) return nullptr;
-    int pick = random.next(total);
-    for (const ItemDef* def : pool) {
-        pick -= std::max(1, def->dropWeight);
-        if (pick < 0) return def;
-    }
-    return pool.back();
 }
 
 }  // namespace sf

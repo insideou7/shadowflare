@@ -34,7 +34,7 @@ Sections start with a `[name]` line.
 ### content.txt
 
     name=ShadowFlare open content
-    start=meadow             # map to open first
+    start=10000000           # where a new game begins: a scenario number or a map name
     projection=15,10         # screen pixels per 100 world units, x and y
 
 The original game uses a 15/10 projection (a 3:2 diamond), and so does
@@ -126,8 +126,8 @@ pixel chips, as in the original game.
 
 `enemy` is kind (folder `Character/ENEMY/<kind as 8 digits>`), x, y,
 direction, hit points, attack, wander radius in world units, and the AI
-list it follows, optionally followed by its level (which items it may
-drop), the chance in percent that it drops gold and the least and most
+list it follows, optionally followed by its level (the list in
+`drops.txt` it drops from), the chance in percent that it drops gold and the least and most
 gold, then the experience it gives, then its defence, hit and evasion
 (0, 50 and 0 when left out, the original's usual values), and then its
 magic defence and element (0 fire, 1 water, 2 earth, 3 thunder, 4 holy,
@@ -225,7 +225,7 @@ hit, magic defense, magic evasion, attack speed and walking speed.
 `elements=` is what wearing it adds to the hero's fire, water, earth,
 thunder, holy, dark, gel and metal levels (docs/magic.md).
 Consumables have `effect=`, nine numbers as in the original: the first is
-1 if it may go in the belt, the second the health it restores, the third
+1 if picking it up puts it in the belt pocket, the second the health it restores, the third
 the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
@@ -237,6 +237,25 @@ starting kit (body armour 0, consumables 0 and 10000000) works with
 either. Every key but the section line may be left out. When the folder
 of a `ground` picture holds `Animation.anim`, the number is a chart of it
 instead, as with the original's animated item folders.
+
+### drops.txt
+
+What monsters leave behind, standing in for the original's drop tables
+(Table.Tbd tables 30 and 31, see docs/formats.md):
+
+    [drops 2]                # the list number an enemy= line names
+    rolls=1                  # how many tries, 1 to 10
+    chance=15                # percent each try drops something (15 drops 16 in 100, as in the original)
+    gold=10,4,12             # chance, least and most gold, for monsters that have none of their own
+    pick=consumable,0        # one of the picks is chosen at random each time
+    pick=any,any,1,3         # any weapon, armour or accessory of item level 1 to 3, by weight
+    pick=nothing
+
+A pick is a class (or `any` for weapon, armour or accessory), a code (or
+`any`, chosen by `weight` among the items of that class), and optionally
+the lowest and highest item level. Only normal items are picked with
+`any`. Gold comes before the items, 100 units below the monster; the
+items land around it.
 
 ## Drawing the original game with this art
 

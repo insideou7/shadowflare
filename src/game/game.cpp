@@ -83,12 +83,24 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
         log::warn("No maps found in the game data; showing a placeholder screen");
         return;
     }
-    std::size_t start = 0;
-    for (std::size_t i = 0; i < mapNames_.size(); ++i) {
-        if (equalsIgnoreCase(mapNames_[i], startMap)) start = i;
+    // The start is a scenario number (the original begins every new game
+    // in scenario 0, Remote Town, at entry 0: 0x440f70 clears the saved
+    // scenario and entry) or a map name.
+    if (!startMap.empty() && startMap.size() <= 9 && std::ranges::all_of(startMap, [](unsigned char c) { return std::isdigit(c); })) {
+        startScenario_ = std::stoi(startMap);
+    } else {
+        for (std::size_t i = 0; i < mapNames_.size(); ++i) {
+            if (equalsIgnoreCase(mapNames_[i], startMap)) startMapIndex_ = i;
+        }
     }
-    startMapIndex_ = start;
-    loadMap(start);
+    goToStart();
+}
+
+// Where a new game begins.
+void Game::goToStart() {
+    map_.reset();
+    if (startScenario_ >= 0) changeScenario(startScenario_, 0);
+    if (!map_) loadMap(startMapIndex_);
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
@@ -401,7 +413,11 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_F11: loadGame(); break;
                 case SDLK_PRINTSCREEN: screenshotPending_ = true; break;
                 case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
-                case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: notYet("The belt pocket"); break;
+                case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: {
+                    const int key = event.key.keysym.sym - SDLK_1;
+                    useBelt(key % Inventory::kBeltWidth, key / Inventory::kBeltWidth);
+                    break;
+                }
                 case SDLK_b: notYet("Mines"); break;
                 case SDLK_p: notYet("Increased-power mode"); break;
                 case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
@@ -433,6 +449,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
+            if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&

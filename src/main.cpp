@@ -309,7 +309,8 @@ int main(int argc, char** argv) {
         sf::log::info("Using game data from {}", installRoot.string());
     }
     app.data = std::make_unique<sf::DirectoryFileSystem>(installRoot);
-    std::string startMap = options.map.empty() ? "c02_00" : options.map;
+    // A new game of the original begins in scenario 0, Remote Town.
+    std::string startMap = options.map.empty() ? "0" : options.map;
     if (auto info = app.data->read("content.txt")) {
         try {
             const auto pack = sf::open::parsePackInfo(*info);

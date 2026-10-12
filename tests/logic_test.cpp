@@ -76,6 +76,21 @@ void testScriptStopsAtChange() {
     check(!sf::ScriptRunner(script, flags).run(7), "out of range sentence is ignored");
 }
 
+void testScriptQuestFlags() {
+    // SETQUESTFLAG 0 2 0 clears a mission only once it was taken (0x433f29).
+    using S = sf::ScenarioScript;
+    auto quest = [](int q, int state) { return Cmd{S::kSetQuestFlag, {constant(q), constant(state), constant(0)}}; };
+    S script;
+    script.sentences = {{quest(0, 2)}, {quest(0, 1)}};
+    sf::ScriptFlags flags;
+    sf::ScriptRunner(script, flags).run(0);
+    check(flags[{S::kQuest, 0}] == 0, "a mission not taken is not cleared");
+    sf::ScriptRunner(script, flags).run(1);
+    check(flags[{S::kQuest, 0}] == 1, "SETQUESTFLAG 1 takes the mission");
+    sf::ScriptRunner(script, flags).run(0);
+    check(flags[{S::kQuest, 0}] == 2, "SETQUESTFLAG 2 clears a taken mission");
+}
+
 sf::AiControl::Entry entry(int action, int priority, int weight, int minGap = -2, int maxGap = -2) {
     sf::AiControl::Entry e;
     e.action = action;
@@ -573,6 +588,7 @@ int main() {
     testScriptExit();
     testScriptFlagsAndOperators();
     testScriptStopsAtChange();
+    testScriptQuestFlags();
     testAiDistanceCondition();
     testAiPriorityAndWeights();
     testAiHealthCondition();

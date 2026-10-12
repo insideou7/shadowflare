@@ -133,6 +133,15 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                     store(ops[2], lo + (hi >= lo ? host_->random(hi - lo + 1) : 0));
                 }
                 break;
+            case S::kSetQuestFlag: {
+                // SETQUESTFLAG quest state ?: 1 takes the mission on, 2
+                // clears it, but only one that was taken (0x433f29).
+                if (ops.empty()) break;
+                const std::int32_t quest = arg(0), state = arg(1);
+                auto& flag = flags_[{S::kQuest, quest}];
+                if (state != 2 || flag == 1) flag = state;
+                break;
+            }
             default: break;
         }
         if (!host_) continue;
@@ -161,6 +170,9 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 host_->createItem(arg(0), arg(1), arg(2), arg(3), amount);
                 break;
             }
+            case S::kCreateItemTable:
+                if (ops.size() >= 3) host_->createItemTable(arg(0), arg(1), arg(2));
+                break;
             case S::kStop: host_->stopCharacter(arg(0), true); break;
             case S::kMovable: host_->stopCharacter(arg(0), false); break;
             case S::kSetAngleTo: host_->faceCharacter(arg(0), arg(1)); break;

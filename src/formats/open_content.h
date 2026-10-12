@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "formats/ai_control.h"
+#include "formats/drop_tables.h"
 #include "formats/animation.h"
 #include "formats/item_data.h"
 #include "formats/map_layers.h"
@@ -88,6 +89,10 @@ struct ShopGoods {
 };
 using ShopLists = std::map<int, std::vector<ShopGoods>>;
 ShopLists parseShops(std::span<const std::uint8_t> text);
+
+// drops.txt: what monsters leave behind, by the drop list number in their
+// enemy= line, standing in for Table.Tbd tables 30 and 31.
+DropTables parseDrops(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);

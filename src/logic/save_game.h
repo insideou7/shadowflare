@@ -46,6 +46,7 @@ struct SaveGame {
     std::optional<Career> career;
     int gold = 0;
     std::vector<BagEntry> bag;
+    std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
     ScriptFlags flags;  // the persistent scenario flags

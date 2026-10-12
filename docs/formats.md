@@ -247,7 +247,7 @@ code (0x45b043) reads + 0x134 to + 0x158.
 | 11 | 0xf0 | magic defence |
 | 12 | 0xf4 | magic evasion |
 | 13 | 0x17c | experience given |
-| 14 | 0x180 | level |
+| 14 | 0x180 | drop list: the row of Table.Tbd table 30 rolled when it dies (0x45a000; see Drops) |
 | 15-22 | | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
 | 23-25 | 0xf8 | attack of each of its three attacks (Control.aid actions 2-4) |
 | 29-31 | 0x104 | hit of each attack |
@@ -369,6 +369,8 @@ picked to begin with. Scripts carry on straight away; when the box closes
 the chosen option (from 0) goes into `answer` and the speaker's event 1
 triggers run. `CREATEITEM` with class 4 code 0 drops a random amount of
 gold between `min` and `max`, in piles of at most 10,000.
+`CREATEITEMTABLE list x y` drops what drop list `list` gives at (x, y),
+as a dying monster does (see Drops).
 `ENABLECLASSCHANGE` 1, 2 and 3 offer the hero the warrior, hunter or
 wizard (player +0x30 = 6, 5 or 9, 0x4341da); the hero takes it in the
 status window (see Classes below). `GETCLASS` reports the class on offer
@@ -387,6 +389,43 @@ two unused, then whether normal, magic and unique items may be picked.
 Picks are weighted by the item's drop weight among items in the level
 range with a non-zero drop pool. Goods fill a 9 x 10 grid row by row.
 A shop sells at the item's price and buys at a quarter of it (0x4661c0).
+
+Drops: a dying monster drops gold first (0x45a030): `word 49` percent of
+the time, an amount from words 50-51 raised by the Amount of Gold
+modifiers worn (0x44f8b0; broken items count), at least 1, 100 units below
+it. Then 0x45a000 rolls its drop list (Mct word 14) with 0x417550. A row of
+Table.Tbd table 30 is: how many rolls (0 = one per party member), each
+roll's chance in percent (checked as `rand % 100 <= chance`, so 15 drops
+16 times in 100), then ten picks of (table 31 row, quality digits); each
+roll that drops takes one pick with `rand % 10`. A row of -1 is nothing.
+The digits allow normal (ones), magic (tens) and unique (hundreds) items:
+111 any, 11 no uniques. Quest items always pass. A table 31 row is: class
+(-1 = weapon, armour or accessory), highest and lowest item level (-1 =
+no bound), item code (-1 = pick one) and a pool mask the item's drop pool
+must share a bit with. A set code makes that item whatever its level or
+quality (table 31 rows 400 on are quest items, row 0 a mine). Otherwise
+the pick is weighted by drop weight among matching items (0x465500,
+0x4653a0), with `r % total` of a nine-digit random number (0x401520);
+special items are never picked that way. The items land on a circle of
+200 units around the monster, spread by the number of rolls. Two slips in
+the exe: the allowed qualities are only ever switched on, never off, so a
+later roll of the same list may give a magic item its pick does not
+allow (our engine clears them each roll, except in original mode); and a
+roll whose pick matches nothing makes whatever item the previous roll
+made, or a stale one, which we do not reproduce (it drops nothing).
+
+The belt pocket (player +0x518) is a 4 x 2 grid of consumables on the
+panel: the top row's cells start at screen (357, 413), the bottom row's
+at (405, 445), 32 pixels each (0x445bd0, 0x44a5f0). Picking up a
+consumable whose effect word 0 is set puts it in the first free belt
+cell, row by row, and anything else (or when the belt is full) in the
+bag, column by column (0x449ef0, 0x466f80). Keys 1-4 use the top row and
+5-8 the bottom (0x442ed6); a right click on a cell does too, and a left
+click picks it up or puts a consumable there. Using a belt item uses up
+a like item (same class and code) from the bag when there is one, so the
+belt stays stocked, and the belt's own only when there is not. A new
+character starts with four Tablets along the top row and four Capsules
+along the bottom (0x44104c), besides those in the bag.
 
 ## Monster behaviour: `System/Game/Parameter/Control.aid` (`RKC_RPG_AICONTROL::ReadFile`)
 
@@ -551,7 +590,7 @@ effect tint, the hero layer and its tint, six projectile and flag words
 chance%} and 8 elemental modifiers of 3. Armour has durability, stats,
 item level, required level, hero layer and tint, elements and modifiers.
 Accessories have item level, required level and modifiers. Consumables
-have item level and nine effect words (word 0: may go in the belt; 1:
+have item level and nine effect words (word 0: picked up into the belt; 1:
 health restored; 2: mental power restored; 3 and 4: health and mental
 power in percent; 5 and 6: the partner's health, as a number and in
 percent; 7 and 8: medicines). Special items have nothing more.
@@ -587,6 +626,30 @@ the shield. Worn weapons, body armour and shields turn on their hero
 layer in `Player/Male/Animation00.Caf` (0 body and 1 shadow are always
 on): 5-8 armour, 9-11 shields, 12-21 weapons. Helmets, boots and
 accessories are not drawn.
+
+## A new game (ShadowFlare.exe 0x440f70)
+
+The title screen's New Game makes an empty hero (0x421a00) and 0x440f70
+fills it in:
+
+- saved scenario and entry (+0x15a4, +0x15a8) both 0, so every new game
+  begins in scenario 0, Remote Town (`Map\f00_01`), at entry point 0, just
+  inside the town gate;
+- wearing body armour 0 (+0x4ec), with four of consumable 0 and four of
+  consumable 10000000 in the first two columns of the bag (+0x514) and the
+  same again in a 4 x 2 list at +0x518 (not used by our engine yet);
+- partner kind 0, Kerberos, INACTIVE, with every kind at level 1.
+
+What follows is scripted in scenario 0. On entering, its start sentence
+stocks Malse's shop and names the area. Speaking to Ostare (12000000) the
+first time runs four boxes and drops the army's supplies at his feet:
+weapon 0, armour 1000000, weapon 100 and 200 gold (TEMP 1000020-1000026).
+Syria the healer (12000002) gives the first mission, `SETQUESTFLAG 0 1 0`
+(the goblins north-east of town). `SETQUESTFLAG quest state` (0x433f29)
+sets QUEST[quest]; state 2 clears a mission only when it is 1, taken.
+
+The open content does the same in its Remote Town (`Scenario/10000000`,
+`content.txt` `start=10000000`) with our own words.
 
 ## Not decoded yet
 

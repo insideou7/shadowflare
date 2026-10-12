@@ -88,7 +88,7 @@ void Game::newGame() {
     partnerHpCarried_ = 0;
     giveStartingKit();
     updateEquipment();
-    if (!mapNames_.empty()) loadMap(startMapIndex_);
+    if (!mapNames_.empty()) goToStart();
     playerHp_ = playerMaxHp();
     playerMp_ = playerMaxMp();
     updateCamera();
