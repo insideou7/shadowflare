@@ -130,6 +130,53 @@ on each line is the monster's strength it starts from. `item` places an item fro
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
+`person` takes an optional fifth field, a name that `script.txt` calls
+them by.
+
+### Scenario/\<number\>/script.txt
+
+What the people of a scenario say and do, in the original's script
+commands (docs/formats.md lists them). Optional; Goblin Meadow's is a
+worked example.
+
+    person=8,3072,6048,0,merchant   # more people: kind, x, y, direction, name
+    object=0,0,640,320,well         # something to click: left, top, right, bottom, name
+    temp=1000001,7                  # a TEMP flag and its value when the scenario starts
+
+    [message 2]
+    Fresh from the city, every piece of it.
+    ~Buy and sell~  ~Leave~
+
+    [sentence merchant]
+    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick or start
+    C_STOP merchant
+    TALK msg:2 temp:2 0 0 -1 -1
+
+    [sentence merchant-end]
+    on=talk-end merchant
+    IF temp:2 = 0 @merchant-shop
+
+    [sentence merchant-shop]
+    INITTRADE 0 0
+    TRADE 0
+
+A message is the lines under `[message <id>]`, each ending in a line
+break; options go between `~` marks. A sentence is a list of commands, one
+per line, and `on=` lines that start it. Operands are separated by spaces:
+a number, `temp:<id>`, `save:<id>`, `quest:<id>` or `net:<id>` for a
+flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
+someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
+sentence to run, and a person's or object's name for their id. As in the
+original, `IF` runs its sentence and then carries on, and closing any of
+a person's message boxes runs their talk-end sentences, so a script keeps
+the question it asked in a flag.
+
+### shops.txt
+
+    [shop 0]                 # the list INITTRADE names
+    sell=weapon,0            # class and code from items.txt
+    sell=consumable,0,6      # and how many
+
 ### ai.txt
 
     [list goblin]

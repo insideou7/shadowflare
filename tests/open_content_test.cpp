@@ -151,6 +151,59 @@ void testScenario() {
           "scenario item");
 }
 
+void testScript() {
+    using S = sf::ScenarioScript;
+    auto s = sf::open::parseScenario(bytes("map=camp\nperson=2,10,20,0,smith\nexit=0,0,960,480,2,1\n"));
+    sf::open::parseScript(bytes(
+                              "person=3,100,200,4,cook    # a comment\n"
+                              "object=0,0,64,32,well\n"
+                              "temp=1000001,7\n"
+                              "[message 5]\nHello there.\n~Yes~ ~No~\n"
+                              "[sentence greet]\non=talk smith\nTALK msg:5 temp:1 0 0 -1 -1\n"
+                              "[sentence answer]\non=talk-end smith\nIF temp:1 = 0 @shop\nIF save:3 != x:cook @shop\n"
+                              "[sentence shop]\nINITTRADE 0 well\nTRADE 0\n"),
+                          s);
+    const auto& c = s.control;
+    check(c.placements.size() == 4 && c.placements[2].name == "cook" && c.placements[2].id == 1, "script people follow scenario.txt's");
+    const auto& well = c.placements[3];
+    check(well.group == sf::ScenarioControl::Group::Object && well.id == 1 && well.x == 32 && well.rect[0] == -32 && well.rect[3] == 16,
+          "script objects are rectangles");
+    check(s.script.messages.at(5) == "Hello there.\n~Yes~ ~No~\n", "messages keep their lines");
+    check(s.script.tempFlags.size() == 1 && s.script.tempFlags[0].second == 7, "temp flags start at their value");
+    // The exit's sentence comes first, then greet, answer and shop.
+    check(s.script.sentences.size() == 4 && s.script.triggers.size() == 3, "sentences and triggers");
+    const auto& t = s.script.triggers[1];
+    check(t.event == S::kOnTalk && t.character == 12000000 && t.sentence == 1, "on=talk smith");
+    const auto& talk = s.script.sentences[1][0];
+    check(talk.opcode == S::kTalk && talk.operands.size() == 6 && talk.operands[0].type == S::kMessage && talk.operands[0].value == 5 &&
+              talk.operands[1].type == S::kTemp && talk.operands[4].value == -1,
+          "TALK's operands");
+    const auto& branch = s.script.sentences[2][1];
+    check(branch.opcode == S::kIf && branch.operands[0].type == S::kSave && branch.operands[1].value == 1 &&
+              branch.operands[2].type == S::kCharacterX && branch.operands[2].value == 12000001 && branch.operands[3].value == 3,
+          "IF with an operator and a sentence name");
+    check(s.script.sentences[3][0].operands[1].value == 10000001, "names stand for their ids");
+    check(S::commandName(41) == "STORAGE" && S::commandNumber("GETRANDAM") == 39, "command names");
+
+    auto rejects = [](const char* what, std::string_view text) {
+        expectRejected(what, text, [](auto& d) {
+            auto scenario = sf::open::parseScenario(bytes("map=a\n"));
+            sf::open::parseScript(d, scenario);
+        });
+    };
+    rejects("unknown command", "[sentence a]\nJUMP 1\n");
+    rejects("unknown name", "[sentence a]\nC_STOP nobody\n");
+    rejects("unknown sentence", "[sentence a]\nIF 1 = 1 @b\n");
+    rejects("bad event", "[sentence a]\non=wave\n");
+    rejects("name twice", "person=1,0,0,0,a\nperson=1,0,0,0,a\n");
+
+    const auto shops = sf::open::parseShops(bytes("[shop 2]\nsell=weapon,7\nsell=consumable,0,6\n"));
+    check(shops.size() == 1 && shops.at(2).size() == 2 && shops.at(2)[1].cls == sf::ItemDef::Class::Consumable &&
+              shops.at(2)[1].count == 6 && shops.at(2)[0].code == 7,
+          "shop lists");
+    expectRejected("sell outside a shop", "sell=weapon,0\n", [](auto& d) { sf::open::parseShops(d); });
+}
+
 void testItems() {
     const auto table = sf::open::parseItems(bytes(
         "[item weapon 5]\nname=Great Sword\nsubtype=3\nsize=2,4\nicon=0,3\nground=7,3\nlevel=4,3\n"
@@ -203,6 +256,7 @@ int main() {
     testAnimation();
     testMap();
     testScenario();
+    testScript();
     testItems();
     testAi();
     testPackInfo();

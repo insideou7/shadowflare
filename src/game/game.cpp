@@ -161,6 +161,7 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
     try {
         if (auto text = data_->read(dir + "/scenario.txt")) {
             auto parsed = open::parseScenario(*text);
+            if (auto events = data_->read(dir + "/script.txt")) open::parseScript(*events, parsed);
             control = std::move(parsed.control);
             if (script) *script = std::move(parsed.script);
             return true;

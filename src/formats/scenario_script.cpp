@@ -1,5 +1,7 @@
 #include "formats/scenario_script.h"
 
+#include <array>
+
 #include "formats/binary_reader.h"
 
 namespace sf {
@@ -12,7 +14,37 @@ std::int32_t count(BinaryReader& in, std::size_t itemSize) {
     return n;
 }
 
+// Command names by number, as RKC_RPG_SCRIPT.dll's keyword table spells
+// them (GETRANDAM and RESSURECT included).
+constexpr std::array<std::string_view, 76> kCommandNames = {
+    "IF", "SETFLAG", "TALK", "TALKPARTNERSTATUS", "IDENTIFY", "TRADE",
+    "INITTRADE", "HEALLIFE", "HEALMENTAL", "REPAIR", "CREATEITEM", "ADD",
+    "SUB", "MUL", "DIV", "REM", "PLAYSOUND", "CHANGESCENARIO",
+    "C_STOP", "C_MOVABLE", "C_ACTIONREQ", "C_SETANGLETO", "SETACTIVE", "SETINACTIVE",
+    "CREATEITEMTABLE", "RESSURECT", "MESSAGEBOXVALUE", "MESSAGEBOX", "ROUTIN", "ROUTINNET",
+    "CREATEOPTIONANGLE", "CHECKENEMYLIVE", "CHECKENEMYDEAD", "GETNEARPLAYERPOS", "CALCMYPLAYERDIST", "CALCANGLE",
+    "CREATEEFFECT", "WARPGATE", "DELETEWARPGATE", "GETRANDAM", "CREATEEFFECTCHAR", "STORAGE",
+    "GETPLAYERLIFE", "GETPLAYERMENTAL", "GETPARTNERKIND", "CHANGEPARTNER", "SETCHARTRANS", "GETCHARTRANS",
+    "DRAWQUESTNAME", "SETCOMPASSES", "GETENTRYPOINT", "SETMSGDEFINE", "GETREPAIRPRICE", "GETTOTALGOLD",
+    "PAYGOLD", "CHECKUNOPINIONITEM", "ABSOLUTEOBJECTFLAG", "GETPLAYERSEX", "CHECKITEMEXIST", "DELETEITEM",
+    "SETUNLOCKSW", "GETPLAYERLEVEL", "SETQUESTFLAG", "GETPARTNERLIFE", "STARTVISUAL", "SETTINGRAIN",
+    "GETMYPLAYERNO", "MEMORIZEMAGIC", "GETEXPERIENCE", "CHECKMEMORIZEDMAGIC", "ENABLECLASSCHANGE", "GETCLASS",
+    "CHANGECOLOR", "STARTCARDGAME", "GETCARDGAMERESULT", "SETITEMDIRECT",
+};
+
 }  // namespace
+
+std::string_view ScenarioScript::commandName(std::int32_t opcode) {
+    return opcode >= 0 && opcode < static_cast<std::int32_t>(kCommandNames.size()) ? kCommandNames[static_cast<std::size_t>(opcode)]
+                                                                                     : std::string_view();
+}
+
+std::optional<std::int32_t> ScenarioScript::commandNumber(std::string_view name) {
+    for (std::size_t i = 0; i < kCommandNames.size(); ++i) {
+        if (kCommandNames[i] == name) return static_cast<std::int32_t>(i);
+    }
+    return std::nullopt;
+}
 
 ScenarioScript ScenarioScript::parse(std::span<const std::uint8_t> data) {
     BinaryReader in(data);

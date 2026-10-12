@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace sf {
@@ -129,6 +131,11 @@ struct ScenarioScript {
     std::vector<std::vector<Command>> sentences;
 
     static ScenarioScript parse(std::span<const std::uint8_t> data);
+
+    // A command's name, such as "TALK" for 2 (empty for unknown numbers),
+    // and the number for a name.
+    static std::string_view commandName(std::int32_t opcode);
+    static std::optional<std::int32_t> commandNumber(std::string_view name);
 };
 
 }  // namespace sf

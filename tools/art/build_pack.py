@@ -290,8 +290,11 @@ def main():
     # Villagers stand about the square, the stalls and the houses.
     spots = [(10.0, 15.5), (12.6, 16.0), (7.2, 19.4), (9.6, 18.9), (6.0, 16.5), (13.5, 15.0), (16.0, 16.5),
              (9.0, 14.8), (11.9, 18.6), (5.5, 14.8), (17.2, 14.6), (14.8, 18.8), (8.2, 16.2), (3.8, 17.6)]
+    # Some have names, for Scenario/00000001/script.txt to give them a part.
+    roles = {6: "smith", 8: "merchant", 9: "keeper", 15: "elder", 18: "priest"}
     for kind, (tx, ty) in zip(people, spots):
-        lines.append(f"person={kind},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)}")
+        name = f",{roles[kind]}" if kind in roles else ""
+        lines.append(f"person={kind},{int(tx * TILE)},{int(ty * TILE)},{rng.randrange(8)}{name}")
     if "stairs_down" in anchors:
         lines.append(f"entry=1,{21 * TILE},{int(37.2 * TILE)},0")
         lines.append(f"exit={int(20.4 * TILE)},{int(35.4 * TILE)},{int(21.6 * TILE)},{int(36.4 * TILE)},2,1")
