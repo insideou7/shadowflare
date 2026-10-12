@@ -41,7 +41,9 @@ DDAIS = dict(colour=(0.46, 0.40, 0.24), dark=(0.08, 0.07, 0.04), scale=12, detai
 def stairway(**kw):
     """The fort's stair gateway (fort.py) in this area's stone."""
     import fort
-    fort.stairway(look=dict(stone=BLOCKS, cap=CAP, dais=DDAIS), raise_top=0.0, **kw)
+    # As thin as the walls and flat on top, so it sits flush in the wall line.
+    fort.stairway(look=dict(stone=BLOCKS, cap=CAP, dais=DDAIS), raise_top=0.0, cap=False,
+                  thick=WALL_T, deep=WALL_T, **kw)
 
 
 def landing():

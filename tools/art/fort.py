@@ -129,7 +129,8 @@ def pillar(black=""):
         blackout((0.02, 2.24, h), (1.12, 0, h / 2))
 
 
-def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=0.6):
+def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=0.6,
+             cap=True, thick=WALL_T, deep=2.25):
     """Stone steps climbing through a gateway in the wall into the dark,
     on a half round dais of dark carved stone in front of it, with a low
     wall along the left of the flight. side: only the low wall along the
@@ -137,9 +138,11 @@ def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=
     specs (stone, cap, dais) for another area's stairs; dais: whether to
     build the dais; sides: which low walls, "l", "r" or "lr"; down: the
     flight goes down into a pit instead of up; raise_top: how much taller
-    than a wall the gateway stands."""
+    than a wall the gateway stands; cap: a capstone along the top; thick:
+    how thick the gateway is; deep: how far back the dark and the flight
+    go behind the wall's face."""
     look = look or dict(stone=STONE, cap=CAPSTONE, dais=DAIS)
-    stone, cap, hole = mat("stone", look["stone"]), mat("capstone", look["cap"]), mat("hole", DARK)
+    stone, capstone, hole = mat("stone", look["stone"]), mat("capstone", look["cap"]), mat("hole", DARK)
     w, n, rise, run = 2.6, 8, 0.38, 0.5
     y0 = -2.4  # front edge of the bottom step; the wall's face is at y = 0
 
@@ -162,20 +165,23 @@ def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=
     # with the walls beside it.
     jamb, top = 1.0, WALL_H + raise_top
     for x in (-w / 2 - jamb / 2, w / 2 + jamb / 2):
-        solid(box((jamb, WALL_T, top), (x, WALL_T / 2, top / 2), stone))
+        solid(box((jamb, thick, top), (x, thick / 2, top / 2), stone))
     gate = 4.6
-    solid(box((w, WALL_T, top - gate), (0, WALL_T / 2, (top + gate) / 2), stone))
-    box((w + 2 * jamb + 0.1, WALL_T + 0.2, 0.3), (0, WALL_T / 2, top + 0.1), cap)
+    solid(box((w, thick, top - gate), (0, thick / 2, (top + gate) / 2), stone))
+    if cap:
+        box((w + 2 * jamb + 0.1, thick + 0.2, 0.3), (0, thick / 2, top + 0.1), capstone)
     # Darkness beyond the gateway, the flight climbing into it (or going
     # down into a pit).
-    box((w, 2.0, gate), (0, 0.25 + 1.0, gate / 2), hole)
+    back = min(0.25, deep / 2)
+    box((w, deep - back, gate), (0, (back + deep) / 2, gate / 2), hole)
     if down:  # the pit, seen from above: black between the low walls
         box((w, -y0, 0.02), (0, y0 / 2, 0.01), hole)
     else:
         for k in range(n):
             h = (k + 1) * rise
             y = y0 + k * run
-            box((w, 1.2 - y, h), (0, (y + 1.2) / 2, h / 2), cap)
+            end = min(1.2, deep)
+            box((w, end - y, h), (0, (y + end) / 2, h / 2), capstone)
     if "l" in sides:
         parapet(-w / 2 - 0.3)
     if "r" in sides:
