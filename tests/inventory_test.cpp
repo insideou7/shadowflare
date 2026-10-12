@@ -204,6 +204,9 @@ void testSaveGame() {
     save.level = 3;
     save.experience = 140;
     save.flags[{sf::ScenarioScript::kSave, 71}] = 1;
+    save.career = sf::Career::at(3);
+    save.career->offered = sf::HeroClass::Wizard;
+    save.career->countKill(8, false);
     save.store(inventory);
 
     const auto loaded = sf::SaveGame::parse(save.write());
@@ -211,6 +214,10 @@ void testSaveGame() {
     check(loaded.x == 1280 && loaded.y == 1472 && loaded.direction == 5, "position survives");
     check(loaded.hp == 92 && loaded.level == 3 && loaded.experience == 140 && loaded.gold == 120, "stats survive");
     check(loaded.flags.at({sf::ScenarioScript::kSave, 71}) == 1, "story flags survive");
+    check(loaded.career && loaded.career->history == save.career->history && loaded.career->offered == sf::HeroClass::Wizard &&
+              loaded.career->kills == 1 && loaded.career->killsBy[sf::Career::kMagic] == 1,
+          "the class, its history and the kills survive");
+    check(!sf::SaveGame::parse("version=1\nmap=a\n").career, "older saves have no class");
 
     sf::Inventory restored;
     restored.addGold(5);
@@ -235,6 +242,7 @@ void testSaveGame() {
     check(threw("hello"), "junk is rejected");
     check(threw("version=1\n"), "a save without a map is rejected");
     check(threw("version=1\nmap=a\nat=1,x,2\n"), "bad numbers are rejected");
+    check(threw("version=1\nmap=a\nclasses=0071\n"), "unknown classes are rejected");
     check(!threw("version=1\nmap=a\nfuture=thing\n"), "unknown keys are skipped");
 }
 

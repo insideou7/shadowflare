@@ -254,9 +254,17 @@ void Game::gainExperience(int amount) {
     // As in the original: one level at a time, counting again from 0.
     ++playerLevel_;
     playerExperience_ = 0;
+    career_.levelUp(playerLevel_);
     playerHp_ = playerMaxHp();  // a new level heals fully, as in the original
-    log::info("Level {}", playerLevel_);
-    showMessage(std::format("Level {}!", playerLevel_));
+    log::info("Level {}, {}", playerLevel_, className(career_.current));
+    // The level-up window's lines about the class (0x451771).
+    if (playerLevel_ == 5) {
+        showMessage(std::format("Level {}! Changed your occupation to [{}]", playerLevel_, className(career_.current)));
+    } else if (career_.canChange()) {
+        showMessage(std::format("Level {}! It is possible to change your occupation to [{}]", playerLevel_, className(career_.offered)));
+    } else {
+        showMessage(std::format("Level {}!", playerLevel_));
+    }
 }
 
 void Game::showMessage(std::string text) {

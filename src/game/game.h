@@ -76,11 +76,16 @@ public:
 
     // Saves the game to a text file (F5) or loads it back (F9). False, with
     // a message on screen, when that fails.
-    // Starts the hero at a level, fully healed (for testing).
+    // Starts the hero at a level, fully healed (for testing): a warrior from
+    // level 5, as the original makes every hero.
     void setLevel(int level) {
         playerLevel_ = std::clamp(level, 1, levels_.maxLevel());
+        career_ = Career::at(playerLevel_);
         playerHp_ = playerMaxHp();
     }
+
+    // Shows the status window (toggled with S).
+    void setStatusOpen(bool open) { showStatus_ = open; }
 
     // The main menu. At the start it offers Continue, New Game and Quit;
     // Esc during play opens it with Resume, Save and Load as well.
@@ -155,7 +160,6 @@ private:
     Actor* actorById(std::int32_t id);
     const Actor* actorById(std::int32_t id) const;
     void talkTo(Actor& person);
-    HeroClass heroClass() const { return autoClass_ ? classAtLevel(playerLevel_) : heroClass_; }
 
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadScenario(const std::string& dir);
@@ -205,7 +209,7 @@ private:
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
-    HeroStats heroStats() const { return sf::heroStats(playerLevel_, heroClass(), autoClass_ ? 5 : classFrom_); }
+    HeroStats heroStats() const { return sf::heroStats(career_.history); }
     int playerAttack() const;
     int playerDefense() const;
     int playerHit() const;
@@ -223,6 +227,10 @@ private:
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
+    // The status window and its Change Career button (status.cpp).
+    bool statusClick(int x, int y);
+    void renderStatus();
+    void changeCareer();
     void renderHud();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
@@ -272,11 +280,8 @@ private:
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     GameTables tables_;  // Table.Tbd; empty with open content
-    // The hero's class. Original data leaves it to the guild scripts; open
-    // content without scripts makes the hero a warrior from level 6.
-    HeroClass heroClass_ = HeroClass::Novice;
-    int classFrom_ = 5;  // the level the class was taken at
-    bool autoClass_ = true;
+    Career career_;  // the hero's class, its history and the class on offer
+    bool showStatus_ = false;
     std::optional<Dialogue> dialogue_;
     std::map<int, ShopStock> shops_;  // by INITTRADE's shop number
     std::optional<int> openShop_;

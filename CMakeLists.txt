@@ -55,6 +55,7 @@ add_executable(shadowflare
     src/game/saving.cpp
     src/game/title.cpp
     src/game/talk.cpp
+    src/game/status.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

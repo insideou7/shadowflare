@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "logic/inventory.h"
+#include "logic/progression.h"
 #include "logic/script_runner.h"
 
 namespace sf {
@@ -33,8 +34,7 @@ struct SaveGame {
     int hp = 0;
     int level = 1;
     std::int64_t experience = 0;
-    int heroClass = -1;  // HeroClass; -1 = chosen by level (open content)
-    int classFrom = 5;   // the level the class was taken at
+    std::optional<Career> career;
     int gold = 0;
     std::vector<BagEntry> bag;
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;

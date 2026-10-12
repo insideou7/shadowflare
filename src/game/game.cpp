@@ -71,8 +71,6 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     }
     loadItems();
     loadLevelCurve();
-    // With the original data its guild scripts give the hero a class.
-    autoClass_ = tables_.tables.empty();
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     giveStartingKit();
@@ -343,6 +341,9 @@ void Game::handleEvent(const SDL_Event& event) {
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
+                case SDLK_s:
+                    if (!openShop_) showStatus_ = !showStatus_;
+                    break;
                 case SDLK_i:
                     showInventory_ = !showInventory_;
                     // Closing the panel puts a held item back, or drops it.
@@ -366,6 +367,7 @@ void Game::handleEvent(const SDL_Event& event) {
             // Mouse events arrive in logical (640x480) coordinates.
             if (event.button.button != SDL_BUTTON_LEFT && event.button.button != SDL_BUTTON_RIGHT) break;
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (statusClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT) {
                 mouseHeld_ = true;
@@ -683,6 +685,9 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
         dropLoot(enemy);
+        // The original counts how monsters die, to offer a class (0x4134a0).
+        const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
+        career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, false);
         runEvent(ScenarioScript::kOnEnemyDead, enemy.gameId());
         const auto& s = enemy.placement.stats;
         gainExperience(s.experience > 0 ? s.experience : defaultExperience(s.hp, s.attack));
@@ -797,6 +802,7 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderShop();
+    renderStatus();
     renderInventory();
     renderHud();
     renderDialogue();
