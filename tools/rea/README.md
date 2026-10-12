@@ -34,6 +34,12 @@ use the CLI directly:
 
     npx -y rea-agents@6.4.0 inspect-artifact /tmp/sf-bin/ShadowFlare.exe --json
 
+The first decompile of a binary runs Ghidra's full analysis, which takes
+about two minutes for ShadowFlare.exe. Claude Code cloud sessions stop MCP
+tool calls after 60 seconds (`MCP_TOOL_TIMEOUT=60000`), which cancels that
+analysis, so there use the CLI above (`rea decompile <exe> <function>`) or
+raise `MCP_TOOL_TIMEOUT`.
+
 Never commit the game files or large decompiler dumps of them. Notes on what
 the code does belong in docs/; the older objdump helpers are in tools/re/.
 
