@@ -256,7 +256,7 @@ class Wild(Ground):
     KINDS = {"shore": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
                        ((38, 86, 146), (20, 52, 100), (70, 124, 184), 0.14)),
              "desert": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
-                        ((92, 66, 42), (62, 44, 28), (120, 90, 60), 0.26)),
+                        ((88, 70, 52), (60, 47, 34), (112, 92, 70), 0.24)),
              "heath": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
                        ((40, 32, 26), (24, 19, 15), (58, 47, 38), 0.24)),
              "coast": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
@@ -276,6 +276,11 @@ class Wild(Ground):
         if self.kind == "shore":
             # Water: smoother, with soft ripples instead of grit.
             zero = colour(*b, 0.2 * big + 0.5 * self.ripple(u, v), fine * 0.3, gb)
+        elif self.kind == "desert":
+            # Dry, fine-grained earth: faint patches and small dark dents.
+            zero = colour(*b, 0.1 * big, fine, gb)
+            dents = np.clip(-0.9 - self.tuft(u * 5, v * 5), 0, 1)
+            zero = zero * (1 - 0.35 * np.sqrt(dents))[..., None]
         else:
             zero = colour(*b, 0.25 * big, fine, gb)
         return one, zero, self.edge(u, v)

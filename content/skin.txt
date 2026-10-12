@@ -35,6 +35,8 @@ tiles=Map/wildsfloor.sheet,256
 tiles=Map/wildsfloor.sheet,496
 [material water]
 tiles=Map/wildsfloor.sheet,512
+[material dryearth]
+tiles=Map/wildsfloor.sheet,768
 [material moss]
 tiles=Map/deepfloor.sheet,0
 [material earth]
@@ -60,7 +62,7 @@ stone=57,56,59
 [ground 3rdmap_00.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
@@ -68,7 +70,7 @@ water=16,62,93
 [ground 3rdmap_01.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
@@ -76,7 +78,7 @@ water=16,62,93
 [ground 3rdmap_02.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
@@ -84,7 +86,7 @@ water=16,62,93
 [ground 3rdmap_03.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
@@ -92,7 +94,7 @@ water=16,62,93
 [ground 3rdmap_04.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
@@ -100,7 +102,7 @@ water=16,62,93
 [ground 3rdmap_05.njp]
 heath=44,48,14
 lawn=23,48,3
-earth=66,48,29
+dryearth=66,48,29
 sand=98,74,45
 soil=32,22,17
 moss=26,17,16
