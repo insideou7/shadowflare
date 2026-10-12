@@ -129,46 +129,66 @@ def pillar(black=""):
         blackout((0.02, 2.24, h), (1.12, 0, h / 2))
 
 
-def stairway(side=False):
+def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=0.6):
     """Stone steps climbing through a gateway in the wall into the dark,
     on a half round dais of dark carved stone in front of it, with a low
     wall along the left of the flight. side: only the low wall along the
-    right, which the original draws as a piece of its own."""
-    stone, cap, hole = mat("stone", STONE), mat("capstone", CAPSTONE), mat("hole", DARK)
+    right, which the original draws as a piece of its own. look: material
+    specs (stone, cap, dais) for another area's stairs; dais: whether to
+    build the dais; sides: which low walls, "l", "r" or "lr"; down: the
+    flight goes down into a pit instead of up; raise_top: how much taller
+    than a wall the gateway stands."""
+    look = look or dict(stone=STONE, cap=CAPSTONE, dais=DAIS)
+    stone, cap, hole = mat("stone", look["stone"]), mat("capstone", look["cap"]), mat("hole", DARK)
     w, n, rise, run = 2.6, 8, 0.38, 0.5
     y0 = -2.4  # front edge of the bottom step; the wall's face is at y = 0
 
-    def parapet(x):
-        # A low wall whose top climbs with the flight.
-        ya, yb, ha, hb = y0 - 0.15, 0.0, rise + 0.6, 6 * rise + 0.6
+    def parapet(x, foot=True):
+        # A low wall whose top climbs with the flight (or a level stub
+        # beside a pit).
+        ya, yb = y0 - 0.15, 0.0
+        ha, hb = (1.4, 1.4) if down else (rise + 0.6, 6 * rise + 0.6)
         v = [(x + dx, y, z) for dx in (-0.3, 0.3) for y, z in ((ya, 0), (yb, 0), (yb, hb), (ya, ha))]
         f = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
         mesh(v, f, stone, "parapet")
-        if x < 0:  # a post at the foot
+        if foot and not down:  # a post at the foot
             solid(box((0.7, 0.7, 1.6), (x, y0 + 0.2, 0.8), stone))
 
     if side:
-        parapet(w / 2 + 0.3)
+        parapet(w / 2 + 0.3, foot=False)
         return
-    dais = mat("dais", DAIS)
     # The gateway: two jambs and a lintel. It stands a little in front of
     # the wall line, so it is built taller for its top to run on in line
     # with the walls beside it.
-    jamb, top = 1.0, WALL_H + 0.6
+    jamb, top = 1.0, WALL_H + raise_top
     for x in (-w / 2 - jamb / 2, w / 2 + jamb / 2):
         solid(box((jamb, WALL_T, top), (x, WALL_T / 2, top / 2), stone))
     gate = 4.6
     solid(box((w, WALL_T, top - gate), (0, WALL_T / 2, (top + gate) / 2), stone))
     box((w + 2 * jamb + 0.1, WALL_T + 0.2, 0.3), (0, WALL_T / 2, top + 0.1), cap)
-    # Darkness beyond the gateway, the flight climbing into it.
+    # Darkness beyond the gateway, the flight climbing into it (or going
+    # down into a pit).
     box((w, 2.0, gate), (0, 0.25 + 1.0, gate / 2), hole)
-    for k in range(n):
-        h = (k + 1) * rise
-        y = y0 + k * run
-        box((w, 1.2 - y, h), (0, (y + 1.2) / 2, h / 2), cap)
-    parapet(-w / 2 - 0.3)
-    # The dais: a half round slab in front of the wall, carved with rings
-    # and a curl.
+    if down:  # the pit, seen from above: black between the low walls
+        box((w, -y0, 0.02), (0, y0 / 2, 0.01), hole)
+    else:
+        for k in range(n):
+            h = (k + 1) * rise
+            y = y0 + k * run
+            box((w, 1.2 - y, h), (0, (y + 1.2) / 2, h / 2), cap)
+    if "l" in sides:
+        parapet(-w / 2 - 0.3)
+    if "r" in sides:
+        parapet(w / 2 + 0.3, foot=False)
+    if dais:
+        landing(look)
+
+
+def landing(look=None):
+    """The half round dais of carved stone in front of a stair gateway,
+    with rings and a curl cut into it."""
+    look = look or dict(stone=STONE, cap=CAPSTONE, dais=DAIS)
+    dais, cap = mat("dais", look["dais"]), mat("capstone", look["cap"])
     bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=3.4, depth=0.3, location=(0, 0, 0.15))
     disc = studio.assign(bpy.context.object, dais)
     cut = box((8.0, 4.0, 1.0), (0, 2.0, 0.2), cap)

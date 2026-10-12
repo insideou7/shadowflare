@@ -32,6 +32,23 @@ OLDCOPPER = dict(colour=(0.58, 0.34, 0.17), dark=(0.16, 0.08, 0.04), scale=16, r
                  band=(0.35, 0.7), spot=0.35, spot_colour=(0.14, 0.09, 0.05), grime=0.4)
 RUST = dict(colour=(0.30, 0.20, 0.14), dark=(0.10, 0.07, 0.05), scale=24, rough=0.5, bump=0.5,
             spot=0.3, spot_colour=(0.48, 0.24, 0.10))
+# Bright red-brown rust, for the braced iron panels.
+REDRUST = dict(colour=(0.52, 0.24, 0.11), dark=(0.15, 0.06, 0.03), scale=20, rough=0.5, bump=0.5)
+# The carved landing in front of the stairs.
+DDAIS = dict(colour=(0.46, 0.40, 0.24), dark=(0.08, 0.07, 0.04), scale=12, detail=16, bump=0.8, grime=0.6)
+
+
+def stairway(**kw):
+    """The fort's stair gateway (fort.py) in this area's stone."""
+    import fort
+    fort.stairway(look=dict(stone=BLOCKS, cap=CAP, dais=DDAIS), raise_top=0.0, **kw)
+
+
+def landing():
+    import fort
+    fort.landing(dict(stone=BLOCKS, cap=CAP, dais=DDAIS))
+
+
 DARK = dict(colour=(0.05, 0.05, 0.05), dark=(0.02, 0.02, 0.02), scale=4, bump=0)
 
 WALL_L, WALL_H, WALL_T = 6.4, 5.9, 0.7
@@ -47,25 +64,30 @@ def solid(o):
 
 
 def wall(along_y=False, fittings=None, seed=1):
-    """A wall of big mossy blocks under a capping course, two tiles long.
-    fittings: None, "pipes" (a copper pipe along it and one coming down
-    to a valve) or "grate" (an iron grille set into it)."""
+    """A plain slab wall of big mossy blocks, flat on top like the
+    original's, two tiles long. fittings: None, "pipes" (a fat copper pipe
+    along it and others coming down to a valve and a drum) or "grate" (a
+    rusty iron panel braced across)."""
     rng = random.Random(seed)
-    blocks, cap = mat("blocks", BLOCKS), mat("cap", CAP)
+    blocks = mat("blocks", BLOCKS)
     copper, iron = mat("copper", OLDCOPPER), mat("iron", IRON)
     solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), blocks))
-    box((WALL_L + 0.1, WALL_T + 0.25, 0.35), (0, 0, WALL_H + 0.1), cap)
-    box((WALL_L + 0.1, WALL_T + 0.2, 0.4), (0, 0, 0.2), cap)
     face = -WALL_T / 2  # the side facing the camera (Blender -y)
     if fittings == "pipes":
-        cyl(0.24, WALL_L, (0, face - 0.30, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
+        cyl(0.34, WALL_L, (0, face - 0.40, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
         for x in (-WALL_L / 2 + 0.4, 0.6, WALL_L / 2 - 0.4):
-            cyl(0.30, 0.16, (x, face - 0.30, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
-            box((0.12, 0.35, 0.5), (x, face - 0.1, WALL_H - 1.25), iron)
-        x = rng.uniform(-1.6, 1.0)
-        cyl(0.18, 3.2, (x, face - 0.30, WALL_H - 2.6), copper)
-        ball(0.24, (x, face - 0.30, WALL_H - 1.0), copper)
-        cyl(0.30, 0.18, (x, face - 0.30, 2.6), iron)
+            cyl(0.42, 0.2, (x, face - 0.40, WALL_H - 1.0), copper, rot=(0, math.pi / 2, 0))
+            box((0.14, 0.45, 0.6), (x, face - 0.15, WALL_H - 1.3), iron)
+        x2 = rng.uniform(1.2, 2.2)
+        cyl(0.26, WALL_H - 1.0 - 1.5, (x2, face - 0.40, (WALL_H - 1.0 + 1.5) / 2), copper)
+        ball(0.34, (x2, face - 0.40, WALL_H - 1.0), copper)
+        cyl(0.6, 1.5, (x2, face - 0.65, 0.75), copper, verts=20)  # a drum at its foot
+        for z in (0.2, 1.3):
+            cyl(0.63, 0.12, (x2, face - 0.65, z), iron, verts=20)
+        x = rng.uniform(-1.8, -0.4)
+        cyl(0.24, 3.2, (x, face - 0.40, WALL_H - 2.6), copper)
+        ball(0.32, (x, face - 0.40, WALL_H - 1.0), copper)
+        cyl(0.36, 0.2, (x, face - 0.40, 2.6), iron)
         # The valve wheel, facing out.
         bpy.ops.mesh.primitive_torus_add(major_radius=0.36, minor_radius=0.05, location=(x, face - 0.62, 2.0),
                                          rotation=(math.pi / 2, 0, 0))
@@ -74,17 +96,16 @@ def wall(along_y=False, fittings=None, seed=1):
         cyl(0.18, 0.9, (x, face - 0.30, 1.2), copper)
         cyl(0.28, 0.3, (x, face - 0.30, 0.6), copper)
     elif fittings == "grate":
-        hole = mat("hole", DARK)
-        box((2.6, 0.1, 2.8), (0, face - 0.01, 2.3), hole)
-        for k in range(7):
-            box((0.08, 0.12, 2.8), (-1.2 + 0.4 * k, face - 0.08, 2.3), iron)
-        for z in (1.0, 2.3, 3.6):
-            box((2.7, 0.12, 0.1), (0, face - 0.08, z), iron)
-        frame = mat("rust", RUST)
-        for dz in (-1.45, 1.45):
-            box((2.9, 0.2, 0.18), (0, face - 0.1, 2.3 + dz), frame)
-        for dx in (-1.35, 1.35):
-            box((0.18, 0.2, 3.0), (dx, face - 0.1, 2.3), frame)
+        # A rusty iron frame over most of the face, braced corner to
+        # corner.
+        frame = mat("redrust", REDRUST)
+        w, h = WALL_L - 0.8, WALL_H - 0.8
+        for dz in (-h / 2, h / 2):
+            box((w + 0.2, 0.24, 0.24), (0, face - 0.12, WALL_H / 2 + dz), frame)
+        for dx in (-w / 2, w / 2):
+            box((0.24, 0.24, h + 0.2), (dx, face - 0.12, WALL_H / 2), frame)
+        for sa in (-1, 1):
+            box((0.2, 0.2, math.hypot(w, h)), (0, face - 0.14, WALL_H / 2), frame, rot=(0, sa * math.atan2(w, h), 0))
     if along_y:
         turn(math.pi / 2)
 
@@ -99,11 +120,8 @@ def turn(angle):
 
 
 def pillar():
-    """A square pillar of the same blocks, as tall as the walls."""
-    blocks, cap = mat("blocks", BLOCKS), mat("cap", CAP)
-    solid(box((1.8, 1.8, WALL_H), (0, 0, WALL_H / 2), blocks))
-    box((2.05, 2.05, 0.4), (0, 0, WALL_H + 0.1), cap)
-    box((2.0, 2.0, 0.45), (0, 0, 0.22), cap)
+    """A plain square pillar of the same blocks, as tall as the walls."""
+    solid(box((2.0, 2.0, WALL_H), (0, 0, WALL_H / 2), mat("blocks", BLOCKS)))
 
 
 def pipe(along_y=False, valve=False):
@@ -292,6 +310,9 @@ PROPS = {
     "hatch": (hatch, 64),
     "hatch_big": (lambda: hatch(big=True), 64),
     "stairs_down": (stairs, 256),
+    "dstairs": (lambda: stairway(dais=False, sides="lr"), 320),
+    "dstairs_pit": (lambda: stairway(dais=False, sides="lr", down=True), 320),
+    "ddais": (landing, 224),
     "brazier": (brazier, 96),
     "obelisk": (obelisk, 192),
     "chest": (chest, 64),
@@ -312,6 +333,8 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
+        if name.startswith(("dwall", "dpillar", "dstairs", "ddais")):  # the original's walls cast no shadows
+            bpy.data.objects["shadow catcher"].hide_render = True
         studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
         ax, ay = studio.anchor(scene)
         if blend:
