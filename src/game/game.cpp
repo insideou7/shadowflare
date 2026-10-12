@@ -369,6 +369,8 @@ void Game::handleEvent(const SDL_Event& event) {
         dialogueEvent(event);
         return;
     }
+    // The open map takes the arrow keys and Enter, held keys repeating.
+    if (event.type == SDL_KEYDOWN && mapOpen_ && areaMapKey(event.key.keysym.sym)) return;
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
         case SDL_KEYDOWN:
@@ -381,6 +383,8 @@ void Game::handleEvent(const SDL_Event& event) {
                         helpOpen_ = false;
                     } else if (missionsOpen_) {
                         closeMissions();
+                    } else if (mapOpen_) {
+                        closeAreaMap();
                     } else if (openShop_) {
                         if (!hand_) closeShop();
                     } else if (showInventory_) {
@@ -403,7 +407,10 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_s:
                     if (!openShop_) {
                         showStatus_ = !showStatus_;
-                        if (showStatus_) closeMissions();
+                        if (showStatus_) {
+                            closeMissions();
+                            closeAreaMap();
+                        }
                     }
                     break;
                 case SDLK_i:
@@ -453,7 +460,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_x: notYet("The special items window"); break;
                 case SDLK_m: notYet("The magic window"); break;
                 case SDLK_q: toggleMissions(); break;
-                case SDLK_n: notYet("The map"); break;
+                case SDLK_n: toggleAreaMap(); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
@@ -475,6 +482,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (areaMapClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
                 partnerOrder(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) {
@@ -606,6 +614,7 @@ void Game::tick() {
         changeScenario(number, entry);
     }
     updateCamera();
+    tickAreaMap();
 }
 
 // Runs the script of each trigger area the player has just stepped into.
@@ -795,10 +804,12 @@ void Game::tickPlayer() {
     // mouse only, and its letter keys open windows).
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
     double kx = 0, ky = 0;
-    if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
-    if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
-    if (keys[SDL_SCANCODE_UP]) ky -= 1;
-    if (keys[SDL_SCANCODE_DOWN]) ky += 1;
+    if (!mapOpen_) {  // the open map scrolls with them instead
+        if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
+        if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
+        if (keys[SDL_SCANCODE_UP]) ky -= 1;
+        if (keys[SDL_SCANCODE_DOWN]) ky += 1;
+    }
 
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
@@ -1115,27 +1126,7 @@ void Game::renderMap() {
                     ++it;
                 }
             }
-            if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
-                if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
-                continue;
-            }
-            if (map_->isShadowBank(o.bank) != shadows) continue;
-            const SpriteBank* bank = map_->bank(o.bank);
-            if (!bank) continue;
-            int sx, sy;
-            worldToScreen(o.x, o.y, sx, sy);
-            sx -= camX;
-            sy -= camY;
-            if (sx < -1024 || sy < -1024 || sx > kScreenWidth + 1024 || sy > kScreenHeight + 1024) continue;
-            const SpriteTexture* sprite = sprites_.get(*bank, o.pattern, false);
-            if (!sprite) continue;
-            SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-            if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) continue;
-            if (shadows) {
-                SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-                SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
-            }
-            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            drawObject(o, shadows, camX, camY, shadowAlpha);
         }
         for (const Drawable& d : pending) draw(d);
     }
@@ -1143,6 +1134,7 @@ void Game::renderMap() {
     // walls; where nothing covers them it lands on itself and changes nothing.
     if (player_ && settings_.seeThroughPlayer) player_->draw(renderer_, sprites_, camX, camY, shadowAlpha, 96);
     renderSpells(camX, camY);
+    if (darknessShown()) renderDarkness(camX, camY);
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
@@ -1151,6 +1143,7 @@ void Game::renderMap() {
     renderStatus();
     renderInventory();
     renderMissions();
+    renderAreaMap();
     renderHud();
     renderMissionHud();
     renderPartnerGauge();
@@ -1159,6 +1152,48 @@ void Game::renderMap() {
 }
 
 // The original's ground: pre-drawn chips on a screen-aligned grid.
+// One map object, in the shadow pass (its shadow, if it is one) or the
+// other (its picture, or the skin's in its place).
+void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha) {
+    if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
+        if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
+        return;
+    }
+    if (map_->isShadowBank(o.bank) != shadows) return;
+    const SpriteBank* bank = map_->bank(o.bank);
+    if (!bank) return;
+    int sx, sy;
+    worldToScreen(o.x, o.y, sx, sy);
+    sx -= camX;
+    sy -= camY;
+    if (sx < -1024 || sy < -1024 || sx > kScreenWidth + 1024 || sy > kScreenHeight + 1024) return;
+    const SpriteTexture* sprite = sprites_.get(*bank, o.pattern, false);
+    if (!sprite) return;
+    SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) return;
+    if (shadows) {
+        SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
+        SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
+    }
+    SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+}
+
+// The map's ground and objects with no one on them, for the map window.
+void Game::renderScenery(int camX, int camY) {
+    const auto& g = map_->ground();
+    if (g.isoTile > 0) {
+        renderIsoGround(camX, camY);
+    } else if (skin_) {
+        skin_->renderGround(camX, camY);
+    } else {
+        renderChips(camX, camY);
+    }
+    const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
+    for (const bool shadows : {true, false}) {
+        for (std::size_t i : drawOrder_) drawObject(map_->objects().objects[i], shadows, camX, camY, shadowAlpha);
+    }
+}
+
 void Game::renderChips(int camX, int camY) {
     const auto& g = map_->ground();
     const int x0 = std::max(0, camX / g.chipWidth - 1);

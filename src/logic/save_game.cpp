@@ -125,6 +125,8 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
+    // seen=area,width,height, then the runs of unseen and seen map cells.
+    for (const auto& [area, map] : explored) out += std::format("seen={},{}\n", area, map.encode());
     // Items: class,code,count[,x,y], then wear,unidentified and the rolled
     // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
@@ -224,6 +226,10 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.gold = static_cast<int>(numbers(value, 1, lineNumber)[0]);
         } else if (key == "mines") {
             save.mines = static_cast<int>(std::max(0LL, numbers(value, 1, lineNumber)[0]));
+        } else if (key == "seen") {
+            const auto comma = value.find(',');
+            if (comma == std::string_view::npos) throw FormatError(std::format("save line {}: expected an area name", lineNumber));
+            save.explored[std::string(value.substr(0, comma))] = ExploredMap::decode(value.substr(comma + 1));
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);

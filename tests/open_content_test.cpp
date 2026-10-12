@@ -163,6 +163,17 @@ void testScenario() {
     check(l.size() == 2 && l[0].stats.dropList == 2 && l[0].stats.goldChance == 10 && l[0].stats.goldMax == 8, "enemy loot fields");
     check(l.size() == 2 && l[1].group == sf::ScenarioControl::Group::Item && l[1].itemClass == 3 && l[1].x == 700,
           "scenario item");
+
+    const auto dark = sf::open::parseScenario(bytes("light=1000\nenemy=1,5,6,0,30,4,480,goblin\nglow=1\nlamp=700,800,3\n"));
+    const auto& d = dark.control;
+    check(d.light == 1000 && d.placements.size() == 2, "dark scenario");
+    check(d.placements[0].light == 1, "a glowing enemy");
+    check(d.placements[1].group == sf::ScenarioControl::Group::Object && d.placements[1].light == 3 && d.placements[1].x == 700 &&
+              d.placements[1].y == 800,
+          "a lamp");
+    check(sf::open::parseScenario(bytes("map=a\n")).control.light == sf::ScenarioControl::kLit, "scenarios are lit by default");
+    expectRejected("lamp size", "lamp=1,2,6\n", [](auto& d) { sf::open::parseScenario(d); });
+    expectRejected("glow alone", "glow=1\n", [](auto& d) { sf::open::parseScenario(d); });
 }
 
 void testScript() {

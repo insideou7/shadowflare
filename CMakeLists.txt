@@ -47,6 +47,8 @@ add_library(sf_logic STATIC
     src/logic/mines.cpp
     src/logic/settings.cpp
     src/logic/partner.cpp
+    src/logic/lighting.cpp
+    src/logic/explored_map.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -72,6 +74,8 @@ add_executable(shadowflare
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
+    src/game/darkness.cpp
+    src/game/area_map.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

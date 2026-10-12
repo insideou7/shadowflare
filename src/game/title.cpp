@@ -72,6 +72,8 @@ void Game::newGame() {
     hand_.reset();
     inventory_.clear();
     flags_.clear();
+    explored_.clear();
+    mapOpen_ = false;
     playerLevel_ = 1;
     career_ = {};
     showStatus_ = false;

@@ -39,6 +39,7 @@ bool Game::saveGame() {
     for (const auto& [key, value] : flags_) {
         if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
     }
+    save.explored = explored_;
 
     std::ofstream out(saveFile_, std::ios::binary | std::ios::trunc);
     out << save.write();
@@ -80,6 +81,7 @@ bool Game::loadGame() {
 
     hand_.reset();
     flags_ = save.flags;
+    explored_ = save.explored;
     // Saves from before companions: Kerberos at level 1, at rest.
     partnerRecord_ = save.partner.value_or(PartnerRecord{});
     partner_.reset();

@@ -193,18 +193,22 @@ Townspeople have three charts: idle, walk and one more.
 
 Each scenario folder (`Scenario.Mct`, `.Scs` script, `.Njp` portraits) is
 one place at one point in the story. Several can share a map. Read by
-ShadowFlare.exe at 0x427b50. All 209 files parse with 12 bytes left over.
+ShadowFlare.exe at 0x427b50. All 209 files parse to their last byte.
 
 ```
 char magic[16]          "MCED DATA v0000\x1a"
 char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
 char mapPath[0x104]     e.g. Map\c02_00.map
-i32  unknown[3]
+i32  unknown[2]
+i32  areaKind          0 town, 1 field, 2 caravan, 3 boss room, 4 ruins/tower/fort,
+                        5 cave, 6 shrine (scenario + 0x6c)
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"
 3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
 4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
 i32  n; EntryPoint[n]   where the party appears: i32 id, x, y, direction
-12 more bytes, unknown
+i32  flags[2]           scenario + 0x2c and + 0x70, use not traced
+i32  light              how light the area is: 2000 lit (towns, fields), 1000
+                        dark beyond the lights, 1200-1600 dim (see Darkness)
 ```
 
 Record (same layout in every group; only the trailing block size differs):
@@ -223,7 +227,7 @@ i32  rect[4]            left, top, right, bottom around (x, y)
 i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
 i32  n; i32 unknown[n]
 i32  hasTable; if 1: i32 m; i32 a[m]; i16 b[m], c[m], d[m]
-i32  unknown
+i32  light              the light it carries, Dark.njp part light + 1; -1 none
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
 ```
 
@@ -727,6 +731,38 @@ last frame.
 
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
+
+## Darkness and the area map
+
+**Darkness** (frame code 0x41e4f0). With Display Darkness on (option
+0x48d538), the view not split and the area's light (+0xa9f8, from the
+Mct's last word) not 2000, the frame copies `System/Game/Pattern/Dark.njp`
+part 0 (8-bit, 640 x 420, an ellipse brightest at the middle) into a light
+buffer, adds part 3 (160 x 110) at each player and part light + 1 at each
+character whose Mct light word is not -1, skipping dead monsters. The add
+is RKC_DIB::TransferToDIBEx mode 4, a saturating add (its table at
+HISPEEDMODE + 0xfa300 is min(255, a + b)). The buffer gets a grey palette
+from the light L: value i becomes i + i (L - 1000) / 1000 up to 1000 and
+i + (255 - i) (L - 1000) / 1000 above, and is drawn on layer 0x12 in mode
+0x1009, which multiplies the top 420 rows of the screen. Dark.njp's parts
+1-6 are 90 x 60, 120 x 80, 160 x 110, 200 x 130, 240 x 160 and 280 x 200.
+
+**The area map** (0x40d4d0, open while +0xa070 is set). N (0x4429b0) or
+the Settings Menu's MAP row (0x4103c0) toggle it; opening it closes the
+other left-hand windows, the mission list among them. It clips to (32, 40)
+- (319, 375), fills it black and draws the scenario's own
+`Scenario.Njp` pattern 0, the whole area at a tenth of its size, with the
+hero at (160, 210) less the scroll; the arrow keys scroll it 16 across and
+10 down, Enter centers it again. Over it goes the explored mask in mode
+0x1024, so unseen cells stay black. The mask (0x417f30) is one byte per
+cell of the map picture, saved as `Save\M<scenario><slot>.msk`; while
+the hero's screen position changes, 0x418370 marks the 68 x 46 cells
+from ((x - 340) / 10, (y - 230) / 10), about a screen. The hero is
+`MapIcon.njp` pattern 0 (an arrow) and 1 (PLAYER), shown 15 frames of
+every 20. The frame is `Status.njp` pattern 0x47 (320 x 415) and its gem
+pattern 0x76, pulsing over 60 frames; the area's name (the compass's,
++0xa804) sits at (72, 50) on a half-dark box. Clicks left of x = 320 and
+above y = 412 go to the map, and a right click there closes it.
 
 ## Not decoded yet
 

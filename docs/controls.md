@@ -38,7 +38,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | X | special items window | no |
 | M | magic window | no |
 | Q | mission list; see below | yes |
-| N | map | no |
+| N | map (the arrow keys scroll it, Enter centers it) | yes |
 | R | switch walk / run | yes |
 | H | help window | yes |
 | Print Screen | screen shot, saved as a bitmap in `ScreenShot/` next to the saved game | yes |
@@ -81,7 +81,7 @@ change it, Enter steps through it or does it.
 | Screen Mode at Start | WINDOW or FULL (full-screen desktop). Ours takes effect at once as well as at the next start. |
 | Semi-transparent Player | ON draws a faint copy of the hero over walls and trees that hide them |
 | Semi-transparent Shadow | OFF draws shadows solid black |
-| Display Darkness | not in yet |
+| Display Darkness | ON darkens ruins, caves and towers beyond the light round the hero, lamps and glowing monsters, as the original does |
 | Save Image at Game End | not in yet (no load-screen pictures) |
 | Click Range | ON: a click reaches things in a square around the cursor; OFF: only right at it |
 | Click Range size | MINI, SMAL, NORM, LARG, MAX. The original's sizes in pixels are not decoded yet; ours are 12, 20, 32, 44 and 60 pixels either side. |
@@ -89,7 +89,7 @@ change it, Enter steps through it or does it.
 | Eff. Volume, BGM Volume | not in yet (no sound) |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
 | Mission List | opens the mission list |
-| Map | not in yet |
+| Map | opens the area map, as N does |
 | Help | the keyboard help window |
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |
