@@ -42,6 +42,8 @@ struct Options {
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
+    int talk = -1;            // speak to this character (in-game id) at the start
+    std::vector<int> answers; // replies to the first messages, -1 = none
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -76,6 +78,14 @@ Options parseArgs(int argc, char** argv) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--talk" && i + 1 < argc) {
+            options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--answers" && i + 1 < argc) {
+            for (char* p = argv[++i]; *p;) {
+                options.answers.push_back(static_cast<int>(std::strtol(p, &p, 10)));
+                if (*p == ',') ++p;
+                else break;
+            }
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -269,11 +279,13 @@ int main(int argc, char** argv) {
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight;
+                          options.level > 0 || options.autoFight || options.talk >= 0;
     if (!scripted) app.game->openMenu(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
+    app.game->setAnswers(options.answers);
+    if (options.talk >= 0) app.game->talkToId(options.talk);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

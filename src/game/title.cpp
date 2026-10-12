@@ -77,6 +77,11 @@ void Game::newGame() {
     inventory_.clear();
     flags_.clear();
     playerLevel_ = 1;
+    heroClass_ = HeroClass::Novice;
+    classFrom_ = 5;
+    shops_.clear();
+    openShop_.reset();
+    dialogue_.reset();
     playerExperience_ = 0;
     giveStartingKit();
     updateEquipment();

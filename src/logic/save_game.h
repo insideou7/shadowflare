@@ -33,6 +33,8 @@ struct SaveGame {
     int hp = 0;
     int level = 1;
     std::int64_t experience = 0;
+    int heroClass = -1;  // HeroClass; -1 = chosen by level (open content)
+    int classFrom = 5;   // the level the class was taken at
     int gold = 0;
     std::vector<BagEntry> bag;
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;

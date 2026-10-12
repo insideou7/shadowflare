@@ -33,7 +33,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     d.subtype = in.i32();     // 0x10
     d.code = in.i32();        // 0x14
     d.quality = in.i32();     // 0x18
-    in.i32();                 // 0x88 drop pool mask
+    d.poolMask = in.i32();    // 0x88
     d.dropWeight = in.i32();  // 0x78
     d.price = in.i32();       // 0x40
     in.i32();                 // 0x44 fixed price

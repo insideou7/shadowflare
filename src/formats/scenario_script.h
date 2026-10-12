@@ -22,18 +22,88 @@ struct ScenarioScript {
         kNet = 5,       // NET
         kSave = 11,     // SAVE: flags kept in the save game
         kQuest = 12,    // QUEST
+        // Read-only values (ShadowFlare.exe 0x4346b0): 3 ELIV, 6 CPOSX and
+        // 7 CPOSY (a character's position), 8 PLAYMODE, 9 CCHECK, 10 WARP,
+        // 13 EXSTRG.
+        kCharacterX = 6,
+        kCharacterY = 7,
+        kPlayMode = 8,
     };
 
-    // Opcodes identified so far from how they are used in the game's scripts.
+    // Command numbers, with the names RKC_RPG_SCRIPT.dll compiles them from
+    // (its keyword table), and the operands they take.
     enum Opcode : std::int32_t {
-        kIf = 0,               // IF a op b sentence: runs that sentence when a op b holds
-        kSetFlag = 1,          // SETFLAG flag value
-        kChangeScenario = 17,  // CHANGESCENARIO scenario entry
+        kIf = 0,                // IF a op b sentence: runs that sentence when a op b holds
+        kSetFlag = 1,           // SETFLAG flag value
+        kTalk = 2,              // TALK message answer mode default speaker height
+        kTalkPartnerStatus = 3,
+        kIdentify = 4,          // IDENTIFY: identifies everything the player carries
+        kTrade = 5,             // TRADE shop: opens a shop
+        kInitTrade = 6,         // INITTRADE shop list: stocks a shop from Table.Tbd table 32 row `list`
+        kHealLife = 7,          // HEALLIFE
+        kHealMental = 8,        // HEALMENTAL
+        kRepair = 9,            // REPAIR slot
+        kCreateItem = 10,       // CREATEITEM class code x y min max
+        kAdd = 11, kSub = 12, kMul = 13, kDiv = 14, kRem = 15,  // ADD var value...
+        kPlaySound = 16,        // PLAYSOUND sound ? x y
+        kChangeScenario = 17,   // CHANGESCENARIO scenario entry
+        kStop = 18,             // C_STOP character: stops it wandering (to talk)
+        kMovable = 19,          // C_MOVABLE character: lets it wander again
+        kActionRequest = 20,    // C_ACTIONREQ
+        kSetAngleTo = 21,       // C_SETANGLETO character target (0 = the player)
+        kSetActive = 22,        // SETACTIVE character
+        kSetInactive = 23,      // SETINACTIVE character
+        kCreateItemTable = 24,
+        kResurrect = 25,
+        kMessageBoxValue = 26,
+        kMessageBox = 27,
+        kRoutine = 28, kRoutineNet = 29,
+        kCreateOptionAngle = 30,
+        kCheckEnemyLive = 31, kCheckEnemyDead = 32,
+        kGetNearPlayerPos = 33,
+        kCalcMyPlayerDist = 34,
+        kCalcAngle = 35,
+        kCreateEffect = 36,
+        kWarpGate = 37, kDeleteWarpGate = 38,
+        kGetRandom = 39,        // GETRANDAM min max var
+        kCreateEffectChar = 40,
+        kStorage = 41,
+        kGetPlayerLife = 42, kGetPlayerMental = 43,
+        kGetPartnerKind = 44, kChangePartner = 45,
+        kSetCharTrans = 46, kGetCharTrans = 47,
+        kDrawQuestName = 48,    // DRAWQUESTNAME quest
+        kSetCompasses = 49,
+        kGetEntryPoint = 50,    // GETENTRYPOINT var
+        kSetMessageDefine = 51, // SETMSGDEFINE v0..v19: values for %d in the next messages
+        kGetRepairPrice = 52,   // GETREPAIRPRICE slot var
+        kGetTotalGold = 53,     // GETTOTALGOLD var
+        kPayGold = 54,          // PAYGOLD amount
+        kCheckUnopinionItem = 55,
+        kAbsoluteObjectFlag = 56,
+        kGetPlayerSex = 57,
+        kCheckItemExist = 58, kDeleteItem = 59,
+        kSetUnlockSwitch = 60,
+        kGetPlayerLevel = 61,   // GETPLAYERLEVEL var
+        kSetQuestFlag = 62,
+        kGetPartnerLife = 63,
+        kStartVisual = 64,
+        kSettingRain = 65,
+        kGetMyPlayerNo = 66,
+        kMemorizeMagic = 67, kGetExperience = 68, kCheckMemorizedMagic = 69,
+        kEnableClassChange = 70, kGetClass = 71,
+        kChangeColor = 72, kStartCardGame = 73, kGetCardGameResult = 74,
+        kSetItemDirect = 75,
     };
 
     // Trigger events (the "status" field).
+    // (ShadowFlare.exe 0x4304b0 to 0x430a40.)
     enum Event : std::int32_t {
-        kOnJudge = 3,  // the player walks into the character's rectangle
+        kOnTalk = 0,       // the player speaks to the character
+        kOnTalkEnd = 1,    // the character's message box closed
+        kOnJudge = 3,      // the player walks into the character's rectangle
+        kOnEnemyDead = 4,  // an enemy died (inferred from where the exe raises it)
+        kEveryTick = 5,
+        kOnStart = 7,      // the scenario was entered
     };
 
     struct Operand {

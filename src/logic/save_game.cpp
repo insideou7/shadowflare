@@ -37,6 +37,7 @@ SaveGame::ItemRef ref(const Item& item) {
 std::string SaveGame::write() const {
     std::string out = std::format("# ShadowFlare saved game\nversion={}\nmap={}\nscenario={}\n", kVersion, map, scenario);
     out += std::format("at={},{},{}\nhp={}\nlevel={}\nexperience={}\ngold={}\n", x, y, direction, hp, level, experience, gold);
+    if (heroClass >= 0) out += std::format("class={},{}\n", heroClass, classFrom);
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
@@ -78,6 +79,10 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.hp = static_cast<int>(numbers(value, 1, lineNumber)[0]);
         } else if (key == "level") {
             save.level = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "class") {
+            const auto v = numbers(value, 2, lineNumber);
+            save.heroClass = static_cast<int>(v[0]);
+            save.classFrom = static_cast<int>(v[1]);
         } else if (key == "experience") {
             save.experience = numbers(value, 1, lineNumber)[0];
         } else if (key == "gold") {

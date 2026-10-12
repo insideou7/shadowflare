@@ -40,9 +40,10 @@ struct HeroStats {
     int operator[](Stat s) const { return value[s]; }
 };
 
-// The original's classes. A new hero has none; the original has them pick
-// one at a guild by level 5. Until that scene exists ours becomes a warrior
-// from level 6.
+// The original's classes, in the order GETCLASS reports them. A new hero
+// has none until a guild's script gives them one with ENABLECLASSCHANGE
+// (ShadowFlare.exe 0x4341da). Content without scripts makes the hero a
+// warrior from level 6 (classAtLevel).
 enum class HeroClass { Novice, Warrior, Magician, Hunter };
 HeroClass classAtLevel(int level);
 
@@ -50,8 +51,10 @@ HeroClass classAtLevel(int level);
 // (ShadowFlare.exe 0x412fb0): the male hero's starting stats (table 900,
 // column 0), what each classless level adds (columns 1-4), then what each
 // level in the class adds (warrior 902, magician 904, hunter 906; the n-th
-// level in a class reads column n - 1).
-HeroStats heroStats(int level, HeroClass cls = HeroClass::Warrior);
+// level in a class reads column n - 1). `classFrom` is the level the class
+// was taken at: levels up to it are classless (at most four of them add
+// anything), levels after it are the class's.
+HeroStats heroStats(int level, HeroClass cls = HeroClass::Warrior, int classFrom = 5);
 
 // Combat, as the original resolves a blow between the player and a monster
 // with no element involved. The chance to hit is hit minus evasion, kept

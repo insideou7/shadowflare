@@ -28,7 +28,10 @@ the game's item table (`Item.Ibn`, read with the help of the player's own
 `ShadowFlare.exe`): they lie where the scenarios put them, monsters drop
 gold and items, and what the hero wears shows on them and adds to attack
 and defense. The damage formula and spell effects are still placeholders.
-Story events, levels, shops, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+With the original data the scenario scripts run: click a person to talk,
+pick an answer with the mouse or the arrow keys and Enter, and shops,
+healers and the guilds' class change work as their scripts say. Sound and
+spells are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to
@@ -74,6 +77,8 @@ Options:
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
+- `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
+- `--answers <a,b,...>` answer the next messages with these options (-1 = none)
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 
 Run the unit tests with `ctest --test-dir build`.
