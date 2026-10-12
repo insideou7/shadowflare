@@ -71,6 +71,7 @@ bool Game::panelClick(int x, int y) {
         showStatus_ = !showStatus_;
         if (showStatus_) {
             closeMissions();
+            closeMagicWindow();
             panel_.flash[kFlashStatus] = 2;
         }
     } else if (kItemButton.has(x, y) && !openShop_) {

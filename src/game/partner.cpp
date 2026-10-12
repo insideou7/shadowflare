@@ -745,7 +745,7 @@ void Game::partnerExplodes() {
     Partner& p = *partner_;
     const Character& c = p.character;
     const int ofSpell = rules_.explosionUsesItsOwnLevel ? kExplosion : kElementalStrike;
-    const int level = std::max(1, spells_.castLevel(ofSpell));
+    const int level = std::max(1, castLevel(ofSpell));
     const int element = magic_.spell(kExplosion).element;
     log::info("The companion explodes at {:.0f},{:.0f} (level {})", c.x, c.y, level);
     // Its controller (21031, 0x42f890) plays the fire spray, both charts.

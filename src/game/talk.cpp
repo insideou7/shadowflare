@@ -92,6 +92,7 @@ public:
         g_.shops_.try_emplace(shop);
         g_.openShop_ = shop;
         g_.showStatus_ = false;  // the shop takes the left of the screen
+        g_.closeMagicWindow();
         g_.showInventory_ = true;
     }
     void healLife() override {

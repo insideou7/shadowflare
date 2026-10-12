@@ -264,6 +264,31 @@ double castSpeedFactor(const MagicTables& t, int spell, int chantSpeed, bool pow
     return 0.001 * t.spell(spell).castSpeed * kCastSteps[index];
 }
 
+bool PowerMode::start(bool spiritStone) {
+    if (!ready(spiritStone)) return false;
+    charge = 0;
+    left = kLength;
+    return true;
+}
+
+bool blockedInPowerMode(int spell) { return spell == kMoon || spell == kBerserker || spell == kEnergyShield; }
+
+double walkSpeedFactor(int walkSpeed, bool powerMode) {
+    // The scale the walk and run code builds on the stack (0x4351f0).
+    static constexpr double kSteps[10] = {2.0 / 3, 0.75, 0.8, 5.0 / 6, 6.0 / 7, 1.0, 7.0 / 6, 1.2, 1.25, 4.0 / 3};
+    const int step = powerMode ? 9 : std::clamp((walkSpeed + 32) / 32, 0, 9);
+    return kSteps[step];
+}
+
+double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode) {
+    // The hero's swing's scale (0x437fe0).
+    static constexpr double kSteps[10] = {0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0};
+    const auto column = static_cast<std::size_t>(std::clamp(attackSpeed, 0, 255) / 32);
+    int step = std::clamp(t.chantSteps[std::min(column, t.chantSteps.size() - 1)] + 1, 0, 9);
+    if (powerMode) step = 9;
+    return kSteps[step];
+}
+
 int regenerate(int maximum, int rate, int& carry) {
     if (rate == 0) {
         carry = 0;

@@ -73,6 +73,8 @@ add_executable(shadowflare
     src/game/partner.cpp
     src/game/missions.cpp
     src/game/panel.cpp
+    src/game/power.cpp
+    src/game/magic_window.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
