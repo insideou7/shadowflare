@@ -20,7 +20,5 @@ own too.
 
 ## Licence
 
-Everything in this folder is licensed under the Creative Commons
-Attribution-ShareAlike 3.0 licence ([LICENSE-CC-BY-SA-3.0.txt](LICENSE-CC-BY-SA-3.0.txt)),
-separately from the engine's code, which is MIT. Credit it as "ShadowFlare
-open content, by the contributors to insideou7/shadowflare".
+Everything in this folder is under the MIT licence, the same as the
+engine's code; see [LICENSE](../LICENSE) at the top of the repository.

@@ -131,7 +131,7 @@ Players will still need to supply their own game files.
     src/logic/      game rules without SDL: scripts, AI choice, movement
     src/game/       maps, game state, simulation tick and drawing
     third_party/    stb_image (PNG decoding for the open content)
-    content/        open replacement content (CC-BY-SA 3.0)
+    content/        open replacement content (MIT)
     tests/          unit tests that run without game data
     tools/          inventory script, reverse engineering helpers, the
                     Blender art scripts (tools/art) and a Flare importer
@@ -150,9 +150,9 @@ renders a whole map to an image.
 
 ## Licence
 
-The engine and tools are under the MIT licence; see [LICENSE](LICENSE).
-The open content in [content/](content/) is our own art, under CC-BY-SA
-3.0; see [content/README.md](content/README.md). stb_image is public domain (or MIT).
+The engine, tools and the open content in [content/](content/) (our own
+art, maps and text) are under the MIT licence; see [LICENSE](LICENSE).
+stb_image is public domain (or MIT).
 
 The original game is copyrighted and is not covered by this licence. Do
 not commit its files, extracted assets or decompiled code to this
