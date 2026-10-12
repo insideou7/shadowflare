@@ -2,10 +2,13 @@
 
 Replacement content that lets the engine run without the original game:
 seven areas (a village meadow, the old waterworks under it, caves and a
-coal mine, a fort, the wilds, the deep caverns and a castle), the player
-with his equipment, 24 kinds of monster, the townspeople, items, the
-inventory panel, the shop window, the speech balloon and the font. The
-formats are described in [docs/content.md](../docs/content.md).
+coal mine, a fort, the wilds, the deep caverns and a castle), the
+original's first area laid out on its routes with our own walls and
+paths (Remote Town, Cold Svalt Town and the fields, forests and dungeons
+round them), the player with his equipment, 24 kinds of monster, the
+townspeople, items, the inventory panel, the shop window, the speech
+balloon and the font. The formats are described in
+[docs/content.md](../docs/content.md).
 
 All of it is made for this project: modelled and rendered in Blender by
 the scripts in [tools/art](../tools/art) and laid out by
