@@ -350,6 +350,15 @@ taken as a second. `STORAGE` opens the warehouse, the shop window's twin
 (Status.njp patterns 14 and 15, a 9 x 10 grid); Remote Town runs it when
 the player uses the Warehouse object (10000300).
 
+`IDENTIFY` identifies everything the player wears and carries;
+`CHECKUNOPINIONITEM` sets its variable to 1 when anything is still
+unidentified, else 0. `REPAIR` and `GETREPAIRPRICE` take a part: 0 the
+weapon, 1 helmet, 2 body armour, 3 shield, 4 boots, -1 every weapon and
+armour in the bag (GETREPAIRPRICE prices the bag for any number above 4
+too; REPAIR then does nothing). Neither takes gold: the script pays with
+`PAYGOLD`. Remote Town's blacksmith (12000001) uses them all, with the
+identify price in TEMP 1000017.
+
 `TALK` shows a message over the speaker (-1 = the character whose trigger
 is running), filled in with sprintf from the values `SETMSGDEFINE` set.
 Text between `~` marks is an option to choose; `default` is the option
@@ -542,6 +551,18 @@ Accessories have item level, required level and modifiers. Consumables
 have item level and nine effect words (word 0: may go in the belt; 1:
 health restored; 2: mental power restored). Special items have nothing
 more.
+
+Each item the game makes keeps its own durability left (+0xbc, out of
++0xb8 from the record) and an identified flag (+0x1c). Magic and unique
+items (quality 1 and 2) are made unidentified and show the second name
+until then (0x462d30). Each blow the hero aims wears the weapon one point
+30% of the time; each blow that reaches the hero wears the helmet and
+boots 20% and the body armour and shield 30% of the time (not a shield
+behind a two-handed weapon). An item at 0 is broken and adds nothing to
+the hero's stats (0x44eb5b). Mending one costs nothing when it is unworn,
+else max(1, worn points x (price / 10) / durability) (0x4667a0). The
+original adds its modifiers' surcharges to the price first; the engine
+does not read modifiers yet.
 
 Axes and two-handed swords (subtypes 1 and 3) or the two-handed flag hide
 the shield. Worn weapons, body armour and shields turn on their hero

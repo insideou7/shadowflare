@@ -1,16 +1,43 @@
 #include "logic/inventory.h"
 
 #include <algorithm>
+#include <utility>
 
 #include "logic/ai_select.h"
 
 namespace sf {
+
+Item Item::make(const ItemDef* def, int count) {
+    Item item{def, count};
+    item.unidentified = def && (def->quality == 1 || def->quality == 2);
+    return item;
+}
+
+int Item::durability() const { return std::max(0, def->durability - wear); }
+
+const std::string& Item::shownName() const {
+    return unidentified && !def->unidentifiedName.empty() ? def->unidentifiedName : def->name;
+}
+
+int Item::repairPrice() const {
+    const int max = def->durability;
+    const int worn = std::min(wear, max);
+    if (max <= 0 || worn <= 0) return 0;
+    return std::max(1, worn * (def->price / 10) / max);
+}
 
 namespace {
 
 using Class = ItemDef::Class;
 
 bool isAccessorySlot(EquipSlot slot) { return slot >= EquipSlot::Accessory1; }
+
+// The worn item a REPAIR part number means, if any.
+std::optional<EquipSlot> partSlot(int part) {
+    static constexpr EquipSlot kParts[] = {EquipSlot::Weapon, EquipSlot::Helmet, EquipSlot::Body, EquipSlot::Shield, EquipSlot::Boots};
+    if (part < 0 || part > 4) return std::nullopt;
+    return kParts[part];
+}
 
 }  // namespace
 
@@ -146,10 +173,68 @@ const ItemDef* Inventory::use(int index) {
     return def;
 }
 
+std::vector<EquipSlot> Inventory::wearFromAttacking(Random& random) {
+    auto& weapon = equipped_[static_cast<int>(EquipSlot::Weapon)];
+    if (!weapon || random.next(100) >= 30 || weapon->def->durability <= 0 || weapon->broken()) return {};
+    if (++weapon->wear < weapon->def->durability) return {};
+    return {EquipSlot::Weapon};
+}
+
+std::vector<EquipSlot> Inventory::wearFromBlow(Random& random) {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    std::vector<EquipSlot> broke;
+    // The exe rolls for each worn piece in this order.
+    static constexpr std::pair<EquipSlot, int> kChances[] = {
+        {EquipSlot::Helmet, 20}, {EquipSlot::Body, 30}, {EquipSlot::Shield, 30}, {EquipSlot::Boots, 20}};
+    for (const auto& [slot, chance] : kChances) {
+        auto& worn = equipped_[static_cast<int>(slot)];
+        if (!worn || random.next(100) >= chance) continue;
+        if (slot == EquipSlot::Shield && shieldHidden) continue;
+        if (worn->def->durability <= 0 || worn->broken()) continue;
+        if (++worn->wear >= worn->def->durability) broke.push_back(slot);
+    }
+    return broke;
+}
+
+bool Inventory::hasUnidentified() const {
+    return std::ranges::any_of(bag_, [](const Placed& p) { return p.item.unidentified; }) ||
+           std::ranges::any_of(equipped_, [](const auto& worn) { return worn && worn->unidentified; });
+}
+
+void Inventory::identifyAll() {
+    for (auto& p : bag_) p.item.unidentified = false;
+    for (auto& worn : equipped_) {
+        if (worn) worn->unidentified = false;
+    }
+}
+
+int Inventory::repairPrice(int part) const {
+    if (const auto slot = partSlot(part)) {
+        const auto& worn = equipped(*slot);
+        return worn ? worn->repairPrice() : 0;
+    }
+    int total = 0;
+    for (const auto& p : bag_) {
+        if (p.item.def->cls == Class::Weapon || p.item.def->cls == Class::Armour) total += p.item.repairPrice();
+    }
+    return total;
+}
+
+void Inventory::repair(int part) {
+    if (const auto slot = partSlot(part)) {
+        if (auto& worn = equipped_[static_cast<int>(*slot)]) worn->wear = 0;
+    } else if (part == kRepairBag) {
+        for (auto& p : bag_) {
+            if (p.item.def->cls == Class::Weapon || p.item.def->cls == Class::Armour) p.item.wear = 0;
+        }
+    }
+}
+
 std::array<int, ItemDef::kStatCount> Inventory::stats() const {
     std::array<int, ItemDef::kStatCount> total{};
     for (const auto& worn : equipped_) {
-        if (!worn) continue;
+        if (!worn || worn->broken()) continue;
         for (int i = 0; i < ItemDef::kStatCount; ++i) total[static_cast<std::size_t>(i)] += worn->def->stats[static_cast<std::size_t>(i)];
     }
     return total;

@@ -77,7 +77,8 @@ Options:
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 - `--give <class>:<code>[:<count>]` start with an item in the bag (class 0 weapon,
   1 armour, 2 accessory, 3 consumable, 4 special; `--give 4:0:500` is 500 gold)
-- `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
+- `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword);
+  both take a fourth number for how worn the item starts, e.g. `--equip 0:0:1:150`
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
 - `--status` start with the status window open

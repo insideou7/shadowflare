@@ -169,7 +169,10 @@ thunder, holy, dark, gel and metal levels (docs/magic.md).
 Consumables have `effect=`, nine numbers as in the original: the first is
 1 if it may go in the belt, the second the health it restores, the third
 the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
-quest; only normal items drop) and `glow` (a second hero layer).
+quest; only normal items drop; magic and unique ones start unidentified),
+`unidentified` (the name shown until then), `durability` (weapons and
+armour: the wear they take before they break; none or 0 never wears out)
+and `glow` (a second hero layer).
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with

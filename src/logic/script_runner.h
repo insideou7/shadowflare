@@ -58,6 +58,12 @@ public:
     virtual void offerClass(int /*cls*/) {}
     // STORAGE: opens the warehouse.
     virtual void openStorage() {}
+    // IDENTIFY, CHECKUNOPINIONITEM, REPAIR and GETREPAIRPRICE: see
+    // Inventory for the part numbers.
+    virtual void identifyItems() {}
+    virtual bool hasUnidentifiedItems() const { return false; }
+    virtual void repair(int /*part*/) {}
+    virtual int repairPrice(int /*part*/) const { return 0; }
     // MESSAGEBOX and MESSAGEBOXVALUE: a line of text floating at (dx, dy)
     // screen pixels from a character, such as an area's name over its warp
     // gate, for `duration` (1000 = a second, inferred).

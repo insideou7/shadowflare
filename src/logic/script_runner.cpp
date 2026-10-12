@@ -203,9 +203,13 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 host_->showLabel(l);
                 break;
             }
-            // Nothing wears out or needs identifying in the engine yet.
+            case S::kIdentify: host_->identifyItems(); break;
+            case S::kCheckUnopinionItem:
+                if (!ops.empty()) store(ops[0], host_->hasUnidentifiedItems() ? 1 : 0);
+                break;
+            case S::kRepair: host_->repair(arg(0)); break;
             case S::kGetRepairPrice:
-                if (ops.size() >= 2) store(ops[1], 0);
+                if (ops.size() >= 2) store(ops[1], host_->repairPrice(arg(0)));
                 break;
             default: break;
         }

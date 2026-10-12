@@ -68,7 +68,7 @@ public:
     // (for scripted tests). For gold, `count` is the amount. False when the
     // item is unknown, does not fit or cannot be worn.
     enum class GiveTo { Bag, Wear, Ground };
-    bool give(int itemClass, int code, int count, GiveTo to);
+    bool give(int itemClass, int code, int count, GiveTo to, int wear = 0);  // wear: how worn it starts
 
     // Shows the inventory panel (toggled with I).
     void setInventoryOpen(bool open) { showInventory_ = open; }
@@ -220,6 +220,7 @@ private:
     // A blow from the player or from a monster: it may miss, otherwise it
     // does the original's damage.
     void strikeEnemy(Actor& enemy);
+    void sayBroken(const std::vector<EquipSlot>& slots);  // a message for each item that broke
     // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
     void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
     // `bySpell` counts the kill as a magic one for the class offer.
