@@ -95,8 +95,7 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     // The companion keeps its health from map to map (0x4505d0).
     if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
     partner_.reset();
-    missiles_.clear();
-    spellEffects_.clear();
+    clearSpells();
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -890,7 +889,7 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
         if (random_.next(100) >= hitChance(hit, stats[HeroStats::kMagicEvasion])) return;
         const int element = magic_.spell(spell).element;
         const int damage = damageToHero(magic_, s.spellPower[k], element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
-        spellEffects_.push_back({SpellEffect::Kind::Spark, element, player_->x, player_->y, 120, 0, 8});
+        showSpellHit(spell, player_->x, player_->y);
         hurtPlayer(damage, true, &enemy);
         return;
     }
@@ -949,6 +948,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         damage = std::max(1, damage * (100 - magic_.power(kMagicShield, spells_.castLevel(kMagicShield))) / 100);
         if (damage >= 20) trainSpell(kMagicShield);
         chargeShield(kMagicShield);
+        spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
     }
     // Energy Shield takes blows out of MP while there is any.
     if (!magic && spellOn(kEnergyShield) && playerMp_ > 0) {
@@ -980,6 +980,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         if (attacker->placement.stats.word7 == 100) back /= 2;
         if (damage >= 20) trainSpell(kCounterBurst);
         chargeShield(kCounterBurst);
+        spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
         hurtEnemy(*attacker, std::max(1, back), true);
     }
     // A blow does not interrupt the player's own swing or a flinch already

@@ -103,6 +103,8 @@ Options:
   (also in the menu; off by default)
 - `--cast <slot>:<x>,<y>` cast the spell on F1-F8 (slot 1-8) at a point given in
   screen pixels from the player, e.g. `--level 3 --cast 1:120,0`
+- `--spell <n>[:<level>]` teach spell n (0-21, the original's numbering) at
+  that level and put it on F1, e.g. `--spell 3:10 --cast 1:200,60` for Plasma
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 - `--options` / `--help-window` start with the Settings Menu or the Help window open
 - `--options-file <path>` read and write the options there instead of `options.txt`
