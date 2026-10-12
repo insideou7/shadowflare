@@ -300,6 +300,28 @@ mon01; none of our props is tall enough yet), blood, bodies and the pits
 and holes in the ground (blood00, deadbody00, 00d_blood, jimen_x00,
 map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
+## The first area
+
+Besides the demo's seven areas, the pack has the original's first area
+laid out with our art: the opening fields, Remote Town, the Dusty Ruins,
+Cold Svalt Town and the forests and four dungeons round it, 29 maps in
+all (`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). Their scenarios are
+numbered 10000000 plus the original's number (Remote Town is
+`Scenario/10000000`), so they keep clear of the demo's 1 to 7, and their
+exits lead to each other as the original's do. The game still starts in
+the meadow; `--map f00_01` starts in Remote Town.
+
+Each follows the original map's routes, not its exact layout: which
+blocks of tiles can be walked through, where the exits and entries are,
+which monsters and townspeople stand where, and where the buildings and
+other landmarks stand. The walls, paths and forest edges are our own, and
+the monsters' stats are the demo's. The maps exactly as the original has
+them are what a player with the original game sees (see above).
+
+`tools/content/first_area.py` writes them from the player's own copy:
+
+    python3 tools/content/first_area.py <game folder> content
+
 ## Rebuilding content/
 
 The art is rendered with Blender's Python module (`bpy`) and laid out
