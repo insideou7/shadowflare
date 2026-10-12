@@ -23,9 +23,10 @@ from town import IRON, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
 
 # Wall boxes have their scale applied (see solid()), so these sizes are in
 # Blender units: blocks about 0.8 x 0.45.
-BLOCKS = dict(colour=(0.54, 0.45, 0.22), dark=(0.07, 0.06, 0.03), scale=7, detail=16, bump=1.0, grime=0.6,
-              band=(0.38, 0.64), stretch=(1.0, 1.0, 0.3), bricks=dict(width=1.3, height=0.7, mortar=0.02, vary=0.85, joint=0.6),
-              spot=0.35, spot_colour=(0.70, 0.62, 0.30))
+# Dingy brick, like the floor's but greyer: small courses with dark joints.
+BLOCKS = dict(colour=(0.86, 0.77, 0.57), dark=(0.10, 0.08, 0.05), scale=30, detail=16, bump=1.0, grime=0.55,
+              band=(0.30, 0.70), bricks=dict(width=0.75, height=0.32, mortar=0.04, vary=0.65, joint=0.3),
+              spot=0.25, spot_colour=(0.45, 0.42, 0.32))
 CAP = dict(colour=(0.48, 0.44, 0.26), dark=(0.14, 0.13, 0.07), scale=8, bump=0.8, grime=0.5,
            spot=0.4, spot_colour=(0.32, 0.38, 0.14))
 OLDCOPPER = dict(colour=(0.58, 0.34, 0.17), dark=(0.16, 0.08, 0.04), scale=16, rough=0.4, bump=0.6,
@@ -313,8 +314,8 @@ PROPS = {
     "hatch": (hatch, 64),
     "hatch_big": (lambda: hatch(big=True), 64),
     "stairs_down": (stairs, 256),
-    "dstairs": (lambda: stairway(dais=False, sides="lr", far_jamb=1.7, near_jamb=1.4), 320),
-    "dstairs_pit": (lambda: stairway(dais=False, sides="lr", down=True, far_jamb=1.4, near_jamb=1.4), 320),
+    "dstairs": (lambda: stairway(dais=False, sides="lr", far_jamb=1.55, near_jamb=1.4), 320),
+    "dstairs_pit": (lambda: stairway(dais=False, sides="lr", down=True, far_jamb=1.4, near_jamb=1.65), 320),
     "ddais": (landing, 224),
     "brazier": (brazier, 96),
     "obelisk": (obelisk, 192),
@@ -336,9 +337,12 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
-        if name.startswith(("dwall", "dpillar", "dstairs", "ddais")):  # the original's walls cast no shadows
+        walls = name.startswith(("dwall", "dpillar", "dstairs", "ddais"))
+        if walls:  # the original's walls cast no shadows
             bpy.data.objects["shadow catcher"].hide_render = True
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        # and are drawn looking down at 45 degrees, so their tops slope like the original's
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=math.radians(45) if walls else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

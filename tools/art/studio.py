@@ -54,8 +54,12 @@ def reset(samples=24):
     return scene
 
 
-def camera(scene, width, height, target=(0, 0, 0)):
-    """An orthographic camera with the game's angle, centred on target."""
+def camera(scene, width, height, target=(0, 0, 0), elevation=None):
+    """An orthographic camera with the game's angle, centred on target.
+    elevation: another pitch, in radians, keeping the same width per unit
+    along the ground (the original's dungeon walls look down at 45 degrees,
+    a little steeper than its maps)."""
+    pitch = ELEVATION if elevation is None else elevation
     cam = bpy.data.cameras.new("camera")
     cam.type = "ORTHO"
     cam.ortho_scale = max(width, height) / PIXELS_PER_UNIT
@@ -66,11 +70,11 @@ def camera(scene, width, height, target=(0, 0, 0)):
     scene.render.resolution_y = height
     # Looking from the screen's bottom (world +x +y, Blender +X -Y) down at the target.
     d = 40
-    direction = Vector((math.cos(ELEVATION) * math.cos(math.radians(-45)),
-                        math.cos(ELEVATION) * math.sin(math.radians(-45)),
-                        math.sin(ELEVATION)))
+    direction = Vector((math.cos(pitch) * math.cos(math.radians(-45)),
+                        math.cos(pitch) * math.sin(math.radians(-45)),
+                        math.sin(pitch)))
     obj.location = Vector(target) + direction * d
-    obj.rotation_euler = (math.pi / 2 - ELEVATION, 0, math.radians(45))
+    obj.rotation_euler = (math.pi / 2 - pitch, 0, math.radians(45))
     return obj
 
 
