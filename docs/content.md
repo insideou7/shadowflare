@@ -258,6 +258,11 @@ font) are kept in content/ and rebuilt on their own:
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.
 
+A few new props can be added to the existing props sheet without
+rebuilding everything: render them, then
+
+    python3 tools/art/add_props.py /tmp/art/deep /tmp/art/deep/deep.txt earth_tall_x earth_tall_y
+
 ## Importing Flare
 
 `tools/content/import_flare.py` builds a pack from
