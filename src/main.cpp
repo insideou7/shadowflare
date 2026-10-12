@@ -17,6 +17,7 @@
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
 #include "game/game.h"
+#include "game/skin.h"
 #include "platform/filesystem.h"
 
 namespace {
@@ -43,6 +44,8 @@ struct Options {
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
+    std::optional<std::filesystem::path> skin;  // open content drawn over the original game
+    bool originalArt = false;  // draw the original game with its own art
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
@@ -88,6 +91,10 @@ Options parseArgs(int argc, char** argv) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--skin" && i + 1 < argc) {
+            options.skin = argv[++i];
+        } else if (arg == "--original-art") {
+            options.originalArt = true;
         } else if (arg == "--talk" && i + 1 < argc) {
             options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--answers" && i + 1 < argc) {
@@ -243,22 +250,23 @@ int main(int argc, char** argv) {
     // open replacement content that ships with the engine.
     std::filesystem::path installRoot;
     std::vector<std::filesystem::path> candidates;
+    // Relative to the working folder first, then next to the executable
+    // and the folders above it, so it also starts when launched from
+    // build/Debug or by double-clicking.
+    std::vector<std::filesystem::path> bases = {"."};
+    if (char* exe = SDL_GetBasePath()) {
+        std::filesystem::path dir = std::filesystem::path(exe).parent_path();
+        SDL_free(exe);
+        for (int up = 0; up < 4 && !dir.empty(); ++up, dir = dir.parent_path()) {
+            bases.push_back(dir);
+            if (dir == dir.parent_path()) break;
+        }
+    }
     if (options.dataDir) {
         candidates.push_back(*options.dataDir);
     } else {
-        // Relative to the working folder first, then next to the executable
-        // and the folders above it, so it also starts when launched from
-        // build/Debug or by double-clicking. The player's game comes before
-        // the open content wherever either is found.
-        std::vector<std::filesystem::path> bases = {"."};
-        if (char* exe = SDL_GetBasePath()) {
-            std::filesystem::path dir = std::filesystem::path(exe).parent_path();
-            SDL_free(exe);
-            for (int up = 0; up < 4 && !dir.empty(); ++up, dir = dir.parent_path()) {
-                bases.push_back(dir);
-                if (dir == dir.parent_path()) break;
-            }
-        }
+        // The player's game comes before the open content wherever either
+        // is found.
         for (const char* name : {"game", "content"}) {
             for (const auto& base : bases) candidates.push_back(base == "." ? name : base / name);
         }
@@ -285,7 +293,27 @@ int main(int argc, char** argv) {
             sf::log::warn("content.txt: {}", e.what());
         }
     }
-    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap);
+    // The original game is drawn with the open content's art (content/
+    // or --skin) unless --original-art is given.
+    std::unique_ptr<sf::Skin> skin;
+    if (!app.data->exists("content.txt") && !options.originalArt) {
+        std::vector<std::filesystem::path> packs;
+        if (options.skin) {
+            packs.push_back(*options.skin);
+        } else {
+            for (const auto& base : bases) packs.push_back(base == "." ? "content" : base / "content");
+        }
+        for (const auto& pack : packs) {
+            if (!std::filesystem::exists(pack / "skin.txt")) continue;
+            skin = sf::Skin::load(std::make_unique<sf::DirectoryFileSystem>(pack), app.renderer);
+            if (skin) {
+                sf::log::info("Drawing the game with the art in {}", pack.string());
+                break;
+            }
+        }
+        if (!skin && options.skin) sf::log::warn("No usable skin.txt in {}", options.skin->string());
+    }
+    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, skin.get());
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     app.game->setInventoryOpen(options.inventory);
@@ -327,6 +355,7 @@ int main(int argc, char** argv) {
     }
     sf::log::info("Exited after {} frames, {} ticks", app.frames, app.game->tickCount());
     app.game.reset();
+    skin.reset();
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();

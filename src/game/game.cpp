@@ -10,6 +10,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
+#include "game/skin.h"
 #include "logic/movement.h"
 #include "render/tiny_font.h"
 #include "platform/filesystem.h"
@@ -49,8 +50,8 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 
 }  // namespace
 
-Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap)
-    : renderer_(renderer), data_(data), sprites_(renderer) {
+Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin)
+    : renderer_(renderer), data_(data), skin_(skin), sprites_(renderer) {
     // Every level has a ground file; use those to enumerate maps. An open
     // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
@@ -59,7 +60,8 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
             if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
     }
-    playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    if (skin_) playerModel_ = skin_->character("Player/Male/Animation00");
+    if (!playerModel_) playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
             ai_ = AiControl::parse(*raw);
@@ -93,6 +95,7 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
+    if (skin_) skin_->setMap(map_ ? &*map_ : nullptr);
     drawOrder_.clear();
     if (!map_) return;
 
@@ -182,7 +185,9 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
 const CharacterModel* Game::model(const std::string& stem) {
     auto [it, inserted] = models_.try_emplace(stem);
     if (inserted) {
-        if (auto loaded = CharacterModel::load(*data_, stem)) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
+        auto loaded = skin_ ? skin_->character(stem) : std::nullopt;
+        if (!loaded) loaded = CharacterModel::load(*data_, stem);
+        if (loaded) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
     }
     return it->second.get();
 }
@@ -865,6 +870,8 @@ void Game::renderMap() {
 
     if (g.isoTile > 0) {
         renderIsoGround(camX, camY);
+    } else if (skin_) {
+        skin_->renderGround(camX, camY);
     } else {
         renderChips(camX, camY);
     }
@@ -899,6 +906,10 @@ void Game::renderMap() {
                 } else {
                     ++it;
                 }
+            }
+            if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
+                if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
+                continue;
             }
             if (map_->isShadowBank(o.bank) != shadows) continue;
             const SpriteBank* bank = map_->bank(o.bank);

@@ -61,6 +61,10 @@ void testSheet() {
     check(bank.parts[0].argb == std::vector<std::uint32_t>{0xff00ff00u, 0u}, "sheet crops its frame");
     int x, y, w, h;
     check(bank.bounds(bank.patterns[0], x, y, w, h) && x == 0 && y == -2 && w == 1 && h == 2, "sheet anchor");
+    const auto named = sf::open::parseSheet(bytes("image=a.png\nframe=1,0,1,2,0,2,well\n"));
+    check(named.frames.size() == 1 && named.frames[0].name == "well", "sheet frame name");
+    check(sf::open::makeSpriteBank(named, sf::open::decodeImage(kPng)).names == std::vector<std::string>{"well"},
+          "frame names reach the sprite bank");
     const auto outside = sf::open::parseSheet(bytes("image=a.png\nframe=1,1,2,2,0,0\n"));
     try {
         sf::open::makeSpriteBank(outside, sf::open::decodeImage(kPng));
@@ -248,6 +252,36 @@ void testPackInfo() {
     expectRejected("pack bad projection", "projection=0,10\n", [](auto& d) { sf::open::parsePackInfo(d); });
 }
 
+void testSkin() {
+    const auto skin = sf::open::parseSkin(bytes(
+        "props=Map/props.sheet\n"
+        "[material grass]\ntiles=Map/ground.sheet,240\n"
+        "[material sand]\ntiles=Map/s.sheet,16,2\ntile=480\n"
+        "[ground 00F_Ground.njp]\ngrass=44,50,14\nsand=100,80,50\n"
+        "[ground blk.njp]\nnone=\n"
+        "[objects Bank.njp]\n0=tree1\n2-4,7=fence_x@-80,40 fence_x!@60,0\n9=-\n"));
+    check(skin.props == "Map/props.sheet", "skin props sheet");
+    check(skin.materials.at("grass").sheet == "Map/ground.sheet" && skin.materials.at("grass").first == 240 &&
+              skin.materials.at("grass").period == 4 && skin.materials.at("grass").tile == 320,
+          "skin material defaults");
+    check(skin.materials.at("sand").period == 2 && skin.materials.at("sand").tile == 480, "skin material settings");
+    const auto& ground = skin.ground.at("00f_ground.njp");
+    check(ground.size() == 2 && ground[1].material == "sand" && ground[1].colour.r == 100 && ground[1].colour.b == 50,
+          "skin ground colours, bank names in lower case");
+    check(skin.ground.at("blk.njp").size() == 1 && skin.ground.at("blk.njp")[0].material == "none", "skin black ground");
+    const auto& objects = skin.objects.at("bank.njp");
+    check(objects.size() == 6 && objects.at(0).size() == 1 && objects.at(0)[0].prop == "tree1", "skin object rules");
+    const auto& fence = objects.at(3);
+    check(fence.size() == 2 && fence[0].dx == -80 && fence[0].dy == 40 && !fence[0].mirror && fence[1].mirror &&
+              fence[1].prop == "fence_x" && fence[1].dx == 60 && objects.contains(7) && !objects.contains(5),
+          "skin pieces, ranges and mirroring");
+    check(objects.at(9).empty(), "skin - hides a piece");
+    expectRejected("skin unknown section", "[thing a]\n", [](auto& d) { sf::open::parseSkin(d); });
+    expectRejected("skin bad colour", "[ground a]\ngrass=1,2,300\n", [](auto& d) { sf::open::parseSkin(d); });
+    expectRejected("skin bad range", "[objects a]\n5-2=tree\n", [](auto& d) { sf::open::parseSkin(d); });
+    expectRejected("skin bad offset", "[objects a]\n1=tree@3\n", [](auto& d) { sf::open::parseSkin(d); });
+}
+
 }  // namespace
 
 int main() {
@@ -260,6 +294,7 @@ int main() {
     testItems();
     testAi();
     testPackInfo();
+    testSkin();
     if (failures == 0) std::puts("all open content tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

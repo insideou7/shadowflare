@@ -36,6 +36,7 @@ struct Sheet {
     struct Frame {
         int x = 0, y = 0, width = 0, height = 0;
         int anchorX = 0, anchorY = 0;  // inside the frame; drawn at the sprite's position
+        std::string name;  // optional seventh field, used to look props up by name
     };
     std::string image;  // file name, relative to the .sheet
     std::vector<Frame> frames;
@@ -90,6 +91,40 @@ ShopLists parseShops(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);
+
+// skin.txt: how to draw the original game's maps with a pack's art, so
+// a player with the original game sees its maps in our art. See
+// docs/content.md.
+struct Skin {
+    // A ground texture: `period` x `period` isometric tiles of one sheet,
+    // starting at frame `first`, which repeat seamlessly.
+    struct Material {
+        std::string sheet;
+        int first = 0;
+        int period = 4;
+        int tile = 320;  // world units per tile edge
+    };
+    // One of the materials an original ground bank is painted with, and
+    // its typical colour there. "none" draws black.
+    struct GroundMaterial {
+        std::string material;
+        Rgb colour;
+    };
+    // A prop from the props sheet, drawn with its anchor this many world
+    // units from where the original piece stands.
+    struct Piece {
+        std::string prop;
+        int dx = 0, dy = 0;
+        bool mirror = false;  // flipped left to right ("<prop>!")
+    };
+    std::string props;  // the .sheet whose named frames [objects] uses
+    std::map<std::string, Material> materials;
+    // By lower-case bank file name, as in the maps' .lst files.
+    std::map<std::string, std::vector<GroundMaterial>> ground;
+    // Bank, then pattern: what to draw instead. No pieces = draw nothing.
+    std::map<std::string, std::map<int, std::vector<Piece>>> objects;
+};
+Skin parseSkin(std::span<const std::uint8_t> text);
 
 // content.txt at the pack root.
 struct PackInfo {

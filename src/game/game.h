@@ -31,6 +31,7 @@
 namespace sf {
 
 class FileSystem;
+class Skin;
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -46,7 +47,9 @@ inline constexpr int kTicksPerSecond = 20;
 // from the original data and lets you walk around it.
 class Game {
 public:
-    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap);
+    // With a skin, the original's maps and characters are drawn with an
+    // open content pack's art where it has some.
+    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin = nullptr);
 
     void handleEvent(const SDL_Event& event);
     void tick();
@@ -314,6 +317,7 @@ private:
 
     SDL_Renderer* renderer_;
     const FileSystem* data_;
+    Skin* skin_ = nullptr;
     SpriteCache sprites_;
     std::vector<std::string> mapNames_;
     std::size_t mapIndex_ = 0;
