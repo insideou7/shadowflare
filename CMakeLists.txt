@@ -44,6 +44,7 @@ add_library(sf_logic STATIC
     src/logic/save_game.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
+    src/logic/mines.cpp
     src/logic/settings.cpp
     src/logic/partner.cpp
 )
@@ -66,6 +67,7 @@ add_executable(shadowflare
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
