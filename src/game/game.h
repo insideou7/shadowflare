@@ -150,6 +150,7 @@ private:
     std::optional<std::size_t> groundItemAt(float screenX, float screenY) const;
     const SpriteBank* itemBank(const std::string& stem);
     void drawItemPicture(const ItemDef& def, const SDL_Rect& area);
+    bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
     void renderHud();

@@ -62,6 +62,26 @@ east, north-east, north, north-west, west, south-west. A direction left out
 uses direction 0. Chart numbers follow the original: 0 idle, 1 walk; for
 the player 3 hit and 5 punch, for monsters 2 hit, 3 death and 4 attack.
 
+A character can have several layers per frame, like the original's
+`.Caf`: the body, then one layer per piece of equipment, numbered as in
+the original (see `layer=` in items.txt). A line is then
+
+    <direction>[.<layer>][@<priority>]=<frame>[@<priority>],...
+
+    [chart 0 loop]
+    0@20=0,1,2,3             # direction 0, layer 0 (the body), priority 20
+    0.5@10=4,5,6,7           # direction 0, layer 5 (cloth armour)
+    0.9=8@3,9@3,-,10@15      # layer 9 (a shield): per-frame priorities
+
+A frame of `-` draws nothing. Layers are drawn from the highest priority
+down, so a lower number is nearer the viewer (the original's rule); equal
+priorities are drawn in layer order. Priorities default to 0, so a file
+with only `<direction>=` lines is a one-layer character as before. Every
+layer of a direction should have the same number of frames. Monsters and
+townspeople show all their layers; the player shows layer 0 and the
+layers of what they wear (body armour, weapon, and shield unless the
+weapon is two-handed).
+
 ### Map/\<name\>.txt
 
     size=60,60               # tiles across and down
@@ -153,11 +173,13 @@ instead, as with the original's animated item folders.
 
 Needs Pillow. Which maps, monsters and player layers to import, and the
 monsters' stats and loot and the items lying on each map, are set at the
-top of the script. The item pictures come from Flare's icons and loot
-sprites:
+top of the script. The item pictures and the inventory panel are our
+own Blender renders:
 
-    python3 tools/content/import_items.py /tmp/flare-game content
+    python tools/art/items.py render /tmp/items     # a Python with bpy
+    python3 tools/art/items.py pack /tmp/items content
+    python3 tools/art/ui.py content
 
-Their order is set in that script; `content/items.txt` is written by hand. Flare's maps are made
+Their order is the ITEMS list in items.py; `content/items.txt` is written by hand. Flare's maps are made
 with [Tiled](https://www.mapeditor.org/), so new maps can be drawn there,
 saved in Flare's format and imported the same way.

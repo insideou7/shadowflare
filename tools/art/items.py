@@ -1,0 +1,315 @@
+"""Item pictures for the open content pack, rendered with studio.py.
+
+    python tools/art/items.py render <folder> [--only N,M]
+    python3 tools/art/items.py pack <folder> <content pack folder>
+
+The first step needs a Python with the `bpy` module (like creatures.py)
+and renders every item into <folder>; the second needs Pillow and lays
+the renders out as the pack's sprite sheets. Every item in ITEMS gets
+two pictures, in the pack's layout (docs/content.md):
+
+- an inventory picture, System/Game/Pattern/Item0000.png + .sheet: the
+  item seen from the front, filling its size in 32-pixel inventory cells,
+  as the original's Item%04d pictures do,
+- a ground picture, Character/ITEM/00000007/Pattern.png + .sheet: the
+  item lying on the ground, seen through the game's camera at the same
+  scale as the characters (small things a little larger, so they can be
+  seen and clicked), anchored where it touches the ground.
+
+Frames are numbered in the order of ITEMS; content/items.txt refers to
+them with icon=0,<n> and ground=7,<n>. Weapons, shields and body armour
+are the same models the hero wears (creatures.GEAR), so an item looks the
+same in the bag, on the ground and on the hero.
+"""
+
+import math
+import sys
+from pathlib import Path
+
+try:
+    import bpy
+    from mathutils import Matrix, Vector
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import creatures  # noqa: E402
+    import studio  # noqa: E402
+except ImportError:  # packing only
+    bpy = None
+
+CELL = 32
+HERO_SCALE = 1.22  # the hero rig's scale (creatures.build_hero)
+
+# (name, builder, width and height in cells, ground scale relative to the
+# hero, ground angle in degrees). Builders return (objects, kind) where
+# kind says how to stand the model up: "grip" (a weapon along +X of its
+# grip), "shield" (a disc facing +X), "armour" (worn on the hero's rig) or
+# "thing" (a model standing at the origin, its front towards -Y).
+ITEMS = [
+    ("short_sword", ("gear", 12), 1, 4, 1.15, 30),
+    ("great_sword", ("gear", 19), 2, 4, 1.0, 35),
+    ("cloth_armour", ("gear", 5), 2, 3, 0.85, 20),
+    ("round_shield", ("gear", 9), 2, 2, 1.0, 0),
+    ("leather_hood", ("thing", "hood"), 2, 2, 1.4, 20),
+    ("leather_boots", ("thing", "boots"), 2, 2, 1.3, 20),
+    ("copper_ring", ("thing", "ring"), 1, 1, 2.2, 0),
+    ("healing_potion", ("thing", "red_potion"), 1, 1, 2.0, 0),
+    ("mana_potion", ("thing", "blue_potion"), 1, 1, 2.0, 0),
+    ("gold", ("thing", "gold"), 1, 1, 2.2, 0),
+    ("long_sword", ("gear", 17), 1, 4, 1.05, 40),
+    ("magic_staff", ("gear", 18), 1, 3, 1.0, 25),
+    ("plate_mail", ("gear", 6), 2, 3, 0.85, 20),
+]
+
+HEADER = "# Rendered by tools/art/items.py (our own art, see content/README.md).\n"
+
+
+def mat(name, colour, dark=None, **kw):
+    return studio.material(name, colour, dark, **kw)
+
+
+def glass(name, colour, glow):
+    m = studio.material(name, colour, scale=6, rough=0.1, bump=0)
+    bsdf = m.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Emission Color"].default_value = (*studio.linear(colour), 1)
+    bsdf.inputs["Emission Strength"].default_value = glow
+    return m
+
+
+def thing(kind):
+    """Small items the hero does not wear visibly; built at the origin,
+    standing on z = 0 with their front towards -Y."""
+    shape = creatures.shape
+    leather = mat("hood leather", (0.42, 0.27, 0.15), (0.18, 0.10, 0.05), scale=20, rough=0.6, bump=0.4)
+    dark = mat("dark leather", (0.24, 0.16, 0.10), (0.09, 0.06, 0.04), scale=20, rough=0.6, bump=0.4)
+    brass = mat("brass", (0.80, 0.62, 0.30), (0.40, 0.28, 0.10), scale=30, rough=0.35)
+    made = []
+    add = made.append
+    if kind == "hood":
+        add(shape("ball", (0.22, 0.24, 0.21), leather))
+        made[-1].location = (0, 0, 0.26)
+        add(shape("box", (0.03, 0.2, 0.16), dark))  # a flap over the neck, at the back
+        made[-1].location = (0, 0.2, 0.12)
+        made[-1].rotation_euler = (math.radians(-20), 0, math.radians(90))
+        add(shape("flare", (0.26, 0.25, 0.13), dark))
+        made[-1].location = (0, 0, 0.13)
+        add(shape("cylinder", (0.225, 0.245, 0.03), dark))
+        made[-1].location = (0, 0, 0.27)
+        for side in (1, -1):  # cheek flaps
+            add(shape("box", (0.09, 0.03, 0.12), leather))
+            made[-1].location = (0.22 * side, -0.03, 0.12)
+            made[-1].rotation_euler = (0, 0, math.radians(90))
+        add(shape("ball", (0.035, 0.035, 0.035), brass))
+        made[-1].location = (0.02, -0.235, 0.27)
+    elif kind == "boots":
+        for side in (1, -1):
+            x = 0.16 * side
+            add(shape("cylinder", (0.12, 0.12, 0.22), dark))
+            made[-1].location = (x, 0, 0.30)
+            add(shape("cylinder", (0.14, 0.14, 0.05), leather))
+            made[-1].location = (x, 0, 0.52)
+            add(shape("box", (0.11, 0.24, 0.07), dark))  # the foot points towards -Y, the front
+            made[-1].location = (x, -0.1, 0.07)
+            add(shape("cylinder", (0.125, 0.125, 0.025), brass))
+            made[-1].location = (x, 0, 0.40)
+    elif kind == "ring":
+        copper = mat("copper", (0.84, 0.50, 0.30), (0.42, 0.20, 0.10), scale=30, rough=0.3)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.14, minor_radius=0.035, major_segments=32, minor_segments=10)
+        ring = studio.smooth(bpy.context.object)
+        studio.assign(ring, copper)
+        ring.rotation_euler = (math.radians(90), 0, 0)
+        ring.location = (0, 0, 0.175)
+        add(ring)
+        add(shape("ball", (0.05, 0.05, 0.05), glass("ring stone", (0.75, 0.10, 0.12), 0.6)))
+        made[-1].location = (0, 0, 0.33)
+    elif kind in ("red_potion", "blue_potion"):
+        colour = (0.80, 0.08, 0.06) if kind == "red_potion" else (0.10, 0.30, 0.90)
+        add(shape("ball", (0.15, 0.15, 0.15), glass(kind, colour, 0.5)))
+        made[-1].location = (0, 0, 0.15)
+        add(shape("cylinder", (0.05, 0.05, 0.08), glass("flask neck", (0.70, 0.80, 0.78), 0.1)))
+        made[-1].location = (0, 0, 0.34)
+        add(shape("cylinder", (0.045, 0.045, 0.04), mat("cork", (0.62, 0.44, 0.26), scale=40)))
+        made[-1].location = (0, 0, 0.44)
+    elif kind == "gold":
+        gold = mat("gold", (0.98, 0.78, 0.25), (0.55, 0.36, 0.06), scale=30, rough=0.25, bump=0.2)
+        coins = [(0, 0, 0), (0, 0, 1), (0.02, 0.01, 2), (-0.01, 0.02, 3), (0.12, -0.05, 0), (0.12, -0.05, 1),
+                 (-0.11, -0.06, 0), (-0.05, 0.11, 0), (0.06, 0.10, 0)]
+        for x, y, k in coins:
+            add(shape("cylinder", (0.07, 0.07, 0.013), gold))
+            made[-1].location = (x, y, 0.013 + 0.027 * k)
+            made[-1].rotation_euler = (0.1 * ((k + x * 10) % 3 - 1), 0.08 * (k % 2), 0)
+    return made
+
+
+def build(spec):
+    """Builds an item; returns (handle, objects, kind). The handle is an
+    empty that moves the whole model."""
+    source, what = spec
+    if source == "thing":
+        handle = bpy.data.objects.new("item", None)
+        bpy.context.scene.collection.objects.link(handle)
+        objects = thing(what)
+        for o in objects:
+            o.parent = handle
+        return handle, objects, "thing"
+    rig = creatures.build_hero()
+    for o in [o for o in bpy.data.objects if o.type == "MESH" and o.name != "shadow catcher"]:
+        bpy.data.objects.remove(o)
+    objects = creatures.build_gear(rig, what)
+    if creatures.GEAR[what][2]:
+        # Body armour: the jacket or cuirass only, without the legs.
+        legs = {rig.joints["leg_l"], rig.joints["leg_r"]}
+        for o in [o for o in objects if o.parent in legs]:
+            objects.remove(o)
+            bpy.data.objects.remove(o)
+        rig.pose({"arm_l": (0.3, 0, 0), "arm_r": (-0.3, 0, 0)})
+        return rig.joints["root"], objects, "armour"
+    handle = bpy.data.objects.new("item", None)
+    bpy.context.scene.collection.objects.link(handle)
+    handle.scale = (HERO_SCALE,) * 3
+    kind = "grip" if any(o.parent.name.startswith("grip") for o in objects) else "shield"
+    tops = {o.parent if o.parent.name.startswith("grip") else o for o in objects}
+    for top in tops:
+        if top.name.startswith("grip"):
+            top.parent = handle
+            top.location = (0, 0, 0)
+            top.rotation_euler = (0, 0, 0)
+        else:
+            top.parent = handle
+    return handle, objects, kind
+
+
+def orient(handle, kind, lying, angle=0.0):
+    """Turns the model to face the inventory camera (-Y), or lays it down
+    on the ground turned by `angle` degrees."""
+    a = math.radians(angle)
+    if kind == "grip":
+        if lying:
+            # Blade along the ground, its flat facing up.
+            x, z = Vector((math.cos(a), math.sin(a), 0)), Vector((0, 0, 1))
+        else:
+            # Point up, flat towards the camera.
+            x, z = Vector((0, 0, 1)), Vector((0, -1, 0))
+        m = Matrix((x, z.cross(x), z)).transposed()
+        handle.rotation_euler = m.to_euler()
+    elif kind == "shield":
+        handle.rotation_euler = (0, math.radians(-90), a) if lying else (0, 0, math.radians(-90))
+    elif kind == "armour":
+        # Worn, facing the camera; lying on its back.
+        handle.rotation_euler = (0, math.radians(-90), a) if lying else (0, 0, math.radians(-90))
+    else:
+        # Small things stand on the ground either way; in the bag they are
+        # turned a little to show their sides.
+        handle.rotation_euler = (0, 0, a if lying else math.radians(-25))
+
+
+def bounds(objects):
+    bpy.context.view_layer.update()
+    return [o.matrix_world @ Vector(c) for o in objects for c in o.bound_box]
+
+
+def inventory_camera(scene, objects, w, h):
+    """An orthographic camera from the front, a little above, framing the
+    model in w x h pixels with a pixel of margin."""
+    cam = scene.camera
+    cam.data.type = "ORTHO"
+    elevation = math.radians(12)
+    forward = Vector((0, math.cos(elevation), -math.sin(elevation)))
+    cam.rotation_euler = (math.pi / 2 - elevation, 0, 0)
+    points = bounds(objects)
+    centre = sum(points, Vector()) / len(points)
+    cam.location = centre - forward * 30
+    bpy.context.view_layer.update()
+    inv = cam.matrix_world.inverted()
+    local = [inv @ p for p in points]
+    xs, ys = [p.x for p in local], [p.y for p in local]
+    per_pixel = max((max(xs) - min(xs)) / (w - 2), (max(ys) - min(ys)) / (h - 2))
+    cam.data.ortho_scale = per_pixel * max(w, h)
+    right, up = cam.matrix_world.to_3x3() @ Vector((1, 0, 0)), cam.matrix_world.to_3x3() @ Vector((0, 1, 0))
+    cam.location += right * (max(xs) + min(xs)) / 2 + up * (max(ys) + min(ys)) / 2
+    scene.render.resolution_x, scene.render.resolution_y = w, h
+
+
+def render_item(index, out):
+    name, spec, w, h, ground_scale, angle = ITEMS[index]
+    scene = studio.reset(samples=64)
+    catcher = bpy.data.objects["shadow catcher"]
+    handle, objects, kind = build(spec)
+    studio.camera(scene, w * CELL, h * CELL)
+    # Inventory picture: no ground, the model upright and lit a little
+    # brighter, like the original's pictures.
+    catcher.hide_render = True
+    sun = bpy.data.objects["sun"].data
+    sun.energy *= 1.4
+    orient(handle, kind, lying=False)
+    inventory_camera(scene, objects, w * CELL, h * CELL)
+    studio.render(scene, str(out / f"inv_{index:02d}.png"))
+    # Ground picture: lying in the world, seen through the game's camera.
+    for o in list(scene.objects):
+        if o.type == "CAMERA":
+            bpy.data.objects.remove(o)
+    catcher.hide_render = False
+    sun.energy /= 1.4
+    size = 128
+    studio.camera(scene, size, size)
+    orient(handle, kind, lying=True, angle=angle)
+    handle.scale = Vector(handle.scale) * ground_scale
+    bpy.context.view_layer.update()
+    low = min(p.z for p in bounds(objects))
+    centre = sum(bounds(objects), Vector()) / len(bounds(objects))
+    handle.location = (handle.location.x - centre.x, handle.location.y - centre.y, handle.location.z - low)
+    studio.render(scene, str(out / f"ground_{index:02d}.png"))
+    ax, ay = studio.anchor(scene)
+    return ax, ay
+
+
+def write_strip(frames, folder, name):
+    """Lays frames out left to right and writes <name>.png and <name>.sheet."""
+    from PIL import Image
+
+    width = sum(im.width for im, _, _ in frames)
+    height = max(im.height for im, _, _ in frames)
+    out = Image.new("RGBA", (width, height))
+    lines = [HEADER, f"image={name}.png\n"]
+    x = 0
+    for im, ax, ay in frames:
+        out.paste(im, (x, 0))
+        lines.append(f"frame={x},0,{im.width},{im.height},{ax},{ay}\n")
+        x += im.width
+    folder.mkdir(parents=True, exist_ok=True)
+    out.save(folder / f"{name}.png", optimize=True)
+    with open(folder / f"{name}.sheet", "w", newline="\n") as f:
+        f.writelines(lines)
+
+
+def main():
+    args = sys.argv[1:]
+    if args[0] == "render":
+        only = list(range(len(ITEMS)))
+        if "--only" in args:
+            k = args.index("--only")
+            only = [int(x) for x in args[k + 1].split(",")]
+            del args[k:k + 2]
+        renders = Path(args[1])
+        renders.mkdir(parents=True, exist_ok=True)
+        for index in only:
+            ax, ay = render_item(index, renders)
+            (renders / f"anchor_{index:02d}.txt").write_text(f"{ax:.0f} {ay:.0f}\n")
+            print(ITEMS[index][0], "done", flush=True)
+        return
+    from PIL import Image
+
+    renders, pack = Path(args[1]), Path(args[2])
+    inventory, ground = [], []
+    for index in range(len(ITEMS)):
+        inventory.append((Image.open(renders / f"inv_{index:02d}.png").convert("RGBA"), 0, 0))
+        im = Image.open(renders / f"ground_{index:02d}.png").convert("RGBA")
+        box = im.getbbox() or (0, 0, 1, 1)
+        ax, ay = map(int, (renders / f"anchor_{index:02d}.txt").read_text().split())
+        ground.append((im.crop(box), ax - box[0], ay - box[1]))
+    write_strip(inventory, pack / "System/Game/Pattern", "Item0000")
+    write_strip(ground, pack / "Character/ITEM/00000007", "Pattern")
+    print(f"wrote {len(ITEMS)} item pictures")
+
+
+if __name__ == "__main__":
+    main()

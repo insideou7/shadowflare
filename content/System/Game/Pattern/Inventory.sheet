@@ -1,0 +1,4 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The inventory panel; the anchor puts it at x = 320 on the 640 x 480 screen.
+image=Inventory.png
+frame=0,0,320,416,-320,0

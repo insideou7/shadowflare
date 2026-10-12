@@ -82,7 +82,24 @@ void testAnimation() {
     check(charts[0].directions[0].frameCount == 3 && charts[0].directions[2].layers[0][1].pattern == 4, "animation frames");
     check(charts[0].directions[5].frameCount == 3, "missing direction borrows direction 0");
     check(charts[1].directions.empty(), "unused chart stays empty");
-    expectRejected("direction 8", "sheet=a\n[chart 0 loop]\n8=1\n", [](auto& d) { sf::open::parseAnimation(d); });
+    // Several layers per direction: body, then equipment by layer number,
+    // with per-line and per-frame priorities and '-' for no picture.
+    const auto layered = sf::open::parseAnimation(bytes(
+        "sheet=hero.sheet\n"
+        "[chart 0 loop]\n0@20=0,1,2\n0.5@10=3,4,5\n0.9=6@3,-,7@15\n"));
+    const auto& dir = layered.set.charts[0].directions[0];
+    check(dir.layers.size() == 10 && dir.frameCount == 3, "layered animation size");
+    check(dir.layers[0][2].pattern == 2 && dir.layers[0][2].priority == 20, "body layer and its priority");
+    check(dir.layers[5][1].pattern == 4 && dir.layers[5][1].priority == 10, "equipment layer by number");
+    check(dir.layers[7].empty(), "layers not given stay empty");
+    check(dir.layers[9][0].priority == 3 && dir.layers[9][1].pattern == -1 && dir.layers[9][2].priority == 15,
+          "per-frame priority and missing frames");
+    check(layered.set.charts[0].directions[4].layers.size() == 10, "layered direction borrowed");
+    check(charts[0].directions[0].layers.size() == 1 && charts[0].directions[0].layers[0][0].priority == 0,
+          "single-layer files are unchanged");
+    expectRejected("layer 32", "sheet=a\n[chart 0 loop]\n0.32=1\n", [](auto& d) { sf::open::parseAnimation(d); });
+    expectRejected("bad priority", "sheet=a\n[chart 0 loop]\n0=1@x\n", [](auto& d) { sf::open::parseAnimation(d); });
+    expectRejected("direction 8","sheet=a\n[chart 0 loop]\n8=1\n", [](auto& d) { sf::open::parseAnimation(d); });
     expectRejected("frames outside a chart", "sheet=a\n0=1\n", [](auto& d) { sf::open::parseAnimation(d); });
 }
 

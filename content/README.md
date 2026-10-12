@@ -19,9 +19,10 @@ copyright to their own contributions; its full credits are in
 `tools/content/import_flare.py` from flare-game commit `af6eee6d`:
 character layers composited into single sprite sheets, tiles regrouped
 into one sheet per map, and maps and monster placements converted to this
-engine's formats. Item pictures are Flare's inventory icons and loot
-sprites, converted by `tools/content/import_items.py`. Monster stats and
-behaviour (`ai.txt`) and the item definitions (`items.txt`) are our own.
+engine's formats. The item pictures (inventory and ground) and the
+inventory panel are our own, rendered by `tools/art/items.py` and
+`tools/art/ui.py`. Monster stats and behaviour (`ai.txt`) and the item
+definitions (`items.txt`) are our own too.
 
 Changes to these files must stay under CC-BY-SA 3.0 (or a later version)
 and keep this attribution.

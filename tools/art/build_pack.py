@@ -47,14 +47,29 @@ def cropped(path, ax, ay):
     return im.crop(box), ax - box[0], ay - box[1]
 
 
-def character(src, dst, charts):
-    lines = (src / "frames.txt").read_text().split("\n")
-    ax, ay = map(int, lines[0].split()[1:])
-    anims = {}
+BODY_PRIORITY = 20  # the body is drawn first; equipment priorities are lower (nearer the viewer)
+
+
+def read_frames(folder):
+    """frames.txt: the anchor, the animations and any frame priorities."""
+    lines = (folder / "frames.txt").read_text().split("\n")
+    anchor = tuple(map(int, lines[0].split()[1:]))
+    anims, priorities = {}, {}
     for line in lines[1:]:
-        if line.startswith("animation"):
-            _, name, frames, loop = line.split()
-            anims[name] = (int(frames), loop == "loop")
+        words = line.split()
+        if words and words[0] == "animation":
+            anims[words[1]] = (int(words[2]), words[3] == "loop")
+        elif words and words[0] == "priority":
+            priorities[(words[1], int(words[2]), int(words[3]))] = int(words[4])
+    return anchor, anims, priorities
+
+
+def character(src, dst, charts):
+    """Writes a character's .sheet and returns its .anim text. A folder with
+    layerNN/ subfolders (the hero's equipment, see creatures.py) becomes a
+    layered animation: the body as layer 0, each subfolder as layer NN."""
+    (ax, ay), anims, _ = read_frames(src)
+    layers = sorted((int(p.name[5:]), p) for p in src.glob("layer[0-9][0-9]") if (p / "frames.txt").exists())
     dst.mkdir(parents=True, exist_ok=True)
     atlas = Atlas(width=8192)  # big characters (the golem, the winged bosses) overflow a narrower sheet
     out = ["# Rendered by tools/art/creatures.py.", "sheet=Animation.sheet"]
@@ -63,7 +78,18 @@ def character(src, dst, charts):
         out.append(f"\n[chart {chart} {'loop' if loop else 'once'}]")
         for d in range(8):
             idx = [atlas.add((name, d, f), cropped(src / f"{name}_{d}_{f}.png", ax, ay)) for f in range(frames)]
-            out.append(f"{d}=" + ",".join(map(str, idx)))
+            out.append(f"{d}{f'@{BODY_PRIORITY}' if layers else ''}=" + ",".join(map(str, idx)))
+            for number, folder in layers:
+                (lx, ly), _, priorities = read_frames(folder)
+                cells = []
+                for f in range(frames):
+                    im, cx, cy = cropped(folder / f"{name}_{d}_{f}.png", lx, ly)
+                    if im.getbbox() is None:
+                        cells.append("-")
+                        continue
+                    cell = str(atlas.add((number, name, d, f), (im, cx, cy)))
+                    cells.append(f"{cell}@{priorities.get((name, d, f), 10)}")
+                out.append(f"{d}.{number}=" + ",".join(cells))
     atlas.write(dst / "Animation.sheet", "Animation.png")
     return "\n".join(out) + "\n"
 
@@ -106,6 +132,12 @@ def main():
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "Animation.anim").write_text(character(art / f"person{kind}", folder, PEOPLE_CHARTS))
     print("characters done")
+    # Items: their definitions, inventory and ground pictures and the
+    # inventory panel, all our own renders kept in content/ (tools/art/items.py).
+    content = HERE.parent.parent / "content"
+    shutil.copy(content / "items.txt", out / "items.txt")
+    for folder in ("System/Game/Pattern", "Character/ITEM/00000007"):
+        shutil.copytree(content / folder, out / folder, dirs_exist_ok=True)
 
     # Bank 0: ground tiles. Bank 1: props.
     size = 40
