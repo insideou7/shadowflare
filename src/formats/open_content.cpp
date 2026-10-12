@@ -640,6 +640,37 @@ ShopLists parseShops(std::span<const std::uint8_t> text) {
     return lists;
 }
 
+// [mission <number>] sections; see docs/content.md.
+Missions parseMissions(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    Missions missions;
+    Missions::Mission* mission = nullptr;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "mission") lines.fail("expected [mission <number>]");
+            const int number = lines.toInt(words[1]);
+            if (number < 0 || number > 999) lines.fail("mission numbers go from 0 to 999");
+            if (number < missions.count() && !missions.list[static_cast<std::size_t>(number)].title.empty()) {
+                lines.fail("mission defined twice");
+            }
+            if (number >= missions.count()) missions.list.resize(static_cast<std::size_t>(number) + 1);
+            mission = &missions.list[static_cast<std::size_t>(number)];
+            continue;
+        }
+        std::string_view key, value;
+        if (!mission || !keyValue(*line, key, value)) lines.fail("expected [mission <number>] then key=value lines");
+        if (key == "title") {
+            mission->title = value;
+        } else if (key == "text") {
+            mission->lines.emplace_back(value);
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    return missions;
+}
+
 // [drops <list>] sections; see docs/content.md.
 DropTables parseDrops(std::span<const std::uint8_t> text) {
     Lines lines(text);

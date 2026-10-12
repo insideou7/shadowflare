@@ -155,6 +155,7 @@ C_MOVABLE healer
 
 [sentence healer-mission]
 SETQUESTFLAG 0 1 0
+DRAWQUESTNAME 0
 TALK msg:21 temp:20 0 0 -1 -1
 
 [sentence healer-choice]

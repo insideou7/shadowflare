@@ -413,7 +413,7 @@ std::string Game::partnerStatusText(int kind, bool withItems) const {
 // pattern 30 is its frame, 29 the bar and 31 / 32 the ACTIVE / INACTIVE
 // label. Without the original's pictures, plain shapes stand in.
 void Game::renderPartnerGauge() {
-    if (!partner_ || menuOpen_) return;
+    if (!partner_ || menuOpen_ || missionsOpen_) return;
     const int hp = partner_->hp, max = std::max(1, partner_->stats.maxHp);
     const bool blink = hp * 100 < max * 30 && (ticks_ / 5) % 2 == 0;
     const SpriteBank* bar = itemBank("System/Game/Pattern/Bar");

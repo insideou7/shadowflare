@@ -697,7 +697,7 @@ void Game::renderSpells(int camX, int camY) {
 }
 
 void Game::renderSpellBar() {
-    if (!player_ || showInventory_) return;
+    if (!player_ || showInventory_ || missionsOpen_) return;
     // F1-F8 along the bottom right; the chosen spell is framed in gold.
     constexpr int kSlot = 36, kGap = 2;
     const int left = kScreenWidth - kSpellBarSize * (kSlot + kGap) - 6;

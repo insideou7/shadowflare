@@ -217,6 +217,13 @@ void testScript() {
           "shop lists");
     expectRejected("sell outside a shop", "sell=weapon,0\n", [](auto& d) { sf::open::parseShops(d); });
 
+    const auto missions = sf::open::parseMissions(bytes("[mission 2]\ntitle=Find the well.\ntext=It is dry.\ntext=\ntext=Go.\n"));
+    check(missions.count() == 3 && missions.find(2) && missions.find(2)->title == "Find the well." &&
+              missions.find(2)->lines.size() == 3 && missions.find(2)->lines[1].empty() && missions.find(0)->title.empty(),
+          "missions");
+    expectRejected("title outside a mission", "title=x\n", [](auto& d) { sf::open::parseMissions(d); });
+    expectRejected("mission twice", "[mission 1]\ntitle=a\n[mission 1]\ntitle=b\n", [](auto& d) { sf::open::parseMissions(d); });
+
     const auto drops = sf::open::parseDrops(
         bytes("[drops 2]\nrolls=2\nchance=15\ngold=10,4,12\npick=consumable,0\npick=any,any,1,3\npick=nothing\n"));
     const auto* list = drops.list(2);

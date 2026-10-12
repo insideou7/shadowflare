@@ -89,6 +89,38 @@ void testScriptQuestFlags() {
     check(flags[{S::kQuest, 0}] == 1, "SETQUESTFLAG 1 takes the mission");
     sf::ScriptRunner(script, flags).run(0);
     check(flags[{S::kQuest, 0}] == 2, "SETQUESTFLAG 2 clears a taken mission");
+
+    // Original mode: the first clear is spent even on a mission not taken,
+    // so the mission stays taken once it is given (0x48cebc).
+    sf::ScriptFlags original;
+    auto run = [&](int sentence) {
+        sf::ScriptRunner runner(script, original);
+        runner.setRules(sf::Rules::original());
+        runner.run(sentence);
+    };
+    run(0);
+    run(1);
+    run(0);
+    check(original[{S::kQuest, 0}] == 1, "original mode: a mission cleared before it was taken stays taken");
+    check(original[{sf::kQuestClearedType, 0}] == 1, "original mode remembers the clear");
+}
+
+void testScriptMissionNames() {
+    // DRAWQUESTNAME names a mission; SETCOMPASSES names the area from a message.
+    using S = sf::ScenarioScript;
+    struct Host : sf::ScriptHost {
+        int quest = -1;
+        std::string area;
+        void showQuestName(int q) override { quest = q; }
+        void showAreaName(const std::string& name) override { area = name; }
+    } host;
+    S script;
+    script.messages[1000059] = "Remote Town\n";
+    script.sentences = {{Cmd{S::kSetCompasses, {{S::kMessage, 1000059}}}, Cmd{S::kDrawQuestName, {constant(3)}}}};
+    sf::ScriptFlags flags;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(host.area == "Remote Town\n", "SETCOMPASSES passes its message on");
+    check(host.quest == 3, "DRAWQUESTNAME passes its mission on");
 }
 
 sf::AiControl::Entry entry(int action, int priority, int weight, int minGap = -2, int maxGap = -2) {
@@ -589,6 +621,7 @@ int main() {
     testScriptFlagsAndOperators();
     testScriptStopsAtChange();
     testScriptQuestFlags();
+    testScriptMissionNames();
     testAiDistanceCondition();
     testAiPriorityAndWeights();
     testAiHealthCondition();

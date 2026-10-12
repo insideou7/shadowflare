@@ -135,11 +135,24 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 break;
             case S::kSetQuestFlag: {
                 // SETQUESTFLAG quest state ?: 1 takes the mission on, 2
-                // clears it, but only one that was taken (0x433f29).
+                // clears it, but only one that was taken (0x433f29). The
+                // third operand only matters in network play.
                 if (ops.empty()) break;
                 const std::int32_t quest = arg(0), state = arg(1);
                 auto& flag = flags_[{S::kQuest, quest}];
-                if (state != 2 || flag == 1) flag = state;
+                if (state != 2) {
+                    flag = state;
+                } else if (rules_.missionsClearOnlyWhenTaken) {
+                    if (flag == 1) flag = 2;
+                } else {
+                    // The original clears a mission once at most: the first
+                    // clear is spent even when the mission was not taken.
+                    auto& cleared = flags_[{kQuestClearedType, quest}];
+                    if (cleared == 0) {
+                        cleared = 1;
+                        if (flag == 1) flag = 2;
+                    }
+                }
                 break;
             }
             default: break;
@@ -179,6 +192,12 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kSetActive: host_->setActive(arg(0), true); break;
             case S::kSetInactive: host_->setActive(arg(0), false); break;
             case S::kDrawQuestName: host_->showQuestName(arg(0)); break;
+            case S::kSetCompasses:
+                if (ops.empty()) break;
+                if (const auto msg = script_.messages.find(value(ops[0])); msg != script_.messages.end()) {
+                    host_->showAreaName(msg->second);
+                }
+                break;
             case S::kGetTotalGold:
                 if (!ops.empty()) store(ops[0], static_cast<std::int32_t>(host_->gold()));
                 break;
