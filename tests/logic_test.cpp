@@ -160,26 +160,27 @@ void testMovement() {
 
 void testLevels() {
     const auto curve = sf::LevelCurve::standard();
-    check(curve.levelFor(0) == 1, "no experience is level 1");
-    check(curve.levelFor(29) == 1 && curve.levelFor(30) == 2, "30 experience reaches level 2");
-    check(curve.levelFor(120) == 3, "120 experience reaches level 3");
-    check(curve.start(1) == 0 && curve.start(2) == 30 && curve.start(3) == 120, "level start totals");
-    check(curve.levelFor(1'000'000'000) == curve.maxLevel(), "levels stop at the top of the curve");
+    check(curve.need(1) == 25 && curve.need(2) == 80 && curve.need(3) == 150, "the original's first levels");
+    check(curve.maxLevel() == 99 && curve.need(98) == 700000000, "the curve tops out at level 99");
+    check(curve.need(99) == 0 && curve.need(0) == 0, "no need outside the curve");
 
-    // A Table.Tbd table 13 like the original's: rising totals, then 999999999 and 0.
+    // A Table.Tbd table 13 like the original's: amounts per level (which
+    // can repeat), then 999999999 and 0.
     sf::GameTables tables;
     auto& t = tables.tables[13];
-    t.rows = 5;
+    t.rows = 6;
     t.cols = 1;
-    t.values = {25, 80, 150, 999999999, 0};
-    t.strings.resize(5);
+    t.values = {25, 80, 11000000, 11000000, 999999999, 0};
+    t.strings.resize(6);
     const auto original = sf::LevelCurve::fromTables(tables);
-    check(original.thresholds.size() == 3, "the original curve stops before 999999999");
-    check(original.levelFor(79) == 2 && original.levelFor(80) == 3, "the original curve's levels");
-    check(sf::LevelCurve::fromTables(sf::GameTables{}).thresholds.empty(), "no table 13, no curve");
+    check(original.needs.size() == 4, "the table ends at 999999999, not where amounts repeat");
+    check(original.need(4) == 11000000, "repeated amounts are kept");
+    check(sf::LevelCurve::fromTables(sf::GameTables{}).needs.empty(), "no table 13, no curve");
 
-    check(sf::statsAtLevel(1).maxHp == 100 && sf::statsAtLevel(1).attack == 0, "level 1 has the base stats");
-    check(sf::statsAtLevel(5).maxHp > sf::statsAtLevel(4).maxHp, "each level adds health");
+    check(sf::statsAtLevel(1).maxHp == 150 && sf::statsAtLevel(1).attack == 0, "level 1 has the base stats");
+    check(sf::statsAtLevel(5).maxHp == 310, "40 health a level up to 5");
+    check(sf::statsAtLevel(6).maxHp == 360 && sf::statsAtLevel(26).maxHp == 1350, "then 50 a level for 20 levels");
+    check(sf::statsAtLevel(35).maxHp == 1710 && sf::statsAtLevel(36).maxHp == 1740, "then 40, then 30");
     check(sf::defaultExperience(30, 4) == 14, "a goblin's default experience");
 }
 

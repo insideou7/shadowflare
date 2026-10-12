@@ -795,8 +795,8 @@ void Game::renderHealthBars(int camX, int camY) {
     if (player_) {
         bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
         // Experience towards the next level, in a thin blue bar underneath.
-        const auto from = levels_.start(playerLevel_), to = levels_.start(playerLevel_ + 1);
-        const double fraction = to > from ? static_cast<double>(playerExperience_ - from) / static_cast<double>(to - from) : 1.0;
+        const auto need = levels_.need(playerLevel_);
+        const double fraction = need > 0 ? static_cast<double>(playerExperience_) / static_cast<double>(need) : 1.0;
         SDL_Rect back{8, kScreenHeight - 7, 120, 4};
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderFillRect(renderer_, &back);

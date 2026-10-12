@@ -351,8 +351,18 @@ body:
 
 138 tables. Identified so far: 40 area names, 41 quest titles,
 60 partner names, 600-621 spell descriptions and 700-747 quest
-descriptions. The numeric tables (experience curves, shops, drops...) are
-not identified yet.
+descriptions. The numeric tables found so far:
+
+- 13: experience per level, one column, 100 rows. Row `level - 1` is what
+  that level takes; the count starts again from 0 on a level up and any
+  surplus is lost (0x43430f, and the bar at 0x404643). Closed by 999999999
+  and 0, so the top level is 99.
+- 900-907: stats gained per level, 13 rows (stats) by one column per level
+  in that class (level-up function 0x412fb0, which reads table
+  `901 + 2 * class - [character+0x28]`). 900/901 hold the starting stats in
+  column 0 and four classless levels; 902/903 look like the warrior (50
+  health a level), 904/905 the magician (50 magic a level). Row 2 is
+  health and row 3 magic; the other rows are not mapped yet.
 
 ## Items: `System/Game/Parameter/Item.Ibn` (ShadowFlare.exe, loader 0x462f90)
 
