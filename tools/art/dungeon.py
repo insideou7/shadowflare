@@ -23,10 +23,10 @@ from town import IRON, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
 
 # Wall boxes have their scale applied (see solid()), so these sizes are in
 # Blender units: blocks about 0.8 x 0.45.
-BLOCKS = dict(colour=(0.44, 0.41, 0.24), dark=(0.05, 0.05, 0.03), scale=12, detail=14, bump=1.2, grime=0.5,
-              band=(0.42, 0.62), bricks=dict(width=1.3, height=0.7, mortar=0.025, vary=0.75, joint=0.5),
-              spot=0.3, spot_colour=(0.72, 0.66, 0.30))
-CAP = dict(colour=(0.46, 0.44, 0.34), dark=(0.18, 0.17, 0.13), scale=8, bump=0.8, grime=0.5,
+BLOCKS = dict(colour=(0.54, 0.45, 0.22), dark=(0.07, 0.06, 0.03), scale=7, detail=16, bump=1.0, grime=0.6,
+              band=(0.38, 0.64), stretch=(1.0, 1.0, 0.3), bricks=dict(width=1.3, height=0.7, mortar=0.02, vary=0.85, joint=0.6),
+              spot=0.35, spot_colour=(0.70, 0.62, 0.30))
+CAP = dict(colour=(0.48, 0.44, 0.26), dark=(0.14, 0.13, 0.07), scale=8, bump=0.8, grime=0.5,
            spot=0.4, spot_colour=(0.32, 0.38, 0.14))
 OLDCOPPER = dict(colour=(0.58, 0.34, 0.17), dark=(0.16, 0.08, 0.04), scale=16, rough=0.4, bump=0.6,
                  band=(0.35, 0.7), spot=0.35, spot_colour=(0.14, 0.09, 0.05), grime=0.4)
