@@ -375,6 +375,11 @@ def nearest_open(open_, tx, ty):
     return tx, ty
 
 
+# Names that a scenario's script.txt calls people by, by original scenario
+# and placement id: Remote Town's commander, smith and healer.
+PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer"}
+
+
 def our_number(number):
     """The open pack's scenario number for an original one: the first area
     sits apart from the demo scenarios (1 to 7)."""
@@ -683,7 +688,8 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     for c in o.groups[1]:
         if c["kind"] in people_kinds:
             x, y = spot(c["x"], c["y"])
-            lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}")
+            name = PEOPLE_NAMES.get((number, c["id"]))
+            lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}" + (f",{name}" if name else ""))
     folder = out / "Scenario" / f"{our_number(number):08d}"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "scenario.txt").write_text("\n".join(lines) + "\n")

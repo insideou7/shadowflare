@@ -1,4 +1,4 @@
 # Art made for this project: see tools/art.
 name=ShadowFlare open content
-start=meadow
+start=10000000
 projection=15,10

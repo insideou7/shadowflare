@@ -588,6 +588,30 @@ layer in `Player/Male/Animation00.Caf` (0 body and 1 shadow are always
 on): 5-8 armour, 9-11 shields, 12-21 weapons. Helmets, boots and
 accessories are not drawn.
 
+## A new game (ShadowFlare.exe 0x440f70)
+
+The title screen's New Game makes an empty hero (0x421a00) and 0x440f70
+fills it in:
+
+- saved scenario and entry (+0x15a4, +0x15a8) both 0, so every new game
+  begins in scenario 0, Remote Town (`Map\f00_01`), at entry point 0, just
+  inside the town gate;
+- wearing body armour 0 (+0x4ec), with four of consumable 0 and four of
+  consumable 10000000 in the first two columns of the bag (+0x514) and the
+  same again in a 4 x 2 list at +0x518 (not used by our engine yet);
+- partner kind 0, Kerberos, INACTIVE, with every kind at level 1.
+
+What follows is scripted in scenario 0. On entering, its start sentence
+stocks Malse's shop and names the area. Speaking to Ostare (12000000) the
+first time runs four boxes and drops the army's supplies at his feet:
+weapon 0, armour 1000000, weapon 100 and 200 gold (TEMP 1000020-1000026).
+Syria the healer (12000002) gives the first mission, `SETQUESTFLAG 0 1 0`
+(the goblins north-east of town). `SETQUESTFLAG quest state` (0x433f29)
+sets QUEST[quest]; state 2 clears a mission only when it is 1, taken.
+
+The open content does the same in its Remote Town (`Scenario/10000000`,
+`content.txt` `start=10000000`) with our own words.
+
 ## Not decoded yet
 
 | Signature | Files | Notes |

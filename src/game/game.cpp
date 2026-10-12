@@ -83,12 +83,24 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
         log::warn("No maps found in the game data; showing a placeholder screen");
         return;
     }
-    std::size_t start = 0;
-    for (std::size_t i = 0; i < mapNames_.size(); ++i) {
-        if (equalsIgnoreCase(mapNames_[i], startMap)) start = i;
+    // The start is a scenario number (the original begins every new game
+    // in scenario 0, Remote Town, at entry 0: 0x440f70 clears the saved
+    // scenario and entry) or a map name.
+    if (!startMap.empty() && startMap.size() <= 9 && std::ranges::all_of(startMap, [](unsigned char c) { return std::isdigit(c); })) {
+        startScenario_ = std::stoi(startMap);
+    } else {
+        for (std::size_t i = 0; i < mapNames_.size(); ++i) {
+            if (equalsIgnoreCase(mapNames_[i], startMap)) startMapIndex_ = i;
+        }
     }
-    startMapIndex_ = start;
-    loadMap(start);
+    goToStart();
+}
+
+// Where a new game begins.
+void Game::goToStart() {
+    map_.reset();
+    if (startScenario_ >= 0) changeScenario(startScenario_, 0);
+    if (!map_) loadMap(startMapIndex_);
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {

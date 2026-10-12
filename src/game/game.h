@@ -232,6 +232,7 @@ private:
     bool readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const;
     void spawnActors();
     void changeScenario(int number, int entry);
+    void goToStart();
     void checkTriggers(bool fire = true);
     const CharacterModel* model(const std::string& stem);
     void placePlayer();
@@ -556,6 +557,7 @@ private:
     std::vector<MenuItem> menuItems_;
     int menuChoice_ = 0;
     std::size_t startMapIndex_ = 0;
+    int startScenario_ = -1;  // a scenario number to start in, else the start map
 };
 
 }  // namespace sf
