@@ -5,6 +5,7 @@
 # restart Claude Code (or run /mcp) so the rea server sees it.
 set -eu
 TAG=Ghidra_12.1.4_build
+ZIP=ghidra_12.1.4_PUBLIC_20260921.zip
 DEST="$HOME/.cache/rea/ghidra"
 
 if [ -x "$DEST/support/analyzeHeadless" ]; then
@@ -12,9 +13,12 @@ if [ -x "$DEST/support/analyzeHeadless" ]; then
 fi
 command -v javac >/dev/null || { echo "Install a JDK 21 or newer first (javac not found)." >&2; exit 1; }
 
-# Find the release zip. Try the GitHub API first, then the release page,
-# since cloud sessions may only be allowed to reach one of them.
-url=$(curl -fsSL "https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/tags/$TAG" 2>/dev/null |
+# Find the release zip. Cloud sessions' GitHub proxy blocks the API and the
+# release page for repos outside the session but serves release downloads,
+# so try the known asset name first, then the API, then the release page.
+url="https://github.com/NationalSecurityAgency/ghidra/releases/download/$TAG/$ZIP"
+curl -fsIL -o /dev/null "$url" 2>/dev/null || url=
+[ -n "$url" ] || url=$(curl -fsSL "https://api.github.com/repos/NationalSecurityAgency/ghidra/releases/tags/$TAG" 2>/dev/null |
   grep -o '"browser_download_url": *"[^"]*\.zip"' | sed 's/.*"\(https[^"]*\)"/\1/' | head -n 1) || true
 if [ -z "$url" ]; then
   path=$(curl -fsSL "https://github.com/NationalSecurityAgency/ghidra/releases/expanded_assets/$TAG" |
