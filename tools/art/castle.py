@@ -27,7 +27,7 @@ ASHLAR = dict(colour=(0.22, 0.21, 0.20), dark=(0.04, 0.04, 0.04), scale=10, deta
 CARVED = dict(colour=(0.26, 0.25, 0.23), dark=(0.06, 0.06, 0.06), scale=12, bump=0.9, grime=0.5)
 STEEL = dict(colour=(0.30, 0.33, 0.42), dark=(0.06, 0.07, 0.10), scale=14, rough=0.28, bump=0.3)
 MARBLE = dict(colour=(0.78, 0.76, 0.71), dark=(0.42, 0.40, 0.36), scale=8, bump=0.4, grime=0.4)
-STATUE = dict(colour=(0.40, 0.40, 0.39), dark=(0.10, 0.10, 0.10), scale=10, bump=0.6, grime=0.6)
+STATUE = dict(colour=(0.66, 0.65, 0.62), dark=(0.24, 0.24, 0.23), scale=10, bump=0.6, grime=0.4)
 ROOF = dict(colour=(0.12, 0.12, 0.13), dark=(0.03, 0.03, 0.04), scale=16, rough=0.6, bump=0.5)
 WOOD = dict(colour=(0.36, 0.14, 0.08), dark=(0.10, 0.04, 0.02), scale=10, bump=0.5, stretch=(6, 1, 1))
 GOLD = dict(colour=(0.85, 0.62, 0.22), dark=(0.36, 0.22, 0.06), scale=12, rough=0.3, bump=0.3)
@@ -330,6 +330,42 @@ def hall(seed=7):
         box((0.9, 0.35, 0.35), (0, -d / 2 - 0.4 - k * 0.35, 0.18 + k * 0.0), marble)
 
 
+def stair_gate():
+    """A dark stone gatehouse trimmed in pale marble, its arch on the
+    screen's lower right opening on a flight of steps that climbs into a
+    red glow, an iron rail beside the steps and a dark roof light on top."""
+    stone, marble, roof = mat("ashlar", ASHLAR), mat("marble", MARBLE), mat("roof", ROOF)
+    steel = mat("steel", STEEL)
+    fire = glow("fire", (1.0, 0.30, 0.06), (0.40, 0.03, 0.0), 1.4, scale=10, band=(0.4, 0.85))
+    steps = mat("steps", dict(colour=(0.45, 0.18, 0.10), dark=(0.14, 0.05, 0.03), scale=12, bump=0.5))
+    w, d, h = 4.6, 4.6, 4.6
+    o = solid(box((w, d, h), (0, 0, h / 2), stone))
+    aw, ah = 2.8, 3.2  # the arch on the +x face
+    cut(o, solid(box((w - 0.6, aw, ah), (0.3, 0, ah / 2), stone)))
+    c = cyl(aw / 2, w - 0.6, (0.3, 0, ah), stone, rot=(0, math.pi / 2, 0), verts=24)
+    cut(o, c)
+    # The flight inside, climbing away from the arch into the glow.
+    n, run, rise = 8, 0.45, 0.42
+    for k in range(n):
+        x = w / 2 - 0.2 - k * run
+        box((run, aw, (k + 1) * rise), (x - run / 2, 0, (k + 1) * rise / 2), steps)
+    box((0.2, aw, ah + aw / 2), (-w / 2 + 0.5, 0, (ah + aw / 2) / 2), fire)
+    box((w - 1.0, 0.1, ah), (0, aw / 2 - 0.05, ah / 2), fire)
+    # Pale columns either side of the arch and marble trim along the top.
+    for y in (-aw / 2 - 0.35, aw / 2 + 0.35):
+        cyl(0.28, ah + 0.4, (w / 2 + 0.15, y, (ah + 0.4) / 2), marble, verts=16)
+        box((0.7, 0.7, 0.35), (w / 2 + 0.15, y, 0.18), marble)
+    box((0.5, aw + 1.6, 0.5), (w / 2 + 0.1, 0, ah + aw / 2 + 0.35), marble)
+    for x, y in ((w / 2, -d / 2), (w / 2, d / 2), (-w / 2, -d / 2)):
+        box((1.0, 1.0, 0.45), (x, y, h + 0.2), marble)
+    box((w + 0.3, d + 0.3, 0.3), (0, 0, h + 0.1), marble)
+    box((2.4, 2.0, 0.9), (-0.3, 0, h + 0.65), roof)
+    # An iron rail along the front step.
+    for k in range(4):
+        box((0.07, 0.07, 1.1), (w / 2 + 0.3 + k * 0.4, aw / 2 + 0.7, 0.55), steel)
+    box((1.4, 0.07, 0.07), (w / 2 + 0.9, aw / 2 + 0.7, 1.1), steel)
+
+
 def pew(seed=8):
     """A short dark red wooden pew."""
     wood = mat("wood", WOOD)
@@ -376,6 +412,7 @@ PROPS = {
     "shrine": (shrine, 96),
     "shrine_spike": (lambda: shrine(seed=3, cross=False), 96),
     "fire_hall": (hall, 352),
+    "stair_gate": (stair_gate, 352),
     "pew": (pew, 96),
     "pew_y": (lambda: pew(seed=1), 96),
     "magic_circle": (magic_circle, 256),

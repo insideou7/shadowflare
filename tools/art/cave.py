@@ -83,12 +83,21 @@ def rock_pillar(seed=3):
     rough(solid(box((1.8, 1.8, WALL_H), (0, 0, WALL_H / 2), mat("rock", ROCK))), 0.4, 0.7, seed, cuts=16)
 
 
-def mine_wall(along_y=False, broken=False, seed=1):
+def mine_wall(along_y=False, broken=False, black=False, seed=1):
     """A gallery wall lined with dark planks in a timber frame: posts at
     the ends, a beam along the top. Broken walls have boards nailed across
-    a hole."""
+    a hole. Black walls are the near side, which the original draws as
+    plain black under the beam, so only the top shows."""
     timber, boards, hole = mat("timber", TIMBER), mat("boards", BOARDS), mat("hole", DARK)
     rng = random.Random(seed)
+    if black:
+        import fort
+        box((WALL_L + 0.1, 1.3, WALL_H - 0.2), (0, 0.4, (WALL_H - 0.2) / 2), fort.void())
+        solid(box((WALL_L + 0.1, 1.3, 0.35), (0, 0.4, WALL_H + 0.15), mat("slab", SLAB)))
+        box((WALL_L + 0.1, 0.6, 0.45), (0, 0, WALL_H - 0.2), timber)
+        if along_y:
+            turn(math.pi / 2)
+        return
     if broken:
         box((WALL_L - 0.6, 0.5, WALL_H - 0.6), (0, 0.15, (WALL_H - 0.6) / 2), hole)
         for k in range(5):
@@ -250,6 +259,8 @@ PROPS = {
     "mine_y": (lambda: mine_wall(along_y=True), 288),
     "mine_broken_x": (lambda: mine_wall(broken=True, seed=2), 288),
     "mine_broken_y": (lambda: mine_wall(along_y=True, broken=True, seed=3), 288),
+    "mine_black_x": (lambda: mine_wall(black=True), 288),
+    "mine_black_y": (lambda: mine_wall(along_y=True, black=True), 288),
     "mine_pillar": (mine_pillar, 288),
     "pit_prop": (post, 192),
     "frame_x": (frame, 224),
@@ -286,6 +297,8 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
+        if name.startswith(WALLS):  # the original's walls cast no shadows
+            bpy.data.objects["shadow catcher"].hide_render = True
         studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
                       elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
