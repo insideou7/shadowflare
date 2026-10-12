@@ -474,6 +474,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && spellBarClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && panelClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
@@ -1148,8 +1149,10 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
-    // The panel is under the windows, as the exe layers them (11 below 14).
+    // The panel and the magic bar are under the windows, as the exe
+    // layers them (11 and 13 below 14).
     renderPanel();
+    renderSpellBar();
     renderCompass();
     renderShop();
     renderStatus();

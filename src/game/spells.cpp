@@ -717,34 +717,80 @@ void Game::renderSpells(int camX, int camY) {
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
 }
 
-void Game::renderSpellBar() {
-    if (!player_ || showInventory_ || missionsOpen_) return;
-    // F1-F8 above the panel; the chosen spell is framed in gold.
-    constexpr int kSlot = 36, kGap = 2;
-    // Clear of the panel's EXP gauge at the top right.
-    const int left = 508 - kSpellBarSize * (kSlot + kGap);
-    // Above the belt pocket, which sits where the original's does.
-    const int top = kBeltTop - kSlot - 6;
+// The magic/attack bar above the panel, as ShadowFlare.exe lays it out
+// (0x404ee0 draws it, 0x447570 takes its clicks): the eight slots of
+// F1-F8 from x 224, 4 pixels more before each group of four, then the
+// attack 4 further on. The chosen one is MagicIcon.njp's 26 x 26 picture
+// at y 382 (spell + 2; 0 the attack), the rest MagicBarIcon.njp's 16 x 16
+// at y 392 (spell + 4; 2 the attack, 3 an empty slot or a spell not
+// known). The bar moves right while a window covers the left of the
+// screen (to 344) and left for the item window (to 124).
+std::vector<Game::BarIcon> Game::spellBarLayout() const {
+    std::vector<BarIcon> icons;
+    if (!player_ || missionsOpen_ || menuOpen_) return icons;
+    const bool left = showStatus_ || openShop_.has_value();
+    if (left && showInventory_) return icons;
+    int x = left ? 344 : showInventory_ ? 124 : 224;
     for (int b = 0; b < kSpellBarSize; ++b) {
-        const SDL_Rect r{left + b * (kSlot + kGap), top, kSlot, kSlot};
+        if (b % 4 == 0) x += 4;
         const int spell = spells_.bar[static_cast<std::size_t>(b)];
-        SDL_SetRenderDrawColor(renderer_, 20, 18, 26, 200);
-        SDL_RenderFillRect(renderer_, &r);
-        const bool chosen = spell >= 0 && spell == spells_.selected;
-        SDL_SetRenderDrawColor(renderer_, chosen ? 230 : 110, chosen ? 190 : 100, chosen ? 80 : 80, 255);
-        SDL_RenderDrawRect(renderer_, &r);
-        drawText(renderer_, r.x + 2, r.y + 2, std::format("F{}", b + 1), {150, 150, 150, 255}, 1);
-        if (spell < 0) continue;
-        const SDL_Color c = elementColor(magic_.spell(spell).element);
-        if (spellOn(spell)) {
-            SDL_SetRenderDrawColor(renderer_, c.r, c.g, c.b, 90);
-            const SDL_Rect inner{r.x + 1, r.y + 1, r.w - 2, r.h - 2};
-            SDL_RenderFillRect(renderer_, &inner);
+        if (!spells_.knows(spell)) {
+            icons.push_back({x, 392, 16, -1, false});
+            x += 16;
+        } else if (spell == spells_.selected) {
+            icons.push_back({x, 382, 26, spell, true});
+            x += 26;
+        } else {
+            icons.push_back({x, 392, 16, spell, false});
+            x += 16;
         }
-        const std::string_view name = barName(spell);
-        drawText(renderer_, r.x + (r.w - textWidth(name, 1)) / 2, r.y + 14, name, c, 1);
-        const std::string level = std::format("{}", spells_.castLevel(spell));
-        drawText(renderer_, r.x + r.w - 2 - textWidth(level, 1), r.y + r.h - 9, level, {255, 255, 255, 255}, 1);
+    }
+    const bool attack = !spells_.knows(spells_.selected);
+    icons.push_back(attack ? BarIcon{x + 4, 382, 26, kAttackIcon, true} : BarIcon{x + 4, 392, 16, kAttackIcon, false});
+    return icons;
+}
+
+bool Game::spellBarClick(int x, int y) {
+    for (const BarIcon& icon : spellBarLayout()) {
+        if (x < icon.x || x >= icon.x + icon.size || y < icon.y || y >= 408) continue;
+        if (icon.spell == kAttackIcon) {
+            spells_.selected = -1;
+            showMessage("Attack");
+        } else if (icon.spell >= 0 && !icon.chosen) {
+            spells_.selected = icon.spell;
+            showMessage(std::format("{} (level {})", magic_.spell(icon.spell).name, spells_.castLevel(icon.spell)));
+        }
+        return true;
+    }
+    return false;
+}
+
+void Game::renderSpellBar() {
+    const SpriteBank* big = itemBank("System/Game/Pattern/MagicIcon");
+    const SpriteBank* small = itemBank("System/Game/Pattern/MagicBarIcon");
+    for (const BarIcon& icon : spellBarLayout()) {
+        const int pattern = icon.spell == kAttackIcon ? (icon.chosen ? 0 : 2)
+                            : icon.spell < 0          ? 3
+                            : icon.chosen             ? icon.spell + 2
+                                                      : icon.spell + 4;
+        const SpriteBank* bank = icon.chosen ? big : small;
+        if (const SpriteTexture* t = bank ? sprites_.get(*bank, pattern, false) : nullptr) {
+            const SDL_Rect dst{icon.x, icon.y, t->width, t->height};
+            SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+            continue;
+        }
+        // Without the pictures: a box with the spell's short name.
+        const SDL_Rect r{icon.x, icon.y, icon.size, icon.size};
+        SDL_SetRenderDrawColor(renderer_, 20, 18, 26, 220);
+        SDL_RenderFillRect(renderer_, &r);
+        SDL_SetRenderDrawColor(renderer_, icon.chosen ? 230 : 110, icon.chosen ? 190 : 100, 80, 255);
+        SDL_RenderDrawRect(renderer_, &r);
+        if (icon.spell == kAttackIcon) {
+            drawText(renderer_, r.x + 2, r.y + 4, "ATK", {220, 220, 220, 255}, 1);
+        } else if (icon.spell >= 0) {
+            drawText(renderer_, r.x + 2, r.y + 4, barName(icon.spell).substr(0, icon.chosen ? 4 : 2),
+                     elementColor(magic_.spell(icon.spell).element), 1);
+        }
     }
 }
 

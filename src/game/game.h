@@ -505,6 +505,15 @@ private:
     void renderPanel();
     bool panelClick(int x, int y);
     bool hasPanelArt();
+    // The magic/attack bar (spells.cpp): where each icon is this frame.
+    struct BarIcon {
+        int x, y, size;
+        int spell;    // -1 an empty slot, kAttackIcon the attack
+        bool chosen;  // drawn large
+    };
+    static constexpr int kAttackIcon = 1000;
+    std::vector<BarIcon> spellBarLayout() const;
+    bool spellBarClick(int x, int y);
     void renderSpellBar();
     void renderMenu();
     void menuEvent(const SDL_Event& event);

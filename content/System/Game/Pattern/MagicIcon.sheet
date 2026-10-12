@@ -1,0 +1,27 @@
+# Drawn by tools/art/magic_icons.py (our own art, see content/README.md).
+# The chosen icon on the magic bar: attack, empty, then the 22 spells.
+image=MagicIcon.png
+frame=0,0,26,26,0,0
+frame=26,0,26,26,0,0
+frame=52,0,26,26,0,0
+frame=78,0,26,26,0,0
+frame=104,0,26,26,0,0
+frame=130,0,26,26,0,0
+frame=156,0,26,26,0,0
+frame=182,0,26,26,0,0
+frame=0,26,26,26,0,0
+frame=26,26,26,26,0,0
+frame=52,26,26,26,0,0
+frame=78,26,26,26,0,0
+frame=104,26,26,26,0,0
+frame=130,26,26,26,0,0
+frame=156,26,26,26,0,0
+frame=182,26,26,26,0,0
+frame=0,52,26,26,0,0
+frame=26,52,26,26,0,0
+frame=52,52,26,26,0,0
+frame=78,52,26,26,0,0
+frame=104,52,26,26,0,0
+frame=130,52,26,26,0,0
+frame=156,52,26,26,0,0
+frame=182,52,26,26,0,0
