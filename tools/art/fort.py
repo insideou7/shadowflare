@@ -27,12 +27,16 @@ from town import IRON, _mats, ball, box, cyl, mat, resize  # noqa: E402
 # brown mottle of grime and old stains.
 STONE = dict(colour=(0.52, 0.49, 0.43), dark=(0.07, 0.055, 0.04), scale=16, detail=16, bump=1.0, grime=0.5,
              band=(0.4, 0.68), spot=0.45, spot_colour=(0.20, 0.13, 0.08),
-             bricks=dict(width=1.0, height=0.45, mortar=0.03, vary=0.9, joint=0.65))
+             bricks=dict(width=1.0, height=0.45, mortar=0.03, vary=0.9, joint=0.65),
+             fade=(1.6, 0.3, 6.3))  # worn pale at the foot, darker toward the top
 CAPSTONE = {k: v for k, v in STONE.items() if k != "bricks"}  # the same stone, uncoursed
 BLOODY = dict(STONE, spot=0.3, spot_colour=(0.34, 0.03, 0.02))
 DOORIRON = dict(colour=(0.09, 0.09, 0.10), dark=(0.02, 0.02, 0.03), scale=20, rough=0.4, bump=0.5)
 RIVET = dict(colour=(0.86, 0.80, 0.62), dark=(0.45, 0.40, 0.28), scale=40, rough=0.3)
 BRASS = dict(colour=(0.66, 0.56, 0.32), dark=(0.28, 0.22, 0.10), scale=18, rough=0.35, bump=0.3)
+# The round dais under the stairs: dark worn stone.
+DAIS = dict(colour=(0.30, 0.28, 0.24), dark=(0.05, 0.045, 0.035), scale=14, detail=16, bump=0.8, grime=0.5,
+            band=(0.4, 0.7), spot=0.3, spot_colour=(0.12, 0.08, 0.05))
 SLATE = dict(colour=(0.58, 0.58, 0.60), dark=(0.24, 0.24, 0.26), scale=8, rough=0.5, bump=0.5)
 BRONZE = dict(colour=(0.40, 0.31, 0.20), dark=(0.10, 0.07, 0.04), scale=16, rough=0.35, bump=0.5,
               band=(0.30, 0.70), grime=0.4)
@@ -95,32 +99,38 @@ def pillar():
 
 
 def stairway():
-    """Steps down into the dark under a square stone arch, with a round
-    landing in front carved with rings."""
+    """A flight of stone steps climbing between low side walls to a dark
+    doorway in the wall behind, on a round dais of dark carved stone."""
     stone, cap, hole = mat("stone", STONE), mat("capstone", CAPSTONE), mat("hole", DARK)
-    w, d, h = 3.4, 3.6, 5.2
-    box((w, d, 0.05), (0, 0.6, -0.02), hole)
-    for k in range(6):
-        box((w, d - k * 0.6, 0.25), (0, 0.6 + k * 0.3, -0.15 - k * 0.4), cap)
-    for x in (-w / 2 - 0.5, w / 2 + 0.5):
-        solid(box((1.0, d + 0.4, h), (x, 0.6, h / 2), stone))
-    solid(box((w + 2.0, 0.9, 0.9), (0, 0.6 - d / 2 + 0.25, h + 0.45), stone))
-    for x in (-w / 2 - 0.5, w / 2 + 0.5):
-        box((1.2, d + 0.6, 0.3), (x, 0.6, h + 0.15), cap)
-    solid(box((w + 2.0, 0.8, h), (0, 0.6 + d / 2 + 0.2, h / 2), stone))
-    # The landing: a half disc of slabs with carved rings.
-    bpy.ops.mesh.primitive_cylinder_add(vertices=40, radius=3.6, depth=0.35, location=(0, -1.0, 0.17))
-    disc = studio.assign(bpy.context.object, mat("slate", SLATE))
-    cut = box((8.0, 4.0, 1.0), (0, 2.0 - 1.0, 0.2), cap)
-    boolean = disc.modifiers.new("cut", "BOOLEAN")
-    boolean.object, boolean.operation = cut, "DIFFERENCE"
-    bpy.context.view_layer.objects.active = disc
-    bpy.ops.object.modifier_apply(modifier="cut")
-    bpy.data.objects.remove(cut)
-    for r in (1.2, 2.2, 3.1):
-        bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.06, location=(0, -1.0, 0.36))
-        ring = studio.assign(bpy.context.object, mat("capstone", CAPSTONE))
-        ring.scale = (1, 1, 0.5)
+    dais = mat("dais", DAIS)
+    w, n, rise, run = 2.6, 6, 0.42, 0.55
+    y0 = -1.1  # front edge of the bottom step
+    back = y0 + n * run  # where the flight meets the wall
+    # The wall behind, with a dark doorway at the top of the flight.
+    solid(box((w + 2.8, 0.8, WALL_H), (0, back + 0.4, WALL_H / 2), stone))
+    box((w + 2.9, 1.0, 0.3), (0, back + 0.4, WALL_H + 0.1), cap)
+    top = n * rise
+    box((w, 0.2, 2.6), (0, back - 0.02, top + 1.3), hole)
+    box((w + 0.6, 0.4, 0.4), (0, back - 0.1, top + 2.8), cap)
+    # The steps, each a block down to the floor; worn pale treads.
+    for k in range(n):
+        h = (k + 1) * rise
+        box((w, back - (y0 + k * run), h), (0, (y0 + k * run + back) / 2, h / 2), cap)
+    # Low side walls that step up with the flight.
+    for x in (-w / 2 - 0.35, w / 2 + 0.35):
+        for k in range(n):
+            h = (k + 1) * rise + 0.5
+            y = y0 + k * run - (0.2 if k == 0 else 0)
+            solid(box((0.7, back - y, h), (x, (y + back) / 2, h / 2), stone))
+    # The dais: a round slab, carved with rings and a curl in front.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=3.3, depth=0.3, location=(0, y0 + 0.4, 0.15))
+    studio.assign(bpy.context.object, dais)
+    bpy.ops.mesh.primitive_torus_add(major_radius=3.15, minor_radius=0.12, location=(0, y0 + 0.4, 0.3))
+    rim = studio.assign(bpy.context.object, dais)
+    rim.scale = (1, 1, 0.6)
+    for r, cx in ((0.55, -0.7), (0.55, 0.7), (1.1, 0.0)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.07, location=(cx, y0 - 1.3, 0.31))
+        studio.assign(bpy.context.object, cap).scale = (1, 0.6, 0.4)
 
 
 def teleporter():

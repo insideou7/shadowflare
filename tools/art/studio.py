@@ -97,7 +97,7 @@ def linear(c):
 
 
 def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.3, spot=0.0, spot_colour=None,
-             stretch=None, band=(0.3, 0.75), bricks=None, grime=0.0):
+             stretch=None, band=(0.3, 0.75), bricks=None, grime=0.0, fade=None):
     """A matte material whose colour wobbles with noise, like the
     textured models of late-90s pre-rendered games. Colours are sRGB."""
     colour = linear(colour)
@@ -197,6 +197,25 @@ def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.
         links.new(out, mul2.inputs["A"])
         links.new(ramp3.outputs["Color"], mul2.inputs["B"])
         out = mul2.outputs["Result"]
+    if fade:
+        # Wear that darkens with height: fade = (shade at the foot, shade
+        # at the top, height of the top), in world units.
+        geo = nodes.new("ShaderNodeNewGeometry")
+        sep_w = nodes.new("ShaderNodeSeparateXYZ")
+        links.new(geo.outputs["Position"], sep_w.inputs[0])
+        rng = nodes.new("ShaderNodeMapRange")
+        rng.inputs["From Min"].default_value = 0.0
+        rng.inputs["From Max"].default_value = fade[2]
+        rng.inputs["To Min"].default_value = fade[0]
+        rng.inputs["To Max"].default_value = fade[1]
+        links.new(sep_w.outputs["Z"], rng.inputs["Value"])
+        mul3 = nodes.new("ShaderNodeMix")
+        mul3.data_type = "RGBA"
+        mul3.blend_type = "MULTIPLY"
+        mul3.inputs["Factor"].default_value = 1.0
+        links.new(out, mul3.inputs["A"])
+        links.new(rng.outputs["Result"], mul3.inputs["B"])
+        out = mul3.outputs["Result"]
     links.new(out, bsdf.inputs["Base Color"])
     if bump > 0:
         b = nodes.new("ShaderNodeBump")
