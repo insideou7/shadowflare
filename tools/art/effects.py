@@ -217,6 +217,45 @@ def spike_frames(count, grow, fade, colour, seed, height=110, width=18):
     return out
 
 
+def ice_lump(draw, ox, oy, x, y, height, width, base, seed, light=(-0.6, -0.8), points=12):
+    """A lumpy block of ice cut into many facets, its foot on (x, y)."""
+    rng = np.random.default_rng(seed)
+    if height < 2 or width < 2:
+        return
+    cx, cy = x, y - height / 2
+    rim = []
+    for i in range(points):
+        a = 2 * math.pi * i / points + rng.normal(0, 0.15)
+        r = rng.uniform(0.78, 1.05)
+        rim.append((cx + math.cos(a) * width / 2 * r, cy + math.sin(a) * height / 2 * r))
+    inner = [(cx + (px - cx) * 0.55 + rng.normal(0, width * 0.06), cy + (py - cy) * 0.55 + rng.normal(0, height * 0.05))
+             for px, py in rim]
+    centre = (cx + rng.normal(0, width * 0.08), cy + rng.normal(0, height * 0.06))
+    lx, ly, lz = light[0], light[1], 0.8
+    ln = math.sqrt(lx * lx + ly * ly + lz * lz)
+    faces = []
+    for i in range(points):
+        j = (i + 1) % points
+        faces.append(([rim[i], rim[j], inner[j]], 0.35))
+        faces.append(([rim[i], inner[j], inner[i]], 0.6))
+        faces.append(([inner[i], inner[j], centre], 1.2))
+    for pts, z in faces:
+        mx = sum(px for px, _ in pts) / 3 - cx
+        my = sum(py for _, py in pts) / 3 - cy
+        nx, ny = mx / (width / 2), my / (height / 2)
+        nl = math.sqrt(nx * nx + ny * ny + z * z)
+        lit = max(0.0, (nx * lx + ny * ly + z * lz) / (nl * ln))
+        shade = np.clip(0.42 + 0.68 * lit + rng.normal(0, 0.07), 0.3, 1.15)
+        col = tuple(int(np.clip(c * shade, 0, 255)) for c in base) + (255,)
+        draw.polygon([(px + ox, py + oy) for px, py in pts], fill=col)
+
+
+def grain(cv, seed, fine=1.5, floor=0.25):
+    """Breaks light into specks, like the original's dithered glows."""
+    n = noise(cv.w, cv.h, fine, seed, 1)
+    cv.c *= np.clip(floor + (1 - floor) * (n * 1.8 - 0.4), 0, 1.4)[..., None]
+
+
 # --- effects ---------------------------------------------------------------
 
 class Effect:
@@ -385,18 +424,26 @@ def fire_burst(e):
 
 # Ice Bolt and Dread Deathscythe: cold air swirling round the caster.
 def ice_swirl(e):
+    # Two thin, speckled comets of frost sweeping round the caster and
+    # widening out.
     n = 16
-    frames = []
-    trans = []
+    frames, trans = [], []
     for f in range(n):
         t = f / (n - 1)
-        cv = Canvas(140, 90, 70, 55)
-        r = 18 + 42 * ease(min(1, t * 1.5))
-        start = f * 0.7
-        cv.ring(0, -20, r, r * 0.55, 0.12, (170, 200, 255), 0.9, arc=(start, 3.2))
-        cv.ring(0, -26, r * 0.8, r * 0.45, 0.12, (220, 235, 255), 0.6, arc=(start + 3.1, 2.4))
+        cv = Canvas(150, 100, 75, 60)
+        r = 10 + 52 * ease(min(1, t * 1.3))
+        head = f * 0.75
+        for k, (lag, ry, col) in enumerate([(0.0, 0.42, (225, 235, 255)), (math.pi, 0.5, (175, 200, 240))]):
+            # A bright head with a tail fading back along the arc.
+            for step in range(14):
+                a = head + lag - step * 0.16
+                fade = (1 - step / 14) ** 1.5
+                px, py = math.cos(a) * r, math.sin(a) * r * ry - 18
+                qx, qy = math.cos(a - 0.17) * r, math.sin(a - 0.17) * r * ry - 18
+                cv.streak(px, py, qx, qy, 1.6 + 1.8 * fade, col, 1.0 * fade)
+        grain(cv, 2700 + f, 1.5, 0.35)
         frames.append(e.light(cv))
-        trans.append(int(1000 * fade_in_out(f, n, 3, 5)))
+        trans.append(int(1000 * fade_in_out(f, n, 2, 6)))
     e.chart(False, {8: [(True, 0, frames, trans)]})
 
 
@@ -406,14 +453,22 @@ def ice_bolt(e):
         rng = np.random.default_rng(f + 40)
         along = -(cv.x * dx + cv.y * dy)
         across = cv.x * -dy + cv.y * dx
-        body = np.exp(-(np.clip(along, 0, None) / 24) ** 2 - (np.clip(-along, 0, None) / 5) ** 2) \
-            * np.exp(-(across / (8 + 0.12 * np.clip(along, 0, None))) ** 2)
-        cv.add(body, (235, 250, 255), 1.4)
-        for _ in range(26):  # frost thrown off behind
-            u = rng.uniform(8, 50)
-            sx = -dx * u + -dy * rng.normal(0, 3 + u * 0.25)
-            sy = -dy * u + dx * rng.normal(0, 3 + u * 0.25)
-            cv.blob(sx, sy, 1.5, 1.5, (150, 220, 230), rng.uniform(0.4, 1.0) * (1 - u / 60))
+        body = np.exp(-(np.clip(along, 0, None) / 36) ** 2 - (np.clip(-along, 0, None) / 4) ** 2) \
+            * np.exp(-(across / (10 + 0.1 * np.clip(along, 0, None))) ** 2)
+        tex = noise(cv.w, cv.h, 1.5, 4000 + f, 2)
+        d = np.clip((body * (0.6 + 0.9 * tex) - 0.3) * 2.5, 0, 1.3)
+        # White at the head, going blue-green and speckled down the tail.
+        w = np.clip((along - 10) / 26, 0, 1)[..., None]
+        cv.c += d[..., None] * (np.array([1.25, 1.3, 1.33]) * (1 - w) + np.array([0.55, 1.0, 0.95]) * w)
+        # A ragged fringe of blue-green frost round the white core.
+        fringe = np.exp(-(np.clip(along - 4, 0, None) / 34) ** 2 - (np.clip(4 - along, 0, None) / 4) ** 2) \
+            * np.exp(-(across / 16) ** 2) * np.clip(1.2 - body, 0, 1)
+        cv.add(np.clip((fringe * (0.3 + tex) - 0.45) * 4, 0, 1), (120, 230, 215), 1.0)
+        for _ in range(16):  # frost thrown off behind
+            u = rng.uniform(6, 34)
+            sx = -dx * u + -dy * rng.normal(0, 3 + u * 0.3)
+            sy = -dy * u + dx * rng.normal(0, 3 + u * 0.3)
+            cv.blob(sx, sy, 1.3, 1.3, (130, 235, 215), rng.uniform(0.5, 1.1) * (1 - u / 60))
     dirs = missile_frames(e, 11, draw)
     e.chart(True, {d: [(True, 0, fr, None)] for d, fr in dirs.items()})
 
@@ -422,31 +477,41 @@ def ice_bolt(e):
 def frost_hit(e):
     n = 20
     rng = np.random.default_rng(55)
-    chunks = [(rng.uniform(-0.6, 0.6) - math.pi / 2, rng.uniform(20, 42), rng.uniform(5, 9)) for _ in range(9)]
-    needles = [(rng.uniform(-math.pi, 0), rng.uniform(25, 60)) for _ in range(30)]
-    mist, ice = [], []
+    shards = [(rng.uniform(-math.pi * 0.95, -math.pi * 0.05), rng.uniform(12, 30), rng.uniform(5, 10)) for _ in range(9)]
+    needles = [(rng.uniform(-math.pi, 0.4), rng.uniform(15, 50)) for _ in range(46)]
+    mist, block, bits = [], [], []
     for f in range(n):
+        # Grey freezing haze all through.
         cv = Canvas(120, 130, 60, 80)
-        smoke(cv, 0, -12 - f * 0.8, 36 + f * 0.6, 26 + f * 0.9, 900 + f // 2, (150, 160, 190), 0.9, bits=0.3)
+        smoke(cv, 0, -14 - f * 0.6, 40 + f * 0.7, 32 + f * 0.8, 900 + f // 2, (165, 170, 185), 1.2, bits=0.3)
+        grain(cv, 950 + f, 1.5, 0.4)
         mist.append(e.light(cv))
-        cv = Canvas(130, 140, 65, 90)
-        if f < 2:
-            pass
-        elif f < 9:  # the block, glaring white
+        # A white block of ice, faceted, that cracks and goes grey.
+        if 2 <= f < 15:
+            im = Image.new("RGBA", (110, 110))
+            dr = ImageDraw.Draw(im)
             g = ease(min(1, (f - 1) / 3))
-            for a, ln, wd in chunks:
-                tipx, tipy = math.cos(a) * ln * g, math.sin(a) * ln * g - 6
-                cv.streak(0, -6, tipx, tipy, wd * g, (235, 240, 255), 1.0)
-            cv.blob(0, -14, 22 * g, 18 * g, (200, 215, 255), 0.6)
-        else:  # needles flying apart
+            grey = 1 - 0.35 * max(0, (f - 9) / 5)
+            col = tuple(int(c * grey) for c in (232, 238, 250))
+            for k, (a, ln, wd) in enumerate(shards):  # splinters standing out
+                facet_shard(dr, 55, 70, 0, -16, ln * 1.4 * g, wd * g * 0.7, a, tuple(int(c * 0.8) for c in col), sides=3)
+            ice_lump(dr, 55, 70, 0, 10, 56 * g, 64 * g, col, 560 + f // 4, points=13)
+            block.append(e.frame(im, 55, 70))
+        else:
+            block.append(None)
+        # Frost needles flying apart and falling.
+        cv = Canvas(130, 140, 65, 90)
+        if f >= 8:
             u = (f - 8) / 11
             for a, r in needles:
-                x, y = math.cos(a) * r * (0.3 + u), math.sin(a) * r * (0.3 + u) - 10 + 30 * u * u
-                cv.streak(x, y, x - math.cos(a) * 6, y - math.sin(a) * 6, 1.0, (230, 235, 255), 0.9)
-        ice.append(e.light(cv))
-    mt = [min(1000, 100 * (f + 1)) if f < 9 else (1000 if f < 18 else 1000 - 100 * (f - 17)) for f in range(n)]
-    it = [1000 if f < 8 else max(10, 1000 - 100 * (f - 7)) for f in range(n)]
-    e.chart(False, {8: [(True, 0, mist, mt), (True, 1, ice, it)]})
+                x, y = math.cos(a) * r * (0.35 + u), math.sin(a) * r * (0.35 + u) - 14 + 34 * u * u
+                cv.streak(x, y, x - math.cos(a) * 5, y - math.sin(a) * 5 + 3 * u, 0.9, (215, 225, 240), 0.9)
+            grain(cv, 990 + f, 1.5, 0.5)
+        bits.append(e.light(cv))
+    mt = [min(1000, 120 * (f + 1)) if f < 9 else (1000 if f < 16 else 1000 - 200 * (f - 15)) for f in range(n)]
+    bt = [1000 if f < 11 else max(200, 1000 - 200 * (f - 10)) for f in range(n)]
+    nt = [1000 if f < 15 else 1000 - 180 * (f - 14) for f in range(n)]
+    e.chart(False, {8: [(True, 0, mist, mt), (False, 1, block, bt), (True, 2, bits, nt)]})
 
 
 # Plasma and Lightning Storm: a bolt from the sky, in four shapes, that
@@ -587,24 +652,27 @@ def gold_burst(e):
 def ice_gather(e, colour=(200, 215, 240), ring=(225, 235, 255), n=15):
     frames = []
     rng = np.random.default_rng(31)
-    rays = [(rng.uniform(0, 2 * math.pi), rng.uniform(0.5, 1.0), rng.uniform(10, 30)) for _ in range(90)]
+    rays = [(rng.uniform(0, 2 * math.pi), rng.uniform(0.45, 1.0), rng.uniform(10, 34)) for _ in range(170)]
     for f in range(n):
         t = f / (n - 1)
         cv = Canvas(200, 190, 100, 95)
         if t < 0.45:
             u = t / 0.45
             for a, rr, ln in rays:
-                r = 90 * rr * (1 - u) + 6
+                r = 66 * rr * (1 - u) + 24 * rr
                 x, y = math.cos(a) * r, math.sin(a) * r * 0.9
-                cv.streak(x, y, x - math.cos(a) * ln * (1 - u * 0.6), y - math.sin(a) * ln * 0.9 * (1 - u * 0.6), 0.6,
-                          colour, 0.8)
+                cv.streak(x, y, x - math.cos(a) * ln * (1 - u * 0.5), y - math.sin(a) * ln * 0.9 * (1 - u * 0.5), 0.4,
+                          colour, 0.75)
+            cv.blob(0, 0, 6 + 10 * u, 6 + 10 * u, colour, 0.25 * u)
+            grain(cv, 3100 + f, 1.5, 0.45)
         else:
             u = (t - 0.45) / 0.55
-            for k in range(3):
-                r = 18 + 40 * ease(u)
-                cv.ring(0, 0, r, r * (0.35 + 0.2 * k), 0.12, ring, 0.9, tilt=k * math.pi / 3 + u)
-            grain = noise(cv.w, cv.h, 3, 3000 + f, 2)
-            cv.c *= (0.4 + grain)[..., None]
+            for k in range(4):
+                r = 26 + 32 * ease(u)
+                cv.ring(0, 0, r, r * (0.3 + 0.17 * k), 0.07 + 0.04 * u, ring, 1.0, tilt=k * math.pi / 4 + u * 1.6)
+            lumps = noise(cv.w, cv.h, 3, 3000 + f, 2)
+            cv.c *= (0.35 + lumps)[..., None]
+            grain(cv, 3200 + f, 1.5, 0.5)
         frames.append(e.light(cv))
     e.chart(False, {8: [(True, 0, frames, None)]})
 
@@ -612,27 +680,30 @@ def ice_gather(e, colour=(200, 215, 240), ring=(225, 235, 255), n=15):
 # Ice Blast: great blocks of ice heaving up from the ground.
 def ice_block(draw, ox, oy, x, y, height, width, colour, seed):
     rng = np.random.default_rng(seed)
-    # A long faceted gem standing on end: two points and a waist.
-    lean = rng.normal(0, 0.08)
-    facet_shard(draw, ox, oy, x, y, height * 0.72, width / 2, -math.pi / 2 + lean, colour, sides=4)
-    facet_shard(draw, ox, oy, x, y, height * 0.28, width / 2, math.pi / 2 + lean, tuple(int(c * 0.8) for c in colour),
-                sides=4)
+    # A tall lumpy column of ice: a long block with a second grown into
+    # its upper half.
+    lean = rng.normal(0, width * 0.1)
+    ice_lump(draw, ox, oy, x, y, height * 0.7, width, colour, seed * 7, points=16)
+    ice_lump(draw, ox, oy, x + lean, y - height * 0.32, height * 0.68, width * rng.uniform(0.8, 0.95), colour,
+             seed * 7 + 1, points=16)
 
 
 def ice_crystals(e):
     layers = []
-    # Back, middle and front rows of blocks: (x, y, delay) for each.
-    rows = [[(0, -45, 2)], [(-48, 0, 0), (48, 0, 1)], [(-20, 42, 3), (22, 40, 4)]]
+    # Back and front rows of columns: (x, y, height, delay) for each. They
+    # start as a scatter of small lumps and heave up together.
+    rows = [[(-50, -28, 150, 1), (2, -40, 160, 0), (54, -26, 150, 2)],
+            [(-46, 30, 110, 3), (4, 40, 120, 2), (52, 32, 108, 4)]]
     for li, row in enumerate(rows):
         frames = [None]
         for f in range(1, 21):
             im = Image.new("RGBA", (340, 320))
             dr = ImageDraw.Draw(im)
-            for bi, (x, y, delay) in enumerate(row):
-                g = ease(min(1, max(0, (f - delay) / 7)))
+            for bi, (x, y, height, delay) in enumerate(row):
+                g = ease(min(1, max(0, (f - delay) / 10)))
                 if g <= 0:
                     continue
-                ice_block(dr, 170, 220, x, y, 150 * g, 44 * (0.4 + 0.6 * g), (215, 225, 245), li * 7 + bi)
+                ice_block(dr, 170, 220, x, y, height * g, 52 * (0.35 + 0.65 * g), (226, 232, 248), li * 7 + bi + 1)
             frames.append(e.frame(im, 170, 220 - 60))
         layers.append((False, li, frames, [1000] * 18 + [800, 600, 400]))
     e.chart(True, {8: layers})
@@ -640,15 +711,20 @@ def ice_crystals(e):
 
 # Ice Blast: freezing mist rolling out round the crystals.
 def ice_mist(e):
+    # A lumpy, uneven ring of freezing fog that thickens and whitens.
     outer, inner = [], []
     for f in range(21):
-        cv = Canvas(240, 180, 120, 95)
-        smoke(cv, 0, -10, 105, 72, 1100 + f // 3, (200, 210, 235), 1.8, hole=0.3, bits=0.15)
+        k = 0.9 + 0.9 * min(1, f / 8)
+        cv = Canvas(250, 190, 125, 100)
+        smoke(cv, 4, -14, 112, 80, 1100 + f // 3, (210, 216, 236), k * 1.3, hole=0.3, bits=0.05)
+        lumps = noise(cv.w, cv.h, 30, 1150, 2)
+        cv.c *= np.clip((lumps - 0.3) * 3.0, 0, 1.4)[..., None]
+        grain(cv, 1160 + f, 1.5, 0.85)
         outer.append(e.light(cv))
         cv = Canvas(130, 110, 65, 95)
-        smoke(cv, 0, -45, 50, 42, 1200 + f // 3, (180, 190, 215), 1.2, bits=0.25)
+        smoke(cv, -6, -40, 46, 38, 1200 + f // 3, (175, 182, 205), 0.8 * k, bits=0.3)
         inner.append(e.light(cv))
-    trans = [300, 400, 500, 600, 700, 800, 900] + [1000] * 11 + [900, 600, 300]
+    trans = [500, 600, 700, 800, 900] + [1000] * 13 + [900, 600, 300]
     e.chart(False, {8: [(True, 0, outer, trans), (True, 1, inner, trans)]})
 
 
@@ -700,6 +776,7 @@ def debris_swirl(e):
 
 # Dread Deathscythe: grey crystal blades, turning as they fly.
 def blade_missile(e, n, seed, length):
+    # A lumpy shard of grey-green ice tumbling along, point first.
     dirs = {}
     for d, (dx, dy) in enumerate(DIRS):
         frames = []
@@ -707,13 +784,9 @@ def blade_missile(e, n, seed, length):
             im = Image.new("RGBA", (110, 110))
             dr = ImageDraw.Draw(im)
             spin = f / n * 2 * math.pi
-            ang = math.atan2(dy, dx)
-            ln = length * (0.85 + 0.15 * abs(math.cos(spin)))
-            wd = 8 + 5 * abs(math.sin(spin))
-            facet_shard(dr, 55, 55, -dx * ln * 0.35, -dy * ln * 0.35, ln * 0.65, wd, ang, (170, 185, 195),
-                        light=(math.cos(spin), math.sin(spin)), sides=4)
-            facet_shard(dr, 55, 55, -dx * ln * 0.35, -dy * ln * 0.35, ln * 0.35, wd, ang + math.pi, (120, 135, 145),
-                        light=(math.cos(spin), math.sin(spin)), sides=4)
+            wd = 15 + 6 * abs(math.sin(spin))
+            ice_lump(dr, 55, 55 + length / 2, 0, 0, length, wd, (190, 205, 205), seed * 100 + f % 4,
+                     light=(math.cos(spin) * 0.8, -0.7), points=10)
             frames.append(e.frame(im, 55, 55))
         dirs[d] = frames
     e.chart(True, {d: [(True, 0, fr, None)] for d, fr in dirs.items()})
