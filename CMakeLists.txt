@@ -35,6 +35,7 @@ add_library(sf_logic STATIC
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
+    src/logic/progression.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 

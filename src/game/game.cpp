@@ -5,11 +5,13 @@
 #include <climits>
 #include <cmath>
 #include <cstdio>
+#include <format>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
 #include "logic/movement.h"
+#include "render/tiny_font.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -68,6 +70,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
         log::warn("Monster AI: {}", e.what());
     }
     loadItems();
+    loadLevelCurve();
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     giveStartingKit();
@@ -277,7 +280,7 @@ void Game::placePlayerAt(double screenX, double screenY) {
         player_->x = wx;
         player_->y = wy;
         player_->setAction(Action::Idle);
-        playerHp_ = kPlayerMaxHp;
+        playerHp_ = playerMaxHp();
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
@@ -604,6 +607,8 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
         dropLoot(enemy);
+        const auto& s = enemy.placement.stats;
+        gainExperience(s.experience > 0 ? s.experience : defaultExperience(s.hp, s.attack));
     } else {
         enemy.state = Actor::State::Hit;
         enemy.character.restart(chart::kEnemyHit);
@@ -613,7 +618,7 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
 }
 
 void Game::hurtPlayer(int damage) {
-    playerHp_ -= reduceDamage(damage, inventory_.stats()[ItemDef::kDefense]);
+    playerHp_ -= reduceDamage(damage, playerDefense());
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
@@ -629,8 +634,12 @@ void Game::hurtPlayer(int damage) {
         placePlayer();
         return;
     }
-    player_->restart(chart::kPlayerHit);
-    walkTarget_.reset();
+    // A blow does not interrupt the player's own swing or a flinch already
+    // playing, or a crowd of monsters could keep them from ever fighting back.
+    if (player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+        player_->restart(chart::kPlayerHit);
+        walkTarget_.reset();
+    }
 }
 
 void Game::render(double interpolation) {
@@ -783,7 +792,19 @@ void Game::renderHealthBars(int camX, int camY) {
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
         bar(sx - camX - 20, sy - camY - 100, 40, 5, static_cast<double>(a.hp) / a.maxHp);
     }
-    if (player_) bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / kPlayerMaxHp);
+    if (player_) {
+        bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
+        // Experience towards the next level, in a thin blue bar underneath.
+        const auto from = levels_.start(playerLevel_), to = levels_.start(playerLevel_ + 1);
+        const double fraction = to > from ? static_cast<double>(playerExperience_ - from) / static_cast<double>(to - from) : 1.0;
+        SDL_Rect back{8, kScreenHeight - 7, 120, 4};
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderFillRect(renderer_, &back);
+        SDL_Rect fill{9, kScreenHeight - 6, static_cast<int>(118 * std::clamp(fraction, 0.0, 1.0)), 2};
+        SDL_SetRenderDrawColor(renderer_, 70, 120, 230, 255);
+        SDL_RenderFillRect(renderer_, &fill);
+        drawText(renderer_, 134, kScreenHeight - 18, std::format("LV {}", playerLevel_), {255, 255, 255, 255});
+    }
 }
 
 // Each judge cell is a world-space square, so it shows up as a diamond.

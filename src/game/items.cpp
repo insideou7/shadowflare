@@ -9,6 +9,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
+#include "formats/table_data.h"
 #include "game/content.h"
 #include "game/game.h"
 #include "platform/filesystem.h"
@@ -218,7 +219,13 @@ void Game::updateEquipment() {
 }
 
 // Placeholder combat: the attack of everything worn, or bare hands.
-int Game::playerDamage() const { return std::max(10, inventory_.stats()[ItemDef::kAttack]); }
+int Game::playerDamage() const {
+    return std::max(10, inventory_.stats()[ItemDef::kAttack]) + statsAtLevel(playerLevel_).attack;
+}
+
+int Game::playerDefense() const {
+    return inventory_.stats()[ItemDef::kDefense] + statsAtLevel(playerLevel_).defense;
+}
 
 void Game::useItem(int index) {
     const ItemDef* def = inventory_.use(index);
@@ -226,9 +233,31 @@ void Game::useItem(int index) {
     // Effect words 1 and 2 restore health and mental power; there is no
     // mental power yet.
     if (def->effect[1] > 0) {
-        playerHp_ = std::min(kPlayerMaxHp, playerHp_ + def->effect[1]);
+        playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
     }
     showMessage(std::format("Used {}", def->name));
+}
+
+// The original's experience curve is in Table.Tbd; the open content uses ours.
+void Game::loadLevelCurve() {
+    if (auto raw = data_->read("System/Game/Parameter/Table.Tbd")) {
+        try {
+            levels_ = LevelCurve::fromTables(GameTables::parse(*raw));
+        } catch (const FormatError& e) {
+            log::warn("Table.Tbd: {}", e.what());
+        }
+    }
+    if (levels_.thresholds.empty()) levels_ = LevelCurve::standard();
+}
+
+void Game::gainExperience(int amount) {
+    playerExperience_ += amount;
+    const int level = levels_.levelFor(playerExperience_);
+    if (level <= playerLevel_) return;
+    playerLevel_ = level;
+    playerHp_ = playerMaxHp();  // a new level heals, as in most games of its kind
+    log::info("Level {} ({} experience)", playerLevel_, playerExperience_);
+    showMessage(std::format("Level {}!", playerLevel_));
 }
 
 void Game::showMessage(std::string text) {
@@ -435,8 +464,9 @@ void Game::renderInventory() {
         // Totals on the left.
         const auto stats = inventory_.stats();
         int ty = 20;
-        for (const auto& line : {std::format("LV {}", playerLevel_), std::format("ATK {}", playerDamage()),
-                                 std::format("DEF {}", stats[ItemDef::kDefense]), std::format("HIT {}", stats[ItemDef::kHit]),
+        for (const auto& line : {std::format("LV {}", playerLevel_), std::format("EXP {}", playerExperience_),
+                                 std::format("ATK {}", playerDamage()),
+                                 std::format("DEF {}", playerDefense()), std::format("HIT {}", stats[ItemDef::kHit]),
                                  std::format("EVA {}", stats[ItemDef::kEvasion])}) {
             drawText(renderer_, 336, ty, line, kWhite);
             ty += 16;
