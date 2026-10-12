@@ -18,6 +18,7 @@
 #include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/settings.h"
 #include "logic/shop.h"
 #include "formats/table_data.h"
 #include "formats/ai_control.h"
@@ -77,8 +78,6 @@ public:
     void setShowJudge(bool show) { showJudge_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
-    // Saves the game to a text file (F10) or loads it back (F9). False, with
-    // a message on screen, when that fails.
     // Starts the hero at a level, fully healed (for testing): a warrior from
     // level 5, as the original makes every hero.
     void setLevel(int level) {
@@ -103,11 +102,18 @@ public:
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
 
-    // The main menu. At the start it offers Continue, New Game and Quit;
-    // Esc during play opens it with Resume, Save and Load as well.
-    enum class MenuItem { Resume, Continue, NewGame, Save, Load, OriginalMode, Quit };
-    void openMenu(bool atStart);
+    // The title menu: Continue, New Game, Options and Quit.
+    enum class MenuItem { Continue, NewGame, Options, Quit };
+    void openMenu();
     bool menuOpen() const { return menuOpen_; }
+
+    // The Settings Menu, as the original's (Esc in the game); from the
+    // title menu it is Options, without the save and exit rows.
+    void openOptions(bool inGame);
+    // Reads the options from this file and writes them back when they change.
+    void setSettingsFile(std::string path);
+    const Settings& settings() const { return settings_; }
+    void setHelpOpen(bool open) { helpOpen_ = open; }
 
     // Walks the player up to a character and speaks to them (for scripted
     // tests); `answers` close the messages that follow, one each.
@@ -116,6 +122,8 @@ public:
     // Sets a SAVE story flag, for testing scripts part way through the story.
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
 
+    // Saves the game to a text file (F10) or loads it back (F11). False, with
+    // a message on screen, when that fails.
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
     bool loadGame();
@@ -311,6 +319,40 @@ private:
     void chooseMenuItem(MenuItem item);
     void newGame();
 
+    // The Settings Menu and Help window (options.cpp).
+    enum class OptionRow {
+        ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
+        EffectVolume, MusicVolume, OriginalMode, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back
+    };
+    std::vector<OptionRow> optionRows() const;
+    bool optionEnabled(OptionRow row) const;
+    static const char* optionLabel(OptionRow row);
+    static bool optionIsSlider(OptionRow row);
+    std::vector<std::string> optionChoices(OptionRow row, int& chosen) const;
+    SDL_Rect optionChoiceRect(int row, int choice);
+    void setOption(OptionRow row, int index);
+    void chooseOption(OptionRow row);
+    void closeOptions();
+    void optionsEvent(const SDL_Event& event);
+    void renderOptions();
+    void renderHelp();
+    void saveSettings();
+    void applyScreenMode();
+    void takeScreenshot();
+    // Closes the inventory panel, putting a held item back or dropping it.
+    void closeInventory();
+    // A key from the manual for something the engine does not have yet.
+    void notYet(const char* what);
+    // What a left click at a point on the screen is aimed at, by the click
+    // priority. Only the kinds in `kinds` (bits of Settings::Target) count.
+    struct ClickTarget {
+        int kind = -1;  // Settings::Target, or -1 for the ground
+        std::size_t index = 0;
+    };
+    ClickTarget clickTarget(float screenX, float screenY, unsigned kinds) const;
+    // A point within the click range of something drawn at (sx, sy).
+    bool inClickRange(double dx, double dy) const;
+
     SDL_Renderer* renderer_;
     const FileSystem* data_;
     SpriteCache sprites_;
@@ -381,6 +423,14 @@ private:
     std::uint64_t ticks_ = 0;
     bool quit_ = false;
     bool menuOpen_ = false;
+    Settings settings_;
+    std::string settingsFile_;
+    bool optionsOpen_ = false;
+    bool optionsInGame_ = false;
+    int optionsChoice_ = 0;
+    bool helpOpen_ = false;
+    bool runMode_ = false;  // R or the RUN button: run instead of walk
+    bool screenshotPending_ = false;
     std::vector<MenuItem> menuItems_;
     int menuChoice_ = 0;
     std::size_t startMapIndex_ = 0;

@@ -231,14 +231,15 @@ void Game::runEvent(std::int32_t event, std::int32_t character) {
 
 std::optional<std::size_t> Game::personAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
-    double bestDistance = 40;
+    double bestDistance = INFINITY;
     for (std::size_t i = 0; i < actors_.size(); ++i) {
         const auto& a = actors_[i];
         if (a.hostile() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        const double d = std::hypot(sx - cameraX_ - screenX, sy - 40 - cameraY_ - screenY);
-        if (d < bestDistance) {
+        const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
+        const double d = std::hypot(dx, dy);
+        if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
             best = i;
         }

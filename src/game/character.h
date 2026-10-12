@@ -33,6 +33,7 @@ enum class Action { Idle = 0, Walk = 1 };
 namespace chart {
 inline constexpr int kIdle = 0;
 inline constexpr int kWalk = 1;
+inline constexpr int kPlayerRun = 2;
 inline constexpr int kPlayerHit = 3;
 inline constexpr int kPlayerPunch = 5;
 inline constexpr int kPlayerCast = 13;
@@ -71,7 +72,10 @@ public:
     void faceTowards(double dx, double dy);
 
     void tick();
-    void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY) const;
+    // `shadowAlpha` is how dark the shadow is drawn. Below 255, `alpha`
+    // draws a see-through copy with no shadow.
+    void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
+              int alpha = 255) const;
 
 private:
     const AnimationSet::Direction* currentDirection() const;
