@@ -21,8 +21,8 @@ import studio  # noqa: E402
 from dungeon import DARK, solid, turn  # noqa: E402
 from town import IRON, _mats, ball, box, cyl, mat, mesh  # noqa: E402
 
-ROCK = dict(colour=(0.40, 0.22, 0.09), dark=(0.035, 0.02, 0.012), scale=18, detail=14, bump=1.6, grime=0.5,
-            band=(0.45, 0.65), spot=0.28, spot_colour=(0.70, 0.44, 0.20))
+ROCK = dict(colour=(0.52, 0.29, 0.10), dark=(0.035, 0.018, 0.008), scale=30, detail=16, bump=0.8, grime=0.5,
+            band=(0.4, 0.7))
 TIMBER = dict(colour=(0.46, 0.28, 0.13), dark=(0.14, 0.08, 0.04), scale=6, bump=0.6, stretch=(1, 1, 8), grime=0.3)
 BOARDS = dict(colour=(0.22, 0.21, 0.19), dark=(0.06, 0.06, 0.05), scale=5, bump=0.5, stretch=(6, 6, 0.4),
               grime=0.6, spot=0.25, spot_colour=(0.40, 0.17, 0.07))
@@ -43,11 +43,32 @@ def rough(o, strength=0.35, size=0.6, seed=1, cuts=24):
     return o
 
 
+def crags(width, height, depth, mat_, seed=1, count=14, at=(0, 0, 0), along_y=False):
+    """Big angular masses of rock heaped into a wall face, like the
+    original's caves: low-poly lumps, flat shaded, so each facet catches
+    the light on its own and dark clefts open between them. The face runs
+    along x (or y) through `at`."""
+    rng = random.Random(seed)
+    for k in range(count):
+        t = -width / 2 + width * (k + rng.uniform(0.1, 0.9)) / count
+        r = rng.uniform(0.9, 1.6)
+        # Kept under the top of the face, which stays ragged but level.
+        z = at[2] + rng.uniform(0.5 * r, max(0.5 * r, height - 1.1 * r))
+        d = rng.uniform(-0.2, 0.3)
+        loc = (at[0] - d, at[1] + t, z) if along_y else (at[0] + t, at[1] + d, z)
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=r, location=loc)
+        o = bpy.context.object
+        o.scale = (rng.uniform(0.8, 1.3), depth / r * rng.uniform(0.35, 0.55), rng.uniform(0.7, 1.0))
+        o.rotation_euler = (rng.uniform(0, 3.1), rng.uniform(0, 3.1), rng.uniform(0, 3.1))
+        studio.assign(o, mat_)
+
+
 def rock_wall(along_y=False, props=False, seed=1):
     """A wall of raw brown rock, darker towards the top; with props, two
     timber posts and a cap beam hold the face up."""
     rock, timber = mat("rock", ROCK), mat("timber", TIMBER)
-    rough(solid(box((WALL_L, 1.2, WALL_H), (0, 0.2, WALL_H / 2), rock)), 0.45, 0.8, seed)
+    rough(solid(box((WALL_L, 1.0, WALL_H), (0, 0.3, WALL_H / 2), rock)), 0.45, 0.8, seed)
+    crags(WALL_L, WALL_H, 1.0, rock, seed)
     if props:
         for x in (-2.0, 2.0):
             box((0.45, 0.45, WALL_H - 0.8), (x, -0.75, (WALL_H - 0.8) / 2), timber)

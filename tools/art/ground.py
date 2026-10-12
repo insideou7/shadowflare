@@ -88,6 +88,30 @@ def crumbs(rng, res, per_tile, keep, sharp=2.5):
     return h * up
 
 
+def plates(rng, res, per_tile):
+    """Flat stone plates: a wrapping res x res grid of Voronoi cells
+    (per_tile to a tile edge, PERIOD tiles across). Returns each pixel's
+    distance to its cell's border (in cell sizes) and its cell's random
+    shade (-1 to 1)."""
+    g = PERIOD * per_tile
+    pts = (np.mgrid[0:g, 0:g].transpose(1, 2, 0) + rng.uniform(0.1, 0.9, (g, g, 2))) / g
+    shade = rng.uniform(-1, 1, (g, g))
+    yy, xx = (np.mgrid[0:res, 0:res] + 0.5) / res
+    cy, cx = np.floor(yy * g).astype(int), np.floor(xx * g).astype(int)
+    d, val = [], []
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            ny, nx = (cy + dy) % g, (cx + dx) % g
+            py = pts[ny, nx, 0] + np.floor((cy + dy) / g)
+            px = pts[ny, nx, 1] + np.floor((cx + dx) / g)
+            d.append((yy - py) ** 2 + (xx - px) ** 2)
+            val.append(shade[ny, nx])
+    d, val = np.stack(d), np.stack(val)
+    order = np.argsort(d, axis=0)
+    d = np.take_along_axis(d, order, 0)
+    return (np.sqrt(d[1]) - np.sqrt(d[0])) * g, np.take_along_axis(val, order[:1], 0)[0]
+
+
 class Ground:
     RES = 128  # samples per tile of the crumb relief
 
@@ -326,11 +350,6 @@ class Cave(Ground):
         h = np.clip((np.sqrt(d[1]) - np.sqrt(d[0])) * g * 2.5, 0, 1) ** 0.5
         return h * up
 
-    def sample(self, grid, u, v):
-        x = (np.asarray(u) % PERIOD) / PERIOD * self.res
-        y = (np.asarray(v) % PERIOD) / PERIOD * self.res
-        return grid[y.astype(int) % self.res, x.astype(int) % self.res]
-
     def texture(self, u, v):
         big = self.big(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
@@ -348,9 +367,22 @@ class Cave(Ground):
             moss = colour(np.array([32, 31, 21.0]), np.array([13, 13, 9.0]), np.array([50, 50, 34.0]),
                           np.clip(2.0 * light, -1, 1) * 0.5 + 0.2 * big, fine, 0.3)
             return earth, moss * (0.75 + 0.25 * lump)[..., None], self.edge(u, v)
+        # Chunks of flat rock with bevelled edges, lit from the top of the
+        # screen; a few lower chunks between them sit in shadow.
+        if not hasattr(self, "chunk"):
+            edge, val = plates(np.random.default_rng(self.seed + 9), 128 * PERIOD, 9)
+            # Each chunk stands at its own height; only steps between
+            # neighbours show, as a lit lip above and a shadow below.
+            level = np.clip((val + 0.6) * 2.5, 0, 1)
+            h = level * (0.75 + 0.25 * np.clip(edge / 0.12, 0, 1))
+            lit = np.roll(h, (2, 2), (0, 1)) - np.roll(h, (-2, -2), (0, 1))
+            self.chunk = h, val, lit
+        # Wobble the lookup so the chunks' sides are ragged, not straight.
+        wu, wv = u + 0.035 * self.edge(u * 4, v * 4), v + 0.035 * self.edge(v * 4 + 1.3, u * 4 + 0.7)
+        h, val, lit = (self.sample(g, wu, wv) for g in self.chunk)
         rock = colour(np.array([90, 75, 58.0]), np.array([46, 37, 28.0]), np.array([136, 118, 94.0]),
-                      np.clip(2.0 * light, -1, 1) * 0.55 + 0.15 * big, fine, 0.14)
-        rock = rock * (0.8 + 0.2 * lump)[..., None]
+                      0.5 * np.clip(1.5 * lit, -1, 1) + 0.1 * val + 0.12 * big, fine, 0.1)
+        rock = rock * (0.7 + 0.3 * h)[..., None]
         gravel = colour(np.array([72, 60, 48.0]), np.array([40, 33, 26.0]), np.array([104, 90, 72.0]),
                         0.2 * big, fine, 0.40)
         return rock, gravel, self.edge(u, v)
