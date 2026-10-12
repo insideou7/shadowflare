@@ -1031,7 +1031,7 @@ none=
 14=log!@-188,-122
 15=log@-118,-172
 [objects CaveEnter.njp]
-0=cave_mouth!@-647,-473
+0=cave_mouth!@-786,-696
 [objects volcano.njp]
 0=lava_1@-810,-810
 1=lava_3!@-610,-610

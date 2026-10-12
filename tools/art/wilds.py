@@ -532,41 +532,46 @@ def cliff(seed, kind="x"):
 
 
 def cave_mouth():
-    """A dark opening in a low mound of earth."""
-    earth = mat("mound", dict(EARTH, colour=(0.17, 0.12, 0.04), dark=(0.04, 0.03, 0.01), grime=0.0))
-    # A ragged patch of loose earth, heaped a little towards the opening.
+    """A burrow into a long hump of earth: a curved ridge of craggy earth
+    arching round a black hollow, like the original's cave entrances in
+    the wilds. The ridge runs along Blender Y and the hollow opens towards
+    +X (the lower right of the screen; the skin mirrors it as needed)."""
     rng = random.Random(3)
-    bpy.ops.mesh.primitive_grid_add(x_subdivisions=160, y_subdivisions=160, size=13.0, location=(0, 0, 0.02))
-    o = bpy.context.object
-    bm = bmesh.new()
-    bm.from_mesh(o.data)
-    drop = []
-    for f in bm.faces:
-        c = f.calc_center_median()
-        r = math.hypot(c.x / 1.3, c.y) * (1 + 0.2 * math.sin(5 * math.atan2(c.y, c.x)) + rng.uniform(-0.25, 0.25))
-        if r > 5.2:
-            drop.append(f)
-    bmesh.ops.delete(bm, geom=drop, context="FACES")
-    for v in bm.verts:
-        v.co.z = max(0.0, 0.9 - 0.2 * math.hypot(v.co.x / 1.3, v.co.y)) * (1 + rng.uniform(-0.2, 0.2))
-    bm.to_mesh(o.data)
-    studio.assign(o, earth)
-    # A long dark crevice with ragged lips of rock.
-    # The opening itself is unlit black, so no sky light greys it.
-    hole = bpy.data.materials.new("hole")
+    earth = mat("mound", dict(EARTH, colour=(0.36, 0.22, 0.06), dark=(0.012, 0.006, 0.002), scale=18, bump=1.4,
+                              band=(0.35, 0.62), grime=0.6, spot=0.22, spot_colour=(0.62, 0.46, 0.26)))
+    hole = bpy.data.materials.new("hole")  # unlit black, so no sky light greys it
     hole.use_nodes = True
     nodes = hole.node_tree.nodes
     nodes.clear()
     emit = nodes.new("ShaderNodeEmission")
     emit.inputs["Color"].default_value = (0, 0, 0, 1)
     hole.node_tree.links.new(emit.outputs[0], nodes.new("ShaderNodeOutputMaterial").inputs[0])
-    ball(3.0, (0.2, 0.2, 0.75), hole, scale=(1.0, 0.36, 0.22))
-    for sgn in (-1, 1):
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5, radius=2.5, location=(0.2 - sgn * 0.2, 0.2 + sgn * 1.25, 0.9))
-        lip = bpy.context.object
-        lip.scale = (1.25, 0.3, 0.45)
-        studio.displace(lip, 1.2, 0.3, 4 + sgn)
-        studio.assign(lip, mat("cliff", CLIFF))
+    # The hollow: a black pit sunk into the ground in front of the ridge.
+    ball(1.6, (0.3, 0.0, 0.05), hole, scale=(0.7, 1.0, 0.15))
+    # The mouth: the black opening under the lip, going in under the ridge.
+    ball(1.6, (-0.1, 0.0, 0.6), hole, scale=(0.9, 1.1, 0.7))
+    # The ridge: faceted lumps along a shallow arc, highest in the middle
+    # and leaning over the hollow, tapering away at both ends.
+    for k in range(44):
+        t = -1 + 2 * k / 43
+        y = 4.0 * t
+        x = -1.0 + 1.6 * t * t + rng.uniform(-0.35, 0.35)
+        h = 0.4 + 2.2 * (1 - t * t) ** 1.5 + rng.uniform(-0.3, 0.3)
+        size = rng.uniform(0.5, 0.8) * (0.5 + 0.5 * (1 - t * t))
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=size, location=(x, y, h * 0.5))
+        o = bpy.context.object
+        o.scale = (1.3, 1.0, h / size * 0.6)
+        o.rotation_euler = (rng.uniform(0, 3.1), rng.uniform(0, 3.1), rng.uniform(0, 3.1))
+        studio.assign(o, earth)
+    # The lip of the burrow: slabs jutting out over the hollow.
+    for k in range(6):
+        y = rng.uniform(-1.6, 1.6)
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=rng.uniform(0.7, 1.0),
+                                              location=(-0.1, y, 2.5 - 0.3 * abs(y)))
+        o = bpy.context.object
+        o.scale = (1.4, 1.0, 0.45)
+        o.rotation_euler = (rng.uniform(-0.3, 0.3), rng.uniform(-0.4, 0.1), rng.uniform(0, 3.1))
+        studio.assign(o, earth)
 
 
 def paving(seed=1):
@@ -621,7 +626,7 @@ PROPS = {
     "cliff_y": (lambda: cliff(26, "y"), 256),
     "cliff_corner": (lambda: cliff(27, "corner"), 256),
     "paving": (paving, 128),
-    "cave_mouth": (cave_mouth, 352),
+    "cave_mouth": (lambda: (cave_mouth(), resize(1.15)), 384),
 }
 
 
