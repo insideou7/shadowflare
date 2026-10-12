@@ -158,8 +158,8 @@ Ours rather than the original's, until they are read from the exe:
 - Plasma, Lightning Storm and Earth Spears test one point for a wall
   where the original tests a square.
 - A missile that meets nothing stops after 6000 world units.
-- Effects are drawn over the map instead of being sorted in with it, and
-  the original's effect heights are not used.
+- Effects are sorted in with the map's objects and characters by where
+  they stand, but the original's effect heights are not used for it.
 - A shield or Berserker turning on plays 11000100 (which effect the
   original plays is not known), and a faint ring shows while it is on.
 - Transport, Moon, Medusa, Identify and Explosion are not in yet.

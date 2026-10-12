@@ -367,6 +367,7 @@ private:
     void setSpellOn(int spell, bool on) { spellOn_[static_cast<std::size_t>(spell)] = on; }
     int spellPower(int spell, int level) const;
     int spellHit(int spell, int level) const;
+    void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
 
     // The hero's companion (partner.cpp).

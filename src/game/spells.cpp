@@ -628,49 +628,52 @@ void Game::tickSpells() {
     playerMp_ = std::min(playerMp_, playerMaxMp());
 }
 
-void Game::renderSpells(int camX, int camY) {
-    for (const Effect& e : effects_) {
-        const CharacterModel* model = effectModel(e.option);
-        if (!model) continue;
-        const auto& charts = model->animations.charts;
-        if (static_cast<std::size_t>(e.chart) >= charts.size()) continue;
-        const auto& chart = charts[static_cast<std::size_t>(e.chart)];
-        // Its own direction if it has one, else the undirected one (8), else 0.
-        const AnimationSet::Direction* dir = nullptr;
-        const int facing = e.directional ? facingOf(std::cos(e.angle), std::sin(e.angle)) : 8;
-        for (int d : {facing, 8, 0}) {
-            if (static_cast<std::size_t>(d) < chart.directions.size() && chart.directions[static_cast<std::size_t>(d)].frameCount > 0) {
-                dir = &chart.directions[static_cast<std::size_t>(d)];
-                break;
-            }
-        }
-        if (!dir) continue;
-        int frame = static_cast<int>(static_cast<long long>(e.age) * e.animSpeed / 1000);
-        frame = chart.status == 1 ? frame % dir->frameCount : std::min(frame, dir->frameCount - 1);
-        int sx, sy;
-        worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
-        sx -= camX;
-        sy -= camY;
-        std::vector<const AnimationSet::Cell*> cells;
-        for (const auto& layer : dir->layers) {
-            if (frame < static_cast<int>(layer.size()) && layer[static_cast<std::size_t>(frame)].pattern >= 0) {
-                cells.push_back(&layer[static_cast<std::size_t>(frame)]);
-            }
-        }
-        std::ranges::stable_sort(cells, [](const auto* a, const auto* b) { return a->priority > b->priority; });
-        for (const auto* cell : cells) {
-            const bool shadow = cell->status == AnimationSet::kShadowStatus;
-            const SpriteTexture* sprite = sprites_.get(shadow ? model->shadow : model->body, cell->pattern, false);
-            if (!sprite) continue;
-            // Status 16 adds its light to what is behind (flames, glows).
-            SDL_SetTextureBlendMode(sprite->texture, cell->status & AnimationSet::kAdditiveStatus ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
-            if (shadow) SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-            const int alpha = shadow ? 96 : std::clamp(cell->trans, std::int16_t{0}, std::int16_t{1000}) * 255 / 1000;
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha));
-            SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+// One effect, drawn where it stands; renderMap sorts effects in with the
+// map's objects and characters.
+void Game::renderEffect(const Effect& e, int camX, int camY) {
+    const CharacterModel* model = effectModel(e.option);
+    if (!model) return;
+    const auto& charts = model->animations.charts;
+    if (static_cast<std::size_t>(e.chart) >= charts.size()) return;
+    const auto& chart = charts[static_cast<std::size_t>(e.chart)];
+    // Its own direction if it has one, else the undirected one (8), else 0.
+    const AnimationSet::Direction* dir = nullptr;
+    const int facing = e.directional ? facingOf(std::cos(e.angle), std::sin(e.angle)) : 8;
+    for (int d : {facing, 8, 0}) {
+        if (static_cast<std::size_t>(d) < chart.directions.size() && chart.directions[static_cast<std::size_t>(d)].frameCount > 0) {
+            dir = &chart.directions[static_cast<std::size_t>(d)];
+            break;
         }
     }
+    if (!dir) return;
+    int frame = static_cast<int>(static_cast<long long>(e.age) * e.animSpeed / 1000);
+    frame = chart.status == 1 ? frame % dir->frameCount : std::min(frame, dir->frameCount - 1);
+    int sx, sy;
+    worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
+    sx -= camX;
+    sy -= camY;
+    std::vector<const AnimationSet::Cell*> cells;
+    for (const auto& layer : dir->layers) {
+        if (frame < static_cast<int>(layer.size()) && layer[static_cast<std::size_t>(frame)].pattern >= 0) {
+            cells.push_back(&layer[static_cast<std::size_t>(frame)]);
+        }
+    }
+    std::ranges::stable_sort(cells, [](const auto* a, const auto* b) { return a->priority > b->priority; });
+    for (const auto* cell : cells) {
+        const bool shadow = cell->status == AnimationSet::kShadowStatus;
+        const SpriteTexture* sprite = sprites_.get(shadow ? model->shadow : model->body, cell->pattern, false);
+        if (!sprite) continue;
+        // Status 16 adds its light to what is behind (flames, glows).
+        SDL_SetTextureBlendMode(sprite->texture, cell->status & AnimationSet::kAdditiveStatus ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+        if (shadow) SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
+        const int alpha = shadow ? 96 : std::clamp(cell->trans, std::int16_t{0}, std::int16_t{1000}) * 255 / 1000;
+        SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha));
+        SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+        SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+    }
+}
+
+void Game::renderSpells(int camX, int camY) {
     // A faint ring around the hero for each shield or Berserker that is on.
     // Ours: the original shows nothing while they are on.
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_ADD);
