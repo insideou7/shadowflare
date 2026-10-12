@@ -24,9 +24,10 @@ bool Game::saveGame() {
     save.hp = playerHp_;
     save.level = playerLevel_;
     save.experience = playerExperience_;
+    save.career = career_;
     save.store(inventory_);
     for (const auto& [key, value] : flags_) {
-        if (key.first != ScenarioScript::kTemp) save.flags[key] = value;
+        if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
     }
 
     std::ofstream out(saveFile_, std::ios::binary | std::ios::trunc);
@@ -78,6 +79,9 @@ bool Game::loadGame() {
     attackTarget_.reset();
     playerExperience_ = save.experience;
     playerLevel_ = std::max(1, save.level);
+    // Saves from before classes: a warrior from level 5.
+    career_ = save.career && save.career->history.size() == static_cast<std::size_t>(playerLevel_ - 1) ? *save.career
+                                                                                                    : Career::at(playerLevel_);
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
     updateEquipment();
     playerHp_ = std::clamp(save.hp, 1, playerMaxHp());

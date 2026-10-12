@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "game/character.h"
@@ -15,6 +16,8 @@
 #include "logic/inventory.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/shop.h"
+#include "formats/table_data.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
 #include "formats/scenario.h"
@@ -77,17 +80,29 @@ public:
 
     // Saves the game to a text file (F5) or loads it back (F9). False, with
     // a message on screen, when that fails.
-    // Starts the hero at a level, fully healed (for testing).
+    // Starts the hero at a level, fully healed (for testing): a warrior from
+    // level 5, as the original makes every hero.
     void setLevel(int level) {
         playerLevel_ = std::clamp(level, 1, levels_.maxLevel());
+        career_ = Career::at(playerLevel_);
         playerHp_ = playerMaxHp();
     }
+
+    // Shows the status window (toggled with S).
+    void setStatusOpen(bool open) { showStatus_ = open; }
 
     // The main menu. At the start it offers Continue, New Game and Quit;
     // Esc during play opens it with Resume, Save and Load as well.
     enum class MenuItem { Resume, Continue, NewGame, Save, Load, Quit };
     void openMenu(bool atStart);
     bool menuOpen() const { return menuOpen_; }
+
+    // Walks the player up to a character and speaks to them (for scripted
+    // tests); `answers` close the messages that follow, one each.
+    void talkToId(std::int32_t id);
+    void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
+    // Sets a SAVE story flag, for testing scripts part way through the story.
+    void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
 
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
@@ -112,6 +127,9 @@ private:
         bool struck = false;  // the current attack has landed
         double wanderX = 0, wanderY = 0;
         int wanderPause = 0;
+        bool active = true;   // SETINACTIVE hides a character
+        bool stopped = false;  // C_STOP holds it still while it talks
+        std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
         bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
         bool alive() const { return state != State::Dead; }
     };
@@ -122,6 +140,41 @@ private:
         std::int32_t sentence;
         bool inside = false;  // only entering fires it
     };
+    // Talking, shops and the rest of the scenario script (talk.cpp).
+    friend class GameScript;
+    struct Dialogue {
+        std::vector<std::string> lines;
+        struct Option {
+            int line = 0;
+            std::size_t from = 0, to = 0;  // characters of the line
+        };
+        std::vector<Option> options;
+        int choice = 0;
+        ScenarioScript::Operand answer;
+        std::int32_t speaker = -1;
+    };
+    void runScript(std::int32_t sentence, std::int32_t character = -1);
+    void runEvent(std::int32_t event, std::int32_t character = -1);
+    void openDialogue(const ScriptHost::Talk& talk);
+    void closeDialogue(int answer);
+    void dialogueEvent(const SDL_Event& event);
+    int dialogueOptionAt(int x, int y);
+    SDL_Rect dialogueBox();
+    SDL_Rect dialogueOptionRect(const SDL_Rect& box, int option);
+    // Text in the original's font when the data has it, else the tiny one.
+    const SpriteTexture* uiFont();
+    int uiTextWidth(std::string_view text);
+    void uiText(int x, int y, std::string_view text, SDL_Color color);
+    void renderDialogue();
+    bool shopClick(int x, int y, bool right);
+    void renderShop();
+    bool drawShopPicture();
+    void closeShop();
+    std::optional<std::size_t> personAt(float screenX, float screenY) const;
+    Actor* actorById(std::int32_t id);
+    const Actor* actorById(std::int32_t id) const;
+    void talkTo(Actor& person);
+
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadScenario(const std::string& dir);
     void indexScenarios();
@@ -170,7 +223,7 @@ private:
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
-    HeroStats heroStats() const { return sf::heroStats(playerLevel_, classAtLevel(playerLevel_)); }
+    HeroStats heroStats() const { return sf::heroStats(career_.history); }
     int playerAttack() const;
     int playerDefense() const;
     int playerHit() const;
@@ -188,6 +241,10 @@ private:
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
+    // The status window and its Change Career button (status.cpp).
+    bool statusClick(int x, int y);
+    void renderStatus();
+    void changeCareer();
     void renderHud();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
@@ -221,6 +278,7 @@ private:
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_
+    std::optional<std::size_t> talkTarget_;                // a person the player is walking up to
     int playerHp_ = 0;
     bool mouseHeld_ = false;
     bool showJudge_ = false;
@@ -236,6 +294,15 @@ private:
     std::string saveFile_ = "save.txt";
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
+    GameTables tables_;  // Table.Tbd; empty with open content
+    Career career_;  // the hero's class, its history and the class on offer
+    bool showStatus_ = false;
+    std::optional<Dialogue> dialogue_;
+    std::map<int, ShopStock> shops_;  // by INITTRADE's shop number
+    std::optional<int> openShop_;
+    int entryPoint_ = 0;
+    std::vector<int> answers_;
+    bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
 

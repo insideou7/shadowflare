@@ -55,6 +55,8 @@ const char* glyph(char c) {
         case '/': return "001001010100100";
         case '(': return "010100100100010";
         case ')': return "010001001001010";
+        case '[': return "110100100100110";
+        case ']': return "011001001001011";
         case '\'': return "010010000000000";
         case '!': return "010010010000010";
         case '?': return "111001010000010";

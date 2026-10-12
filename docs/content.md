@@ -235,7 +235,8 @@ with Pillow and numpy:
 `build_pack.py` lays out the maps and writes the text files;
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. The item pictures
-and the inventory panel are kept in content/ and rebuilt on their own:
+and the interface (inventory panel, shop window, speech balloon and
+font) are kept in content/ and rebuilt on their own:
 
     python tools/art/items.py render /tmp/items     # a Python with bpy
     python3 tools/art/items.py pack /tmp/items content

@@ -103,22 +103,87 @@ std::int64_t LevelCurve::need(int level) const {
     return needs[static_cast<std::size_t>(level - 1)];
 }
 
-HeroClass classAtLevel(int level) { return level <= 5 ? HeroClass::Novice : HeroClass::Warrior; }
+std::string_view className(HeroClass cls) {
+    switch (cls) {
+        case HeroClass::Mercenary: return "Mercenary";
+        case HeroClass::Warrior: return "Warrior";
+        case HeroClass::Hunter: return "Hunter";
+        case HeroClass::Wizard: return "Wizard";
+    }
+    return "";
+}
 
-HeroStats heroStats(int level, HeroClass cls) {
+HeroStats heroStats(const std::vector<HeroClass>& history) {
     HeroStats stats;
     stats.value = kStartingStats;
-    for (int l = 2; l <= std::min(level, 5); ++l) {
-        for (int s = 0; s < HeroStats::kCount; ++s) stats.value[s] += kClasslessGain[s];
+    std::array<int, kHeroClassCount> levels{};
+    levels[static_cast<int>(HeroClass::Mercenary)] = 1;  // the new hero's column 0
+    for (const HeroClass cls : history) {
+        const int column = levels[static_cast<int>(cls)]++;
+        for (int s = 0; s < HeroStats::kCount; ++s) {
+            switch (cls) {
+                case HeroClass::Mercenary: stats.value[s] += column <= 4 ? kClasslessGain[s] : 0; break;
+                case HeroClass::Warrior: stats.value[s] += gainAt(kWarriorGain[s], column); break;
+                case HeroClass::Hunter: stats.value[s] += gainAt(kHunterGain[s], column); break;
+                case HeroClass::Wizard: stats.value[s] += gainAt(kMagicianGain[s], column); break;
+            }
+        }
+        // The hunter's attack speed rises every second level (odd columns).
+        if (cls == HeroClass::Hunter && column % 2 == 1) ++stats.value[HeroStats::kAttackSpeed];
     }
-    if (cls == HeroClass::Novice) return stats;
-    const auto& gains = cls == HeroClass::Warrior ? kWarriorGain : cls == HeroClass::Magician ? kMagicianGain : kHunterGain;
-    for (int column = 0; column < level - 5; ++column) {
-        for (int s = 0; s < HeroStats::kCount; ++s) stats.value[s] += gainAt(gains[s], column);
-    }
-    // The hunter's attack speed rises every second level (odd columns).
-    if (cls == HeroClass::Hunter) stats.value[HeroStats::kAttackSpeed] += std::max(0, level - 5) / 2;
     return stats;
+}
+
+std::vector<HeroClass> classHistory(int level, HeroClass cls) {
+    std::vector<HeroClass> history;
+    for (int l = 1; l < level; ++l) history.push_back(l < 5 ? HeroClass::Mercenary : cls);
+    return history;
+}
+
+Career Career::at(int level, HeroClass cls) {
+    Career career;
+    career.history = classHistory(level, cls);
+    if (level >= 5) career.current = career.offered = cls;
+    return career;
+}
+
+void Career::countKill(std::optional<int> weaponSubtype, bool magic) {
+    ++kills;
+    // Staffs (8) and rods (9) count as magic; bare hands count only in the
+    // total.
+    if (magic || (weaponSubtype && *weaponSubtype >= kMagic)) {
+        ++killsBy[kMagic];
+    } else if (weaponSubtype && *weaponSubtype >= 0) {
+        ++killsBy[static_cast<std::size_t>(*weaponSubtype)];
+    }
+}
+
+void Career::levelUp(int level) {
+    history.push_back(current);
+    if (level >= 5) {
+        std::array<int, 9> percent{};
+        for (std::size_t i = 0; i < percent.size(); ++i) percent[i] = kills ? killsBy[i] * 100 / kills : 0;
+        bool found = false;
+        if (current != HeroClass::Wizard && percent[kMagic] >= 20) {
+            offered = HeroClass::Wizard;
+            found = true;
+        }
+        if (current != HeroClass::Hunter && !found && percent[5] >= 30) {
+            offered = HeroClass::Hunter;
+            found = true;
+        }
+        // One- and two-handed swords, axes and maces.
+        if (!found) offered = current != HeroClass::Warrior && percent[0] + percent[1] + percent[3] >= 50 ? HeroClass::Warrior : current;
+        if (level == 5) current = offered = HeroClass::Warrior;
+    }
+    kills = 0;
+    killsBy = {};
+}
+
+bool Career::change() {
+    if (!canChange()) return false;
+    current = offered;
+    return true;
 }
 
 int hitChance(int hit, int evasion) { return std::clamp(hit - evasion, 20, 98); }

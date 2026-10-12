@@ -38,6 +38,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
@@ -45,6 +46,9 @@ struct Options {
     int level = 0;            // start at this level (for tests)
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
     bool originalArt = false;  // draw the original game with its own art
+    int talk = -1;            // speak to this character (in-game id) at the start
+    std::vector<int> answers; // replies to the first messages, -1 = none
+    std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -75,6 +79,8 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--status") {
+            options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
@@ -83,6 +89,17 @@ Options parseArgs(int argc, char** argv) {
             options.skin = argv[++i];
         } else if (arg == "--original-art") {
             options.originalArt = true;
+        } else if (arg == "--talk" && i + 1 < argc) {
+            options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--answers" && i + 1 < argc) {
+            for (char* p = argv[++i]; *p;) {
+                options.answers.push_back(static_cast<int>(std::strtol(p, &p, 10)));
+                if (*p == ',') ++p;
+                else break;
+            }
+        } else if (arg == "--save-flag" && i + 1 < argc) {
+            int id = 0, value = 0;
+            if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.saveFlags.emplace_back(id, value);
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -285,6 +302,7 @@ int main(int argc, char** argv) {
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     app.game->setInventoryOpen(options.inventory);
+    app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);
     } else if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
@@ -297,11 +315,14 @@ int main(int argc, char** argv) {
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight;
+                          options.level > 0 || options.autoFight || options.talk >= 0;
     if (!scripted) app.game->openMenu(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
+    for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
+    app.game->setAnswers(options.answers);
+    if (options.talk >= 0) app.game->talkToId(options.talk);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

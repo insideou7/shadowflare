@@ -30,7 +30,13 @@ the game's item table (`Item.Ibn`, read with the help of the player's own
 `ShadowFlare.exe`): they lie where the scenarios put them, monsters drop
 gold and items, and what the hero wears shows on them and adds to attack
 and defense. The damage formula and spell effects are still placeholders.
-Story events, levels, shops, sound and menus are not in yet. See [docs/formats.md](docs/formats.md)
+With the original data the scenario scripts run: click a person to talk,
+pick an answer with the mouse or the arrow keys and Enter, and shops,
+healers and the class instructors work as their scripts say. The hero
+becomes a warrior at level 5 and is offered the hunter or wizard by how
+they kill monsters, as in the original; S opens the status window with its
+Change Career button. Sound and
+spells are not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to
@@ -75,9 +81,13 @@ Options:
 - `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
+- `--status` start with the status window open
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
+- `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
+- `--answers <a,b,...>` answer the next messages with these options (-1 = none)
+- `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 
 Run the unit tests with `ctest --test-dir build`.

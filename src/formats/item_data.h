@@ -38,6 +38,7 @@ struct ItemDef {
     // pattern of its Pattern.njp.
     std::int32_t groundFolder = -1, groundPicture = -1;
     std::int32_t dropWeight = 0;   // relative chance among items that may drop
+    std::int32_t poolMask = 0;     // which drop lists and shops may pick it (bits)
     std::int32_t itemLevel = 0;    // how deep in the game it starts dropping
     std::int32_t requiredLevel = 0;
     std::array<std::int32_t, kStatCount> stats{};  // weapons and armour

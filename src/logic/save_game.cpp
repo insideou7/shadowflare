@@ -28,6 +28,11 @@ std::vector<long long> numbers(std::string_view value, std::size_t count, int li
     return out;
 }
 
+HeroClass heroClass(long long n, int line) {
+    if (n < 0 || n >= kHeroClassCount) throw FormatError(std::format("save line {}: no class {}", line, n));
+    return static_cast<HeroClass>(n);
+}
+
 SaveGame::ItemRef ref(const Item& item) {
     return {static_cast<int>(item.def->cls), item.def->code, item.count};
 }
@@ -37,6 +42,15 @@ SaveGame::ItemRef ref(const Item& item) {
 std::string SaveGame::write() const {
     std::string out = std::format("# ShadowFlare saved game\nversion={}\nmap={}\nscenario={}\n", kVersion, map, scenario);
     out += std::format("at={},{},{}\nhp={}\nlevel={}\nexperience={}\ngold={}\n", x, y, direction, hp, level, experience, gold);
+    if (career) {
+        // career=class,offered,kills,kills by weapon type x 9; classes= the
+        // class at each level-up, one digit each.
+        out += std::format("career={},{},{}", static_cast<int>(career->current), static_cast<int>(career->offered), career->kills);
+        for (int k : career->killsBy) out += std::format(",{}", k);
+        out += "\nclasses=";
+        for (HeroClass c : career->history) out += static_cast<char>('0' + static_cast<int>(c));
+        out += '\n';
+    }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
@@ -78,6 +92,17 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.hp = static_cast<int>(numbers(value, 1, lineNumber)[0]);
         } else if (key == "level") {
             save.level = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "career") {
+            const auto v = numbers(value, 12, lineNumber);
+            if (!save.career) save.career.emplace();
+            save.career->current = heroClass(v[0], lineNumber);
+            save.career->offered = heroClass(v[1], lineNumber);
+            save.career->kills = static_cast<int>(v[2]);
+            for (std::size_t i = 0; i < save.career->killsBy.size(); ++i) save.career->killsBy[i] = static_cast<int>(v[3 + i]);
+        } else if (key == "classes") {
+            if (!save.career) save.career.emplace();
+            save.career->history.clear();
+            for (char c : value) save.career->history.push_back(heroClass(c - '0', lineNumber));
         } else if (key == "experience") {
             save.experience = numbers(value, 1, lineNumber)[0];
         } else if (key == "gold") {

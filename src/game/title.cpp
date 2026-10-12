@@ -77,6 +77,11 @@ void Game::newGame() {
     inventory_.clear();
     flags_.clear();
     playerLevel_ = 1;
+    career_ = {};
+    showStatus_ = false;
+    shops_.clear();
+    openShop_.reset();
+    dialogue_.reset();
     playerExperience_ = 0;
     giveStartingKit();
     updateEquipment();

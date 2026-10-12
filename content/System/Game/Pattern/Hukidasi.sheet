@@ -1,0 +1,9 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The speech balloon: corners (top left, bottom left, top right, bottom right), tail, thought bubble.
+image=Hukidasi.png
+frame=0,0,9,9,0,0
+frame=9,0,9,9,0,0
+frame=18,0,9,9,0,0
+frame=27,0,9,9,0,0
+frame=36,0,14,14,0,0
+frame=50,0,15,16,-1,-1

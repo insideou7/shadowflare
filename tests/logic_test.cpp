@@ -8,6 +8,8 @@
 #include "logic/movement.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/shop.h"
+#include "formats/item_data.h"
 
 namespace {
 
@@ -182,14 +184,12 @@ void testLevels() {
     check(start[S::kHp] == 150 && start[S::kAttack] == 10 && start[S::kDefense] == 10 && start[S::kHit] == 40 &&
               start[S::kEvasion] == 40,
           "level 1 has the original's starting stats");
-    check(sf::classAtLevel(5) == sf::HeroClass::Novice && sf::classAtLevel(6) == sf::HeroClass::Warrior,
-          "a warrior from level 6");
-    const auto five = sf::heroStats(5, sf::HeroClass::Novice);
+    const auto five = sf::heroStats(5, sf::HeroClass::Mercenary);
     check(five[S::kHp] == 310 && five[S::kAttack] == 26 && five[S::kMagicAttack] == 18, "four classless levels");
     check(sf::heroStats(6)[S::kHp] == 360 && sf::heroStats(26)[S::kHp] == 1350, "a warrior gains 50 health for 20 levels");
     check(sf::heroStats(35)[S::kHp] == 1710 && sf::heroStats(36)[S::kHp] == 1740, "then 40, then 30");
     check(sf::heroStats(16)[S::kAttack] == 26 + 90 + 7, "a warrior's attack: 9 for 10 levels, then 7");
-    check(sf::heroStats(10, sf::HeroClass::Magician)[S::kMagicAttack] == 18 + 60, "a magician's magic");
+    check(sf::heroStats(10, sf::HeroClass::Wizard)[S::kMagicAttack] == 18 + 60, "a wizard's magic");
     check(sf::heroStats(9, sf::HeroClass::Hunter)[S::kAttackSpeed] == 102, "a hunter's speed every second level");
 
     check(sf::hitChance(140, 0) == 98 && sf::hitChance(50, 60) == 20 && sf::hitChance(70, 20) == 50,
@@ -202,7 +202,141 @@ void testLevels() {
 
 }  // namespace
 
+// A host that records what the script asked for.
+struct TestHost : sf::ScriptHost {
+    std::vector<Talk> talks;
+    std::vector<std::pair<int, int>> trades;
+    int healed = 0, chosenClass = 0;
+    std::int64_t purse = 500;
+    void talk(const Talk& t) override { talks.push_back(t); }
+    void initTrade(int shop, int list) override { trades.emplace_back(shop, list); }
+    void healLife() override { ++healed; }
+    int playerLevel() const override { return 7; }
+    std::int64_t gold() const override { return purse; }
+    void payGold(std::int64_t amount) override { purse -= amount; }
+    void offerClass(int cls) override { chosenClass = cls; }
+};
+
+void testScriptTalkAndShop() {
+    using S = sf::ScenarioScript;
+    S script;
+    script.messages[1000000] = "Pay %d gold?\n ~YES~ ~NO~\n";
+    const Op temp{S::kTemp, 1000001};
+    // Sentence 0: price 30, show the question to character 12000001.
+    // Sentence 1: on YES pay and heal, then stock shop 0 from list 22.
+    script.sentences = {
+        {{S::kSetMessageDefine, {constant(30)}}, {S::kTalk, {{S::kMessage, 1000000}, temp, raw(0), constant(1), constant(-1), constant(-1)}}},
+        {ifCmd(temp, 0, constant(0), 2)},
+        {{S::kPayGold, {constant(30)}}, {S::kHealLife, {}}, {S::kInitTrade, {constant(0), constant(22)}},
+         {S::kGetPlayerLevel, {temp}}, {S::kAdd, {temp, constant(3)}}, {S::kEnableClassChange, {constant(2)}}},
+    };
+    sf::ScriptFlags flags;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host, 12000001).run(0);
+    check(host.talks.size() == 1, "TALK shows a message");
+    check(!host.talks.empty() && host.talks[0].text == "Pay 30 gold?\n ~YES~ ~NO~\n", "SETMSGDEFINE fills %d");
+    check(!host.talks.empty() && host.talks[0].speaker == 12000001 && host.talks[0].defaultChoice == 1, "speaker -1 is the trigger's character");
+    sf::ScriptRunner(script, flags, &host).store(temp, 0);  // the player chose YES
+    sf::ScriptRunner(script, flags, &host).run(1);
+    check(host.purse == 470 && host.healed == 1, "PAYGOLD and HEALLIFE");
+    check(host.trades.size() == 1 && host.trades[0] == std::pair(0, 22), "INITTRADE shop list");
+    check(flags[{S::kTemp, 1000001}] == 10, "GETPLAYERLEVEL and ADD");
+    check(host.chosenClass == 2, "ENABLECLASSCHANGE");
+}
+
+void testShopStock() {
+    // Table 32 row 0 lists entries 0 and 1 of table 33: three of item
+    // (3, 7), then two weapons of level 2-4 that are normal quality.
+    sf::GameTables tables;
+    auto& lists = tables.tables[32];
+    lists.rows = 1;
+    lists.cols = 3;
+    lists.values = {0, 1, -1};
+    auto& entries = tables.tables[33];
+    entries.rows = 2;
+    entries.cols = 10;
+    entries.values = {3, -1, -1, 7, 3, 0, 0, 1, 1, 1,   //
+                      0, 4, 2, -1, 2, -1, -1, 1, 0, 0};
+    sf::ItemTable items;
+    auto add = [&](sf::ItemDef::Class cls, int code, int level, int quality, int w, int h) {
+        sf::ItemDef d;
+        d.cls = cls;
+        d.code = code;
+        d.itemLevel = level;
+        d.quality = quality;
+        d.width = w;
+        d.height = h;
+        d.dropWeight = 10;
+        d.poolMask = 1;
+        d.price = 100;
+        items.items.push_back(d);
+    };
+    add(sf::ItemDef::Class::Consumable, 7, 1, 0, 1, 1);
+    add(sf::ItemDef::Class::Weapon, 1, 1, 0, 1, 3);  // too low a level
+    add(sf::ItemDef::Class::Weapon, 2, 3, 1, 1, 3);  // magic: not allowed
+    add(sf::ItemDef::Class::Weapon, 3, 3, 0, 1, 3);
+    sf::Random random(7);
+    const auto stock = sf::stockShop(tables, items, 0, random);
+    check(stock.goods.size() == 5, "shop holds 3 + 2 items");
+    int weapons = 0;
+    for (const auto& g : stock.goods) weapons += g.item.def->cls == sf::ItemDef::Class::Weapon && g.item.def->code == 3;
+    check(weapons == 2, "random picks honour level and quality");
+    check(stock.goods.size() >= 4 && stock.goods[0].x == 0 && stock.goods[1].x == 1 && stock.goods[3].x == 3 && stock.goods[3].y == 0,
+          "goods fill the top row from the left");
+    check(sf::sellPrice(*stock.goods[0].item.def) == 25 && sf::buyPrice(*stock.goods[0].item.def) == 100, "sell for a quarter");
+}
+
+void testCareer() {
+    using C = sf::HeroClass;
+    using S = sf::HeroStats;
+    sf::Career career;
+    for (int level = 2; level <= 4; ++level) career.levelUp(level);
+    check(career.current == C::Mercenary && career.history.size() == 3, "a mercenary up to level 4");
+    // Bow kills before level 5 change nothing: everyone is a warrior at 5.
+    for (int i = 0; i < 10; ++i) career.countKill(5, false);
+    career.levelUp(5);
+    check(career.current == C::Warrior && career.offered == C::Warrior && !career.canChange(), "a warrior at level 5");
+    check(career.kills == 0, "kills count again from each level");
+
+    // 3 of 10 kills with a bow offer the hunter; the class stays until taken.
+    for (int i = 0; i < 7; ++i) career.countKill(0, false);
+    for (int i = 0; i < 3; ++i) career.countKill(5, false);
+    career.levelUp(6);
+    check(career.current == C::Warrior && career.offered == C::Hunter && career.canChange(), "30% bow kills offer the hunter");
+    check(career.change() && career.current == C::Hunter && !career.change(), "Change Career takes it");
+
+    // Magic outranks the bow; staffs count as magic.
+    for (int i = 0; i < 4; ++i) career.countKill(5, false);
+    career.countKill(8, false);
+    career.levelUp(7);
+    check(career.offered == C::Wizard, "20% magic offers the wizard");
+    // A level with no kills takes the offer back.
+    career.levelUp(8);
+    check(career.offered == C::Hunter && !career.canChange(), "the offer lasts one level");
+    // Back to the sword: swords, axes and maces together.
+    for (int i = 0; i < 2; ++i) career.countKill(0, false);
+    for (int i = 0; i < 2; ++i) career.countKill(3, false);
+    career.countKill(1, false);
+    for (int i = 0; i < 5; ++i) career.countKill(std::nullopt, false);  // bare hands
+    career.levelUp(9);
+    check(career.offered == C::Warrior, "50% blade kills offer the warrior");
+
+    // Stats keep the class of each level left: mercenary 1-4, warrior 5,
+    // hunter 6-8.
+    check(career.history == std::vector<C>{C::Mercenary, C::Mercenary, C::Mercenary, C::Mercenary, C::Warrior, C::Hunter,
+                                           C::Hunter, C::Hunter},
+          "the class at each level-up is kept");
+    const auto stats = sf::heroStats(career.history);
+    check(stats[S::kHp] == 310 + 50 + 25 * 3, "health from each level's class");
+    check(stats[S::kAttackSpeed] == 101, "the hunter's second level adds attack speed");
+    check(sf::heroStats(sf::classHistory(9, C::Warrior))[S::kHp] == sf::heroStats(9)[S::kHp], "classHistory");
+    check(sf::Career::at(9, C::Hunter).current == C::Hunter && sf::Career::at(4).current == C::Mercenary, "Career::at");
+}
+
 int main() {
+    testScriptTalkAndShop();
+    testShopStock();
+    testCareer();
     testScriptExit();
     testScriptFlagsAndOperators();
     testScriptStopsAtChange();
