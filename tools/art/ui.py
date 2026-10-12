@@ -517,8 +517,10 @@ def compasses(out):
     rgb[disc] = np.array([30, 34, 44]) * (1.0 - 0.3 * r[disc])[:, None]
     alpha[disc] = 0.85
     # The rose: four long points and four short ones, each lit on one side.
+    # North points up and right, along the map's north as the original's
+    # needle does: 45 degrees here, about 36 once flattened.
     for k in range(8):
-        ang = k * np.pi / 4 - np.pi / 2
+        ang = k * np.pi / 4 - np.pi / 4
         length = 0.78 if k % 2 == 0 else 0.48
         width = 0.13 if k % 2 == 0 else 0.10
         along = x * np.cos(ang) + y * np.sin(ang)
