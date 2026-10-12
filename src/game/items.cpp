@@ -218,14 +218,10 @@ void Game::updateEquipment() {
     if (player_) player_->visibleLayers = inventory_.heroLayers();
 }
 
-// Placeholder combat: the attack of everything worn, or bare hands.
-int Game::playerDamage() const {
-    return std::max(10, inventory_.stats()[ItemDef::kAttack]) + statsAtLevel(playerLevel_).attack;
-}
-
-int Game::playerDefense() const {
-    return inventory_.stats()[ItemDef::kDefense] + statsAtLevel(playerLevel_).defense;
-}
+int Game::playerAttack() const { return heroStats()[HeroStats::kAttack] + inventory_.stats()[ItemDef::kAttack]; }
+int Game::playerDefense() const { return heroStats()[HeroStats::kDefense] + inventory_.stats()[ItemDef::kDefense]; }
+int Game::playerHit() const { return heroStats()[HeroStats::kHit] + inventory_.stats()[ItemDef::kHit]; }
+int Game::playerEvasion() const { return heroStats()[HeroStats::kEvasion] + inventory_.stats()[ItemDef::kEvasion]; }
 
 void Game::useItem(int index) {
     const ItemDef* def = inventory_.use(index);
@@ -464,12 +460,11 @@ void Game::renderInventory() {
             if (inside(r, mx, my)) hover = p.item.def;
         }
         // Totals on the left.
-        const auto stats = inventory_.stats();
         int ty = 20;
         for (const auto& line : {std::format("LV {}", playerLevel_), std::format("EXP {}/{}", playerExperience_, levels_.need(playerLevel_)),
-                                 std::format("ATK {}", playerDamage()),
-                                 std::format("DEF {}", playerDefense()), std::format("HIT {}", stats[ItemDef::kHit]),
-                                 std::format("EVA {}", stats[ItemDef::kEvasion])}) {
+                                 std::format("ATK {}", playerAttack()),
+                                 std::format("DEF {}", playerDefense()), std::format("HIT {}", playerHit()),
+                                 std::format("EVA {}", playerEvasion())}) {
             drawText(renderer_, 336, ty, line, kWhite);
             ty += 16;
         }

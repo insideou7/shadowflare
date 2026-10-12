@@ -92,10 +92,6 @@ private:
     int gold_ = 0;
 };
 
-// Damage after the defender's defense: each point of defense takes off
-// about 1% (a stand-in; the original's formula is not known yet). At least 1.
-int reduceDamage(int damage, int defense);
-
 // What a dying monster leaves. Gold, as ShadowFlare.exe does it
 // (0x45a030): `chance` percent of the time, an amount from min to max.
 // Returns 0 for none.

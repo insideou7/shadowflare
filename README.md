@@ -73,6 +73,7 @@ Options:
 - `--inventory` start with the inventory panel open
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
+- `--level <n>` start the hero at level n
 
 Run the unit tests with `ctest --test-dir build`.
 

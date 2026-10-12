@@ -154,7 +154,7 @@ void Game::runAiAction(Actor& enemy) {
             if (!enemy.struck && c.frame() >= c.frameCount() / 2) {
                 enemy.struck = true;
                 const double reach = enemy.entry.cond[3] == 1 && enemy.entry.cond[5] > 0 ? enemy.entry.cond[5] + 60.0 : 100.0;
-                if (gapToPlayer(enemy) <= reach) hurtPlayer(std::max(1, enemy.placement.stats.attack));
+                if (gapToPlayer(enemy) <= reach) strikePlayer(enemy);
             }
             if (c.finished()) {
                 c.play(chart::kIdle);

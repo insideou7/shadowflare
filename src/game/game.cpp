@@ -22,8 +22,7 @@ namespace {
 constexpr double kWalkSpeed = 70.0;
 
 // Monsters take their health, attack and defense from the scenario file.
-// The player's damage is the attack of what they wear (see playerDamage);
-// the damage formula is a placeholder (reduceDamage).
+// Blows follow the original's rules (see strikeEnemy and strikePlayer).
 constexpr double kEnemySpeed = 35.0;
 constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
 constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
@@ -453,7 +452,7 @@ void Game::tickPlayer() {
         // The blow lands halfway through the swing.
         if (player_->frame() == 4 && attackTarget_) {
             Actor& target = actors_[*attackTarget_];
-            if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) hurtEnemy(target, playerDamage());
+            if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) strikeEnemy(target);
         }
         if (!player_->finished()) return;
         player_->play(chart::kIdle);
@@ -564,7 +563,7 @@ void Game::tickEnemy(Actor& enemy) {
             break;
         case State::Attack:
             if (c.frame() == c.frameCount() / 2 && distance(c, *player_) <= kMeleeRange * 1.2) {
-                hurtPlayer(std::max(1, enemy.placement.stats.attack));
+                strikePlayer(enemy);
             }
             if (!c.finished()) return;
             enemy.state = State::Chase;
@@ -601,9 +600,21 @@ void Game::tickEnemy(Actor& enemy) {
     }
 }
 
+void Game::strikeEnemy(Actor& enemy) {
+    const auto& s = enemy.placement.stats;
+    if (random_.next(100) >= hitChance(playerHit(), s.evasion)) return;
+    hurtEnemy(enemy, meleeDamage(playerAttack(), s.defense, random_.next(3)));
+}
+
+void Game::strikePlayer(const Actor& enemy) {
+    const auto& s = enemy.placement.stats;
+    if (random_.next(100) >= hitChance(s.hit, playerEvasion())) return;
+    hurtPlayer(meleeDamage(s.attack, playerDefense(), random_.next(3)));
+}
+
 void Game::hurtEnemy(Actor& enemy, int damage) {
     if (!enemy.alive()) return;
-    enemy.hp -= reduceDamage(damage, enemy.placement.stats.defense);
+    enemy.hp -= damage;
     if (enemy.hp <= 0) {
         enemy.hp = 0;
         enemy.state = Actor::State::Dead;
@@ -620,7 +631,7 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
 }
 
 void Game::hurtPlayer(int damage) {
-    playerHp_ -= reduceDamage(damage, playerDefense());
+    playerHp_ -= damage;
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");

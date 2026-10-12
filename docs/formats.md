@@ -357,12 +357,23 @@ descriptions. The numeric tables found so far:
   that level takes; the count starts again from 0 on a level up and any
   surplus is lost (0x43430f, and the bar at 0x404643). Closed by 999999999
   and 0, so the top level is 99.
-- 900-907: stats gained per level, 13 rows (stats) by one column per level
-  in that class (level-up function 0x412fb0, which reads table
-  `901 + 2 * class - [character+0x28]`). 900/901 hold the starting stats in
-  column 0 and four classless levels; 902/903 look like the warrior (50
-  health a level), 904/905 the magician (50 magic a level). Row 2 is
-  health and row 3 magic; the other rows are not mapped yet.
+- 900-907: the hero's stats, 13 rows by one column per level in a class
+  (level-up function 0x412fb0, which reads table
+  `901 + 2 * map[class] - [character+0x28]`). 900/901 hold the starting
+  stats in column 0 and four classless levels (900 looks like the male
+  hero: more health and attack); 902/903 the warrior, 904/905 the
+  magician, 906/907 the hunter. A new hero's class history starts as
+  classless (16); the n-th level in a class reads column n - 1. The rows,
+  from the stats function 0x44ea60 that adds equipment to them: 0 attack
+  speed, 1 walk speed, 2 health, 3 magic, 4 a third pool (not used yet),
+  5 attack, 6 defence, 7 magic attack, 8 magic defence, 9 hit, 10 evasion,
+  11 magic hit, 12 magic evasion.
+
+Combat between the player and a monster (no elements): the chance to hit
+is hit minus evasion, kept between 20 and 98 percent (0x413e00); damage is
+attack x (90, 100 or 110)% minus defence, at least 1 (0x412a40). Elements
+scale these through tables 7 and 11 (not used yet). Monsters keep hit in
+Mct enemy word 10 (50 for all) and evasion in word 12.
 
 ## Items: `System/Game/Parameter/Item.Ibn` (ShadowFlare.exe, loader 0x462f90)
 

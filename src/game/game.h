@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -73,6 +74,12 @@ public:
 
     // Saves the game to a text file (F5) or loads it back (F9). False, with
     // a message on screen, when that fails.
+    // Starts the hero at a level, fully healed (for testing).
+    void setLevel(int level) {
+        playerLevel_ = std::clamp(level, 1, levels_.maxLevel());
+        playerHp_ = playerMaxHp();
+    }
+
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
     bool loadGame();
@@ -124,6 +131,10 @@ private:
     bool chooseAiAction(Actor& enemy, int event);
     void runAiAction(Actor& enemy);
     double gapToPlayer(const Actor& enemy) const;
+    // A blow from the player or from a monster: it may miss, otherwise it
+    // does the original's damage.
+    void strikeEnemy(Actor& enemy);
+    void strikePlayer(const Actor& enemy);
     void hurtEnemy(Actor& enemy, int damage);
     void hurtPlayer(int damage);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
@@ -148,9 +159,14 @@ private:
     void dropLoot(const Actor& enemy);
     void pickUpItems();
     void updateEquipment();
-    int playerDamage() const;
+    // The hero's stats with what they wear added, as the original sums them
+    // (0x44ea60).
+    HeroStats heroStats() const { return sf::heroStats(playerLevel_, classAtLevel(playerLevel_)); }
+    int playerAttack() const;
     int playerDefense() const;
-    int playerMaxHp() const { return statsAtLevel(playerLevel_).maxHp; }
+    int playerHit() const;
+    int playerEvasion() const;
+    int playerMaxHp() const { return heroStats()[HeroStats::kHp]; }
     void loadLevelCurve();
     void gainExperience(int amount);
     void useItem(int index);

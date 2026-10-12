@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -27,16 +28,38 @@ struct LevelCurve {
     std::int64_t need(int level) const;
 };
 
-// What the hero gains from levels alone, before equipment.
-struct LevelStats {
-    int maxHp = 0;
-    int attack = 0;   // added to the weapon's attack
-    int defense = 0;  // added to the armour's defense
+// The hero's own stats before equipment, as the original keeps them: 13
+// numbers, in the row order of Table.Tbd tables 900-907.
+struct HeroStats {
+    enum Stat {
+        kAttackSpeed, kWalkSpeed, kHp, kMp, kSp, kAttack, kDefense,
+        kMagicAttack, kMagicDefense, kHit, kEvasion, kMagicHit, kMagicEvasion,
+        kCount
+    };
+    std::array<int, kCount> value{};
+    int operator[](Stat s) const { return value[s]; }
 };
-// Health follows the original (Table.Tbd tables 900 and 902): 150 at
-// level 1, 40 more for each level to 5, then a warrior's 50 for 20 levels,
-// 40 for 10 and 30 after that. Attack and defence are still our own.
-LevelStats statsAtLevel(int level);
+
+// The original's classes. A new hero has none; the original has them pick
+// one at a guild by level 5. Until that scene exists ours becomes a warrior
+// from level 6.
+enum class HeroClass { Novice, Warrior, Magician, Hunter };
+HeroClass classAtLevel(int level);
+
+// Stats at a level, as the original's level-up function builds them
+// (ShadowFlare.exe 0x412fb0): the male hero's starting stats (table 900,
+// column 0), what each classless level adds (columns 1-4), then what each
+// level in the class adds (warrior 902, magician 904, hunter 906; the n-th
+// level in a class reads column n - 1).
+HeroStats heroStats(int level, HeroClass cls = HeroClass::Warrior);
+
+// Combat, as the original resolves a blow between the player and a monster
+// with no element involved. The chance to hit is hit minus evasion, kept
+// between 20 and 98 percent (0x413e00). Damage is the attack times 90, 100
+// or 110 percent (`roll` 0, 1 or 2), minus the defence, and at least 1
+// (0x412a40).
+int hitChance(int hit, int evasion);
+int meleeDamage(int attack, int defense, int roll);
 
 // Experience for defeating a monster whose placement gives none (the open
 // content's enemy lines may leave it out).
