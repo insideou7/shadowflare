@@ -191,45 +191,22 @@ class Ground:
 
 
 class Floor(Ground):
-    """A dungeon floor: worn bricks laid in a herringbone, with patches of
-    dusty rubble where the corners are 0 (instead of grass and dirt)."""
+    """A built floor, with patches of dusty rubble where the corners are 0
+    (instead of grass and dirt). "dungeon" and "fort": worn bricks in
+    staggered rows under smudges of grime, ochre or grey; "castle": smooth
+    grey stone, cloudy and faintly veined, with no joints showing."""
 
-    BRICK = 0.09  # the short side of a brick, in tiles
-    # Brick colour (mid, dark, light), mortar and rubble for each kind.
-    KINDS = {"dungeon": ((104, 88, 60), (60, 50, 34), (146, 128, 96), (34, 28, 18), (96, 84, 58)),
-             "fort": ((106, 100, 84), (64, 60, 50), (138, 132, 112), (36, 34, 28), (80, 76, 64))}
+    # Floor colour (mid, dark, light) and rubble for each kind.
+    KINDS = {"dungeon": ((104, 88, 60), (60, 50, 34), (146, 128, 96), (96, 84, 58)),
+             "fort": ((98, 88, 70), (58, 52, 40), (134, 124, 102), (80, 76, 64)),
+             "castle": ((70, 70, 74), (30, 30, 34), (112, 112, 118), (52, 52, 56))}
 
     def __init__(self, seed=1, kind="dungeon"):
         super().__init__(seed)
         self.palette = [np.array(c, dtype=float) for c in self.KINDS[kind]]
         self.kind = kind
-        self.pitting = 0.07
-        if kind == "fort":
-            self.pitting = 0.12  # more pitted paving stones
-        else:
-            # The dungeon's bricks are bigger and laid in staggered rows
-            # (see bond()), with thin soft joints and no pits.
-            self.pitting = -1.0
-        self.wear = Field([(0.5, 1.0), (0.15, 0.7)], seed + 5)  # dust and damp
         self.grime = Field([(0.4, 1.0), (0.15, 0.8), (0.05, 0.4)], seed + 8)  # smudges of dirt
-
-    def bricks(self, u, v):
-        """Brick shade (-1 to 1) and a 0-1 mortar mask, laid in herringbone:
-        pairs of cells form bricks, alternating flat and upright."""
-        x, y = np.asarray(u) / self.BRICK, np.asarray(v) / self.BRICK
-        i, j = np.floor(x).astype(int), np.floor(y).astype(int)
-        fx, fy = x - i, y - j
-        t = (i + j) % 4
-        flat = t < 2
-        # Each brick gets an id from its first cell, and a shade from that.
-        bi = np.where(flat, i - t, i)
-        bj = np.where(flat, j, j - (t - 2))
-        h = (bi * 73856093 ^ bj * 19349663 ^ flat.astype(int) * 83492791) & 0xFFFF
-        shade = h / 0x7FFF - 1
-        m = 0.09 if self.kind == "fort" else 0.07
-        mortar = np.where(flat, (fy < m) | (fy > 1 - m) | ((t == 0) & (fx < m)) | ((t == 1) & (fx > 1 - m)),
-                          (fx < m) | (fx > 1 - m) | ((t == 2) & (fy < m)) | ((t == 3) & (fy > 1 - m)))
-        return shade, mortar.astype(float)
+        self.cloud = Field([(0.12, 1.0), (0.05, 0.8), (0.02, 0.5)], seed + 9)  # the castle stone's clouding
 
     def bond(self, u, v, length=1 / 3, width=1 / 6):
         """Brick shade (-1 to 1) and a 0-1 mortar mask for bricks laid in
@@ -248,27 +225,23 @@ class Floor(Ground):
 
     def texture(self, u, v):
         big = self.big(u, v)
-        wear = self.wear(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
-        shade, mortar = self.bricks(u, v) if self.kind == "fort" else self.bond(u, v)
-        mid, dark, light, joint_colour, rubble_colour = self.palette
-        if self.kind == "fort":
-            brick = colour(mid, dark, light, 0.45 * shade + 0.15 * big, fine, 0.12)
-            # Dust lightens some stretches and damp darkens others.
-            brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
-            joint = joint_colour * (1 + 0.2 * fine[..., None])
-        else:
-            # Flat, evenly worn bricks under broad smudges of grime: dark
-            # damp stains and paler dusty patches running across the joints.
-            grime = self.grime(u, v)
-            brick = colour(mid, dark, light, 0.55 * shade * np.abs(shade) + 0.1 * big, fine, 0.16)
-            brick = brick * (1 + np.clip(0.2 * grime, -0.2, 0.18))[..., None]
-            joint = brick * 0.6
-        floor = brick * (1 - mortar[..., None]) + joint * mortar[..., None]
-        # Pits and chips: scattered near-black specks, thicker where it is damp.
-        pits = self.rng.random(np.shape(u)) < self.pitting + 0.05 * np.clip(-wear, 0, 1)
-        floor = np.where(pits[..., None], floor * 0.3, floor)
+        mid, dark, light, rubble_colour = self.palette
         rubble = colour(rubble_colour, rubble_colour * 0.6, rubble_colour * 1.38, 0.25 * big, fine, 0.32)
+        if self.kind == "castle":
+            # Finely clouded stone, crazed with thin dark cracks.
+            if not hasattr(self, "crazing"):
+                self.crazing = plates(np.random.default_rng(self.seed + 10), 128 * PERIOD, 3)[0]
+            crack = np.clip(1 - self.sample(self.crazing, u + 0.03 * self.edge(u * 5, v * 5), v) / 0.05, 0, 1)
+            floor = colour(mid, dark, light, 0.22 * self.cloud(u, v) + 0.06 * big, fine, 0.18)
+            return floor * (1 - 0.5 * crack)[..., None], rubble, self.edge(u, v)
+        # Flat, evenly worn bricks under broad smudges of grime: dark damp
+        # stains and paler dusty patches running across the joints.
+        shade, mortar = self.bond(u, v)
+        contrast = 0.4 if self.kind == "fort" else 0.55
+        brick = colour(mid, dark, light, contrast * shade * np.abs(shade) + 0.1 * big, fine, 0.16)
+        brick = brick * (1 + np.clip(0.2 * self.grime(u, v), -0.2, 0.18))[..., None]
+        floor = brick * (1 - 0.4 * mortar[..., None])
         return floor, rubble, self.edge(u, v)
 
 
@@ -402,11 +375,11 @@ def pattern_index(corners, tx, ty):
 def build_tiles(seed=1, kind="meadow"):
     """Every tile, in pattern_index order: (image, anchor x, anchor y).
     kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
-    "fort" (grey stone paving and grit), "shore" (sand and water),
+    "fort" (grey brick paving and grit), "castle" (smooth grey stone), "shore" (sand and water),
     "desert" (sand and brown earth), "heath" (grass and dark soil),
     "coast" (grass and sand), "deep" (dark cavern earth and moss),
     "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
-    g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "cave": lambda: Cave(seed, "cave"),
+    g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "castle": lambda: Floor(seed, "castle"), "cave": lambda: Cave(seed, "cave"),
          "mine": lambda: Cave(seed, "mine"), "shore": lambda: Wild(seed, "shore"),
          "desert": lambda: Wild(seed, "desert"), "heath": lambda: Wild(seed, "heath"),
          "coast": lambda: Wild(seed, "coast"), "deep": lambda: Cave(seed, "deep")}.get(kind, lambda: Ground(seed))()

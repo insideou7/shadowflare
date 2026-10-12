@@ -23,9 +23,12 @@ from dungeon import DARK, WALL_H, WALL_L, solid, turn  # noqa: E402
 from town import IRON, _mats, ball, box, cyl, mat, resize  # noqa: E402
 
 # Grey stone in blocks about 1.0 x 0.5 units, streaked with grime.
-STONE = dict(colour=(0.42, 0.41, 0.38), dark=(0.03, 0.03, 0.03), scale=34, detail=16, bump=1.6, grime=0.7,
-             band=(0.38, 0.72), bricks=dict(width=1.0, height=0.45, mortar=0.04, vary=0.8, joint=0.5))
-CAPSTONE = dict(colour=(0.34, 0.34, 0.32), dark=(0.10, 0.10, 0.10), scale=10, bump=0.9, grime=0.5)
+# Weathered stone, its courses faint: pale grey patches through a dark
+# brown mottle of grime and old stains.
+STONE = dict(colour=(0.52, 0.49, 0.43), dark=(0.07, 0.055, 0.04), scale=16, detail=16, bump=1.0, grime=0.5,
+             band=(0.4, 0.68), spot=0.45, spot_colour=(0.20, 0.13, 0.08),
+             bricks=dict(width=1.0, height=0.45, mortar=0.03, vary=0.9, joint=0.65))
+CAPSTONE = {k: v for k, v in STONE.items() if k != "bricks"}  # the same stone, uncoursed
 BLOODY = dict(STONE, spot=0.3, spot_colour=(0.34, 0.03, 0.02))
 DOORIRON = dict(colour=(0.09, 0.09, 0.10), dark=(0.02, 0.02, 0.03), scale=20, rough=0.4, bump=0.5)
 RIVET = dict(colour=(0.86, 0.80, 0.62), dark=(0.45, 0.40, 0.28), scale=40, rough=0.3)

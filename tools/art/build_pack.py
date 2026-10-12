@@ -1000,7 +1000,7 @@ def castle(out, anchors, rng):
     Writes Map/castle.txt and Scenario/00000007."""
     size = 32
     floor = Atlas()
-    for t in ground.build_tiles(seed=11, kind="fort"):
+    for t in ground.build_tiles(seed=11, kind="castle"):
         floor.add(len(floor.frames), t)
     floor.write(out / "Map" / "castlefloor.sheet", "castlefloor.png")
     lo, hi = 2, 30  # the curtain wall runs round this square
