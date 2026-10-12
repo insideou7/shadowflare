@@ -36,9 +36,9 @@ use the CLI directly:
 
 The first decompile of a binary runs Ghidra's full analysis, which takes
 about two minutes for ShadowFlare.exe. Claude Code cloud sessions stop MCP
-tool calls after 60 seconds (`MCP_TOOL_TIMEOUT=60000`), which cancels that
-analysis, so there use the CLI above (`rea decompile <exe> <function>`) or
-raise `MCP_TOOL_TIMEOUT`.
+tool calls after 60 seconds by default, which cancels that analysis, so
+`.claude/settings.json` raises `MCP_TOOL_TIMEOUT` to 5 minutes. If a call
+still times out, use the CLI above (`rea decompile <exe> <function>`).
 
 Never commit the game files or large decompiler dumps of them. Notes on what
 the code does belong in docs/; the older objdump helpers are in tools/re/.
