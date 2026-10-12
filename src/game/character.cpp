@@ -144,15 +144,21 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         const SpriteBank& bank = item.shadow ? model_->shadow : model_->body;
         const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false);
         if (!sprite) continue;
+        // Textures are shared: set their colour for this draw and put it
+        // back after.
         if (item.shadow) {
             SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha * tint.a / 255));
+        } else {
+            SDL_SetTextureColorMod(sprite->texture, tint.r, tint.g, tint.b);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha * tint.a / 255));
         }
         SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-        // The body's textures are shared, so put their alpha back after.
-        if (!item.shadow && alpha < 255) SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha));
         SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
-        if (!item.shadow && alpha < 255) SDL_SetTextureAlphaMod(sprite->texture, 255);
+        if (!item.shadow) {
+            SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
+            SDL_SetTextureAlphaMod(sprite->texture, 255);
+        }
     }
 }
 

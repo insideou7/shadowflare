@@ -235,6 +235,21 @@ void testSaveGame() {
           "shields that are on and original mode survive");
     const auto older = sf::SaveGame::parse("version=1\nmap=a\n");
     check(!older.spells && !older.mp && !older.originalMode, "older saves have no magic");
+    check(!older.partner, "older saves have no companion");
+
+    save.partner.emplace();
+    save.partner->kind = 4;
+    save.partner->active = true;
+    save.partner->reviveTicks = 120;
+    save.partner->levels[4] = 7;
+    save.partner->experience[4] = 3;
+    save.partner->levels[0] = 2;
+    save.partnerHp = 0;
+    const auto withPartner = sf::SaveGame::parse(save.write());
+    check(withPartner.partner && withPartner.partner->kind == 4 && withPartner.partner->active &&
+              withPartner.partner->reviveTicks == 120 && withPartner.partner->levels[4] == 7 &&
+              withPartner.partner->experience[4] == 3 && withPartner.partner->levels[0] == 2 && withPartner.partnerHp == 0,
+          "the companion, every kind's level and its revival survive");
 
     sf::ShopStock warehouse;
     warehouse.goods.push_back({{&table.items[0], 1}, 4, 6});

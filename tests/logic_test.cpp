@@ -1,12 +1,16 @@
 // Unit tests for the game rules that need neither SDL nor game data.
 #include <cstdio>
 #include <cstdlib>
+#include <optional>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "logic/ai_select.h"
 #include "formats/table_data.h"
 #include "logic/magic.h"
 #include "logic/movement.h"
+#include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
@@ -228,6 +232,17 @@ struct TestHost : sf::ScriptHost {
     bool hasUnidentifiedItems() const override { return unidentified; }
     void repair(int part) override { repaired.push_back(part); }
     int repairPrice(int part) const override { return part == -1 ? 75 : 10 + part; }
+    int kind = 2;
+    std::optional<std::pair<int, int>> life;  // none: no companion
+    int partnerKind() const override { return kind; }
+    void changePartner(int k) override { kind = k; }
+    bool partnerLife(int& hp, int& max) const override {
+        if (!life) return false;
+        hp = life->first;
+        max = life->second;
+        return true;
+    }
+    std::string partnerStatus(int k) const override { return k == 4 ? "Harley\nLevel 1" : ""; }
 };
 
 void testScriptStorageAndLabels() {
@@ -265,6 +280,83 @@ void testScriptRepairAndIdentify() {
     check(flags[{S::kTemp, 1000010}] == 1 && flags[{S::kTemp, 1000011}] == 0, "CHECKUNOPINIONITEM before and after IDENTIFY");
     check(flags[{S::kTemp, 1000012}] == 13 && flags[{S::kTemp, 1000013}] == 75, "GETREPAIRPRICE asks the game");
     check(host.repaired == std::vector{-1}, "REPAIR mends the part asked for");
+}
+
+void testScriptPartners() {
+    using S = sf::ScenarioScript;
+    S script;
+    const Op kind{S::kTemp, 1000005}, hp{S::kTemp, 1000006}, max{S::kTemp, 1000007}, answer{S::kTemp, 1000001};
+    script.sentences = {{{S::kGetPartnerKind, {kind}},
+                         {S::kChangePartner, {constant(4)}},
+                         {S::kGetPartnerLife, {hp, max}},
+                         {S::kTalkPartnerStatus, {kind, answer}},
+                         {S::kGetPartnerKind, {kind}},
+                         {S::kTalkPartnerStatus, {kind, answer}}}};
+    sf::ScriptFlags flags;
+    flags[{S::kTemp, 1000006}] = 9;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host, 12010003).run(0);
+    check(host.kind == 4 && flags[{S::kTemp, 1000005}] == 4, "CHANGEPARTNER swaps and GETPARTNERKIND reads the kind");
+    check(flags[{S::kTemp, 1000006}] == 9 && !flags.contains({S::kTemp, 1000007}), "GETPARTNERLIFE leaves the variables with no companion");
+    check(host.talks.size() == 1 && host.talks[0].text == "Harley\nLevel 1" && host.talks[0].speaker == 12010003 &&
+              host.talks[0].answer.value == 1000001,
+          "TALKPARTNERSTATUS shows the sheet over the speaker");
+
+    S lifeScript;
+    lifeScript.sentences = {{{S::kGetPartnerLife, {hp, max}}}};
+    host.life = std::pair(-1, -1);
+    sf::ScriptRunner(lifeScript, flags, &host).run(0);
+    check(flags[{S::kTemp, 1000006}] == -1 && flags[{S::kTemp, 1000007}] == -1, "GETPARTNERLIFE is -1 / -1 while it is down");
+}
+
+void testPartners() {
+    sf::GameTables tables;
+    auto& kinds = tables.tables[60];
+    kinds.rows = sf::kPartnerKinds;
+    kinds.cols = 5;
+    for (int k = 0; k < sf::kPartnerKinds; ++k) {
+        kinds.values.insert(kinds.values.end(), {0, k == 4 ? 1 : 0, 1000, 500, 250});
+        for (const char* s : {"Kerberos", "", "", "", ""}) kinds.strings.emplace_back(k == 0 ? s : "Dog");
+    }
+    check(!sf::PartnerTables::load(tables), "no stat tables, no companions");
+    for (int k = 0; k < sf::kPartnerKinds; ++k) {
+        auto& t = tables.tables[800 + k];
+        t.rows = 19;
+        t.cols = 3;
+        t.values.assign(19 * 3, 0);
+        auto set = [&](int row, std::initializer_list<int> v) {
+            int c = 0;
+            for (int x : v) t.values[static_cast<std::size_t>(row * 3 + c++)] = x;
+        };
+        set(1, {125, 0, 0});
+        set(3, {400, 50, 60});
+        set(5, {10, 2, 3});
+        set(13, {2, 2, 6});
+        set(18, {3, 5, 0});
+    }
+    const auto partners = sf::PartnerTables::load(tables);
+    check(partners && partners->kind(0).name == "Kerberos" && partners->kind(4).folder == 1 && partners->kind(0).tint[1] == 500,
+          "table 60 names the kinds, their folder and tint");
+    if (!partners) return;
+    const auto one = partners->stats(0, 1), three = partners->stats(0, 3);
+    check(one.maxHp == 400 && one.attack == 10 && one.walkSpeed == 125 && one.element == 2, "level 1 is the first column");
+    check(three.maxHp == 510 && three.attack == 15 && three.element == 6, "rows 0-12 add up; row 13 is the level's own");
+    check(partners->need(0, 1) == 3 && partners->need(0, 2) == 5, "row 18 is the experience to the next level");
+
+    check(sf::partnerLevelCap(1) == 2 && sf::partnerLevelCap(9) == 5 && sf::partnerLevelCap(200) == sf::kPartnerMaxLevel,
+          "a companion can reach the hero's level / 3 + 2");
+    sf::PartnerRecord r;
+    check(r.kind == 0 && !r.active && r.level() == 1, "a new hero has Kerberos at level 1, INACTIVE");
+    bool up = false;
+    for (int i = 0; i < 3; ++i) up = r.countKill(*partners, 1);
+    check(up && r.level() == 2 && r.experience[0] == 0, "three kills take it to level 2");
+    for (int i = 0; i < 10; ++i) r.countKill(*partners, 1);
+    check(r.level() == 2 && r.experience[0] == 0, "it stops at the cap and keeps no experience there");
+    for (int i = 0; i < 4; ++i) r.countKill(*partners, 9);
+    check(r.level() == 2 && r.experience[0] == 4, "with a higher hero it carries on");
+    r.kind = 3;
+    r.countKill(*partners, 9);
+    check(r.level() == 1 && r.experience[3] == 1 && r.experience[0] == 4, "each kind keeps its own level and experience");
 }
 
 void testScriptTalkAndShop() {
@@ -469,6 +561,8 @@ int main() {
     testShopStock();
     testScriptStorageAndLabels();
     testScriptRepairAndIdentify();
+    testScriptPartners();
+    testPartners();
     testCareer();
     testScriptExit();
     testScriptFlagsAndOperators();

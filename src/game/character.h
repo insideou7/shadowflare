@@ -53,6 +53,9 @@ public:
     // Which layers to draw besides the shadow. The player's follow what
     // they wear (Inventory::heroLayers).
     std::vector<int> visibleLayers = {0};
+    // Colour and opacity the body is drawn with (partner dogs are recoloured
+    // per kind, and fade out when they die).
+    SDL_Color tint{255, 255, 255, 255};
 
     void setAction(Action action) { play(static_cast<int>(action)); }
 

@@ -45,7 +45,9 @@ monster under it), hold Ctrl to run or press R to switch between walking
 and running, and hold Shift to stop or to attack in place. F1-F8 choose a
 spell from the bar at the bottom right and F9 the attack; the right mouse
 button casts the spell (or attacks) at the cursor; casting a shield or
-Berserker again turns it off. S opens the status window, I the inventory,
+Berserker again turns it off. With the original game's files the hero has
+a dog: Space (or a click on its gauge) sends it into battle or calls it back
+(see [docs/partners.md](docs/partners.md)). S opens the status window, I the inventory,
 H the keyboard help, and Print Screen saves a screen shot. Esc closes the
 open window, or opens the Settings Menu: the original's options (screen
 mode, see-through player and shadows, click range and priority), original
@@ -80,6 +82,7 @@ Options:
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
+- `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk, original data only), ACTIVE
 - `--show-judge` start with the walkability grid shown
 - `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player

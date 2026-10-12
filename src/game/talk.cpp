@@ -94,7 +94,11 @@ public:
         g_.showStatus_ = false;  // the shop takes the left of the screen
         g_.showInventory_ = true;
     }
-    void healLife() override { g_.playerHp_ = g_.playerMaxHp(); }
+    void healLife() override {
+        g_.playerHp_ = g_.playerMaxHp();
+        // It fills the companion's health too, but does not bring it back.
+        if (g_.partnerAlive()) g_.partner_->hp = g_.partner_->stats.maxHp;
+    }
     void createItem(int cls, int code, int x, int y, int amount) override {
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def) return;
@@ -150,6 +154,16 @@ public:
     void repair(int part) override { g_.inventory_.repair(part); }
     int repairPrice(int part) const override { return g_.inventory_.repairPrice(part); }
     void showLabel(const Label& l) override { g_.showLabel(l); }
+    int partnerKind() const override { return g_.partnerRecord_.kind; }
+    void changePartner(int kind) override { g_.changePartner(kind); }
+    bool partnerLife(int& hp, int& max) const override {
+        if (!g_.partner_) return false;
+        const bool alive = g_.partnerAlive();
+        hp = alive ? g_.partner_->hp : -1;
+        max = alive ? g_.partner_->stats.maxHp : -1;
+        return true;
+    }
+    std::string partnerStatus(int kind) const override { return g_.partnerStatusText(kind); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
         log::info("{} offered", className(g_.career_.offered));

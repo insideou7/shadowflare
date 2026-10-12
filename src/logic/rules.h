@@ -12,12 +12,16 @@ struct Rules {
     // soak up a blow, the MP cost of whichever spell is selected, at the
     // shield's level (0x443cb0), rather than the shield's own cost.
     bool shieldsCostTheirOwnMp = true;
+    // The partner's status window prints its defence on the "M Evasion
+    // Rate" line (0x4319de, 0x450ace).
+    bool partnerStatusShowsMagicEvasion = true;
 
-    bool originalMode() const { return !shieldsCostTheirOwnMp; }
+    bool originalMode() const { return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion; }
     static Rules ours() { return {}; }
     static Rules original() {
         Rules r;
         r.shieldsCostTheirOwnMp = false;
+        r.partnerStatusShowsMagicEvasion = false;
         return r;
     }
 };

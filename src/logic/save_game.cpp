@@ -91,6 +91,16 @@ std::string SaveGame::write() const {
         out += std::format("{}\n", spells->selected);
     }
     if (originalMode) out += "original=1\n";
+    if (partner) {
+        // partner=kind,active,revive ticks,hp, then each kind's level and
+        // experience.
+        out += std::format("partner={},{},{},{}", partner->kind, partner->active ? 1 : 0, partner->reviveTicks, partnerHp);
+        for (int k = 0; k < kPartnerKinds; ++k) {
+            const auto i = static_cast<std::size_t>(k);
+            out += std::format(",{},{}", partner->levels[i], partner->experience[i]);
+        }
+        out += '\n';
+    }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     // Items: class,code,count[,x,y], then wear,unidentified when not 0,0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
@@ -150,6 +160,19 @@ SaveGame SaveGame::parse(std::string_view text) {
             auto spell = [&](long long n) { return n >= 0 && n < kSpellCount ? static_cast<int>(n) : -1; };
             for (std::size_t b = 0; b < kSpellBarSize; ++b) save.spells->bar[b] = spell(v[b]);
             save.spells->selected = spell(v[kSpellBarSize]);
+        } else if (key == "partner") {
+            const auto v = numbers(value, 4 + 2 * kPartnerKinds, lineNumber);
+            if (v[0] < 0 || v[0] >= kPartnerKinds) throw FormatError(std::format("save line {}: no such companion", lineNumber));
+            PartnerRecord p;
+            p.kind = static_cast<int>(v[0]);
+            p.active = v[1] != 0;
+            p.reviveTicks = static_cast<int>(std::max(0LL, v[2]));
+            save.partnerHp = static_cast<int>(std::max(0LL, v[3]));
+            for (std::size_t i = 0; i < kPartnerKinds; ++i) {
+                p.levels[i] = static_cast<int>(std::clamp(v[4 + 2 * i], 1LL, static_cast<long long>(kPartnerMaxLevel)));
+                p.experience[i] = static_cast<int>(std::max(0LL, v[5 + 2 * i]));
+            }
+            save.partner = p;
         } else if (key == "original") {
             save.originalMode = numbers(value, 1, lineNumber)[0] != 0;
         } else if (key == "level") {

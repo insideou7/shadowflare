@@ -107,7 +107,8 @@ public:
     std::vector<EquipSlot> wearFromAttacking(Random& random);
     std::vector<EquipSlot> wearFromBlow(Random& random);
 
-    bool hasUnidentified() const;  // CHECKUNOPINIONITEM (0x43397d)
+    bool hasUnidentified() const;
+    bool carries(ItemDef::Class cls, std::int32_t code) const;  // in the bag  // CHECKUNOPINIONITEM (0x43397d)
     void identifyAll();            // IDENTIFY: everything worn and in the bag (0x432296)
 
     // What REPAIR and GETREPAIRPRICE call a part (0x43234a, 0x4310d7):

@@ -274,6 +274,8 @@ void Game::loadLevelCurve() {
     }
     if (levels_.needs.empty()) levels_ = LevelCurve::standard();
     magic_ = tables_.tables.empty() ? MagicTables::standard() : MagicTables::fromTables(tables_);
+    partnerTables_ = PartnerTables::load(tables_);
+    if (!partnerTables_ && !tables_.tables.empty()) log::warn("No partner tables (60, 800-805); playing without a companion");
 }
 
 void Game::gainExperience(int amount) {

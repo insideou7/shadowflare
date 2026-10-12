@@ -31,6 +31,7 @@ struct Options {
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
+    int partner = -1;        // a companion kind to bring, ACTIVE
     std::optional<std::pair<int, int>> at;  // start position in map pixels
     struct Gift {
         int itemClass = 0, code = 0, count = 1, wear = 0;
@@ -130,6 +131,8 @@ Options parseArgs(int argc, char** argv) {
             options.load = true;
         } else if (arg == "--save-at-end") {
             options.saveAtEnd = true;
+        } else if (arg == "--partner" && i + 1 < argc) {
+            options.partner = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -337,7 +340,7 @@ int main(int argc, char** argv) {
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight || options.talk >= 0 || options.cast;
+                          options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast;
     // The player's options (Esc in the game); scripted runs keep the
     // defaults so they come out the same on every machine.
     if (!options.optionsFile.empty()) {
@@ -355,6 +358,7 @@ int main(int argc, char** argv) {
     if (options.options) app.game->openOptions(true);
     if (options.help) app.game->setHelpOpen(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);
+    if (options.partner >= 0) app.game->bringPartner(options.partner);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);

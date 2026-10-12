@@ -370,7 +370,7 @@ void Game::renderHelp() {
         {"SHIFT", "STOP; ATTACK IN PLACE", true},
         {"CAPS LOCK", "SWAP EQUIPMENT", false},
         {"TAB+CLICK", "COMPANION", false},
-        {"SPACE", "COMPANION ACTIVE/INACTIVE", false},
+        {"SPACE", "COMPANION ACTIVE/INACTIVE", true},
         {"S", "STATUS WINDOW", true},
         {"I", "ITEMS WINDOW", true},
         {"X", "SPECIAL ITEMS WINDOW", false},

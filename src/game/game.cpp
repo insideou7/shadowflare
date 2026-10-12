@@ -21,7 +21,7 @@ namespace {
 
 // Walking speed in world units per tick. Not yet taken from the original;
 // nor is running, which is ours at twice the walk.
-constexpr double kWalkSpeed = 70.0;
+constexpr double kWalkSpeed = kPlayerWalkSpeed;
 constexpr double kRunSpeed = 140.0;
 
 // Monsters take their health, attack and defense from the scenario file.
@@ -92,6 +92,9 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
+    // The companion keeps its health from map to map (0x4505d0).
+    if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
+    partner_.reset();
     missiles_.clear();
     spellEffects_.clear();
     mapIndex_ = index;
@@ -300,6 +303,7 @@ void Game::placePlayerAt(double screenX, double screenY) {
         playerHp_ = playerMaxHp();
         playerMp_ = playerMaxMp();
         casting_.reset();
+        spawnPartner();
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
@@ -402,7 +406,14 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_b: notYet("Mines"); break;
                 case SDLK_p: notYet("Increased-power mode"); break;
                 case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
-                case SDLK_SPACE: notYet("Companions"); break;
+                case SDLK_SPACE:
+                    // Open content has no companions.
+                    if (partner_) {
+                        togglePartnerMode();
+                    } else {
+                        notYet("Companions");
+                    }
+                    break;
                 case SDLK_x: notYet("The special items window"); break;
                 case SDLK_m: notYet("The magic window"); break;
                 case SDLK_q: notYet("The mission list"); break;
@@ -422,6 +433,7 @@ void Game::handleEvent(const SDL_Event& event) {
             }
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
                 if (spells_.knows(spells_.selected)) {
@@ -488,7 +500,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
             case Settings::kItem: found = groundItemAt(screenX, screenY); break;
             case Settings::kObject: found = objectAt(screenX, screenY); break;
             case Settings::kPerson: found = personAt(screenX, screenY); break;
-            default: break;  // no companions yet
+            default: break;  // clicking the companion (its Tab skills) is not in yet
         }
         if (found) return {kind, *found};
     }
@@ -529,6 +541,7 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    tickPartner();
     tickSpells();
     pickUpItems();
     for (auto& g : groundItems_) {
@@ -584,6 +597,10 @@ void Game::changeScenario(int number, int entry) {
         player_->x = e.x;
         player_->y = e.y;
         if (e.direction >= 0 && e.direction < 8) player_->direction = e.direction;
+        if (partner_) {
+            partner_->character.x = e.x;
+            partner_->character.y = e.y;
+        }
         log::info("Player enters at world ({}, {})", e.x, e.y);
         break;
     }
@@ -866,6 +883,8 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
         hurtPlayer(damage, true, &enemy);
         return;
     }
+    // The blow also catches an ACTIVE companion in front of the monster.
+    if (partnerInReach(enemy)) strikePartner(enemy, slot);
     if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
     // Table 11: the hero's level in the monster's element strengthens their
     // defence. Energy Shield changes the defence first (0x443cb0).
@@ -874,7 +893,7 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
     hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
 }
 
-void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell) {
+void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
     if (!enemy.alive()) return;
     enemy.hp -= damage;
     if (enemy.hp <= 0) {
@@ -882,9 +901,11 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell) {
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
         dropLoot(enemy);
-        // The original counts how monsters die, to offer a class (0x4134a0).
+        // The original counts how the hero kills monsters, to offer a class
+        // (0x4134a0), and every kill trains the companion (0x413640).
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
-        career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        if (!byPartner) career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        partnerCountKill();
         // Moon, Berserker and Energy Shield train by kills while they are
         // on (0x419c91).
         for (int spell = 0; spell < kSpellCount; ++spell) {
@@ -994,6 +1015,7 @@ void Game::renderMap() {
     // stands under one; characters draw their own shadows.
     std::vector<const Character*> characters;
     if (player_) characters.push_back(&*player_);
+    if (partner_ && partner_->character.tint.a > 0) characters.push_back(&partner_->character);
     for (const auto& actor : actors_) {
         if (!actor.active) continue;
         int sx, sy;
@@ -1057,6 +1079,7 @@ void Game::renderMap() {
     renderStatus();
     renderInventory();
     renderHud();
+    renderPartnerGauge();
     renderDialogue();
     renderHelp();
 }
