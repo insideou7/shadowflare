@@ -107,10 +107,13 @@ moss=26,17,16
 water=16,62,93
 [ground map01.njp]
 rock=68,57,45
+none=0,0,0
 [ground map02.njp]
 rock=49,39,32
+none=0,0,0
 [ground map03.njp]
 gravel=20,13,8
+none=0,0,0
 [ground fort_map.njp]
 paving=84,78,64
 [ground coalminem.njp]
@@ -475,12 +478,12 @@ none=
 54=shadow_x@-183,-177
 55=boulders@-267,-333
 56=boulders@-320,-380
-57=earth2_y@-248,-222
-58=earth2_y@-248,-222
-59=earth2_y@-207,-253
-60=earth2_y@-207,-253
-61=earth2_y@-207,-253
-62=earth2_y@-248,-222
+57=earth_x@-237,-243
+58=earth_x@-237,-243
+59=earth_x@-145,-165
+60=earth_x@-145,-165
+61=earth_x@-145,-165
+62=earth_x@-237,-243
 63=ledge@122,28
 64=boulders@-325,-385
 [objects deep02.njp]
@@ -541,12 +544,12 @@ none=
 54=shadow_x@-183,-177
 55=boulders@-267,-333
 56=boulders@-320,-380
-57=earth2_y@-248,-222
-58=earth2_y@-248,-222
-59=earth2_y@-207,-253
-60=earth2_y@-207,-253
-61=earth2_y@-207,-253
-62=earth2_y@-248,-222
+57=earth_x@-237,-243
+58=earth_x@-237,-243
+59=earth_x@-145,-165
+60=earth_x@-145,-165
+61=earth_x@-145,-165
+62=earth_x@-237,-243
 63=ledge@122,28
 64=boulders@-325,-385
 [objects deep03.njp]
@@ -607,12 +610,12 @@ none=
 54=shadow_x@-183,-177
 55=boulders@-267,-333
 56=boulders@-320,-380
-57=earth2_y@-248,-222
-58=earth2_y@-248,-222
-59=earth2_y@-207,-253
-60=earth2_y@-207,-253
-61=earth2_y@-207,-253
-62=earth2_y@-248,-222
+57=earth_x@-237,-243
+58=earth_x@-237,-243
+59=earth_x@-145,-165
+60=earth_x@-145,-165
+61=earth_x@-145,-165
+62=earth_x@-237,-243
 63=ledge@122,28
 64=boulders@-325,-385
 [objects deep04.njp]
@@ -673,12 +676,12 @@ none=
 54=shadow_x@-183,-177
 55=boulders@-278,-332
 56=boulders@-327,-393
-57=earth2_y@-248,-222
-58=earth2_y@-248,-222
-59=earth2_y@-207,-253
-60=earth2_y@-207,-253
-61=earth2_y@-207,-253
-62=earth2_y@-248,-222
+57=earth_x@-237,-243
+58=earth_x@-237,-243
+59=earth_x@-145,-165
+60=earth_x@-145,-165
+61=earth_x@-145,-165
+62=earth_x@-237,-243
 63=ledge@122,28
 64=boulders@-357,-423
 
