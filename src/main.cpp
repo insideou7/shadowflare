@@ -125,7 +125,7 @@ Options parseArgs(int argc, char** argv) {
                 sf::log::warn("--cast expects slot:x,y");
             }
         } else if (arg == "--companion" && i + 1 < argc) {
-            // jump:dx,dy, dash:dx,dy or fetch (the nearest item).
+            // jump:dx,dy, dash:dx,dy, explode:dx,dy or fetch (the nearest item).
             const std::string order = argv[++i];
             Options::Order o;
             o.kind = order.substr(0, order.find(':'));

@@ -15,13 +15,20 @@ struct Rules {
     // The partner's status window prints its defence on the "M Evasion
     // Rate" line (0x4319de, 0x450ace).
     bool partnerStatusShowsMagicEvasion = true;
+    // The companion's Explosion (the hero's spell 20) reads its stun from
+    // the hero's level in spell 21, Elemental Strike (0x461c40 asks
+    // 0x451e60 for 0x15), rather than Explosion's own level.
+    bool explosionUsesItsOwnLevel = true;
 
-    bool originalMode() const { return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion; }
+    bool originalMode() const {
+        return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel;
+    }
     static Rules ours() { return {}; }
     static Rules original() {
         Rules r;
         r.shieldsCostTheirOwnMp = false;
         r.partnerStatusShowsMagicEvasion = false;
+        r.explosionUsesItsOwnLevel = false;
         return r;
     }
 };

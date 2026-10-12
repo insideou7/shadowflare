@@ -73,6 +73,11 @@ struct ScenarioControl {
         // Objects: the companion's jump or dash presses it (word 5, the
         // object's + 0xe8 at 0x460420; inferred from which objects have it).
         bool companionSwitch = false;
+        // Objects: the monster (its Mct id) that blows landing on the object
+        // go to instead, -1 = none (word 6, + 0xec, read at 0x460420 as
+        // character 14000000 + id). No shipped object links to a monster
+        // that is there.
+        std::int32_t linkedEnemy = -1;
 
         // Items lying on the map: which one, as an Item.Ibn (class, code).
         std::int32_t itemClass = -1, itemCode = 0;

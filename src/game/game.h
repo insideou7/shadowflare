@@ -344,13 +344,14 @@ private:
 
         // The hero's orders, Tab and a click (partner.cpp): where it jumps
         // or dashes to, and what it jumps on or fetches.
-        enum class Order { None, Fetch, Jump, Dash } order = Order::None;
+        enum class Order { None, Fetch, Jump, Dash, Explode } order = Order::None;
         double orderX = 0, orderY = 0;
         std::optional<std::size_t> orderActor{};   // a monster to land on, in actors_
         std::optional<std::size_t> orderObject{};  // a switch to land on, in control_.placements
         int orderCooldown = 0;  // ticks until it takes a new order on open ground (+0x210)
         int skillTick = 0;      // ticks into the jump or dash (+0x158)
         bool landed = false;    // the jump has come down
+        bool explosion = false; // the jump is the hero's Explosion spell (state 10)
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
         int restDirection = 0;  // its facing before a jump
@@ -377,6 +378,9 @@ private:
     void tickPartnerDash();
     bool tickPartnerFetch(double toHero);
     void partnerLands(double left, double top, double right, double bottom, bool dash);
+    void partnerExplodes();
+    void orderPartnerExplosion(double x, double y);
+    std::vector<std::size_t> monstersIn(double left, double top, double right, double bottom) const;
     bool partnerCanStand(double x, double y) const;
     void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1);
     void renderPartnerGauge();

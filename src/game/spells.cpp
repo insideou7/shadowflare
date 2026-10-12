@@ -24,15 +24,15 @@ constexpr double kMissileRange = 2400.0;
 constexpr double kMissileRadius = 110.0;  // how close it must pass to hit
 constexpr double kBurstRadius = 320.0;
 
-enum class Kind { NotYet, Toggle, Heal, Missile, Burst };
+enum class Kind { NotYet, Toggle, Heal, Missile, Burst, Companion };
 
 Kind kindOf(const MagicTables& t, int spell) {
     switch (spell) {
         case kTransport:
         case kMoon:
         case kMedusa:
-        case kIdentify:
-        case kExplosion: return Kind::NotYet;
+        case kIdentify: return Kind::NotYet;
+        case kExplosion: return Kind::Companion;  // the companion blows up (partner.cpp)
         case kHeal: return Kind::Heal;
         default: break;
     }
@@ -164,6 +164,7 @@ void Game::releaseSpell() {
     log::info("Cast {} at level {}", magic_.spell(spell).name, level);
     switch (kindOf(magic_, spell)) {
         case Kind::NotYet: break;
+        case Kind::Companion: orderPartnerExplosion(tx, ty); break;
         case Kind::Toggle:
             setSpellOn(spell, true);
             if (spell == kBerserker) berserkerCarry_ = 0;

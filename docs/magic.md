@@ -122,7 +122,9 @@ the exe:
   units, and hit the first monster within 110 units. Spells without a
   missile hit every monster within 320 units of the point cast at.
 - The effects are drawn from simple shapes in each element's colour.
-- Transport, Moon, Medusa, Identify and Explosion are not in yet.
+- Explosion sends the companion to blow up where it is cast
+  ([partners.md](partners.md)).
+- Transport, Moon, Medusa and Identify are not in yet.
 - Monster spells land halfway through their animation, like blows.
 - Chant speed and equipment that adds spell levels or saves MP are not
   read from items yet.
@@ -137,6 +139,7 @@ with none of our fixes; it is off by default. Each fix is a switch in
 |---|---|---|
 | `shieldsCostTheirOwnMp` | Magic Shield and Counter Burst cost their own MP | they cost the chosen spell's MP |
 | `partnerStatusShowsMagicEvasion` | the partner's status sheet shows its magic evasion | it shows its defence there ([partners.md](partners.md)) |
+| `explosionUsesItsOwnLevel` | the companion's Explosion stuns at Explosion's level | at Elemental Strike's level ([partners.md](partners.md)) |
 
 Data the engine used to misread, such as the monster stat words, is
 corrected in both modes.
