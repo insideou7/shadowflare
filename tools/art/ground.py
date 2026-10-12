@@ -178,10 +178,16 @@ class Floor(Ground):
     def __init__(self, seed=1, kind="dungeon"):
         super().__init__(seed)
         self.palette = [np.array(c, dtype=float) for c in self.KINDS[kind]]
+        self.kind = kind
         self.pitting = 0.07
         if kind == "fort":
             self.pitting = 0.12  # more pitted paving stones
+        else:
+            # The dungeon's bricks are bigger and laid in staggered rows
+            # (see bond()), with thin soft joints and no pits.
+            self.pitting = -1.0
         self.wear = Field([(0.5, 1.0), (0.15, 0.7)], seed + 5)  # dust and damp
+        self.grime = Field([(0.4, 1.0), (0.15, 0.8), (0.05, 0.4)], seed + 8)  # smudges of dirt
 
     def bricks(self, u, v):
         """Brick shade (-1 to 1) and a 0-1 mortar mask, laid in herringbone:
@@ -196,21 +202,44 @@ class Floor(Ground):
         bj = np.where(flat, j, j - (t - 2))
         h = (bi * 73856093 ^ bj * 19349663 ^ flat.astype(int) * 83492791) & 0xFFFF
         shade = h / 0x7FFF - 1
-        m = 0.09
+        m = 0.09 if self.kind == "fort" else 0.07
         mortar = np.where(flat, (fy < m) | (fy > 1 - m) | ((t == 0) & (fx < m)) | ((t == 1) & (fx > 1 - m)),
                           (fx < m) | (fx > 1 - m) | ((t == 2) & (fy < m)) | ((t == 3) & (fy > 1 - m)))
+        return shade, mortar.astype(float)
+
+    def bond(self, u, v, length=1 / 3, width=1 / 6):
+        """Brick shade (-1 to 1) and a 0-1 mortar mask for bricks laid in
+        rows along x, each row shifted half a brick. Bricks are `length` by
+        `width` tiles, each a whole number to the period."""
+        x, y = np.asarray(u) / length, np.asarray(v) / width
+        j = np.floor(y).astype(int)
+        x = x + 0.5 * (j % 2)
+        i = np.floor(x).astype(int)
+        fx, fy = x - i, y - j
+        h = (i * 73856093 ^ j * 19349663) & 0xFFFF
+        shade = h / 0x7FFF - 1
+        mx, my = 0.06, 0.1
+        mortar = (fx < mx) | (fx > 1 - mx) | (fy < my) | (fy > 1 - my)
         return shade, mortar.astype(float)
 
     def texture(self, u, v):
         big = self.big(u, v)
         wear = self.wear(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
-        shade, mortar = self.bricks(u, v)
+        shade, mortar = self.bricks(u, v) if self.kind == "fort" else self.bond(u, v)
         mid, dark, light, joint_colour, rubble_colour = self.palette
-        brick = colour(mid, dark, light, 0.45 * shade + 0.15 * big, fine, 0.12)
-        # Dust lightens some stretches and damp darkens others.
-        brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
-        joint = joint_colour * (1 + 0.2 * fine[..., None])
+        if self.kind == "fort":
+            brick = colour(mid, dark, light, 0.45 * shade + 0.15 * big, fine, 0.12)
+            # Dust lightens some stretches and damp darkens others.
+            brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
+            joint = joint_colour * (1 + 0.2 * fine[..., None])
+        else:
+            # Flat, evenly worn bricks under broad smudges of grime: dark
+            # damp stains and paler dusty patches running across the joints.
+            grime = self.grime(u, v)
+            brick = colour(mid, dark, light, 0.55 * shade * np.abs(shade) + 0.1 * big, fine, 0.16)
+            brick = brick * (1 + np.clip(0.2 * grime, -0.2, 0.18))[..., None]
+            joint = brick * 0.6
         floor = brick * (1 - mortar[..., None]) + joint * mortar[..., None]
         # Pits and chips: scattered near-black specks, thicker where it is damp.
         pits = self.rng.random(np.shape(u)) < self.pitting + 0.05 * np.clip(-wear, 0, 1)
