@@ -1,9 +1,9 @@
 name: Build
 
+# Runs only when started by hand (Actions tab > Build > Run workflow);
+# automatic runs on pushes and pull requests are off for now.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:

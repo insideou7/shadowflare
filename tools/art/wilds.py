@@ -24,7 +24,7 @@ from cave import ROCK, rough  # noqa: E402
 from dungeon import DARK, solid  # noqa: E402
 from fort import BLACKIRON, BRASS  # noqa: E402
 from props import WOOD, branch  # noqa: E402
-from town import COPPER, MOSSY, _mats, ball, box, cyl, mat, resize  # noqa: E402
+from town import COPPER, MOSSY, _mats, ball, box, cyl, mat  # noqa: E402
 
 BARK = dict(colour=(0.36, 0.26, 0.24), dark=(0.10, 0.07, 0.06), scale=14, bump=0.6)
 GREYBARK = dict(colour=(0.40, 0.36, 0.34), dark=(0.12, 0.10, 0.09), scale=14, bump=0.6)
@@ -531,44 +531,6 @@ def cliff(seed, kind="x"):
         o.location = Vector(at) + Vector((0, 0, 3.8))
 
 
-def cave_mouth():
-    """A dark opening in a low mound of earth."""
-    earth = mat("mound", dict(EARTH, colour=(0.17, 0.12, 0.04), dark=(0.04, 0.03, 0.01), grime=0.0))
-    # A ragged patch of loose earth, heaped a little towards the opening.
-    rng = random.Random(3)
-    bpy.ops.mesh.primitive_grid_add(x_subdivisions=160, y_subdivisions=160, size=13.0, location=(0, 0, 0.02))
-    o = bpy.context.object
-    bm = bmesh.new()
-    bm.from_mesh(o.data)
-    drop = []
-    for f in bm.faces:
-        c = f.calc_center_median()
-        r = math.hypot(c.x / 1.3, c.y) * (1 + 0.2 * math.sin(5 * math.atan2(c.y, c.x)) + rng.uniform(-0.25, 0.25))
-        if r > 5.2:
-            drop.append(f)
-    bmesh.ops.delete(bm, geom=drop, context="FACES")
-    for v in bm.verts:
-        v.co.z = max(0.0, 0.9 - 0.2 * math.hypot(v.co.x / 1.3, v.co.y)) * (1 + rng.uniform(-0.2, 0.2))
-    bm.to_mesh(o.data)
-    studio.assign(o, earth)
-    # A long dark crevice with ragged lips of rock.
-    # The opening itself is unlit black, so no sky light greys it.
-    hole = bpy.data.materials.new("hole")
-    hole.use_nodes = True
-    nodes = hole.node_tree.nodes
-    nodes.clear()
-    emit = nodes.new("ShaderNodeEmission")
-    emit.inputs["Color"].default_value = (0, 0, 0, 1)
-    hole.node_tree.links.new(emit.outputs[0], nodes.new("ShaderNodeOutputMaterial").inputs[0])
-    ball(3.0, (0.2, 0.2, 0.75), hole, scale=(1.0, 0.36, 0.22))
-    for sgn in (-1, 1):
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5, radius=2.5, location=(0.2 - sgn * 0.2, 0.2 + sgn * 1.25, 0.9))
-        lip = bpy.context.object
-        lip.scale = (1.25, 0.3, 0.45)
-        studio.displace(lip, 1.2, 0.3, 4 + sgn)
-        studio.assign(lip, mat("cliff", CLIFF))
-
-
 def paving(seed=1):
     """A patch of worn flagstones."""
     rng = random.Random(seed)
@@ -621,7 +583,6 @@ PROPS = {
     "cliff_y": (lambda: cliff(26, "y"), 256),
     "cliff_corner": (lambda: cliff(27, "corner"), 256),
     "paving": (paving, 128),
-    "cave_mouth": (cave_mouth, 352),
 }
 
 
@@ -630,9 +591,14 @@ def main():
     blend = "--blend" in args
     args = [a for a in args if a != "--blend"]
     out = Path(args[0])
-    names = args[1:] or list(PROPS)
+    names = args[1:] or [*PROPS, "cave_mouth"]
     out.mkdir(parents=True, exist_ok=True)
     listing = out / "wilds.txt"
+    if "cave_mouth" in names:
+        # The cave entrance is painted flat, not modelled: cave_mouth_2d.py.
+        import cave_mouth_2d
+        cave_mouth_2d.main_into(out)
+        names = [n for n in names if n != "cave_mouth"]
     anchors = dict(l.split(" ", 1) for l in listing.read_text().split("\n") if l) if listing.exists() else {}
     for name in names:
         build, size = PROPS[name]

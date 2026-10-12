@@ -20,14 +20,16 @@ import bmesh  # noqa: E402  (after bpy)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
-from cave import rough  # noqa: E402
+from cave import crags, rough  # noqa: E402
 from dungeon import solid, turn  # noqa: E402
 from town import IRON, _mats, ball, box, cyl, mat  # noqa: E402
 
-EARTHWALL = dict(colour=(0.30, 0.14, 0.05), dark=(0.025, 0.01, 0.005), scale=22, detail=14, rough=1.0, bump=1.8,
-                 band=(0.4, 0.72), spot=0.25, spot_colour=(0.70, 0.36, 0.10))
-# The tall faces and blocks: browner, with lit orange flecks.
-GORGE = dict(EARTHWALL, colour=(0.28, 0.16, 0.08), scale=26, detail=16, bump=2.6, spot=0.4, spot_colour=(0.72, 0.44, 0.18))
+# Red-brown rock, finely grained; the light on its craggy facets (cave.crags)
+# brings out the orange.
+EARTHWALL = dict(colour=(0.55, 0.30, 0.11), dark=(0.035, 0.018, 0.008), scale=18, detail=16, rough=1.0, bump=1.2,
+                 band=(0.36, 0.72), grime=0.6)
+# The tall faces and blocks: a little browner.
+GORGE = dict(EARTHWALL, colour=(0.46, 0.28, 0.13))
 SHADOW = dict(colour=(0.035, 0.022, 0.015), dark=(0.01, 0.006, 0.004), scale=14, rough=1.0, bump=0.6)
 RAIL = dict(colour=(0.40, 0.39, 0.36), dark=(0.10, 0.10, 0.09), scale=6, bump=0.6, stretch=(8, 1, 1), grime=0.5)
 STONE = dict(colour=(0.30, 0.30, 0.31), dark=(0.07, 0.07, 0.08), scale=6, bump=0.8, grime=0.6,
@@ -53,6 +55,8 @@ def earth_wall(along_y=False, seed=1, dark=False):
     rng = random.Random(seed)
     m = mat("shadow", SHADOW) if dark else mat("earthwall", EARTHWALL)
     rough(solid(box((WALL_L, 0.6, WALL_H), (0, 0.15, WALL_H / 2), m)), 0.5, 0.9, seed, cuts=26)
+    if not dark:
+        crags(WALL_L, WALL_H * 0.9, 0.7, m, seed)
     if dark:
         rough(solid(box((WALL_L + 0.2, 0.9, 0.5), (0, 0.15, WALL_H), mat("earthwall", EARTHWALL))), 0.25, 0.5, seed,
               cuts=12)
@@ -72,6 +76,7 @@ def earth_tall(along_y=False, seed=11):
     the floor like the side of a gorge, with a ragged lit top."""
     m = mat("gorge", GORGE)
     rough(solid(box((TALL_L, 1.6, TALL_H), (0, 0.3, TALL_H / 2), m)), 0.9, 1.5, seed, cuts=30)
+    crags(TALL_L, TALL_H * 0.9, 1.0, m, seed, count=12, at=(0, -0.3, 0))
     rough(solid(box((TALL_L + 0.3, 2.0, 0.8), (0, 0.3, TALL_H), m)), 0.6, 0.9, seed + 1, cuts=14)
     if along_y:
         turn(math.pi / 2)
@@ -83,6 +88,10 @@ def earth_block(seed=12, dark=False):
     ragged earth top."""
     m = mat("gorge", GORGE)
     rough(solid(box((BLOCK, BLOCK, 4.2), (0, 0, 2.1), mat("shadow", SHADOW) if dark else m)), 0.8, 1.5, seed, cuts=26)
+    if not dark:
+        # Crags on the two faces the camera sees.
+        crags(BLOCK, 3.6, 0.9, m, seed, count=12, at=(0, -BLOCK / 2, 0))
+        crags(BLOCK, 3.6, 0.9, m, seed + 50, count=12, at=(BLOCK / 2, 0, 0), along_y=True)
     rough(solid(box((BLOCK + 0.3, BLOCK + 0.3, 0.8), (0, 0, 4.3), m)), 0.6, 0.9, seed + 1, cuts=18)
 
 
@@ -284,6 +293,10 @@ PROPS = {
 }
 
 
+# Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
+WALLS = ("earth_x", "earth_y", "earth2", "shadow_", "earth_tall", "earth_block", "earth_post", "stone_ledge")
+
+
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else sys.argv[1:]
     blend = "--blend" in args
@@ -302,7 +315,8 @@ def main():
             # No glossy sheen: it greys the dark earth under the studio sky.
             if m.node_tree and "Principled BSDF" in m.node_tree.nodes:
                 m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

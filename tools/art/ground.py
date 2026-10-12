@@ -62,26 +62,111 @@ def colour(base, dark, light, t, fine, grain):
     return c * (1 + grain * fine[..., None])
 
 
+def crumbs(rng, res, per_tile, keep, sharp=2.5):
+    """A wrapping res x res height field of rounded lumps, PERIOD tiles
+    across: one jittered point per grid cell (per_tile cells to a tile),
+    height = distance to the cell's border, and only `keep` of the cells
+    raised."""
+    g = PERIOD * per_tile
+    pts = (np.mgrid[0:g, 0:g].transpose(1, 2, 0) + rng.uniform(0.15, 0.85, (g, g, 2))) / g
+    raised = rng.random((g, g)) < keep
+    yy, xx = (np.mgrid[0:res, 0:res] + 0.5) / res
+    cy, cx = np.floor(yy * g).astype(int), np.floor(xx * g).astype(int)
+    d, idx = [], []
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            ny, nx = (cy + dy) % g, (cx + dx) % g
+            py = pts[ny, nx, 0] + np.floor((cy + dy) / g)
+            px = pts[ny, nx, 1] + np.floor((cx + dx) / g)
+            d.append((yy - py) ** 2 + (xx - px) ** 2)
+            idx.append(raised[ny, nx])
+    d, idx = np.stack(d), np.stack(idx)
+    order = np.argsort(d, axis=0)
+    d = np.take_along_axis(d, order, 0)
+    up = np.take_along_axis(idx, order[:1], 0)[0]
+    h = np.clip((np.sqrt(d[1]) - np.sqrt(d[0])) * g * sharp, 0, 1) ** 0.5
+    return h * up
+
+
+def plates(rng, res, per_tile):
+    """Flat stone plates: a wrapping res x res grid of Voronoi cells
+    (per_tile to a tile edge, PERIOD tiles across). Returns each pixel's
+    distance to its cell's border (in cell sizes) and its cell's random
+    shade (-1 to 1)."""
+    g = PERIOD * per_tile
+    pts = (np.mgrid[0:g, 0:g].transpose(1, 2, 0) + rng.uniform(0.1, 0.9, (g, g, 2))) / g
+    shade = rng.uniform(-1, 1, (g, g))
+    yy, xx = (np.mgrid[0:res, 0:res] + 0.5) / res
+    cy, cx = np.floor(yy * g).astype(int), np.floor(xx * g).astype(int)
+    d, val = [], []
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            ny, nx = (cy + dy) % g, (cx + dx) % g
+            py = pts[ny, nx, 0] + np.floor((cy + dy) / g)
+            px = pts[ny, nx, 1] + np.floor((cx + dx) / g)
+            d.append((yy - py) ** 2 + (xx - px) ** 2)
+            val.append(shade[ny, nx])
+    d, val = np.stack(d), np.stack(val)
+    order = np.argsort(d, axis=0)
+    d = np.take_along_axis(d, order, 0)
+    return (np.sqrt(d[1]) - np.sqrt(d[0])) * g, np.take_along_axis(val, order[:1], 0)[0]
+
+
 class Ground:
+    RES = 128  # samples per tile of the crumb relief
+
     def __init__(self, seed=1):
         self.big = Field([(0.9, 1.0), (0.35, 0.6)], seed)        # blotches
         self.fine = Field([(0.03, 1.0), (0.012, 0.8)], seed + 1)  # grain
         self.edge = Field([(0.25, 1.0), (0.08, 0.5)], seed + 2)  # ragged borders
         self.tuft = Field([(0.06, 1.0)], seed + 3)               # grass tufts
         self.rng = np.random.default_rng(seed + 4)               # per-pixel speckle
+        self._relief = None
+        self.seed = seed
+
+    def relief(self):
+        """The dirt's crumbly relief, built on first use: (height, light)
+        grids. Lit from the top of the screen, each crumb has a bright
+        upper rim and a dark shadow below."""
+        if self._relief is None:
+            rng = np.random.default_rng(self.seed + 7)
+            res = self.RES * PERIOD
+            h = np.zeros((res, res))
+            for per_tile, keep in ((9, 0.45), (16, 0.55), (26, 0.6)):
+                h = np.maximum(h, crumbs(rng, res, per_tile, keep) * (0.55 + 0.45 * 9 / per_tile))
+            # Screen up is -x -y in world space.
+            light = np.roll(h, (1, 1), (0, 1)) - np.roll(h, (-1, -1), (0, 1))
+            self._relief = h, light
+        return self._relief
+
+    def sample(self, grid, u, v):
+        res = grid.shape[0]
+        x = (np.asarray(u) % PERIOD) / PERIOD * res
+        y = (np.asarray(v) % PERIOD) / PERIOD * res
+        return grid[y.astype(int) % res, x.astype(int) % res]
 
     def texture(self, u, v):
         """Grass and dirt colours and the edge noise at tile coordinates."""
         big = self.big(u, v)
         # Speckle: mostly per-pixel noise, with a little of the finest field.
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
-        # Dark earth with a strong speckle and only faint patches.
-        dirt = colour(np.array([47, 35, 19.0]), np.array([32, 23, 12.0]), np.array([62, 48, 27.0]),
-                      0.08 * big, fine, 0.22)
+        # Dark earth broken into crumbs and clods: lit rims, dark hollows
+        # between them, and broad darker and lighter patches.
+        height, light = self.relief()
+        h, l = self.sample(height, u, v), self.sample(light, u, v)
+        shade = np.clip(1.8 * l, -1, 1) * 0.42 + 0.05 * big + 0.15 * (h - 0.35) + 0.1 * self.fine(u + 1.7, v + 0.9)
+        dirt = colour(np.array([46, 33, 18.0]), np.array([20, 13, 6.0]), np.array([82, 66, 48.0]),
+                      shade, fine, 0.24)
+        # Hollows between the clods, dark and a little deeper in damp patches.
+        hollow = np.clip(0.18 - h, 0, 0.18) / 0.18 * np.clip(0.6 - 0.4 * big, 0, 1)
+        dirt = dirt * (1 - 0.45 * hollow)[..., None]
         tuft = np.clip(self.tuft(u, v) * 0.8, -1, 1)
-        # Olive grass, finely grained, with gentle lighter and darker patches.
-        grass = colour(np.array([50, 55, 16.0]), np.array([32, 37, 9.0]), np.array([68, 73, 25.0]),
-                       0.15 * big + 0.15 * tuft, fine, 0.24)
+        # Grass: an even green lawn, finely grained, with only gentle patches.
+        # Blades: speckle drawn out sideways, as the original's lawns are.
+        blades = self.rng.standard_normal(np.shape(u))
+        blades = (blades + np.roll(blades, 1, -1) + np.roll(blades, -1, -1) + 0.5 * np.roll(blades, 2, -1)) / 1.9
+        grass = colour(np.array([44, 53, 15.0]), np.array([22, 30, 6.0]), np.array([64, 76, 22.0]),
+                       0.1 * big + 0.2 * tuft, 0.6 * blades + 0.55 * fine, 0.26)
         return grass, dirt, self.edge(u, v)
 
     def tile(self, tx, ty, corners):
@@ -106,55 +191,57 @@ class Ground:
 
 
 class Floor(Ground):
-    """A dungeon floor: worn bricks laid in a herringbone, with patches of
-    dusty rubble where the corners are 0 (instead of grass and dirt)."""
+    """A built floor, with patches of dusty rubble where the corners are 0
+    (instead of grass and dirt). "dungeon" and "fort": worn bricks in
+    staggered rows under smudges of grime, ochre or grey; "castle": smooth
+    grey stone, cloudy and faintly veined, with no joints showing."""
 
-    BRICK = 0.09  # the short side of a brick, in tiles
-    # Brick colour (mid, dark, light), mortar and rubble for each kind.
-    KINDS = {"dungeon": ((104, 88, 60), (60, 50, 34), (146, 128, 96), (34, 28, 18), (96, 84, 58)),
-             "fort": ((106, 100, 84), (64, 60, 50), (138, 132, 112), (36, 34, 28), (80, 76, 64))}
+    # Floor colour (mid, dark, light) and rubble for each kind.
+    KINDS = {"dungeon": ((104, 88, 60), (60, 50, 34), (146, 128, 96), (96, 84, 58)),
+             "fort": ((98, 88, 70), (58, 52, 40), (134, 124, 102), (80, 76, 64)),
+             "castle": ((70, 70, 74), (30, 30, 34), (112, 112, 118), (52, 52, 56))}
 
     def __init__(self, seed=1, kind="dungeon"):
         super().__init__(seed)
         self.palette = [np.array(c, dtype=float) for c in self.KINDS[kind]]
-        self.pitting = 0.07
-        if kind == "fort":
-            self.pitting = 0.12  # more pitted paving stones
-        self.wear = Field([(0.5, 1.0), (0.15, 0.7)], seed + 5)  # dust and damp
+        self.kind = kind
+        self.grime = Field([(0.4, 1.0), (0.15, 0.8), (0.05, 0.4)], seed + 8)  # smudges of dirt
+        self.cloud = Field([(0.12, 1.0), (0.05, 0.8), (0.02, 0.5)], seed + 9)  # the castle stone's clouding
 
-    def bricks(self, u, v):
-        """Brick shade (-1 to 1) and a 0-1 mortar mask, laid in herringbone:
-        pairs of cells form bricks, alternating flat and upright."""
-        x, y = np.asarray(u) / self.BRICK, np.asarray(v) / self.BRICK
-        i, j = np.floor(x).astype(int), np.floor(y).astype(int)
+    def bond(self, u, v, length=1 / 3, width=1 / 6):
+        """Brick shade (-1 to 1) and a 0-1 mortar mask for bricks laid in
+        rows along x, each row shifted half a brick. Bricks are `length` by
+        `width` tiles, each a whole number to the period."""
+        x, y = np.asarray(u) / length, np.asarray(v) / width
+        j = np.floor(y).astype(int)
+        x = x + 0.5 * (j % 2)
+        i = np.floor(x).astype(int)
         fx, fy = x - i, y - j
-        t = (i + j) % 4
-        flat = t < 2
-        # Each brick gets an id from its first cell, and a shade from that.
-        bi = np.where(flat, i - t, i)
-        bj = np.where(flat, j, j - (t - 2))
-        h = (bi * 73856093 ^ bj * 19349663 ^ flat.astype(int) * 83492791) & 0xFFFF
+        h = (i * 73856093 ^ j * 19349663) & 0xFFFF
         shade = h / 0x7FFF - 1
-        m = 0.09
-        mortar = np.where(flat, (fy < m) | (fy > 1 - m) | ((t == 0) & (fx < m)) | ((t == 1) & (fx > 1 - m)),
-                          (fx < m) | (fx > 1 - m) | ((t == 2) & (fy < m)) | ((t == 3) & (fy > 1 - m)))
+        mx, my = 0.06, 0.1
+        mortar = (fx < mx) | (fx > 1 - mx) | (fy < my) | (fy > 1 - my)
         return shade, mortar.astype(float)
 
     def texture(self, u, v):
         big = self.big(u, v)
-        wear = self.wear(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
-        shade, mortar = self.bricks(u, v)
-        mid, dark, light, joint_colour, rubble_colour = self.palette
-        brick = colour(mid, dark, light, 0.45 * shade + 0.15 * big, fine, 0.12)
-        # Dust lightens some stretches and damp darkens others.
-        brick = brick * (1 + np.clip(0.18 * wear, -0.08, 0.25))[..., None]
-        joint = joint_colour * (1 + 0.2 * fine[..., None])
-        floor = brick * (1 - mortar[..., None]) + joint * mortar[..., None]
-        # Pits and chips: scattered near-black specks, thicker where it is damp.
-        pits = self.rng.random(np.shape(u)) < self.pitting + 0.05 * np.clip(-wear, 0, 1)
-        floor = np.where(pits[..., None], floor * 0.3, floor)
+        mid, dark, light, rubble_colour = self.palette
         rubble = colour(rubble_colour, rubble_colour * 0.6, rubble_colour * 1.38, 0.25 * big, fine, 0.32)
+        if self.kind == "castle":
+            # Finely clouded stone, crazed with thin dark cracks.
+            if not hasattr(self, "crazing"):
+                self.crazing = plates(np.random.default_rng(self.seed + 10), 128 * PERIOD, 3)[0]
+            crack = np.clip(1 - self.sample(self.crazing, u + 0.03 * self.edge(u * 5, v * 5), v) / 0.05, 0, 1)
+            floor = colour(mid, dark, light, 0.22 * self.cloud(u, v) + 0.06 * big, fine, 0.18)
+            return floor * (1 - 0.5 * crack)[..., None], rubble, self.edge(u, v)
+        # Flat, evenly worn bricks under broad smudges of grime: dark damp
+        # stains and paler dusty patches running across the joints.
+        shade, mortar = self.bond(u, v)
+        contrast = 0.4 if self.kind == "fort" else 0.55
+        brick = colour(mid, dark, light, contrast * shade * np.abs(shade) + 0.1 * big, fine, 0.16)
+        brick = brick * (1 + np.clip(0.2 * self.grime(u, v), -0.2, 0.18))[..., None]
+        floor = brick * (1 - 0.4 * mortar[..., None])
         return floor, rubble, self.edge(u, v)
 
 
@@ -169,7 +256,7 @@ class Wild(Ground):
     KINDS = {"shore": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
                        ((38, 86, 146), (20, 52, 100), (70, 124, 184), 0.14)),
              "desert": (((150, 122, 82), (112, 88, 56), (182, 156, 112), 0.20),
-                        ((92, 66, 42), (62, 44, 28), (120, 90, 60), 0.26)),
+                        ((88, 70, 52), (60, 47, 34), (112, 92, 70), 0.24)),
              "heath": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
                        ((40, 32, 26), (24, 19, 15), (58, 47, 38), 0.24)),
              "coast": (((50, 55, 16), (32, 37, 9), (68, 73, 25), 0.24),
@@ -189,6 +276,11 @@ class Wild(Ground):
         if self.kind == "shore":
             # Water: smoother, with soft ripples instead of grit.
             zero = colour(*b, 0.2 * big + 0.5 * self.ripple(u, v), fine * 0.3, gb)
+        elif self.kind == "desert":
+            # Dry, fine-grained earth: faint patches and small dark dents.
+            zero = colour(*b, 0.1 * big, fine, gb)
+            dents = np.clip(-0.9 - self.tuft(u * 5, v * 5), 0, 1)
+            zero = zero * (1 - 0.35 * np.sqrt(dents))[..., None]
         else:
             zero = colour(*b, 0.25 * big, fine, gb)
         return one, zero, self.edge(u, v)
@@ -236,11 +328,6 @@ class Cave(Ground):
         h = np.clip((np.sqrt(d[1]) - np.sqrt(d[0])) * g * 2.5, 0, 1) ** 0.5
         return h * up
 
-    def sample(self, grid, u, v):
-        x = (np.asarray(u) % PERIOD) / PERIOD * self.res
-        y = (np.asarray(v) % PERIOD) / PERIOD * self.res
-        return grid[y.astype(int) % self.res, x.astype(int) % self.res]
-
     def texture(self, u, v):
         big = self.big(u, v)
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
@@ -258,9 +345,22 @@ class Cave(Ground):
             moss = colour(np.array([32, 31, 21.0]), np.array([13, 13, 9.0]), np.array([50, 50, 34.0]),
                           np.clip(2.0 * light, -1, 1) * 0.5 + 0.2 * big, fine, 0.3)
             return earth, moss * (0.75 + 0.25 * lump)[..., None], self.edge(u, v)
+        # Chunks of flat rock with bevelled edges, lit from the top of the
+        # screen; a few lower chunks between them sit in shadow.
+        if not hasattr(self, "chunk"):
+            edge, val = plates(np.random.default_rng(self.seed + 9), 128 * PERIOD, 9)
+            # Each chunk stands at its own height; only steps between
+            # neighbours show, as a lit lip above and a shadow below.
+            level = np.clip((val + 0.6) * 2.5, 0, 1)
+            h = level * (0.75 + 0.25 * np.clip(edge / 0.12, 0, 1))
+            lit = np.roll(h, (2, 2), (0, 1)) - np.roll(h, (-2, -2), (0, 1))
+            self.chunk = h, val, lit
+        # Wobble the lookup so the chunks' sides are ragged, not straight.
+        wu, wv = u + 0.035 * self.edge(u * 4, v * 4), v + 0.035 * self.edge(v * 4 + 1.3, u * 4 + 0.7)
+        h, val, lit = (self.sample(g, wu, wv) for g in self.chunk)
         rock = colour(np.array([90, 75, 58.0]), np.array([46, 37, 28.0]), np.array([136, 118, 94.0]),
-                      np.clip(2.0 * light, -1, 1) * 0.55 + 0.15 * big, fine, 0.14)
-        rock = rock * (0.8 + 0.2 * lump)[..., None]
+                      0.5 * np.clip(1.5 * lit, -1, 1) + 0.1 * val + 0.12 * big, fine, 0.1)
+        rock = rock * (0.7 + 0.3 * h)[..., None]
         gravel = colour(np.array([72, 60, 48.0]), np.array([40, 33, 26.0]), np.array([104, 90, 72.0]),
                         0.2 * big, fine, 0.40)
         return rock, gravel, self.edge(u, v)
@@ -280,11 +380,11 @@ def pattern_index(corners, tx, ty):
 def build_tiles(seed=1, kind="meadow"):
     """Every tile, in pattern_index order: (image, anchor x, anchor y).
     kind is "meadow" (grass and dirt), "dungeon" (brick floor and rubble),
-    "fort" (grey stone paving and grit), "shore" (sand and water),
+    "fort" (grey brick paving and grit), "castle" (smooth grey stone), "shore" (sand and water),
     "desert" (sand and brown earth), "heath" (grass and dark soil),
     "coast" (grass and sand), "deep" (dark cavern earth and moss),
     "cave" (cracked rock and gravel) or "mine" (earth and coal dust)."""
-    g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "cave": lambda: Cave(seed, "cave"),
+    g = {"dungeon": lambda: Floor(seed), "fort": lambda: Floor(seed, "fort"), "castle": lambda: Floor(seed, "castle"), "cave": lambda: Cave(seed, "cave"),
          "mine": lambda: Cave(seed, "mine"), "shore": lambda: Wild(seed, "shore"),
          "desert": lambda: Wild(seed, "desert"), "heath": lambda: Wild(seed, "heath"),
          "coast": lambda: Wild(seed, "coast"), "deep": lambda: Cave(seed, "deep")}.get(kind, lambda: Ground(seed))()

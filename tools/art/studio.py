@@ -54,8 +54,18 @@ def reset(samples=24):
     return scene
 
 
-def camera(scene, width, height, target=(0, 0, 0)):
-    """An orthographic camera with the game's angle, centred on target."""
+# The original draws its walls (and most of its objects) looking down at 45
+# degrees, a little steeper than its maps' 3:2 diamond, so wall tops slope
+# 0.71 on screen rather than 0.67. Walls rendered at this pitch meet the
+# original's pieces without gaps or steps.
+WALL_ELEVATION = math.radians(45)
+
+
+def camera(scene, width, height, target=(0, 0, 0), elevation=None):
+    """An orthographic camera with the game's angle, centred on target.
+    elevation: another pitch, in radians, keeping the same width per unit
+    along the ground, such as WALL_ELEVATION."""
+    pitch = ELEVATION if elevation is None else elevation
     cam = bpy.data.cameras.new("camera")
     cam.type = "ORTHO"
     cam.ortho_scale = max(width, height) / PIXELS_PER_UNIT
@@ -66,11 +76,11 @@ def camera(scene, width, height, target=(0, 0, 0)):
     scene.render.resolution_y = height
     # Looking from the screen's bottom (world +x +y, Blender +X -Y) down at the target.
     d = 40
-    direction = Vector((math.cos(ELEVATION) * math.cos(math.radians(-45)),
-                        math.cos(ELEVATION) * math.sin(math.radians(-45)),
-                        math.sin(ELEVATION)))
+    direction = Vector((math.cos(pitch) * math.cos(math.radians(-45)),
+                        math.cos(pitch) * math.sin(math.radians(-45)),
+                        math.sin(pitch)))
     obj.location = Vector(target) + direction * d
-    obj.rotation_euler = (math.pi / 2 - ELEVATION, 0, math.radians(45))
+    obj.rotation_euler = (math.pi / 2 - pitch, 0, math.radians(45))
     return obj
 
 
@@ -97,7 +107,7 @@ def linear(c):
 
 
 def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.3, spot=0.0, spot_colour=None,
-             stretch=None, band=(0.3, 0.75), bricks=None, grime=0.0):
+             stretch=None, band=(0.3, 0.75), bricks=None, grime=0.0, fade=None):
     """A matte material whose colour wobbles with noise, like the
     textured models of late-90s pre-rendered games. Colours are sRGB."""
     colour = linear(colour)
@@ -197,6 +207,25 @@ def material(name, colour, dark=None, scale=6.0, detail=6.0, rough=0.85, bump=0.
         links.new(out, mul2.inputs["A"])
         links.new(ramp3.outputs["Color"], mul2.inputs["B"])
         out = mul2.outputs["Result"]
+    if fade:
+        # Wear that darkens with height: fade = (shade at the foot, shade
+        # at the top, height of the top), in world units.
+        geo = nodes.new("ShaderNodeNewGeometry")
+        sep_w = nodes.new("ShaderNodeSeparateXYZ")
+        links.new(geo.outputs["Position"], sep_w.inputs[0])
+        rng = nodes.new("ShaderNodeMapRange")
+        rng.inputs["From Min"].default_value = 0.0
+        rng.inputs["From Max"].default_value = fade[2]
+        rng.inputs["To Min"].default_value = fade[0]
+        rng.inputs["To Max"].default_value = fade[1]
+        links.new(sep_w.outputs["Z"], rng.inputs["Value"])
+        mul3 = nodes.new("ShaderNodeMix")
+        mul3.data_type = "RGBA"
+        mul3.blend_type = "MULTIPLY"
+        mul3.inputs["Factor"].default_value = 1.0
+        links.new(out, mul3.inputs["A"])
+        links.new(rng.outputs["Result"], mul3.inputs["B"])
+        out = mul3.outputs["Result"]
     links.new(out, bsdf.inputs["Base Color"])
     if bump > 0:
         b = nodes.new("ShaderNodeBump")

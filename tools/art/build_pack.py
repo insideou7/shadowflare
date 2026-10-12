@@ -707,7 +707,9 @@ def wilds(out, anchors, rng):
     size = 40
     floor = Atlas()
     per_kind = len(ground.corner_patterns()) * ground.PERIOD * ground.PERIOD
-    for kind, _, _ in WILD_KINDS:
+    # The desert's dry earth goes on the sheet after them, for drawing the
+    # original's third area (content/skin.txt), not for this map.
+    for kind in [k for k, _, _ in WILD_KINDS] + ["desert"]:
         for t in ground.build_tiles(seed=11, kind=kind):
             floor.add(len(floor.frames), t)
     floor.write(out / "Map" / "wildsfloor.sheet", "wildsfloor.png", NOTE)
@@ -1006,7 +1008,7 @@ def castle(out, anchors, rng):
     Writes Map/castle.txt and Scenario/00000007."""
     size = 32
     floor = Atlas()
-    for t in ground.build_tiles(seed=11, kind="fort"):
+    for t in ground.build_tiles(seed=11, kind="castle"):
         floor.add(len(floor.frames), t)
     floor.write(out / "Map" / "castlefloor.sheet", "castlefloor.png", NOTE)
     lo, hi = 2, 30  # the curtain wall runs round this square

@@ -27,15 +27,18 @@ ASHLAR = dict(colour=(0.22, 0.21, 0.20), dark=(0.04, 0.04, 0.04), scale=10, deta
 CARVED = dict(colour=(0.26, 0.25, 0.23), dark=(0.06, 0.06, 0.06), scale=12, bump=0.9, grime=0.5)
 STEEL = dict(colour=(0.30, 0.33, 0.42), dark=(0.06, 0.07, 0.10), scale=14, rough=0.28, bump=0.3)
 MARBLE = dict(colour=(0.78, 0.76, 0.71), dark=(0.42, 0.40, 0.36), scale=8, bump=0.4, grime=0.4)
-STATUE = dict(colour=(0.40, 0.40, 0.39), dark=(0.10, 0.10, 0.10), scale=10, bump=0.6, grime=0.6)
+STATUE = dict(colour=(0.66, 0.65, 0.62), dark=(0.24, 0.24, 0.23), scale=10, bump=0.6, grime=0.4)
 ROOF = dict(colour=(0.12, 0.12, 0.13), dark=(0.03, 0.03, 0.04), scale=16, rough=0.6, bump=0.5)
 WOOD = dict(colour=(0.36, 0.14, 0.08), dark=(0.10, 0.04, 0.02), scale=10, bump=0.5, stretch=(6, 1, 1))
 GOLD = dict(colour=(0.85, 0.62, 0.22), dark=(0.36, 0.22, 0.06), scale=12, rough=0.3, bump=0.3)
 PALE = dict(colour=(0.40, 0.39, 0.36), dark=(0.10, 0.10, 0.09), scale=12, bump=0.9, grime=0.6)
+# Smooth dark dressed stone, its joints too fine to see, for plain walls.
+DRESSED = dict(colour=(0.20, 0.19, 0.18), dark=(0.05, 0.05, 0.05), scale=6, detail=10, bump=0.5, grime=0.7,
+               band=(0.3, 0.8))
 EARTHTOP = dict(colour=(0.24, 0.17, 0.10), dark=(0.07, 0.05, 0.03), scale=18, rough=1.0, bump=1.0)
 BLACK = dict(colour=(0.015, 0.015, 0.02), dark=(0.005, 0.005, 0.01), scale=4, bump=0)
 
-WALL_L, WALL_T, WALL_H = 6.4, 0.9, 4.6
+WALL_L, WALL_T, WALL_H = 6.4, 0.9, 6.2  # as tall as the original's town walls
 
 
 def glow(name, colour, dark, strength, **kw):
@@ -67,20 +70,65 @@ def cut(o, cutter):
     return o
 
 
-def coping(length, z, y=0.0):
+def coping(length, z, y=0.0, roll=True):
     """Packed earth along the top of a wall, edged in front by a rounded
-    blue-steel roll."""
+    blue-steel roll (roll=False: earth only)."""
     steel = mat("steel", STEEL)
     box((length, WALL_T, 0.2), (0, y, z), mat("earthtop", EARTHTOP))
-    cyl(0.28, length + 0.1, (0, y - WALL_T / 2, z), steel, rot=(0, math.pi / 2, 0), verts=20)
+    if roll:
+        cyl(0.28, length + 0.1, (0, y - WALL_T / 2, z), steel, rot=(0, math.pi / 2, 0), verts=20)
 
 
 def castle_wall(along_y=False, seed=1):
-    """Dark ashlar between a plinth and a steel coping."""
-    stone = mat("ashlar", ASHLAR)
-    solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), stone))
-    solid(box((WALL_L + 0.05, WALL_T + 0.3, 0.45), (0, 0, 0.22), mat("carved", CARVED)))
-    coping(WALL_L, WALL_H + 0.1)
+    """A plain wall of smooth dark stone with packed earth on top, like
+    the original's town walls."""
+    solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), mat("dressed", DRESSED)))
+    coping(WALL_L, WALL_H, roll=False)
+    if along_y:
+        turn(math.pi / 2)
+
+
+def arcade(along_y=False):
+    """The canal side of the town's thick walls: dark ashlar with two tall
+    pointed arches barred with steel grilles, a rose window between their
+    heads, a row of little corbels and a steel coping on the front edge."""
+    stone = mat("arcade", dict(ASHLAR, colour=(0.34, 0.33, 0.31)))
+    carved, steel = mat("moulding", dict(PALE, colour=(0.58, 0.56, 0.52))), mat("steel", STEEL)
+    black = mat("black", BLACK)
+    L, H, T = 5.6, WALL_H, 1.6  # the original sets these bays 5.5 units apart
+    face = -T / 2
+    w = solid(box((L, T, H), (0, 0, H / 2), stone))
+    aw, spring = 1.8, 3.4  # arch width, height where the pointed head starts
+    for x0 in (-1.35, 1.35):
+        cut(w, solid(box((aw, 0.8, spring), (x0, face, spring / 2), stone)))
+        head = solid(box((aw / math.sqrt(2), 0.8, aw / math.sqrt(2)), (x0, face, spring), stone))
+        head.rotation_euler = (0, math.pi / 4, 0)
+        cut(w, head)
+        box((aw, 0.05, spring + aw / 2), (x0, face + 0.38, (spring + aw / 2) / 2), black)
+        # The grille: bars both ways.
+        for k in range(5):
+            box((0.07, 0.07, spring + 0.5), (x0 - aw / 2 + 0.15 + k * (aw - 0.3) / 4, face + 0.2,
+                                            (spring + 0.5) / 2), steel)
+        for z in (0.8, 1.7, 2.6, 3.5):
+            box((aw, 0.07, 0.07), (x0, face + 0.2, z), steel)
+        # A carved moulding round the arch.
+        for sx in (-1, 1):
+            box((0.16, 0.2, spring), (x0 + sx * (aw / 2 + 0.08), face - 0.05, spring / 2), carved)
+            box((0.16, 0.2, aw * 0.75), (x0 + sx * aw / 4, face - 0.05, spring + aw / 4), carved,
+                rot=(0, -sx * math.pi / 4, 0))
+    # The rose window between the arch heads.
+    rx, rz = 0.0, 4.8
+    cyl(0.45, 0.1, (rx, face - 0.01, rz), black, rot=(math.pi / 2, 0, 0), verts=24)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.5, minor_radius=0.1, location=(rx, face - 0.05, rz),
+                                     rotation=(math.pi / 2, 0, 0))
+    studio.assign(bpy.context.object, carved)
+    for k in range(4):
+        box((0.9, 0.06, 0.06), (rx, face - 0.04, rz), steel, rot=(0, k * math.pi / 4, 0))
+    # Corbels under the coping, and the coping.
+    for k in range(7):
+        box((0.18, 0.2, 0.25), (-L / 2 + 0.35 + k * (L - 0.7) / 6, face - 0.1, H - 0.45), carved)
+    box((L, T, 0.2), (0, 0, H + 0.1), mat("earthtop", EARTHTOP))
+    cyl(0.32, L + 0.1, (0, face, H + 0.1), steel, rot=(0, math.pi / 2, 0), verts=20)
     if along_y:
         turn(math.pi / 2)
 
@@ -282,6 +330,42 @@ def hall(seed=7):
         box((0.9, 0.35, 0.35), (0, -d / 2 - 0.4 - k * 0.35, 0.18 + k * 0.0), marble)
 
 
+def stair_gate():
+    """A dark stone gatehouse trimmed in pale marble, its arch on the
+    screen's lower right opening on a flight of steps that climbs into a
+    red glow, an iron rail beside the steps and a dark roof light on top."""
+    stone, marble, roof = mat("ashlar", ASHLAR), mat("marble", MARBLE), mat("roof", ROOF)
+    steel = mat("steel", STEEL)
+    fire = glow("fire", (1.0, 0.30, 0.06), (0.40, 0.03, 0.0), 1.4, scale=10, band=(0.4, 0.85))
+    steps = mat("steps", dict(colour=(0.45, 0.18, 0.10), dark=(0.14, 0.05, 0.03), scale=12, bump=0.5))
+    w, d, h = 4.6, 4.6, 4.6
+    o = solid(box((w, d, h), (0, 0, h / 2), stone))
+    aw, ah = 2.8, 3.2  # the arch on the +x face
+    cut(o, solid(box((w - 0.6, aw, ah), (0.3, 0, ah / 2), stone)))
+    c = cyl(aw / 2, w - 0.6, (0.3, 0, ah), stone, rot=(0, math.pi / 2, 0), verts=24)
+    cut(o, c)
+    # The flight inside, climbing away from the arch into the glow.
+    n, run, rise = 8, 0.45, 0.42
+    for k in range(n):
+        x = w / 2 - 0.2 - k * run
+        box((run, aw, (k + 1) * rise), (x - run / 2, 0, (k + 1) * rise / 2), steps)
+    box((0.2, aw, ah + aw / 2), (-w / 2 + 0.5, 0, (ah + aw / 2) / 2), fire)
+    box((w - 1.0, 0.1, ah), (0, aw / 2 - 0.05, ah / 2), fire)
+    # Pale columns either side of the arch and marble trim along the top.
+    for y in (-aw / 2 - 0.35, aw / 2 + 0.35):
+        cyl(0.28, ah + 0.4, (w / 2 + 0.15, y, (ah + 0.4) / 2), marble, verts=16)
+        box((0.7, 0.7, 0.35), (w / 2 + 0.15, y, 0.18), marble)
+    box((0.5, aw + 1.6, 0.5), (w / 2 + 0.1, 0, ah + aw / 2 + 0.35), marble)
+    for x, y in ((w / 2, -d / 2), (w / 2, d / 2), (-w / 2, -d / 2)):
+        box((1.0, 1.0, 0.45), (x, y, h + 0.2), marble)
+    box((w + 0.3, d + 0.3, 0.3), (0, 0, h + 0.1), marble)
+    box((2.4, 2.0, 0.9), (-0.3, 0, h + 0.65), roof)
+    # An iron rail along the front step.
+    for k in range(4):
+        box((0.07, 0.07, 1.1), (w / 2 + 0.3 + k * 0.4, aw / 2 + 0.7, 0.55), steel)
+    box((1.4, 0.07, 0.07), (w / 2 + 0.9, aw / 2 + 0.7, 1.1), steel)
+
+
 def pew(seed=8):
     """A short dark red wooden pew."""
     wood = mat("wood", WOOD)
@@ -315,6 +399,8 @@ PROPS = {
     "castle_x": (castle_wall, 256),
     "castle_y": (lambda: castle_wall(along_y=True, seed=2), 256),
     "castle_gate_x": (castle_gate, 256),
+    "arcade_x": (arcade, 256),
+    "arcade_y": (lambda: arcade(along_y=True), 256),
     "castle_gate_y": (lambda: castle_gate(along_y=True), 256),
     "tower": (tower, 192),
     "tower_round": (lambda: tower(round_=True), 192),
@@ -326,10 +412,15 @@ PROPS = {
     "shrine": (shrine, 96),
     "shrine_spike": (lambda: shrine(seed=3, cross=False), 96),
     "fire_hall": (hall, 352),
+    "stair_gate": (stair_gate, 352),
     "pew": (pew, 96),
     "pew_y": (lambda: pew(seed=1), 96),
     "magic_circle": (magic_circle, 256),
 }
+
+
+# Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
+WALLS = ("castle_", "arcade")
 
 
 def main():
@@ -346,11 +437,14 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
+        if name.startswith(("castle_", "arcade")):  # the original's walls cast no shadows
+            bpy.data.objects["shadow catcher"].hide_render = True
         for m in bpy.data.materials:
             # No glossy sheen on stone; steel and gold keep theirs.
             if m.node_tree and "Principled BSDF" in m.node_tree.nodes and m.name not in ("steel", "gold"):
                 m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")
