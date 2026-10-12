@@ -62,26 +62,87 @@ def colour(base, dark, light, t, fine, grain):
     return c * (1 + grain * fine[..., None])
 
 
+def crumbs(rng, res, per_tile, keep, sharp=2.5):
+    """A wrapping res x res height field of rounded lumps, PERIOD tiles
+    across: one jittered point per grid cell (per_tile cells to a tile),
+    height = distance to the cell's border, and only `keep` of the cells
+    raised."""
+    g = PERIOD * per_tile
+    pts = (np.mgrid[0:g, 0:g].transpose(1, 2, 0) + rng.uniform(0.15, 0.85, (g, g, 2))) / g
+    raised = rng.random((g, g)) < keep
+    yy, xx = (np.mgrid[0:res, 0:res] + 0.5) / res
+    cy, cx = np.floor(yy * g).astype(int), np.floor(xx * g).astype(int)
+    d, idx = [], []
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            ny, nx = (cy + dy) % g, (cx + dx) % g
+            py = pts[ny, nx, 0] + np.floor((cy + dy) / g)
+            px = pts[ny, nx, 1] + np.floor((cx + dx) / g)
+            d.append((yy - py) ** 2 + (xx - px) ** 2)
+            idx.append(raised[ny, nx])
+    d, idx = np.stack(d), np.stack(idx)
+    order = np.argsort(d, axis=0)
+    d = np.take_along_axis(d, order, 0)
+    up = np.take_along_axis(idx, order[:1], 0)[0]
+    h = np.clip((np.sqrt(d[1]) - np.sqrt(d[0])) * g * sharp, 0, 1) ** 0.5
+    return h * up
+
+
 class Ground:
+    RES = 128  # samples per tile of the crumb relief
+
     def __init__(self, seed=1):
         self.big = Field([(0.9, 1.0), (0.35, 0.6)], seed)        # blotches
         self.fine = Field([(0.03, 1.0), (0.012, 0.8)], seed + 1)  # grain
         self.edge = Field([(0.25, 1.0), (0.08, 0.5)], seed + 2)  # ragged borders
         self.tuft = Field([(0.06, 1.0)], seed + 3)               # grass tufts
         self.rng = np.random.default_rng(seed + 4)               # per-pixel speckle
+        self._relief = None
+        self.seed = seed
+
+    def relief(self):
+        """The dirt's crumbly relief, built on first use: (height, light)
+        grids. Lit from the top of the screen, each crumb has a bright
+        upper rim and a dark shadow below."""
+        if self._relief is None:
+            rng = np.random.default_rng(self.seed + 7)
+            res = self.RES * PERIOD
+            h = np.zeros((res, res))
+            for per_tile, keep in ((9, 0.45), (16, 0.55), (26, 0.6)):
+                h = np.maximum(h, crumbs(rng, res, per_tile, keep) * (0.55 + 0.45 * 9 / per_tile))
+            # Screen up is -x -y in world space.
+            light = np.roll(h, (1, 1), (0, 1)) - np.roll(h, (-1, -1), (0, 1))
+            self._relief = h, light
+        return self._relief
+
+    def sample(self, grid, u, v):
+        res = grid.shape[0]
+        x = (np.asarray(u) % PERIOD) / PERIOD * res
+        y = (np.asarray(v) % PERIOD) / PERIOD * res
+        return grid[y.astype(int) % res, x.astype(int) % res]
 
     def texture(self, u, v):
         """Grass and dirt colours and the edge noise at tile coordinates."""
         big = self.big(u, v)
         # Speckle: mostly per-pixel noise, with a little of the finest field.
         fine = 0.85 * self.rng.standard_normal(np.shape(u)) + 0.5 * self.fine(u, v)
-        # Dark earth with a strong speckle and only faint patches.
-        dirt = colour(np.array([47, 35, 19.0]), np.array([32, 23, 12.0]), np.array([62, 48, 27.0]),
-                      0.08 * big, fine, 0.22)
+        # Dark earth broken into crumbs and clods: lit rims, dark hollows
+        # between them, and broad darker and lighter patches.
+        height, light = self.relief()
+        h, l = self.sample(height, u, v), self.sample(light, u, v)
+        shade = np.clip(1.8 * l, -1, 1) * 0.42 + 0.05 * big + 0.15 * (h - 0.35) + 0.1 * self.fine(u + 1.7, v + 0.9)
+        dirt = colour(np.array([46, 33, 18.0]), np.array([20, 13, 6.0]), np.array([82, 66, 48.0]),
+                      shade, fine, 0.24)
+        # Hollows between the clods, dark and a little deeper in damp patches.
+        hollow = np.clip(0.18 - h, 0, 0.18) / 0.18 * np.clip(0.6 - 0.4 * big, 0, 1)
+        dirt = dirt * (1 - 0.45 * hollow)[..., None]
         tuft = np.clip(self.tuft(u, v) * 0.8, -1, 1)
-        # Olive grass, finely grained, with gentle lighter and darker patches.
-        grass = colour(np.array([50, 55, 16.0]), np.array([32, 37, 9.0]), np.array([68, 73, 25.0]),
-                       0.15 * big + 0.15 * tuft, fine, 0.24)
+        # Grass: an even green lawn, finely grained, with only gentle patches.
+        # Blades: speckle drawn out sideways, as the original's lawns are.
+        blades = self.rng.standard_normal(np.shape(u))
+        blades = (blades + np.roll(blades, 1, -1) + np.roll(blades, -1, -1) + 0.5 * np.roll(blades, 2, -1)) / 1.9
+        grass = colour(np.array([44, 53, 15.0]), np.array([22, 30, 6.0]), np.array([64, 76, 22.0]),
+                       0.1 * big + 0.2 * tuft, 0.6 * blades + 0.55 * fine, 0.26)
         return grass, dirt, self.edge(u, v)
 
     def tile(self, tx, ty, corners):

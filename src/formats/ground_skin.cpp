@@ -123,7 +123,7 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
 
     // How sharply a pixel goes over from one material to the next, in
     // squared colour distance.
-    constexpr float kSoftness = 120.0f;
+    constexpr float kSoftness = 40.0f;
     std::vector<float> weights;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
