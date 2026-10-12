@@ -32,6 +32,9 @@ ROOF = dict(colour=(0.12, 0.12, 0.13), dark=(0.03, 0.03, 0.04), scale=16, rough=
 WOOD = dict(colour=(0.36, 0.14, 0.08), dark=(0.10, 0.04, 0.02), scale=10, bump=0.5, stretch=(6, 1, 1))
 GOLD = dict(colour=(0.85, 0.62, 0.22), dark=(0.36, 0.22, 0.06), scale=12, rough=0.3, bump=0.3)
 PALE = dict(colour=(0.40, 0.39, 0.36), dark=(0.10, 0.10, 0.09), scale=12, bump=0.9, grime=0.6)
+# Smooth dark dressed stone, its joints too fine to see, for plain walls.
+DRESSED = dict(colour=(0.20, 0.19, 0.18), dark=(0.05, 0.05, 0.05), scale=6, detail=10, bump=0.5, grime=0.7,
+               band=(0.3, 0.8))
 EARTHTOP = dict(colour=(0.24, 0.17, 0.10), dark=(0.07, 0.05, 0.03), scale=18, rough=1.0, bump=1.0)
 BLACK = dict(colour=(0.015, 0.015, 0.02), dark=(0.005, 0.005, 0.01), scale=4, bump=0)
 
@@ -67,20 +70,65 @@ def cut(o, cutter):
     return o
 
 
-def coping(length, z, y=0.0):
+def coping(length, z, y=0.0, roll=True):
     """Packed earth along the top of a wall, edged in front by a rounded
-    blue-steel roll."""
+    blue-steel roll (roll=False: earth only)."""
     steel = mat("steel", STEEL)
     box((length, WALL_T, 0.2), (0, y, z), mat("earthtop", EARTHTOP))
-    cyl(0.28, length + 0.1, (0, y - WALL_T / 2, z), steel, rot=(0, math.pi / 2, 0), verts=20)
+    if roll:
+        cyl(0.28, length + 0.1, (0, y - WALL_T / 2, z), steel, rot=(0, math.pi / 2, 0), verts=20)
 
 
 def castle_wall(along_y=False, seed=1):
-    """Dark ashlar between a plinth and a steel coping."""
-    stone = mat("ashlar", ASHLAR)
-    solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), stone))
-    solid(box((WALL_L + 0.05, WALL_T + 0.3, 0.45), (0, 0, 0.22), mat("carved", CARVED)))
-    coping(WALL_L, WALL_H + 0.1)
+    """A plain wall of smooth dark stone with packed earth on top, like
+    the original's town walls."""
+    solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), mat("dressed", DRESSED)))
+    coping(WALL_L, WALL_H, roll=False)
+    if along_y:
+        turn(math.pi / 2)
+
+
+def arcade(along_y=False):
+    """The canal side of the town's thick walls: dark ashlar with two tall
+    pointed arches barred with steel grilles, a rose window between their
+    heads, a row of little corbels and a steel coping on the front edge."""
+    stone = mat("arcade", dict(ASHLAR, colour=(0.34, 0.33, 0.31)))
+    carved, steel = mat("moulding", dict(PALE, colour=(0.58, 0.56, 0.52))), mat("steel", STEEL)
+    black = mat("black", BLACK)
+    L, H, T = 5.6, WALL_H, 1.6  # the original sets these bays 5.5 units apart
+    face = -T / 2
+    w = solid(box((L, T, H), (0, 0, H / 2), stone))
+    aw, spring = 1.8, 2.5  # arch width, height where the pointed head starts
+    for x0 in (-1.35, 1.35):
+        cut(w, solid(box((aw, 0.8, spring), (x0, face, spring / 2), stone)))
+        head = solid(box((aw / math.sqrt(2), 0.8, aw / math.sqrt(2)), (x0, face, spring), stone))
+        head.rotation_euler = (0, math.pi / 4, 0)
+        cut(w, head)
+        box((aw, 0.05, spring + aw / 2), (x0, face + 0.38, (spring + aw / 2) / 2), black)
+        # The grille: bars both ways.
+        for k in range(5):
+            box((0.07, 0.07, spring + 0.5), (x0 - aw / 2 + 0.15 + k * (aw - 0.3) / 4, face + 0.2,
+                                            (spring + 0.5) / 2), steel)
+        for z in (0.6, 1.25, 1.9, 2.55):
+            box((aw, 0.07, 0.07), (x0, face + 0.2, z), steel)
+        # A carved moulding round the arch.
+        for sx in (-1, 1):
+            box((0.16, 0.2, spring), (x0 + sx * (aw / 2 + 0.08), face - 0.05, spring / 2), carved)
+            box((0.16, 0.2, aw * 0.75), (x0 + sx * aw / 4, face - 0.05, spring + aw / 4), carved,
+                rot=(0, -sx * math.pi / 4, 0))
+    # The rose window between the arch heads.
+    rx, rz = 0.0, 3.55
+    cyl(0.45, 0.1, (rx, face - 0.01, rz), black, rot=(math.pi / 2, 0, 0), verts=24)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.5, minor_radius=0.1, location=(rx, face - 0.05, rz),
+                                     rotation=(math.pi / 2, 0, 0))
+    studio.assign(bpy.context.object, carved)
+    for k in range(4):
+        box((0.9, 0.06, 0.06), (rx, face - 0.04, rz), steel, rot=(0, k * math.pi / 4, 0))
+    # Corbels under the coping, and the coping.
+    for k in range(7):
+        box((0.18, 0.2, 0.25), (-L / 2 + 0.35 + k * (L - 0.7) / 6, face - 0.1, H - 0.45), carved)
+    box((L, T, 0.2), (0, 0, H + 0.1), mat("earthtop", EARTHTOP))
+    cyl(0.32, L + 0.1, (0, face, H + 0.1), steel, rot=(0, math.pi / 2, 0), verts=20)
     if along_y:
         turn(math.pi / 2)
 
@@ -315,6 +363,8 @@ PROPS = {
     "castle_x": (castle_wall, 256),
     "castle_y": (lambda: castle_wall(along_y=True, seed=2), 256),
     "castle_gate_x": (castle_gate, 256),
+    "arcade_x": (arcade, 256),
+    "arcade_y": (lambda: arcade(along_y=True), 256),
     "castle_gate_y": (lambda: castle_gate(along_y=True), 256),
     "tower": (tower, 192),
     "tower_round": (lambda: tower(round_=True), 192),
@@ -346,6 +396,8 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
+        if name.startswith(("castle_", "arcade")):  # the original's walls cast no shadows
+            bpy.data.objects["shadow catcher"].hide_render = True
         for m in bpy.data.materials:
             # No glossy sheen on stone; steel and gold keep theirs.
             if m.node_tree and "Principled BSDF" in m.node_tree.nodes and m.name not in ("steel", "gold"):
