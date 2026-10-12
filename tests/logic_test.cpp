@@ -10,6 +10,7 @@
 #include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/settings.h"
 #include "logic/shop.h"
 #include "formats/item_data.h"
 
@@ -435,7 +436,34 @@ void testMagic() {
     check(!sf::Rules::original().shieldsCostTheirOwnMp && sf::Rules::original().originalMode(), "original mode turns them off");
 }
 
+void testSettings() {
+    const sf::Settings defaults;
+    check(!defaults.fullScreen && defaults.seeThroughPlayer && defaults.clickSize == 2 && !defaults.originalMode,
+          "settings default to a window, see-through player, NORM click range and our rules");
+    check(defaults.clickPriority[0] == sf::Settings::kEnemy, "enemies come first by default");
+
+    sf::Settings s;
+    s.fullScreen = true;
+    s.seeThroughShadows = false;
+    s.clickRange = false;
+    s.clickSize = 4;
+    s.musicVolume = 3;
+    s.originalMode = true;
+    s.putFirst(sf::Settings::kPerson);
+    check(s.clickPriority[0] == sf::Settings::kPerson && s.rank(sf::Settings::kEnemy) == 1, "putFirst moves a target to the front");
+    const auto back = sf::Settings::parse(s.write());
+    check(back.fullScreen && !back.seeThroughShadows && !back.clickRange && back.clickSize == 4 && back.musicVolume == 3 &&
+              back.originalMode && back.clickPriority == s.clickPriority,
+          "settings survive a write and a parse");
+    check(back.clickReach() < defaults.clickReach(), "click range off reaches less than NORM");
+
+    const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\n");
+    check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume,
+          "bad settings are clamped or ignored");
+}
+
 int main() {
+    testSettings();
     testMagic();
     testScriptTalkAndShop();
     testShopStock();

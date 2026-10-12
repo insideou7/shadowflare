@@ -358,12 +358,13 @@ bool Game::inventoryClick(int x, int y, bool right) {
 
 std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
-    double bestDistance = 28;
+    double bestDistance = INFINITY;
     for (std::size_t i = 0; i < groundItems_.size(); ++i) {
         int sx, sy;
         worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
-        const double d = std::hypot(sx - cameraX_ - screenX, sy - 8 - cameraY_ - screenY);
-        if (d < bestDistance) {
+        const double dx = sx - cameraX_ - screenX, dy = sy - 8 - cameraY_ - screenY;
+        const double d = std::hypot(dx, dy);
+        if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
             best = i;
         }

@@ -40,6 +40,9 @@ struct Options {
     bool inventory = false;   // start with the inventory panel open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
+    bool options = false;     // open the Settings Menu at the start (for screenshots)
+    bool help = false;        // open the Help window at the start
+    std::string optionsFile;  // default: options.txt in the user's settings folder
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
@@ -115,6 +118,12 @@ Options parseArgs(int argc, char** argv) {
             } else {
                 sf::log::warn("--cast expects slot:x,y");
             }
+        } else if (arg == "--options") {
+            options.options = true;
+        } else if (arg == "--options-file" && i + 1 < argc) {
+            options.optionsFile = argv[++i];
+        } else if (arg == "--help-window") {
+            options.help = true;
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -324,15 +333,27 @@ int main(int argc, char** argv) {
         app.game->setSaveFile(std::string(prefs) + "save.txt");
         SDL_free(prefs);
     }
-    if (options.load) app.game->loadGame();
-    if (options.level > 0) app.game->setLevel(options.level);
-    if (options.original) app.game->setOriginalMode(true);
     // The main menu, unless this is a scripted run (tests, screenshots) or
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
                           options.level > 0 || options.autoFight || options.talk >= 0 || options.cast;
-    if (!scripted) app.game->openMenu(true);
+    // The player's options (Esc in the game); scripted runs keep the
+    // defaults so they come out the same on every machine.
+    if (!options.optionsFile.empty()) {
+        app.game->setSettingsFile(options.optionsFile);
+    } else if (!scripted) {
+        if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
+            app.game->setSettingsFile(std::string(prefs) + "options.txt");
+            SDL_free(prefs);
+        }
+    }
+    if (options.load) app.game->loadGame();
+    if (options.level > 0) app.game->setLevel(options.level);
+    if (options.original) app.game->setOriginalMode(true);
+    if (!scripted) app.game->openMenu();
+    if (options.options) app.game->openOptions(true);
+    if (options.help) app.game->setHelpOpen(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);

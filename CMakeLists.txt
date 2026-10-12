@@ -41,6 +41,7 @@ add_library(sf_logic STATIC
     src/logic/save_game.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
+    src/logic/settings.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -61,6 +62,7 @@ add_executable(shadowflare
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/options.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
