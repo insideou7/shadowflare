@@ -2,6 +2,7 @@
 
     python tools/art/items.py render <folder> [--only N,M]
     python3 tools/art/items.py pack <folder> <content pack folder>
+    python tools/art/items.py placed <content pack folder>
 
 The first step needs a Python with the `bpy` module (like creatures.py)
 and renders every item into <folder>; the second needs Pillow and lays
@@ -17,7 +18,13 @@ two pictures, in the pack's layout (docs/content.md):
   seen and clicked), anchored where it touches the ground.
 
 Frames are numbered in the order of ITEMS; content/items.txt refers to
-them with icon=0,<n> and ground=7,<n>. Weapons, shields and body armour
+them with icon=0,<n> and ground=7,<n>. Packing keeps the pack's current
+picture for any item not rendered this time, so one new item can be
+rendered with --only and packed without redrawing the rest.
+
+`placed` draws a laid mine for the engine's mines, as the original's
+Character/OPTION/00001000/Pattern: picture 0 just laid, picture 1 armed
+(its prongs out and its lamp lit). Weapons, shields and body armour
 are the same models the hero wears (creatures.GEAR), so an item looks the
 same in the bag, on the ground and on the hero.
 """
@@ -58,7 +65,12 @@ ITEMS = [
     ("long_sword", ("gear", 17), 1, 4, 1.05, 40),
     ("magic_staff", ("gear", 18), 1, 3, 1.0, 25),
     ("plate_mail", ("gear", 6), 2, 3, 0.85, 20),
+    ("mine", ("thing", "mine"), 2, 2, 1.6, 0),
 ]
+
+# A laid mine is drawn larger than the mine item, as the original's is, so
+# it can be seen where it lies.
+MINE_PLACED_SCALE = 2.3
 
 HEADER = "# Rendered by tools/art/items.py (our own art, see content/README.md).\n"
 
@@ -129,6 +141,36 @@ def thing(kind):
         made[-1].location = (0, 0, 0.34)
         add(shape("cylinder", (0.045, 0.045, 0.04), mat("cork", (0.62, 0.44, 0.26), scale=40)))
         made[-1].location = (0, 0, 0.44)
+    elif kind in ("mine", "mine_armed"):
+        # A squat iron pot on the ground with a brass band, a plunger on
+        # top and a little red lamp; armed, three prongs fold out and the
+        # lamp lights.
+        armed = kind == "mine_armed"
+        iron = mat("mine iron", (0.30, 0.30, 0.31), (0.12, 0.12, 0.13), scale=25, rough=0.45, bump=0.3)
+        add(shape("cylinder", (0.5, 0.5, 0.08), iron))
+        made[-1].location = (0, 0, 0.08)
+        add(shape("ball", (0.43, 0.43, 0.15), iron))
+        made[-1].location = (0, 0, 0.15)
+        add(shape("cylinder", (0.52, 0.52, 0.03), brass))
+        made[-1].location = (0, 0, 0.11)
+        for k in range(8):
+            a = k * math.pi / 4 + math.pi / 8
+            add(shape("ball", (0.035, 0.035, 0.035), brass))
+            made[-1].location = (0.52 * math.cos(a), 0.52 * math.sin(a), 0.11)
+        add(shape("cylinder", (0.08, 0.08, 0.05 if not armed else 0.08), iron))
+        made[-1].location = (0, 0, 0.32 if not armed else 0.35)
+        add(shape("cylinder", (0.1, 0.1, 0.02), brass))
+        made[-1].location = (0, 0, 0.38 if not armed else 0.44)
+        add(shape("ball", (0.055, 0.055, 0.045), glass("mine lamp", (0.85, 0.12, 0.06), 6.0 if armed else 0.15)))
+        made[-1].location = (-0.2, 0.12, 0.28)
+        if armed:
+            for k in range(3):
+                a = math.radians(90 + 120 * k)
+                add(shape("box", (0.2, 0.03, 0.018), iron))
+                made[-1].location = (0.66 * math.cos(a), 0.66 * math.sin(a), 0.03)
+                made[-1].rotation_euler = (0, 0, a)
+                add(shape("cone", (0.04, 0.04, 0.05), brass))
+                made[-1].location = (0.86 * math.cos(a), 0.86 * math.sin(a), 0.06)
     elif kind == "gold":
         gold = mat("gold", (0.98, 0.78, 0.25), (0.55, 0.36, 0.06), scale=30, rough=0.25, bump=0.2)
         coins = [(0, 0, 0), (0, 0, 1), (0.02, 0.01, 2), (-0.01, 0.02, 3), (0.12, -0.05, 0), (0.12, -0.05, 1),
@@ -262,6 +304,41 @@ def render_item(index, out):
     return ax, ay
 
 
+def render_placed(out):
+    """The laid mine, just laid and armed, lying where the game's camera
+    sees it; returns the anchor of each."""
+    anchors = []
+    for k, kind in enumerate(("mine", "mine_armed")):
+        scene = studio.reset(samples=64)
+        handle = bpy.data.objects.new("item", None)
+        bpy.context.scene.collection.objects.link(handle)
+        for o in thing(kind):
+            o.parent = handle
+        handle.scale = (MINE_PLACED_SCALE,) * 3
+        handle.rotation_euler = (0, 0, math.radians(15))
+        studio.camera(scene, 128, 128)
+        studio.render(scene, str(out / f"placed_{k}.png"))
+        anchors.append(studio.anchor(scene))
+    return anchors
+
+
+def existing_frames(folder, name):
+    """The frames of a pack sheet already written, to keep those not
+    rendered again."""
+    from PIL import Image
+
+    sheet = folder / f"{name}.sheet"
+    if not sheet.exists():
+        return []
+    image = Image.open(folder / f"{name}.png").convert("RGBA")
+    frames = []
+    for line in sheet.read_text().splitlines():
+        if line.startswith("frame="):
+            x, y, w, h, ax, ay = map(int, line[6:].split(","))
+            frames.append((image.crop((x, y, x + w, y + h)), ax, ay))
+    return frames
+
+
 def write_strip(frames, folder, name):
     """Lays frames out left to right and writes <name>.png and <name>.sheet."""
     from PIL import Image
@@ -283,6 +360,24 @@ def write_strip(frames, folder, name):
 
 def main():
     args = sys.argv[1:]
+    if args[0] == "placed":
+        from PIL import Image
+
+        pack = Path(args[1])
+        renders = pack / "placed-renders"
+        renders.mkdir(parents=True, exist_ok=True)
+        anchors = render_placed(renders)
+        frames = []
+        for k, (ax, ay) in enumerate(anchors):
+            im = Image.open(renders / f"placed_{k}.png").convert("RGBA")
+            box = im.getbbox() or (0, 0, 1, 1)
+            frames.append((im.crop(box), round(ax) - box[0], round(ay) - box[1]))
+        for f in renders.iterdir():
+            f.unlink()
+        renders.rmdir()
+        write_strip(frames, pack / "Character/OPTION/00001000", "Pattern")
+        print("wrote the laid mine")
+        return
     if args[0] == "render":
         only = list(range(len(ITEMS)))
         if "--only" in args:
@@ -299,8 +394,15 @@ def main():
     from PIL import Image
 
     renders, pack = Path(args[1]), Path(args[2])
+    old_inventory = existing_frames(pack / "System/Game/Pattern", "Item0000")
+    old_ground = existing_frames(pack / "Character/ITEM/00000007", "Pattern")
     inventory, ground = [], []
     for index in range(len(ITEMS)):
+        if not (renders / f"inv_{index:02d}.png").exists():
+            # Not rendered this time: keep the pack's own.
+            inventory.append(old_inventory[index])
+            ground.append(old_ground[index])
+            continue
         inventory.append((Image.open(renders / f"inv_{index:02d}.png").convert("RGBA"), 0, 0))
         im = Image.open(renders / f"ground_{index:02d}.png").convert("RGBA")
         box = im.getbbox() or (0, 0, 1, 1)

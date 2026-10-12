@@ -23,6 +23,9 @@ original format.
 | `System/Game/Parameter/Item.Ibn`      | `items.txt`                              |
 | `System/Game/Pattern/Item%04d.njp`    | `System/Game/Pattern/Item%04d.sheet`     |
 | `Character/ITEM/%08d/Pattern.njp`     | `Character/ITEM/%08d/Pattern.sheet`      |
+| `Table.Tbd` tables 41 and 700 on      | `missions.txt`                           |
+| `System/Game/Pattern/Status.njp` (mission list parts) | `System/Game/Pattern/Missions.sheet` |
+| `Player/Common/compasses.Caf/.Njp`    | `Player/Common/compasses.anim` + `.sheet`|
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -184,6 +187,22 @@ original, `IF` runs its sentence and then carries on, and closing any of
 a person's message boxes runs their talk-end sentences, so a script keeps
 the question it asked in a flag.
 
+### missions.txt
+
+    [mission 0]              # the number SETQUESTFLAG and DRAWQUESTNAME take
+    title=Drive off the beast on the north-east road.
+    text=Something has been hunting along the road
+    text=                    # an empty line
+    text=Find it and drive it off.
+
+The title is what the mission list and the bottom of the screen show; each
+`text=` line is a line of the description the list opens, up to about 45
+characters so it fits the box. The list has room for 48 missions.
+
+An open pack's area names come from each scenario's `title=`, shown by the
+compass as the player arrives; a script can still name an area with
+`SETCOMPASSES msg:<id>`, as the original's do.
+
 ### shops.txt
 
     [shop 0]                 # the list INITTRADE names
@@ -256,7 +275,8 @@ What monsters leave behind, standing in for the original's drop tables
 A pick is a class (or `any` for weapon, armour or accessory), a code (or
 `any`, chosen by `weight` among the items of that class), and optionally
 the lowest and highest item level. Only normal items are picked with
-`any`. Gold comes before the items, 100 units below the monster; the
+`any`. A mine (`special,1`) goes to the hero's mines, not the bag (see
+[mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 
 ## Drawing the original game with this art
@@ -375,7 +395,9 @@ rebuilding everything: render them, then
 
 `tools/content/import_flare.py` builds a pack from
 [Flare: Empyrean Campaign](https://github.com/flareteam/flare-game)'s
-CC-BY-SA 3.0 art, which was the demo content before our own art:
+CC-BY-SA 3.0 art, which was the demo content before our own art. A pack
+built this way stays under CC-BY-SA 3.0 and must not be committed to
+content/, which is MIT:
 
     git clone https://github.com/flareteam/flare-game /tmp/flare-game
     python3 tools/content/import_flare.py /tmp/flare-game /tmp/flare-pack

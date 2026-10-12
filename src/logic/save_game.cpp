@@ -101,6 +101,7 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     if (mp) out += std::format("mp={}\n", *mp);
+    if (mines) out += std::format("mines={}\n", *mines);
     if (spells) {
         // spell=number,level,uses for each spell learned; bar= the spells
         // on F1-F8 (-1 empty), then the selected one.
@@ -221,6 +222,8 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.experience = numbers(value, 1, lineNumber)[0];
         } else if (key == "gold") {
             save.gold = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "mines") {
+            save.mines = static_cast<int>(std::max(0LL, numbers(value, 1, lineNumber)[0]));
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);

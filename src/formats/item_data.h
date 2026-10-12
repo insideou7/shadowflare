@@ -88,6 +88,8 @@ struct ItemDef {
         return cls == Class::Weapon && (twoHandedFlag || subtype == kAxe || subtype == kGreatSword);
     }
     bool isGold() const { return cls == Class::Special && code == 0; }
+    // Mines are counted, not carried in the bag (0x44a0e2).
+    bool isMine() const { return cls == Class::Special && code == 1; }
 };
 
 struct ItemTable {

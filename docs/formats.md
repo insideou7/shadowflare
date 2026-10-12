@@ -677,6 +677,54 @@ Syria the healer (12000002) gives the first mission, `SETQUESTFLAG 0 1 0`
 (the goblins north-east of town). `SETQUESTFLAG quest state` (0x433f29)
 sets QUEST[quest]; state 2 clears a mission only when it is 1, taken.
 
+## Missions and the compass
+
+The game object at 0x482df4 keeps the mission states at +0xa0c4 (a
+pointer, with the count at +0xa0c0; `DAT_0048ceb8`), saved with the game.
+`SETQUESTFLAG quest state flag` stores any state but 2 as it is and plays
+sound 0x41; state 2 first checks a second array at 0x48cebc: only if that
+mission was never cleared before does it mark it cleared there and, when
+the state is 1, set it to 2 and play sound 0x42. The second array is not
+saved, and it is marked even when the mission was not taken, so the first
+clear can be spent before the mission is given. The third operand only
+matters in network play (it tells the other players). Our engine clears a
+taken mission every time; original mode keeps the original's way
+(`Rules::missionsClearOnlyWhenTaken`).
+
+Titles are Table.Tbd table 41, row = mission; descriptions are table
+700 + mission, one line per row.
+
+The mission list (flag 0x48ce54, drawn by 0x40cea0 on layer 14) fills the
+screen above the bottom bar with Status.njp pattern 10. The page buttons
+are patterns 110 and 111, lit 112 and 113, at (276, 10) and (344, 10);
+the page is +0xa910. Page p shows missions 24p to 24p + 23: mission m in
+column (m / 12) % 2, row m % 12, with pattern 25 (a closed lock, mission
+taken, title in grey 224) or 26 (open, cleared, grey 128) at
+(52 + 294 col, 48 + 27 row) and its title 27 right and 6 down, with a
+black shadow a pixel down and right. A click on a row's 294 x 27 strip
+opens its description (+0xa97c, -1 none): pattern 59 tinted (800, 1000,
+1200) under the frame 58, the title as `[%s]` at (190, 96) in (224, 192,
+0) and the lines from (190, 120), 16 apart. A click above y = 413 closes
+the description. Q (0x4429b0), the Settings Menu row and a click on the
+lock or the mission's name toggle the list; opening it closes the other
+windows (0x4170f0) and the description.
+
+The bottom line (0x4050f0): `DRAWQUESTNAME quest` (0x433868) sets the
+mission +0xa908 and a timer +0xa90c of 600 frames; while it runs the
+title shows as `[%s]` in grey 224 with its right end at x = 612 (588
+when the class-change icon blinks at 616), y = 368. While any mission is
+taken, StatusIcon.njp pattern 0 (a lock) sits at (616, 360). Both hide
+while a window covers the right half of the screen.
+
+`SETCOMPASSES msg` (0x43389b), for the player's own party only, copies the
+message to +0xa804 and zeroes the counter +0xa800. 0x412220 then draws
+`Player/Common/Compasses.Caf` (animation block 501) chart 0, direction 8,
+at the top left of the screen, one frame a tick (eight) and then the last;
+from tick frames + 150 it fades over 30 ticks, and at frames + 180 the
+counter goes back to -1. The name is at (108, 32) in grey 224 with a black
+shadow. While the chat line is open (0x48ce5c) the compass stays, at its
+last frame.
+
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
 

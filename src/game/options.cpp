@@ -1,7 +1,7 @@
 // The Settings Menu (Esc in the game, Options on the title menu) and the
 // Help window (H), laid out after the original's: each row names a setting
 // with its choices to the right, the chosen one bright. Rows the engine
-// cannot do yet (no darkness, sound, missions or map) are shown dimmed.
+// cannot do yet (no darkness, sound or map) are shown dimmed.
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -61,8 +61,8 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::SaveImage:
         case OptionRow::EffectVolume:
         case OptionRow::MusicVolume:
-        case OptionRow::MissionList:
         case OptionRow::Map: return false;
+        case OptionRow::MissionList: return map_ && player_;
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
@@ -199,6 +199,10 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::Help:
             closeOptions();
             helpOpen_ = true;
+            break;
+        case OptionRow::MissionList:
+            closeOptions();
+            if (!missionsOpen_) toggleMissions();
             break;
         case OptionRow::SaveAndTitle:
             if (saveGame()) {
@@ -364,7 +368,7 @@ void Game::renderHelp() {
         {"F1-F8", "SPELL ON RIGHT BUTTON", true},
         {"F9", "ATTACK ON RIGHT BUTTON", true},
         {"1-8", "USE BELT POCKET ITEM", true},
-        {"B", "LAY A MINE", false},
+        {"B", "LAY A MINE", true},
         {"P", "INCREASED-POWER MODE", false},
         {"CTRL", "RUN WHILE HELD", true},
         {"SHIFT", "STOP; ATTACK IN PLACE", true},
@@ -375,7 +379,7 @@ void Game::renderHelp() {
         {"I", "ITEMS WINDOW", true},
         {"X", "SPECIAL ITEMS WINDOW", false},
         {"M", "MAGIC WINDOW", false},
-        {"Q", "MISSION LIST", false},
+        {"Q", "MISSION LIST", true},
         {"N", "MAP", false},
         {"R", "SWITCH WALK/RUN", true},
         {"H", "HELP", true},

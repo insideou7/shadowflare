@@ -17,6 +17,7 @@
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
+#include "logic/mines.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
@@ -27,6 +28,7 @@
 #include "formats/open_content.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
+#include "formats/missions.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "game/map.h"
@@ -36,6 +38,10 @@ namespace sf {
 
 class FileSystem;
 class Skin;
+
+// The original's Shift-JIS text as the font draws it (talk.cpp): the
+// English release only uses a few double-byte characters.
+std::string toAscii(const std::string& text);
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -121,6 +127,9 @@ public:
     // (for scripted tests).
     void orderPartnerBy(const std::string& kind, int dx, int dy);
 
+    // Lays a mine where the player stands, as B does (for scripted tests).
+    void layMineHere() { layMine(); }
+
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
 
@@ -153,6 +162,11 @@ public:
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
     // Sets a SAVE story flag, for testing scripts part way through the story.
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
+    // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
+    void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
+    // Opens the mission list (Q), with one mission's description showing
+    // when `shown` is not -1 (for testing).
+    void openMissions(int shown = -1);
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
     // a message on screen, when that fails.
@@ -359,6 +373,10 @@ private:
         int hitOption = -1;        // played on whoever it hurts
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
+        // A picture of the OPTION folder's Pattern bank instead of its
+        // animation (the mine on the ground), -1 = the animation.
+        int pattern = -1;
+        double height = 0;  // above the ground, as the original's objects (+0x124)
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -395,6 +413,30 @@ private:
     int spellHit(int spell, int level) const;
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
+
+    // Land mines (mines.cpp): B or the MINE button lays one where the hero
+    // stands; a controller, as the original's (0x42bd40), arms it, sets it
+    // off and plays the blast.
+    struct Mine {
+        double x = 0, y = 0;
+        int tick = 0;        // the original's ticks since it was laid, then since the blast
+        int effect = 0;      // the mine on the ground; 0 once it has gone off
+        bool blasted = false;
+        int level = 1;       // the hero's when it was laid, for its power
+        int ring = 0;        // how far out the last smoke ring was
+        std::array<int, 4> pieces{}, fires{};
+        int lift = 0;        // the pieces' upward speed
+        bool done = false;
+    };
+    void layMine();
+    void stepMine(Mine& mine);
+    void mineBlast(Mine& mine);
+    int mostMines() const;
+    int minePower(int level) const;
+    // Picking up a mine adds it to the count when there is room (0x44a0e2).
+    bool pickUpMine();
+    bool mineButtonClick(int x, int y);
+    void renderMineButton();
 
     // The hero's companion (partner.cpp).
     struct Partner {
@@ -481,6 +523,24 @@ private:
     void newCharacterHover(int x, int y);
     void newCharacterPattern(int pattern, int alpha = 255, int dx = 0);
 
+    // Missions (missions.cpp): the mission list (Q), the newest mission
+    // named along the bottom of the screen, and the area's name by the
+    // compass at the top left when the player arrives.
+    void loadMissions();
+    int missionState(int mission) const;  // its QUEST flag: 0 not given, 1 taken, 2 cleared
+    bool anyMissionTaken() const;
+    void showMissionName(int mission);
+    void showAreaName(std::string name);
+    void toggleMissions();
+    void closeMissions();
+    bool missionsClick(int x, int y, bool right);
+    bool missionHudClick(int x, int y);
+    void tickMissions();
+    void renderMissions();
+    void renderMissionHud();
+    void renderCompass();
+    const CharacterModel* compassModel();
+
     // The Settings Menu and Help window (options.cpp).
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
@@ -561,6 +621,9 @@ private:
     std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
     int nextEffectId_ = 1;
     double originalTicks_ = 0;  // carried between engine ticks
+    std::vector<Mine> mines_;
+    int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
+    int mineWait_ = 0;                    // ticks before another can be laid
     Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;
@@ -595,6 +658,15 @@ private:
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
+
+    Missions missions_;
+    bool missionsOpen_ = false;
+    int missionPage_ = 0;      // the list's two pages of 24 (0xa910)
+    int missionShown_ = -1;    // the mission whose description is open (0xa97c)
+    int missionBanner_ = -1;   // DRAWQUESTNAME's mission (0xa908)
+    double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
+    std::string areaName_;
+    double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

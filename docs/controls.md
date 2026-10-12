@@ -26,7 +26,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | F1-F8 | choose the spell for the right button | yes |
 | F9 | choose the attack for the right button | yes |
 | 1-8 | use a belt pocket item (1-4 the top row, 5-8 the bottom); a right click on it does too | yes |
-| B | lay a mine | no |
+| B | lay a mine where you stand; the MINE button by the belt does too ([mines.md](mines.md)) | yes |
 | P | increased-power mode | no |
 | Ctrl | run while held | yes |
 | Shift | stop where you are; with a left click, attack in place | yes |
@@ -37,7 +37,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | I | items window | yes |
 | X | special items window | no |
 | M | magic window | no |
-| Q | mission list | no |
+| Q | mission list; see below | yes |
 | N | map | no |
 | R | switch walk / run | yes |
 | H | help window | yes |
@@ -51,6 +51,24 @@ point and J shows the walkability grid (for testing).
 Changed from before: F9 used to load (now F11), N and P used to switch
 maps (now Page Down / Page Up only), and WASD no longer walks (S is the
 status window).
+
+## Missions
+
+Q (or Mission List in the Settings Menu) opens the mission list, laid out
+as the original's (ShadowFlare.exe 0x40cea0): every mission given so far,
+a closed lock by those still to do and an open one, greyed, by those
+cleared, in two columns of 12 on each of two pages (the I and II buttons
+at the top). A click on a mission opens its description; a click anywhere
+closes it again. Q, Esc or a right click above the bottom bar close the
+list.
+
+When a script names a mission (DRAWQUESTNAME, as people do when they give
+one), its title shows in brackets at the bottom right for 20 seconds, and
+a lock sits at the right edge while any mission is still to do; clicking
+either opens the list. Ours lifts both a little to clear the spell bar.
+
+On arriving in an area its name shows at the top left beside a compass,
+which shrinks into place, stays for five seconds and fades (SETCOMPASSES).
 
 ## Settings Menu
 
@@ -70,7 +88,8 @@ change it, Enter steps through it or does it.
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
 | Eff. Volume, BGM Volume | not in yet (no sound) |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
-| Mission List, Map | not in yet |
+| Mission List | opens the mission list |
+| Map | not in yet |
 | Help | the keyboard help window |
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |

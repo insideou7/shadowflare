@@ -23,6 +23,7 @@ bool Game::saveGame() {
     save.direction = player_->direction;
     save.hp = playerHp_;
     save.mp = playerMp_;
+    save.mines = mineCount_;
     save.spells = spells_;
     save.spellsOn = spellOn_;
     save.originalMode = originalMode();
@@ -106,6 +107,10 @@ bool Game::loadGame() {
     casting_.reset();
     clearSpells();
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
+    // Saves from before mines: a new hero's five, and any mines that went
+    // into the bag then.
+    mineCount_ = save.mines.value_or(mines::kStartCount);
+    if (!save.mines) mineCount_ += inventory_.takeAll(ItemDef::Class::Special, 1);
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", saveFile_, skipped);
     }

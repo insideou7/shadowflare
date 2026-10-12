@@ -100,6 +100,7 @@ void Game::loadItems() {
 // worn, and four Tablets and four Capsules both in the bag and in the belt,
 // the Tablets along its top row and the Capsules along the bottom.
 void Game::giveStartingKit() {
+    mineCount_ = mines::kStartCount;
     give(static_cast<int>(ItemDef::Class::Armour), 0, 1, GiveTo::Wear);
     for (const std::int32_t code : {0, 10000000}) {
         for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), code, 1, GiveTo::Bag);
@@ -237,6 +238,20 @@ void Game::pickUpItems() {
             continue;
         }
         const Item item = it->item;
+        if (item.def->isMine()) {
+            // Mines are counted, not put in the bag; with as many as can be
+            // carried, they stay where they are (0x44a0e2).
+            if (!pickUpMine()) {
+                showMessage("No room for more mines");
+                it->waitForLeave = true;
+                ++it;
+                continue;
+            }
+            showMessage(item.shownName());
+            log::info("Picked up a mine, {} now", mineCount_);
+            it = groundItems_.erase(it);
+            continue;
+        }
         if (!inventory_.pickUp(item)) {
             showMessage(std::format("No room for {}", item.shownName()));
             it->waitForLeave = true;
@@ -255,6 +270,8 @@ void Game::pickUpItems() {
 
 void Game::updateEquipment() {
     if (player_) player_->visibleLayers = inventory_.heroLayers();
+    // Taking off what raised the most leaves only that many (0x450183).
+    mineCount_ = std::min(mineCount_, mostMines());
     // What the hero wears can raise the companion's stats.
     refreshPartnerStats();
 }
@@ -588,6 +605,10 @@ void Game::renderInventory() {
             ty += 16;
         }
         drawText(renderer_, 336, kBagY + Inventory::kBagHeight * kCell + 10, std::format("GOLD {}", inventory_.gold()), kGoldColor);
+        // Mines in hand and the most, and their power, as the original's
+        // item window shows them (0x408a80).
+        drawText(renderer_, 456, kBagY + Inventory::kBagHeight * kCell + 10,
+                 std::format("MINES {}/{}  POW {}", mineCount_, mostMines(), minePower(playerLevel_)), kWhite);
         if (hover && !hand_) {
             const ItemDef& def = *hover->def;
             std::string text = hover->shownName();
@@ -677,6 +698,7 @@ void Game::renderHud() {
     if (menuOpen_) return;
     renderSpellBar();
     if (player_) renderBelt();
+    if (player_) renderMineButton();
     if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);

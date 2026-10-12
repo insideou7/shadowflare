@@ -23,10 +23,17 @@ struct Rules {
     // roll allowed: the original never clears them (0x417550), so a roll
     // allowing magic items lets every later roll of that monster give one.
     bool dropQualityPerRoll = true;
+    // SETQUESTFLAG clears a mission only once in a game session (0x433f29
+    // keeps a second array at 0x48cebc that is never saved). The first
+    // clear is spent even on a mission not yet taken, so a mission whose
+    // clearing script runs before it is given stays taken for good once
+    // it is given, until the game is loaded again. Ours clears a taken
+    // mission every time.
+    bool missionsClearOnlyWhenTaken = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
-               !dropQualityPerRoll;
+               !dropQualityPerRoll && !missionsClearOnlyWhenTaken;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -35,6 +42,7 @@ struct Rules {
         r.partnerStatusShowsMagicEvasion = false;
         r.explosionUsesItsOwnLevel = false;
         r.dropQualityPerRoll = false;
+        r.missionsClearOnlyWhenTaken = false;
         return r;
     }
 };

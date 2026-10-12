@@ -234,6 +234,7 @@ MagicTables MagicTables::standard() {
         t.counts[0][c] = t.counts[1][c] = t.counts[2][c] = n;
         t.counts[3][c] = c < 9 ? 1 : c < 20 ? 3 : 5;  // table 207
     }
+    t.minePower = expand<100>({{25, 40, 10}, {16, 295, 15}, {29, 540, 20}, {30, 1130, 30}});  // table 23
     return t;
 }
 
