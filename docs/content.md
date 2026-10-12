@@ -373,7 +373,9 @@ rebuilding everything: render them, then
 
 `tools/content/import_flare.py` builds a pack from
 [Flare: Empyrean Campaign](https://github.com/flareteam/flare-game)'s
-CC-BY-SA 3.0 art, which was the demo content before our own art:
+CC-BY-SA 3.0 art, which was the demo content before our own art. A pack
+built this way stays under CC-BY-SA 3.0 and must not be committed to
+content/, which is MIT:
 
     git clone https://github.com/flareteam/flare-game /tmp/flare-game
     python3 tools/content/import_flare.py /tmp/flare-game /tmp/flare-pack
