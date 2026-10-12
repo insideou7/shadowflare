@@ -332,6 +332,8 @@ void Game::handleEvent(const SDL_Event& event) {
                         }
                     }
                     break;
+                case SDLK_F5: saveGame(); break;
+                case SDLK_F9: loadGame(); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
