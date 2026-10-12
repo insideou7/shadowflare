@@ -95,8 +95,7 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     // The companion keeps its health from map to map (0x4505d0).
     if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
     partner_.reset();
-    missiles_.clear();
-    spellEffects_.clear();
+    clearSpells();
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -890,7 +889,7 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
         if (random_.next(100) >= hitChance(hit, stats[HeroStats::kMagicEvasion])) return;
         const int element = magic_.spell(spell).element;
         const int damage = damageToHero(magic_, s.spellPower[k], element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
-        spellEffects_.push_back({SpellEffect::Kind::Spark, element, player_->x, player_->y, 120, 0, 8});
+        showSpellHit(spell, player_->x, player_->y);
         hurtPlayer(damage, true, &enemy);
         return;
     }
@@ -949,6 +948,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         damage = std::max(1, damage * (100 - magic_.power(kMagicShield, spells_.castLevel(kMagicShield))) / 100);
         if (damage >= 20) trainSpell(kMagicShield);
         chargeShield(kMagicShield);
+        spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
     }
     // Energy Shield takes blows out of MP while there is any.
     if (!magic && spellOn(kEnergyShield) && playerMp_ > 0) {
@@ -980,6 +980,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         if (attacker->placement.stats.word7 == 100) back /= 2;
         if (damage >= 20) trainSpell(kCounterBurst);
         chargeShield(kCounterBurst);
+        spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
         hurtEnemy(*attacker, std::max(1, back), true);
     }
     // A blow does not interrupt the player's own swing or a flinch already
@@ -1034,22 +1035,36 @@ void Game::renderMap() {
         if (sx - camX < -256 || sy - camY < -256 || sx - camX > kScreenWidth + 256 || sy - camY > kScreenHeight + 256) continue;
         characters.push_back(&actor.character);
     }
-    std::ranges::stable_sort(characters, [](const Character* a, const Character* b) { return a->x + a->y < b->x + b->y; });
+    // Spell effects are sorted in with them by where they stand, as the
+    // original sorts its effects, so a tree in front hides a burst behind it.
+    struct Drawable {
+        double x, y;
+        const Character* character;
+        const Effect* effect;
+    };
+    std::vector<Drawable> drawables;
+    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr});
+    for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e});
+    std::ranges::stable_sort(drawables, [](const Drawable& a, const Drawable& b) { return a.x + a.y < b.x + b.y; });
 
     // Semi-transparent Shadow off draws them solid black.
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     const auto& objects = map_->objects().objects;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
-        // Characters not drawn yet this pass, back to front.
-        std::vector<const Character*> pending = shadows ? std::vector<const Character*>{} : characters;
+        // Characters and effects not drawn yet this pass, back to front.
+        std::vector<Drawable> pending = shadows ? std::vector<Drawable>{} : drawables;
+        auto draw = [&](const Drawable& d) {
+            if (d.character) d.character->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+            if (d.effect) renderEffect(*d.effect, camX, camY);
+        };
         for (std::size_t i : drawOrder_) {
             const MapObject& o = objects[i];
             // Everyone this object hides goes first, even if someone nearer
             // the front is still waiting for a later object.
             for (auto it = pending.begin(); it != pending.end();) {
-                if (o.hides((*it)->x, (*it)->y)) {
-                    (*it)->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+                if (o.hides(it->x, it->y)) {
+                    draw(*it);
                     it = pending.erase(it);
                 } else {
                     ++it;
@@ -1077,7 +1092,7 @@ void Game::renderMap() {
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
-        for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+        for (const Drawable& d : pending) draw(d);
     }
     // Semi-transparent Player: a faint copy on top shows the hero through
     // walls; where nothing covers them it lands on itself and changes nothing.

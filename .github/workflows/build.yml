@@ -43,3 +43,8 @@ jobs:
         run: |
           ./build/shadowflare --data content --at -792,1872 --walk 90,-60 --ticks 60 2>&1 | tee run.log
           grep -q 'Going to Scenario/00000002 "Old Waterworks"' run.log
+          # Cast each spell that has effects: every effect has its animation.
+          for spell in 1 2 3 4 5 10 11 12 13 15 16 21; do
+            ./build/shadowflare --data content --no-menu --spell $spell:20 --cast 1:200,60 --ticks 80 2>&1 | tee -a spells.log
+          done
+          ! grep -q 'No animation for effect' spells.log

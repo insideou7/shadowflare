@@ -102,7 +102,8 @@ Orders on the ground wait out a 45-tick pause after the last one.
 
 **The hero's Explosion spell** (spell 20) sends the partner to the point
 cast at, if it is up, not jumping or dashing and past its 45-tick pause
-(0x43fcc0). It jumps there as above and blows up (0x461c40): every
+(0x43fcc0). It jumps there as above and blows up (0x461c40), with the
+fire spray Hell Fire uses (effect 10000000, both charts; 0x42f890): every
 monster in a square 320 each way that it hits (its hit against their
 evasion) takes the spell's blow, with power 1, so 1 damage, and is
 stunned as Table.Tbd tables 70-78 say for the spell at its level (one

@@ -3,6 +3,7 @@
 #include <SDL.h>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -108,6 +109,8 @@ public:
     // Casts the chosen spell at a point given relative to the player on
     // screen, as the right button does (for scripted tests).
     void castBy(int slot, int screenDx, int screenDy);
+    // Teaches a spell at a level and puts it on F1, with MP to spare (for tests).
+    void teachSpell(int spell, int level);
     // Gives the companion a Tab order (jump, dash or fetch) at a point
     // relative to the hero in world units; fetch takes the nearest item
     // (for scripted tests).
@@ -305,28 +308,66 @@ private:
     void renderHud();
 
     // Spells (spells.cpp).
-    struct Missile {
-        int spell = 0, level = 1;
-        int power = 0, hit = 0;
-        double x = 0, y = 0, dx = 0, dy = 0;  // world units, per tick
+    //
+    // An effect is one of the original's OPTION animations
+    // (Character/OPTION/<id>/Animation) playing in the world: a glow, a
+    // missile or a burst. Those that hurt carry the spell's power. Times
+    // are the original's ticks, 30 a second; tickSpells runs 1.5 of them
+    // per engine tick.
+    struct Effect {
+        int id = 0;
+        int option = 0, chart = 0;
+        double x = 0, y = 0;
+        int age = 0, life = 0;  // life -1: until it hits something or a wall
+        double speed = 0, angle = 0;  // world units a tick; radians, in world space
+        double turn = 0;              // homing: how far it may turn a tick, 0 = flies straight
+        int animSpeed = 1000;         // animation frames per 1000 ticks
+        bool directional = false;     // drawn facing its angle
+        bool followsPlayer = false;
+        // Hurting: spell < 0 for effects that only show.
+        int spell = -1, level = 1, power = 0, hit = 0;
+        double box = 0;            // half the side of the square it hurts in
+        bool area = false;         // hurts everyone in its box (each once), else the first
+        bool diesOnHit = false;
+        bool diesOnWall = false;
+        int hitOption = -1;        // played on whoever it hurts
         double travelled = 0;
+        std::vector<std::size_t> struck;  // actors already hurt
+        bool dead = false;
     };
-    // What is drawn for a spell, with no effect on the game.
-    struct SpellEffect {
-        enum class Kind { Burst, Heal, Spark } kind = Kind::Burst;
-        int element = 0;
-        double x = 0, y = 0, radius = 0;
-        int ticks = 0, length = 1;
+    // A spell on its way: spawns its effects tick by tick, as the
+    // original's spell controllers do (0x42b1c0 and its neighbours).
+    struct SpellCast {
+        int spell = 0, level = 1, power = 0, hit = 0;
+        double x = 0, y = 0;  // the caster, when the cast began
+        double aim = 0;       // towards the point cast at, radians in world space
+        int tick = 0;
+        int release = -1;  // the tick the spell left the hand, -1 = not yet
+        int step = 0;      // bursts made so far
+        std::array<bool, 8> blocked{};
+        std::vector<int> tracked;  // effects followed (missiles, orbs, blades)
+        std::vector<std::pair<double, double>> trackedAt;
+        std::vector<int> stage, stageTicks;  // Elemental Strike, per orb
+        bool done = false;
     };
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
-    void spellHits(Actor& enemy, int spell, int level, int power, int hit);
+    void spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
+    void showSpellHit(int spell, double x, double y);
+    const CharacterModel* effectModel(int option);
+    int effectLength(int option, int chart = 0);
+    Effect& spawnEffect(int option, double x, double y, int chart = 0);
+    Effect* findEffect(int id);
+    void stepCast(SpellCast& cast);
+    void stepEffect(Effect& effect);
+    void clearSpells();
     void trainSpell(int spell);
     bool spellOn(int spell) const { return spellOn_[static_cast<std::size_t>(spell)]; }
     void setSpellOn(int spell, bool on) { spellOn_[static_cast<std::size_t>(spell)] = on; }
     int spellPower(int spell, int level) const;
     int spellHit(int spell, int level) const;
+    void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
 
     // The hero's companion (partner.cpp).
@@ -464,8 +505,12 @@ private:
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units
     bool castReleased_ = false;
-    std::vector<Missile> missiles_;
-    std::vector<SpellEffect> spellEffects_;
+    std::vector<SpellCast> casts_;
+    std::vector<Effect> effects_;
+    std::vector<Effect> pendingEffects_;  // spawned this tick
+    std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
+    int nextEffectId_ = 1;
+    double originalTicks_ = 0;  // carried between engine ticks
     Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;

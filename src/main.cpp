@@ -63,6 +63,7 @@ struct Options {
         int dx = 0, dy = 0;
     };
     std::optional<Order> companion;  // a Tab order for the companion, in world units from the hero
+    int spell = -1, spellLevel = 1;  // --spell n[:level] puts that spell on F1
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -124,6 +125,8 @@ Options parseArgs(int argc, char** argv) {
             } else {
                 sf::log::warn("--cast expects slot:x,y");
             }
+        } else if (arg == "--spell" && i + 1 < argc) {
+            if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
         } else if (arg == "--companion" && i + 1 < argc) {
             // jump:dx,dy, dash:dx,dy, explode:dx,dy or fetch (the nearest item).
             const std::string order = argv[++i];
@@ -377,6 +380,7 @@ int main(int argc, char** argv) {
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
+    if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
     if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);
     app.lastCounter = SDL_GetPerformanceCounter();

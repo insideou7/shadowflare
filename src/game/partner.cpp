@@ -49,6 +49,7 @@ constexpr int kStunCap = 15;  // ticks, unless the blow or the monster says othe
 // lands is caught; the blow's power is 1, so it is the stun that counts.
 constexpr double kExplosionReach = 320;
 constexpr int kExplosionPower = 1;
+constexpr int kExplosionSpray = 10000000;  // Character/OPTION
 constexpr int kStunTables = 70;  // Table.Tbd 70-78: a spell's stun on a monster of each element (0x4174b0)
 
 // r is the enemy's box around (ex, ey).
@@ -747,7 +748,9 @@ void Game::partnerExplodes() {
     const int level = std::max(1, spells_.castLevel(ofSpell));
     const int element = magic_.spell(kExplosion).element;
     log::info("The companion explodes at {:.0f},{:.0f} (level {})", c.x, c.y, level);
-    spellEffects_.push_back({SpellEffect::Kind::Burst, element, c.x, c.y, kExplosionReach, 0, 10});
+    // Its controller (21031, 0x42f890) plays the fire spray, both charts.
+    spawnEffect(kExplosionSpray, c.x, c.y);
+    spawnEffect(kExplosionSpray, c.x, c.y, 1);
     for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
         Actor& enemy = actors_[i];
         if (!enemy.alive()) continue;
