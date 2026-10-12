@@ -1,0 +1,11 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The mission list: window, page I and II unlit, then lit, closed lock, open lock, description box.
+image=Missions.png
+frame=0,0,640,415,0,0
+frame=0,415,20,23,-276,-10
+frame=22,415,20,23,-344,-10
+frame=44,415,20,23,-276,-10
+frame=66,415,20,23,-344,-10
+frame=88,415,13,18,-5,-3
+frame=103,415,18,18,-5,-3
+frame=123,415,296,260,-172,-76

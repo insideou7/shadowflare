@@ -1,0 +1,12 @@
+# The missions' titles and descriptions, by the number SETQUESTFLAG takes,
+# standing in for the original's Table.Tbd tables 41 and 700 on. Our own
+# words; see docs/content.md.
+
+[mission 0]
+title=Drive off the beast on the north-east road.
+text=Something has been hunting along the road
+text=north-east of Remote Town. The healer at the
+text=shrine asked me to deal with it.
+text=
+text=Find it and drive it off, so the people here
+text=may sleep again.

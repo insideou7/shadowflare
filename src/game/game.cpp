@@ -75,6 +75,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     }
     loadItems();
     loadLevelCurve();
+    loadMissions();
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     giveStartingKit();
@@ -146,6 +147,9 @@ void Game::loadScenario(const std::string& dir) {
     talkTarget_.reset();
     objectTarget_.reset();
     labels_.clear();
+    // The original's scenario scripts name their area with SETCOMPASSES;
+    // an open content pack's scenario names it with its title.
+    if (!dir.empty() && data_->read(dir + "/scenario.txt") && !control_.title.empty()) showAreaName(control_.title);
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
     startScripts_ = true;
@@ -364,6 +368,8 @@ void Game::handleEvent(const SDL_Event& event) {
                     // none is open.
                     if (helpOpen_) {
                         helpOpen_ = false;
+                    } else if (missionsOpen_) {
+                        closeMissions();
                     } else if (openShop_) {
                         if (!hand_) closeShop();
                     } else if (showInventory_) {
@@ -384,9 +390,13 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
                 case SDLK_s:
-                    if (!openShop_) showStatus_ = !showStatus_;
+                    if (!openShop_) {
+                        showStatus_ = !showStatus_;
+                        if (showStatus_) closeMissions();
+                    }
                     break;
                 case SDLK_i:
+                    closeMissions();
                     if (openShop_) {
                         closeShop();
                     } else if (showInventory_) {
@@ -431,7 +441,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_x: notYet("The special items window"); break;
                 case SDLK_m: notYet("The magic window"); break;
-                case SDLK_q: notYet("The mission list"); break;
+                case SDLK_q: toggleMissions(); break;
                 case SDLK_n: notYet("The map"); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
@@ -446,6 +456,8 @@ void Game::handleEvent(const SDL_Event& event) {
                 helpOpen_ = false;
                 break;
             }
+            if (missionsClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && missionHudClick(event.button.x, event.button.y)) break;
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
@@ -535,6 +547,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 void Game::tick() {
     ++ticks_;
     if (!map_ || menuOpen_ || optionsOpen_) return;  // the world waits while a menu is open
+    tickMissions();
     if (startScripts_) {
         startScripts_ = false;
         runEvent(ScenarioScript::kOnStart);
@@ -1119,10 +1132,13 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    renderCompass();
     renderShop();
     renderStatus();
     renderInventory();
+    renderMissions();
     renderHud();
+    renderMissionHud();
     renderPartnerGauge();
     renderDialogue();
     renderHelp();

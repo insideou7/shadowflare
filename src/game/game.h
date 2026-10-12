@@ -28,6 +28,7 @@
 #include "formats/open_content.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
+#include "formats/missions.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "game/map.h"
@@ -37,6 +38,10 @@ namespace sf {
 
 class FileSystem;
 class Skin;
+
+// The original's Shift-JIS text as the font draws it (talk.cpp): the
+// English release only uses a few double-byte characters.
+std::string toAscii(const std::string& text);
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -147,6 +152,11 @@ public:
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
     // Sets a SAVE story flag, for testing scripts part way through the story.
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
+    // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
+    void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
+    // Opens the mission list (Q), with one mission's description showing
+    // when `shown` is not -1 (for testing).
+    void openMissions(int shown = -1);
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
     // a message on screen, when that fails.
@@ -482,6 +492,24 @@ private:
     void chooseMenuItem(MenuItem item);
     void newGame();
 
+    // Missions (missions.cpp): the mission list (Q), the newest mission
+    // named along the bottom of the screen, and the area's name by the
+    // compass at the top left when the player arrives.
+    void loadMissions();
+    int missionState(int mission) const;  // its QUEST flag: 0 not given, 1 taken, 2 cleared
+    bool anyMissionTaken() const;
+    void showMissionName(int mission);
+    void showAreaName(std::string name);
+    void toggleMissions();
+    void closeMissions();
+    bool missionsClick(int x, int y, bool right);
+    bool missionHudClick(int x, int y);
+    void tickMissions();
+    void renderMissions();
+    void renderMissionHud();
+    void renderCompass();
+    const CharacterModel* compassModel();
+
     // The Settings Menu and Help window (options.cpp).
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
@@ -596,6 +624,15 @@ private:
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
+
+    Missions missions_;
+    bool missionsOpen_ = false;
+    int missionPage_ = 0;      // the list's two pages of 24 (0xa910)
+    int missionShown_ = -1;    // the mission whose description is open (0xa97c)
+    int missionBanner_ = -1;   // DRAWQUESTNAME's mission (0xa908)
+    double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
+    std::string areaName_;
+    double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

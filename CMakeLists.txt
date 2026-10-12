@@ -22,6 +22,7 @@ add_library(sf_formats STATIC
     src/formats/item_data.cpp
     src/formats/open_content.cpp
     src/formats/ground_skin.cpp
+    src/formats/missions.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -69,6 +70,7 @@ add_executable(shadowflare
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
+    src/game/missions.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
