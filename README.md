@@ -148,12 +148,12 @@ decoders for the formats in `docs/formats.md`, for example
 
 renders a whole map to an image.
 
-## Licence
+## License
 
 The engine, tools and the open content in [content/](content/) (our own
-art, maps and text) are under the MIT licence; see [LICENSE](LICENSE).
+art, maps and text) are under the MIT license; see [LICENSE](LICENSE).
 stb_image is public domain (or MIT).
 
-The original game is copyrighted and is not covered by this licence. Do
+The original game is copyrighted and is not covered by this license. Do
 not commit its files, extracted assets or decompiled code to this
 repository.

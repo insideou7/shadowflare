@@ -18,7 +18,7 @@ from scratch, with no original pictures traced or reused. Monster stats
 and behaviour (`ai.txt`) and the item definitions (`items.txt`) are our
 own too.
 
-## Licence
+## License
 
-Everything in this folder is under the MIT licence, the same as the
+Everything in this folder is under the MIT license, the same as the
 engine's code; see [LICENSE](../LICENSE) at the top of the repository.
