@@ -115,13 +115,53 @@ equipment gives it.
 casting. F1-F8 choose a spell from the bar and the right button casts it
 at the cursor; casting a shield or Berserker again turns it off. The
 status window shows MP and the magic stats, and the HUD an MP bar under
-the health bar. Ours rather than the original's, until they are read from
-the exe:
+the health bar.
 
-- Missiles fly table 35's speed x 1.5 world units a tick, up to 2400
-  units, and hit the first monster within 110 units. Spells without a
-  missile hit every monster within 320 units of the point cast at.
-- The effects are drawn from simple shapes in each element's colour.
+### Effects
+
+Each spell plays the original's effects, `Character/OPTION/<number>`
+animations, in the original's order and timing. The original runs 30 ticks
+a second and the engine 20, so spells run 1.5 of the original's ticks per
+engine tick, and an effect shows one frame per original tick (its
+animation speed, effect word 28, is 1000 per mille). Missiles move table
+35's speed each original tick. The original's spell controllers (0x42b1c0
+to 0x42eeb0) say what each spell spawns; R is the tick the spell leaves
+the hand:
+
+| spell | what happens | hits with |
+|---|---|---|
+| Fire Ball | 10000012 on the caster; at R a missile 10000010 from 180 in front, ±50 square, until it hits or meets a wall | 10000011 |
+| Ice Bolt | the same with 11000027 and 10000040 | 11000026 |
+| Plasma | table 205 bursts, one every 4 ticks from R, at 250, 450, ... in front: lightning 10000030 (one of 4 charts) hurting a ±100 square, splash 10000031 and glitter 10000032; a blocked spot stops the line | 11000003 |
+| Hell Fire | ring 10000002 at tick 3; at R sprays 10000000 (charts 0 and 1) and one tick of damage within 150 of the caster's square | 10000001 |
+| Ice Blast | ice 10000051 at tick 3; crystals 10000050 when it ends (L); damage within 150 of the caster at L+4; mist 10000052 at L+15 | 11000026 |
+| Heal | 11000060 on the caster (casting chart 11) | |
+| Earth Spears | table 206 spears 10000060, one every 8 ticks from R, at 250, 550, ... in front, each hurting a ±150 square | |
+| Flame Strike | 10000012; at R table 204 Fire Balls evenly round the caster from the aim, homing 20° a tick, for 90 ticks, ±80 | 10000011 |
+| Dread Deathscythe | 11000027 and table 204 blades 10000080 150 out in a fan (144° at the most blades) until R; then a missile 10000081 from each, 90 ticks | 11000026 |
+| Lightning Storm | table 204 rays round the caster; 4 rings of Plasma bursts every 4 ticks from R, 350 to 950 out | 11000003 |
+| Sonic Blade | at R a cut 10000090 at the spell's speed for 7 ticks, hurting all in ±80, gone after its first hit | 11000200 |
+| Mud Javelin | at R a missile 10000110 (±80); where it ends, 10000111 hurting ±240 | |
+| Elemental Strike | 11000210; at R table 207 orbs 10000100 round the caster, homing; where each ends, 12000000, 11000033, the Plasma burst and 10000060, 4 ticks apart, each hurting ±240 | 10000011, 11000026, 11000003, 11000000 |
+
+Magic Shield shows 11000241 when it takes a blow and Counter Burst
+11000251 when it strikes back. Tables 204-207 count, by level, the
+fireballs, blades and rays (204), Plasma's bursts (205), the spears (206)
+and the orbs (207). The open content paints its own art for all of these
+(`tools/art/effects.py`); with the original's files the engine plays the
+original's.
+
+Ours rather than the original's, until they are read from the exe:
+
+- Heroes and monsters are hit in a ±50 square (the original reads each
+  one's judge rect), and a damaging effect hurts each monster once.
+- Plasma, Lightning Storm and Earth Spears test one point for a wall
+  where the original tests a square.
+- A missile that meets nothing stops after 6000 world units.
+- Effects are sorted in with the map's objects and characters by where
+  they stand, but the original's effect heights are not used for it.
+- A shield or Berserker turning on plays 11000100 (which effect the
+  original plays is not known), and a faint ring shows while it is on.
 - Transport, Moon, Medusa, Identify and Explosion are not in yet.
 - Monster spells land halfway through their animation, like blows.
 - Chant speed and equipment that adds spell levels or saves MP are not

@@ -15,8 +15,8 @@ namespace sf {
 // layer per equipment slot.
 struct AnimationSet {
     struct Cell {
-        std::int16_t status = 0;  // 8 = shadow (pattern is in the .sdw bank)
-        std::int16_t trans = 1000;
+        std::int16_t status = 0;  // 8 = shadow (pattern is in the .sdw bank), 16 = additive
+        std::int16_t trans = 1000;  // opacity per mille
         std::int32_t pattern = -1;
         std::int16_t priority = 0;  // draw order within the frame, high first (low is in front)
     };
@@ -32,6 +32,7 @@ struct AnimationSet {
 
     static constexpr int kDirections = 9;
     static constexpr std::int16_t kShadowStatus = 8;
+    static constexpr std::int16_t kAdditiveStatus = 16;  // effect glows (OPTION animations)
 
     int version = 0;
     std::vector<Chart> charts;
