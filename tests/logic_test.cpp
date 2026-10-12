@@ -177,10 +177,26 @@ void testLevels() {
     check(original.need(4) == 11000000, "repeated amounts are kept");
     check(sf::LevelCurve::fromTables(sf::GameTables{}).needs.empty(), "no table 13, no curve");
 
-    check(sf::statsAtLevel(1).maxHp == 150 && sf::statsAtLevel(1).attack == 0, "level 1 has the base stats");
-    check(sf::statsAtLevel(5).maxHp == 310, "40 health a level up to 5");
-    check(sf::statsAtLevel(6).maxHp == 360 && sf::statsAtLevel(26).maxHp == 1350, "then 50 a level for 20 levels");
-    check(sf::statsAtLevel(35).maxHp == 1710 && sf::statsAtLevel(36).maxHp == 1740, "then 40, then 30");
+    using S = sf::HeroStats;
+    const auto start = sf::heroStats(1);
+    check(start[S::kHp] == 150 && start[S::kAttack] == 10 && start[S::kDefense] == 10 && start[S::kHit] == 40 &&
+              start[S::kEvasion] == 40,
+          "level 1 has the original's starting stats");
+    check(sf::classAtLevel(5) == sf::HeroClass::Novice && sf::classAtLevel(6) == sf::HeroClass::Warrior,
+          "a warrior from level 6");
+    const auto five = sf::heroStats(5, sf::HeroClass::Novice);
+    check(five[S::kHp] == 310 && five[S::kAttack] == 26 && five[S::kMagicAttack] == 18, "four classless levels");
+    check(sf::heroStats(6)[S::kHp] == 360 && sf::heroStats(26)[S::kHp] == 1350, "a warrior gains 50 health for 20 levels");
+    check(sf::heroStats(35)[S::kHp] == 1710 && sf::heroStats(36)[S::kHp] == 1740, "then 40, then 30");
+    check(sf::heroStats(16)[S::kAttack] == 26 + 90 + 7, "a warrior's attack: 9 for 10 levels, then 7");
+    check(sf::heroStats(10, sf::HeroClass::Magician)[S::kMagicAttack] == 18 + 60, "a magician's magic");
+    check(sf::heroStats(9, sf::HeroClass::Hunter)[S::kAttackSpeed] == 102, "a hunter's speed every second level");
+
+    check(sf::hitChance(140, 0) == 98 && sf::hitChance(50, 60) == 20 && sf::hitChance(70, 20) == 50,
+          "hit chance is hit minus evasion, from 20 to 98");
+    check(sf::meleeDamage(30, 10, 0) == 17 && sf::meleeDamage(30, 10, 1) == 20 && sf::meleeDamage(30, 10, 2) == 23,
+          "damage is 90-110% of attack minus defence");
+    check(sf::meleeDamage(10, 30, 1) == 1, "at least 1 damage");
     check(sf::defaultExperience(30, 4) == 14, "a goblin's default experience");
 }
 

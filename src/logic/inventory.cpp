@@ -172,11 +172,6 @@ std::vector<int> Inventory::heroLayers() const {
     return layers;
 }
 
-int reduceDamage(int damage, int defense) {
-    if (damage <= 0) return 0;
-    return std::max(1, damage * 100 / (100 + std::max(0, defense)));
-}
-
 int rollGold(int chance, int min, int max, Random& random) {
     if (chance <= 0 || random.next(100) >= chance) return 0;
     if (max < min) std::swap(min, max);

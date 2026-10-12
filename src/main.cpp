@@ -40,6 +40,7 @@ struct Options {
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
+    int level = 0;            // start at this level (for tests)
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -72,6 +73,8 @@ Options parseArgs(int argc, char** argv) {
             options.inventory = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
             options.saveFile = argv[++i];
+        } else if (arg == "--level" && i + 1 < argc) {
+            options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--load") {
             options.load = true;
         } else if (arg == "--save-at-end") {
@@ -258,6 +261,7 @@ int main(int argc, char** argv) {
         SDL_free(prefs);
     }
     if (options.load) app.game->loadGame();
+    if (options.level > 0) app.game->setLevel(options.level);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);

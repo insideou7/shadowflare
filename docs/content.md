@@ -117,8 +117,14 @@ pixel chips, as in the original game.
 direction, hit points, attack, wander radius in world units, and the AI
 list it follows, optionally followed by its level (which items it may
 drop), the chance in percent that it drops gold and the least and most
-gold, and then the experience it gives. Without that, a monster gives a
-third of its hit points plus its attack. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
+gold, then the experience it gives, and then its defence, hit and evasion
+(0, 50 and 0 when left out, the original's usual values). Without an
+experience field, a monster gives a third of its hit points plus its attack.
+Combat follows the original: a blow lands with a chance of hit minus
+evasion (20 to 98 percent) and does 90-110% of the attack minus the
+defence, at least 1. `tools/content/balance.py` sets these numbers for our
+maps from the level the player should be at on each; the `# base` comment
+on each line is the monster's strength it starts from. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 

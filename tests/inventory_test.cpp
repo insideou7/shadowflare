@@ -177,8 +177,6 @@ void testLoot() {
         sawTablet |= d && d->cls == Class::Consumable;
     }
     check(sawSword && sawTablet, "every allowed item can drop");
-    check(sf::reduceDamage(10, 0) == 10 && sf::reduceDamage(10, 100) == 5 && sf::reduceDamage(1, 500) == 1,
-          "defense reduces damage but never to nothing");
     sf::ItemTable none;
     check(sf::pickDrop(none, 5, random) == nullptr, "nothing to drop");
 }

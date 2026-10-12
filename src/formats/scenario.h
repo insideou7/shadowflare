@@ -33,6 +33,8 @@ struct ScenarioControl {
             std::int32_t hp = 0;
             std::int32_t attack = 0;
             std::int32_t defense = 0;
+            std::int32_t hit = 50;      // word 10; 50 for every monster in the original
+            std::int32_t evasion = 0;   // word 12
             std::int32_t experience = 0;
             std::int32_t level = 0;
             std::int32_t goldChance = 0;  // percent; word 49, read by the exe at 0x45a030

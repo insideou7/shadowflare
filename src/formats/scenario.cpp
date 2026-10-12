@@ -53,7 +53,9 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         p.stats.element = words[6];
         p.stats.hp = words[8];
         p.stats.attack = words[9];
+        p.stats.hit = words[10];
         p.stats.defense = words[11];
+        p.stats.evasion = words[12];
         p.stats.experience = words[13];
         p.stats.level = words[14];
         p.stats.goldChance = words[49];
