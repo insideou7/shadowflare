@@ -52,6 +52,7 @@ add_executable(shadowflare
     src/game/enemy_ai.cpp
     src/game/items.cpp
     src/game/saving.cpp
+    src/game/title.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

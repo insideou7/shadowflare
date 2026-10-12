@@ -82,6 +82,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     for (std::size_t i = 0; i < mapNames_.size(); ++i) {
         if (equalsIgnoreCase(mapNames_[i], startMap)) start = i;
     }
+    startMapIndex_ = start;
     loadMap(start);
 }
 
@@ -306,11 +307,15 @@ void Game::updateCamera() {
 }
 
 void Game::handleEvent(const SDL_Event& event) {
+    if (menuOpen_) {
+        menuEvent(event);
+        return;
+    }
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-                case SDLK_ESCAPE: quit_ = true; break;
+                case SDLK_ESCAPE: openMenu(false); break;
                 case SDLK_PAGEDOWN:
                 case SDLK_n:
                     if (!mapNames_.empty()) loadMap((mapIndex_ + 1) % mapNames_.size());
@@ -354,7 +359,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::tick() {
     ++ticks_;
-    if (!map_) return;
+    if (!map_ || menuOpen_) return;  // the world waits while the menu is open
     for (auto& actor : actors_) {
         if (actor.hostile() && player_) {
             if (actor.aiList >= 0) {
@@ -661,6 +666,7 @@ void Game::render(double interpolation) {
     } else {
         renderPlaceholder(interpolation);
     }
+    if (menuOpen_) renderMenu();
     SDL_RenderPresent(renderer_);
 }
 
@@ -805,7 +811,7 @@ void Game::renderHealthBars(int camX, int camY) {
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
         bar(sx - camX - 20, sy - camY - 100, 40, 5, static_cast<double>(a.hp) / a.maxHp);
     }
-    if (player_) {
+    if (player_ && !menuOpen_) {
         bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
         // Experience towards the next level, in a thin blue bar underneath.
         const auto need = levels_.need(playerLevel_);
