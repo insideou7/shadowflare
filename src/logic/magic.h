@@ -172,7 +172,7 @@ int spellMpCost(const MagicTables& t, int spell, int level, int equipmentSaving 
 double castSpeedFactor(const MagicTables& t, int spell, int chantSpeed, bool powerMode = false, bool overloaded = false);
 
 // HP or MP recovered every third frame (0x44f2f0): maximum x rate / 10000,
-// with the fraction carried over in `carry` (in 1/10000ths).
+// with the fraction carried over in `carry` (in hundredths of a point).
 int regenerate(int maximum, int rate, int& carry);
 
 }  // namespace sf

@@ -80,6 +80,8 @@ public:
 
     // The ten stats of everything worn, added up.
     std::array<int, ItemDef::kStatCount> stats() const;
+    // Their element levels, added up (0x44fca0).
+    std::array<int, 8> elements() const;
     // Layers of the hero's animation to draw: 0 (body) and 1 (shadow), then
     // the body armour's, the weapon's and its glow, and the shield's unless
     // the weapon is two-handed. Helmets, boots and accessories are not

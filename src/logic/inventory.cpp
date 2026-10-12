@@ -155,6 +155,15 @@ std::array<int, ItemDef::kStatCount> Inventory::stats() const {
     return total;
 }
 
+std::array<int, 8> Inventory::elements() const {
+    std::array<int, 8> total{};
+    for (const auto& worn : equipped_) {
+        if (!worn) continue;
+        for (std::size_t i = 0; i < total.size(); ++i) total[i] += worn->def->elements[i];
+    }
+    return total;
+}
+
 std::vector<int> Inventory::heroLayers() const {
     std::vector<int> layers = {0, 1};
     auto add = [&](int layer) {
