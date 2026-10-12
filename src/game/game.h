@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "game/character.h"
@@ -97,6 +98,8 @@ public:
     // tests); `answers` close the messages that follow, one each.
     void talkToId(std::int32_t id);
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
+    // Sets a SAVE story flag, for testing scripts part way through the story.
+    void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
 
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
@@ -152,10 +155,18 @@ private:
     void openDialogue(const ScriptHost::Talk& talk);
     void closeDialogue(int answer);
     void dialogueEvent(const SDL_Event& event);
-    int dialogueOptionAt(int x, int y) const;
+    int dialogueOptionAt(int x, int y);
+    SDL_Rect dialogueBox();
+    SDL_Rect dialogueOptionRect(const SDL_Rect& box, int option);
+    // Text in the original's font when the data has it, else the tiny one.
+    const SpriteTexture* uiFont();
+    int uiTextWidth(std::string_view text);
+    void uiText(int x, int y, std::string_view text, SDL_Color color);
     void renderDialogue();
     bool shopClick(int x, int y, bool right);
     void renderShop();
+    bool drawShopPicture();
+    void closeShop();
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
     Actor* actorById(std::int32_t id);
     const Actor* actorById(std::int32_t id) const;

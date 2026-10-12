@@ -1,0 +1,4 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The shop window, on the left of the 640 x 480 screen.
+image=Shop.png
+frame=0,0,320,416,0,0

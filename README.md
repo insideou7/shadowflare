@@ -83,6 +83,7 @@ Options:
 - `--level <n>` start the hero at level n
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
 - `--answers <a,b,...>` answer the next messages with these options (-1 = none)
+- `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 
 Run the unit tests with `ctest --test-dir build`.

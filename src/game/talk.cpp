@@ -4,6 +4,7 @@
 #include <cmath>
 #include <format>
 #include <utility>
+#include <vector>
 
 #include "core/log.h"
 #include "game/game.h"
@@ -14,8 +15,11 @@ namespace sf {
 namespace {
 
 constexpr int kCell = 32;
+// The shop window, where the original draws it: Status.njp patterns 7 and
+// 8 (its top and bottom halves) on the left of the screen, with the 9 x 10
+// cells of goods from (16, 72).
 constexpr SDL_Rect kShopPanel{0, 0, 320, 416};
-constexpr int kShopX = 16, kShopY = 40;
+constexpr int kShopX = 16, kShopY = 72;
 constexpr SDL_Color kWhite{235, 230, 215, 255};
 constexpr SDL_Color kGold{255, 210, 80, 255};
 constexpr SDL_Color kGrey{140, 135, 125, 255};
@@ -42,8 +46,10 @@ std::string toAscii(const std::string& text) {
             out += static_cast<char>(c);
         } else if ((c >= 0x81 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfc)) {
             const auto next = i + 1 < text.size() ? static_cast<unsigned char>(text[i + 1]) : 0;
-            if (c == 0x81 && next == 0x40) out += ' ';
-            if (c == 0x81 && next == 0x45) out += '-';
+            // Full width is two half-width cells; 0xa5 is the original
+            // font's half-width middle dot.
+            if (c == 0x81 && next == 0x40) out += "  ";
+            if (c == 0x81 && next == 0x45) out += "\xa5 ";
             ++i;
         }
     }
@@ -249,38 +255,70 @@ void Game::closeDialogue(int answer) {
     runEvent(ScenarioScript::kOnTalkEnd, d.speaker);
 }
 
-namespace {
+// The original's half-width font: pattern 0 of Font00.njp is the
+// character set as a 16 x 16 grid of 6 x 12 cells, by byte value.
+const SpriteTexture* Game::uiFont() {
+    const SpriteBank* bank = itemBank("System/Common/Pattern/Font00");
+    if (!bank || bank->patterns.empty()) return nullptr;
+    const SpriteTexture* t = sprites_.get(*bank, 0, false);
+    return t && t->width >= 96 && t->height >= 192 ? t : nullptr;
+}
+
+int Game::uiTextWidth(std::string_view text) {
+    return uiFont() ? static_cast<int>(text.size()) * 6 : textWidth(text);
+}
+
+void Game::uiText(int x, int y, std::string_view text, SDL_Color color) {
+    const SpriteTexture* font = uiFont();
+    if (!font) {
+        std::string plain(text);
+        std::ranges::replace(plain, '\xa5', '-');
+        drawText(renderer_, x, y, plain, color);
+        return;
+    }
+    SDL_SetTextureColorMod(font->texture, color.r, color.g, color.b);
+    for (const char ch : text) {
+        const auto c = static_cast<unsigned char>(ch);
+        const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
+        const SDL_Rect dst{x, y, 6, 12};
+        SDL_RenderCopy(renderer_, font->texture, &src, &dst);
+        x += 6;
+    }
+    SDL_SetTextureColorMod(font->texture, 255, 255, 255);
+}
 
 // Where the box goes: above the speaker, kept on screen.
-SDL_Rect dialogueBox(const std::vector<std::string>& lines, int anchorX, int anchorY) {
+SDL_Rect Game::dialogueBox() {
+    const auto& d = *dialogue_;
+    int ax = kScreenWidth / 2, ay = kScreenHeight / 2;
+    if (const auto* a = actorById(d.speaker)) {
+        worldToScreen(static_cast<int>(a->character.x), static_cast<int>(a->character.y), ax, ay);
+        ax -= static_cast<int>(cameraX_);
+        ay -= static_cast<int>(cameraY_) + 110;
+    }
     int w = 0;
-    for (const auto& l : lines) w = std::max(w, textWidth(l));
+    for (const auto& l : d.lines) w = std::max(w, uiTextWidth(l));
     w += 24;
-    const int h = static_cast<int>(lines.size()) * kLineHeight + 18;
-    SDL_Rect r{anchorX - w / 2, anchorY - h, w, h};
+    const int h = static_cast<int>(d.lines.size()) * kLineHeight + 18;
+    SDL_Rect r{ax - w / 2, ay - h, w, h};
     r.x = std::clamp(r.x, 4, kScreenWidth - 4 - r.w);
     r.y = std::clamp(r.y, 4, kScreenHeight - 70 - r.h);
     return r;
 }
 
-}  // namespace
+SDL_Rect Game::dialogueOptionRect(const SDL_Rect& box, int option) {
+    const auto& o = dialogue_->options[static_cast<std::size_t>(option)];
+    const std::string& l = dialogue_->lines[static_cast<std::size_t>(o.line)];
+    const int x = box.x + 12 + uiTextWidth(std::string_view(l).substr(0, o.from));
+    const int y = box.y + 9 + o.line * kLineHeight;
+    return {x - 3, y - 1, uiTextWidth(std::string_view(l).substr(o.from, o.to - o.from)) + 6, kLineHeight};
+}
 
-int Game::dialogueOptionAt(int x, int y) const {
+int Game::dialogueOptionAt(int x, int y) {
     if (!dialogue_) return -1;
-    int ax = kScreenWidth / 2, ay = kScreenHeight / 2;
-    if (const auto* a = actorById(dialogue_->speaker)) {
-        worldToScreen(static_cast<int>(a->character.x), static_cast<int>(a->character.y), ax, ay);
-        ax -= static_cast<int>(cameraX_);
-        ay -= static_cast<int>(cameraY_) + 100;
-    }
-    const SDL_Rect box = dialogueBox(dialogue_->lines, ax, ay);
-    for (std::size_t i = 0; i < dialogue_->options.size(); ++i) {
-        const auto& o = dialogue_->options[i];
-        const std::string& l = dialogue_->lines[static_cast<std::size_t>(o.line)];
-        const int x0 = box.x + 12 + textWidth(l.substr(0, o.from)) - 4;
-        const int x1 = box.x + 12 + textWidth(l.substr(0, o.to)) + 4;
-        const int y0 = box.y + 10 + o.line * kLineHeight - 3;
-        if (x >= x0 && x < x1 && y >= y0 && y < y0 + kLineHeight) return static_cast<int>(i);
+    const SDL_Rect box = dialogueBox();
+    for (int i = 0; i < static_cast<int>(dialogue_->options.size()); ++i) {
+        if (inside(dialogueOptionRect(box, i), x, y)) return i;
     }
     return -1;
 }
@@ -323,26 +361,51 @@ void Game::dialogueEvent(const SDL_Event& event) {
 void Game::renderDialogue() {
     if (!dialogue_) return;
     const auto& d = *dialogue_;
-    int ax = kScreenWidth / 2, ay = kScreenHeight / 2;
-    if (const auto* a = actorById(d.speaker)) {
-        worldToScreen(static_cast<int>(a->character.x), static_cast<int>(a->character.y), ax, ay);
-        ax -= static_cast<int>(cameraX_);
-        ay -= static_cast<int>(cameraY_) + 100;
+    const SDL_Rect box = dialogueBox();
+    const SpriteBank* balloon = itemBank("System/Game/Pattern/Hukidasi");
+    SDL_Color ink = kWhite, lit = kGold;
+    if (balloon && balloon->patterns.size() >= 5) {
+        // The original's speech balloon: white with a black edge, its
+        // corners are patterns 0-3 (top left, bottom left, top right,
+        // bottom right) and the edges between them repeat their last
+        // row or column; pattern 4 is the tail pointing at the speaker.
+        ink = {0, 0, 0, 255};
+        lit = {200, 40, 40, 255};
+        const SpriteTexture* c[4];
+        for (int k = 0; k < 4; ++k) c[k] = sprites_.get(*balloon, k, false);
+        if (c[0] && c[1] && c[2] && c[3]) {
+            const int n = c[0]->width;  // 9
+            SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+            SDL_SetRenderDrawColor(renderer_, 248, 248, 248, 255);
+            const SDL_Rect inner{box.x + 4, box.y + 4, box.w - 8, box.h - 8};
+            SDL_RenderFillRect(renderer_, &inner);
+            auto blit = [&](const SpriteTexture* t, SDL_Rect src, SDL_Rect dst) { SDL_RenderCopy(renderer_, t->texture, &src, &dst); };
+            const int right = box.x + box.w - n, bottom = box.y + box.h - n;
+            blit(c[0], {0, 0, n, n}, {box.x, box.y, n, n});
+            blit(c[1], {0, 0, n, n}, {box.x, bottom, n, n});
+            blit(c[2], {0, 0, n, n}, {right, box.y, n, n});
+            blit(c[3], {0, 0, n, n}, {right, bottom, n, n});
+            blit(c[0], {n - 1, 0, 1, n}, {box.x + n, box.y, box.w - 2 * n, n});      // top
+            blit(c[1], {n - 1, 0, 1, n}, {box.x + n, bottom, box.w - 2 * n, n});      // bottom
+            blit(c[0], {0, n - 1, n, 1}, {box.x, box.y + n, n, box.h - 2 * n});      // left
+            blit(c[2], {0, n - 1, n, 1}, {right, box.y + n, n, box.h - 2 * n});      // right
+        }
+        if (const SpriteTexture* t = sprites_.get(*balloon, 4, false); t && actorById(d.speaker)) {
+            const SDL_Rect dst{box.x + box.w / 2 - t->width / 2, box.y + box.h - 4, t->width, t->height};
+            SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+        }
+    } else {
+        frame(renderer_, box, {10, 12, 30, 215}, {170, 150, 100, 255});
     }
-    const SDL_Rect box = dialogueBox(d.lines, ax, ay);
-    frame(renderer_, box, {10, 12, 30, 215}, {170, 150, 100, 255});
     for (std::size_t i = 0; i < d.lines.size(); ++i) {
-        drawText(renderer_, box.x + 12, box.y + 10 + static_cast<int>(i) * kLineHeight, d.lines[i], kWhite);
+        uiText(box.x + 12, box.y + 9 + static_cast<int>(i) * kLineHeight, d.lines[i], ink);
     }
     // The chosen option is lit up.
     if (!d.options.empty()) {
         const auto& o = d.options[static_cast<std::size_t>(d.choice)];
         const std::string& l = d.lines[static_cast<std::size_t>(o.line)];
-        const int x = box.x + 12 + textWidth(l.substr(0, o.from));
-        const int y = box.y + 10 + o.line * kLineHeight;
-        const SDL_Rect hl{x - 4, y - 3, textWidth(l.substr(o.from, o.to - o.from)) + 8, kLineHeight};
-        frame(renderer_, hl, {200, 170, 80, 70}, {230, 200, 110, 255});
-        drawText(renderer_, x, y, l.substr(o.from, o.to - o.from), kGold);
+        const SDL_Rect r = dialogueOptionRect(box, d.choice);
+        uiText(r.x + 3, r.y + 1, std::string_view(l).substr(o.from, o.to - o.from), lit);
     }
 }
 
@@ -351,12 +414,6 @@ bool Game::shopClick(int x, int y, bool right) {
     if (!openShop_) return false;
     if (!inside(kShopPanel, x, y)) return false;
     auto& stock = shops_[*openShop_];
-    const SDL_Rect quit{kShopPanel.w / 2 - 30, kShopPanel.h - 30, 60, 20};
-    if (inside(quit, x, y) && !hand_) {
-        openShop_.reset();
-        showInventory_ = false;
-        return true;
-    }
     if (hand_) {
         // Selling: the shop takes the item and pays a quarter of its price.
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
@@ -370,10 +427,14 @@ bool Game::shopClick(int x, int y, bool right) {
         hand_.reset();
         return true;
     }
+    // A right click anywhere else in the window leaves the shop.
     const SDL_Rect grid{kShopX, kShopY, ShopStock::kWidth * kCell, ShopStock::kHeight * kCell};
-    if (!inside(grid, x, y) || right) return true;
-    const int i = stock.indexAt((x - kShopX) / kCell, (y - kShopY) / kCell);
-    if (i < 0) return true;
+    const int i = inside(grid, x, y) ? stock.indexAt((x - kShopX) / kCell, (y - kShopY) / kCell) : -1;
+    if (right && i < 0) {
+        closeShop();
+        return true;
+    }
+    if (i < 0 || right) return true;
     const Item item = stock.goods[static_cast<std::size_t>(i)].item;
     const int price = buyPrice(*item.def);
     if (inventory_.gold() < price) {
@@ -389,6 +450,37 @@ bool Game::shopClick(int x, int y, bool right) {
     return true;
 }
 
+void Game::closeShop() {
+    if (!openShop_ || hand_) return;
+    openShop_.reset();
+    showInventory_ = false;
+}
+
+// The shop window's background: the open pack's Shop.sheet or the
+// original's Status.njp patterns 7 and 8, at their own screen positions.
+bool Game::drawShopPicture() {
+    const SpriteBank* bank = itemBank("System/Game/Pattern/Shop");
+    std::vector<int> patterns = {0};
+    if (!bank) {
+        bank = itemBank("System/Game/Pattern/Status");
+        patterns = {7, 8};
+    }
+    bool drawn = false;
+    for (int pattern : patterns) {
+        if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, pattern, false) : nullptr) {
+            const SDL_Rect dst{sprite->originX, sprite->originY, sprite->width, sprite->height};
+            // The original blits its windows whole: colour 0, which sprites
+            // leave out, is black here.
+            SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_NONE);
+            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+            SDL_RenderFillRect(renderer_, &dst);
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            drawn = true;
+        }
+    }
+    return drawn;
+}
+
 void Game::renderShop() {
     if (!openShop_) return;
     int mx = 0, my = 0;
@@ -400,31 +492,52 @@ void Game::renderShop() {
         mx = static_cast<int>(lx);
         my = static_cast<int>(ly);
     }
-    frame(renderer_, kShopPanel, {20, 18, 26, 225}, {150, 130, 90, 255});
-    drawText(renderer_, kShopX, 16, "SHOP", kGold);
-    const auto& stock = shops_[*openShop_];
-    for (int y = 0; y < ShopStock::kHeight; ++y) {
-        for (int x = 0; x < ShopStock::kWidth; ++x) {
-            frame(renderer_, {kShopX + x * kCell, kShopY + y * kCell, kCell, kCell}, {35, 32, 40, 255}, {80, 74, 64, 255});
+    const bool picture = drawShopPicture();
+    if (!picture) {
+        frame(renderer_, kShopPanel, {20, 18, 26, 225}, {150, 130, 90, 255});
+        for (int y = 0; y < ShopStock::kHeight; ++y) {
+            for (int x = 0; x < ShopStock::kWidth; ++x) {
+                frame(renderer_, {kShopX + x * kCell, kShopY + y * kCell, kCell, kCell}, {35, 32, 40, 255}, {80, 74, 64, 255});
+            }
         }
     }
+    const auto& stock = shops_[*openShop_];
     const ItemDef* hover = nullptr;
     for (const auto& g : stock.goods) {
         const SDL_Rect r{kShopX + g.x * kCell, kShopY + g.y * kCell, g.item.def->width * kCell, g.item.def->height * kCell};
-        frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
+        // Over a picture, a faint wash shows which cells an item takes.
+        if (picture) {
+            frame(renderer_, r, {90, 80, 110, 40}, {150, 130, 90, 90});
+        } else {
+            frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
+        }
         drawItemPicture(*g.item.def, r);
         if (inside(r, mx, my)) hover = g.item.def;
     }
-    if (hand_) {
-        drawText(renderer_, kShopX, kShopY + ShopStock::kHeight * kCell + 8, std::format("SELL FOR {}", sellPrice(*hand_->def) * std::max(1, hand_->count)), kGold);
-    } else if (hover) {
-        std::string text = std::format("{}  {} GOLD", hover->name, buyPrice(*hover));
-        if (text.size() > 36) text = std::format("{} GOLD", buyPrice(*hover));
-        drawText(renderer_, kShopX, kShopY + ShopStock::kHeight * kCell + 8, text, buyPrice(*hover) > inventory_.gold() ? kGrey : kWhite);
+    // What the item under the mouse costs, or what the held one sells for,
+    // in a box by the mouse.
+    std::vector<std::pair<std::string, SDL_Color>> lines;
+    if (hand_ && inside(kShopPanel, mx, my)) {
+        if (hand_->def->quality == 3 || hand_->def->isGold()) {
+            lines.emplace_back("Not for sale", kGrey);
+        } else {
+            lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_->def) * std::max(1, hand_->count)), kGold);
+        }
+    } else if (hover && !hand_) {
+        lines.emplace_back(hover->name, kWhite);
+        lines.emplace_back(std::format("{} gold", buyPrice(*hover)), buyPrice(*hover) > inventory_.gold() ? kGrey : kGold);
     }
-    const SDL_Rect quit{kShopPanel.w / 2 - 30, kShopPanel.h - 30, 60, 20};
-    frame(renderer_, quit, {45, 40, 50, 255}, {150, 130, 90, 255});
-    drawText(renderer_, quit.x + (quit.w - textWidth("QUIT")) / 2, quit.y + 5, "QUIT", inside(quit, mx, my) ? kGold : kWhite);
+    if (!lines.empty()) {
+        int w = 0;
+        for (const auto& l : lines) w = std::max(w, uiTextWidth(l.first));
+        SDL_Rect box{mx + 14, my + 14, w + 12, static_cast<int>(lines.size()) * kLineHeight + 8};
+        box.x = std::max(2, std::min(box.x, kShopPanel.w - box.w - 2));
+        box.y = std::min(box.y, kScreenHeight - box.h - 2);
+        frame(renderer_, box, {0, 0, 0, 200}, {150, 130, 90, 255});
+        for (std::size_t k = 0; k < lines.size(); ++k) {
+            uiText(box.x + 6, box.y + 5 + static_cast<int>(k) * kLineHeight, lines[k].first, lines[k].second);
+        }
+    }
 }
 
 }  // namespace sf
