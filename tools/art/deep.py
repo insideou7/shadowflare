@@ -293,6 +293,10 @@ PROPS = {
 }
 
 
+# Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
+WALLS = ("earth_x", "earth_y", "earth2", "shadow_", "earth_tall", "earth_block", "earth_post", "stone_ledge")
+
+
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else sys.argv[1:]
     blend = "--blend" in args
@@ -311,7 +315,8 @@ def main():
             # No glossy sheen: it greys the dark earth under the studio sky.
             if m.node_tree and "Principled BSDF" in m.node_tree.nodes:
                 m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

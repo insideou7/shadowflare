@@ -268,6 +268,10 @@ PROPS = {
 }
 
 
+# Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
+WALLS = ("mine_", "frame_")
+
+
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else sys.argv[1:]
     blend = "--blend" in args
@@ -282,7 +286,8 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

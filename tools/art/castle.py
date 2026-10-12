@@ -38,7 +38,7 @@ DRESSED = dict(colour=(0.20, 0.19, 0.18), dark=(0.05, 0.05, 0.05), scale=6, deta
 EARTHTOP = dict(colour=(0.24, 0.17, 0.10), dark=(0.07, 0.05, 0.03), scale=18, rough=1.0, bump=1.0)
 BLACK = dict(colour=(0.015, 0.015, 0.02), dark=(0.005, 0.005, 0.01), scale=4, bump=0)
 
-WALL_L, WALL_T, WALL_H = 6.4, 0.9, 4.6
+WALL_L, WALL_T, WALL_H = 6.4, 0.9, 6.2  # as tall as the original's town walls
 
 
 def glow(name, colour, dark, strength, **kw):
@@ -98,7 +98,7 @@ def arcade(along_y=False):
     L, H, T = 5.6, WALL_H, 1.6  # the original sets these bays 5.5 units apart
     face = -T / 2
     w = solid(box((L, T, H), (0, 0, H / 2), stone))
-    aw, spring = 1.8, 2.5  # arch width, height where the pointed head starts
+    aw, spring = 1.8, 3.4  # arch width, height where the pointed head starts
     for x0 in (-1.35, 1.35):
         cut(w, solid(box((aw, 0.8, spring), (x0, face, spring / 2), stone)))
         head = solid(box((aw / math.sqrt(2), 0.8, aw / math.sqrt(2)), (x0, face, spring), stone))
@@ -109,7 +109,7 @@ def arcade(along_y=False):
         for k in range(5):
             box((0.07, 0.07, spring + 0.5), (x0 - aw / 2 + 0.15 + k * (aw - 0.3) / 4, face + 0.2,
                                             (spring + 0.5) / 2), steel)
-        for z in (0.6, 1.25, 1.9, 2.55):
+        for z in (0.8, 1.7, 2.6, 3.5):
             box((aw, 0.07, 0.07), (x0, face + 0.2, z), steel)
         # A carved moulding round the arch.
         for sx in (-1, 1):
@@ -117,7 +117,7 @@ def arcade(along_y=False):
             box((0.16, 0.2, aw * 0.75), (x0 + sx * aw / 4, face - 0.05, spring + aw / 4), carved,
                 rot=(0, -sx * math.pi / 4, 0))
     # The rose window between the arch heads.
-    rx, rz = 0.0, 3.55
+    rx, rz = 0.0, 4.8
     cyl(0.45, 0.1, (rx, face - 0.01, rz), black, rot=(math.pi / 2, 0, 0), verts=24)
     bpy.ops.mesh.primitive_torus_add(major_radius=0.5, minor_radius=0.1, location=(rx, face - 0.05, rz),
                                      rotation=(math.pi / 2, 0, 0))
@@ -382,6 +382,10 @@ PROPS = {
 }
 
 
+# Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
+WALLS = ("castle_", "arcade")
+
+
 def main():
     args = [a for a in sys.argv[sys.argv.index("--") + 1:]] if "--" in sys.argv else sys.argv[1:]
     blend = "--blend" in args
@@ -402,7 +406,8 @@ def main():
             # No glossy sheen on stone; steel and gold keep theirs.
             if m.node_tree and "Principled BSDF" in m.node_tree.nodes and m.name not in ("steel", "gold"):
                 m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.0
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+                      elevation=studio.WALL_ELEVATION if name.startswith(WALLS) else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

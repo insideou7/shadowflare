@@ -205,6 +205,35 @@ def vat():
         cyl(0.94, 0.14, (0, 0, z), iron, verts=24)
 
 
+def valve_stand(back=False):
+    """A copper pump on three iron legs beside a pillar: a fat upright
+    body, a pressure gauge on top, a hand wheel on its side and a pipe
+    running into the pillar, up and to the right on screen (back: down and
+    to the right, for a pump standing behind the pillar)."""
+    copper, iron = mat("copper", OLDCOPPER), mat("iron", IRON)
+    for k in range(3):
+        a = math.pi / 2 + k * 2 * math.pi / 3
+        box((0.12, 0.12, 1.2), (0.45 * math.cos(a), 0.45 * math.sin(a), 0.55), iron,
+            rot=(0.35 * math.sin(a), -0.35 * math.cos(a), 0))
+    cyl(0.42, 1.5, (0, 0, 1.75), copper, verts=20)
+    for z in (1.05, 2.45):
+        cyl(0.46, 0.12, (0, 0, z), iron, verts=20)
+    ball(0.42, (0, 0, 2.5), copper, scale=(1, 1, 0.45))
+    cyl(0.1, 0.4, (0, 0, 2.85), copper)
+    cyl(0.3, 0.12, (0, 0, 3.15), iron, rot=(math.pi / 2, 0, 0), verts=20)  # the gauge
+    cyl(0.24, 0.02, (0, -0.07, 3.15), mat("dial", dict(colour=(0.80, 0.76, 0.62), dark=(0.5, 0.47, 0.4),
+                                                          scale=8, bump=0.1)), rot=(math.pi / 2, 0, 0))
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.32, minor_radius=0.05, location=(-0.55, 0, 1.9),
+                                     rotation=(0, math.pi / 2, 0))
+    studio.assign(bpy.context.object, iron)
+    cyl(0.06, 0.2, (-0.47, 0, 1.9), iron, rot=(0, math.pi / 2, 0))
+    if back:
+        cyl(0.16, 1.4, (0.8, 0, 2.0), copper, rot=(0, math.pi / 2, 0))
+    else:
+        cyl(0.16, 1.4, (0, 0.8, 2.0), copper, rot=(math.pi / 2, 0, 0))
+    resize(1.3)
+
+
 def gate(along_y=False):
     """A gate of iron bars with spear tips between two posts."""
     iron, rust = mat("iron", IRON), mat("rust", RUST)
@@ -309,6 +338,8 @@ PROPS = {
     "pipe_elbow": (elbow, 128),
     "pipe_hub": (lambda: (hub(), resize(1.35)), 320),
     "vat": (vat, 128),
+    "valve_stand": (valve_stand, 128),
+    "valve_stand_back": (lambda: valve_stand(back=True), 128),
     "gate_x": (gate, 224),
     "gate_y": (lambda: gate(along_y=True), 224),
     "hatch": (hatch, 64),
@@ -337,12 +368,12 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
-        walls = name.startswith(("dwall", "dpillar", "dstairs", "ddais"))
+        walls = name.startswith(("dwall", "dpillar", "dstairs", "ddais", "valve_stand"))
         if walls:  # the original's walls cast no shadows
             bpy.data.objects["shadow catcher"].hide_render = True
-        # and are drawn looking down at 45 degrees, so their tops slope like the original's
+        # and are drawn at the original's steeper angle for walls
         studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
-                      elevation=math.radians(45) if walls else None)
+                      elevation=studio.WALL_ELEVATION if walls else None)
         ax, ay = studio.anchor(scene)
         if blend:
             studio.save_blend(out / f"{name}.blend")

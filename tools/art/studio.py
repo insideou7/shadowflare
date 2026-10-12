@@ -54,11 +54,17 @@ def reset(samples=24):
     return scene
 
 
+# The original draws its walls (and most of its objects) looking down at 45
+# degrees, a little steeper than its maps' 3:2 diamond, so wall tops slope
+# 0.71 on screen rather than 0.67. Walls rendered at this pitch meet the
+# original's pieces without gaps or steps.
+WALL_ELEVATION = math.radians(45)
+
+
 def camera(scene, width, height, target=(0, 0, 0), elevation=None):
     """An orthographic camera with the game's angle, centred on target.
     elevation: another pitch, in radians, keeping the same width per unit
-    along the ground (the original's dungeon walls look down at 45 degrees,
-    a little steeper than its maps)."""
+    along the ground, such as WALL_ELEVATION."""
     pitch = ELEVATION if elevation is None else elevation
     cam = bpy.data.cameras.new("camera")
     cam.type = "ORTHO"
