@@ -27,7 +27,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     ItemDef d;
     d.cls = cls;
     d.name = invertedString(in);
-    invertedString(in);  // the name shown before the item is identified
+    d.unidentifiedName = invertedString(in);
     // The part every class shares, in file order (object offsets in
     // brackets, as in docs/formats.md).
     d.subtype = in.i32();     // 0x10
@@ -56,7 +56,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     };
     switch (cls) {
         case ItemDef::Class::Weapon:
-            in.i32();  // durability
+            d.durability = in.i32();  // 0xb8
             stats();
             d.itemLevel = in.i32();
             d.requiredLevel = in.i32();
@@ -69,7 +69,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.glowLayer = glow;
             break;
         case ItemDef::Class::Armour:
-            in.i32();  // durability
+            d.durability = in.i32();  // 0xb8
             stats();
             d.itemLevel = in.i32();
             d.requiredLevel = in.i32();

@@ -17,6 +17,7 @@
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
 #include "game/game.h"
+#include "game/skin.h"
 #include "platform/filesystem.h"
 
 namespace {
@@ -30,19 +31,25 @@ struct Options {
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
+    int partner = -1;        // a companion kind to bring, ACTIVE
     std::optional<std::pair<int, int>> at;  // start position in map pixels
     struct Gift {
-        int itemClass = 0, code = 0, count = 1;
+        int itemClass = 0, code = 0, count = 1, wear = 0;
         sf::Game::GiveTo to = sf::Game::GiveTo::Bag;
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
+    bool options = false;     // open the Settings Menu at the start (for screenshots)
+    bool help = false;        // open the Help window at the start
+    std::string optionsFile;  // default: options.txt in the user's settings folder
     std::string saveFile;     // default: save.txt in the user's settings folder
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
+    std::optional<std::filesystem::path> skin;  // open content drawn over the original game
+    bool originalArt = false;  // draw the original game with its own art
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
@@ -71,11 +78,12 @@ Options parseArgs(int argc, char** argv) {
             int x = 0, y = 0;
             if (std::sscanf(argv[++i], "%d,%d", &x, &y) == 2) options.at.emplace(x, y);
         } else if ((arg == "--give" || arg == "--equip" || arg == "--drop") && i + 1 < argc) {
-            // class:code[:count], e.g. --give 0:0 (Short Sword), --give 4:0:500 (gold)
+            // class:code[:count[:wear]], e.g. --give 0:0 (Short Sword), --give 4:0:500
+            // (gold), --equip 0:0:1:150 (a Short Sword worn down by 150 points)
             Options::Gift gift;
             if (arg == "--equip") gift.to = sf::Game::GiveTo::Wear;
             if (arg == "--drop") gift.to = sf::Game::GiveTo::Ground;
-            if (std::sscanf(argv[++i], "%d:%d:%d", &gift.itemClass, &gift.code, &gift.count) >= 2) {
+            if (std::sscanf(argv[++i], "%d:%d:%d:%d", &gift.itemClass, &gift.code, &gift.count, &gift.wear) >= 2) {
                 options.gifts.push_back(gift);
             } else {
                 sf::log::warn("{} expects class:code[:count]", arg);
@@ -88,6 +96,10 @@ Options parseArgs(int argc, char** argv) {
             options.saveFile = argv[++i];
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--skin" && i + 1 < argc) {
+            options.skin = argv[++i];
+        } else if (arg == "--original-art") {
+            options.originalArt = true;
         } else if (arg == "--talk" && i + 1 < argc) {
             options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--answers" && i + 1 < argc) {
@@ -110,12 +122,20 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--spell" && i + 1 < argc) {
             if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
+        } else if (arg == "--options") {
+            options.options = true;
+        } else if (arg == "--options-file" && i + 1 < argc) {
+            options.optionsFile = argv[++i];
+        } else if (arg == "--help-window") {
+            options.help = true;
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
             options.load = true;
         } else if (arg == "--save-at-end") {
             options.saveAtEnd = true;
+        } else if (arg == "--partner" && i + 1 < argc) {
+            options.partner = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -245,22 +265,23 @@ int main(int argc, char** argv) {
     // open replacement content that ships with the engine.
     std::filesystem::path installRoot;
     std::vector<std::filesystem::path> candidates;
+    // Relative to the working folder first, then next to the executable
+    // and the folders above it, so it also starts when launched from
+    // build/Debug or by double-clicking.
+    std::vector<std::filesystem::path> bases = {"."};
+    if (char* exe = SDL_GetBasePath()) {
+        std::filesystem::path dir = std::filesystem::path(exe).parent_path();
+        SDL_free(exe);
+        for (int up = 0; up < 4 && !dir.empty(); ++up, dir = dir.parent_path()) {
+            bases.push_back(dir);
+            if (dir == dir.parent_path()) break;
+        }
+    }
     if (options.dataDir) {
         candidates.push_back(*options.dataDir);
     } else {
-        // Relative to the working folder first, then next to the executable
-        // and the folders above it, so it also starts when launched from
-        // build/Debug or by double-clicking. The player's game comes before
-        // the open content wherever either is found.
-        std::vector<std::filesystem::path> bases = {"."};
-        if (char* exe = SDL_GetBasePath()) {
-            std::filesystem::path dir = std::filesystem::path(exe).parent_path();
-            SDL_free(exe);
-            for (int up = 0; up < 4 && !dir.empty(); ++up, dir = dir.parent_path()) {
-                bases.push_back(dir);
-                if (dir == dir.parent_path()) break;
-            }
-        }
+        // The player's game comes before the open content wherever either
+        // is found.
         for (const char* name : {"game", "content"}) {
             for (const auto& base : bases) candidates.push_back(base == "." ? name : base / name);
         }
@@ -287,7 +308,27 @@ int main(int argc, char** argv) {
             sf::log::warn("content.txt: {}", e.what());
         }
     }
-    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap);
+    // The original game is drawn with the open content's art (content/
+    // or --skin) unless --original-art is given.
+    std::unique_ptr<sf::Skin> skin;
+    if (!app.data->exists("content.txt") && !options.originalArt) {
+        std::vector<std::filesystem::path> packs;
+        if (options.skin) {
+            packs.push_back(*options.skin);
+        } else {
+            for (const auto& base : bases) packs.push_back(base == "." ? "content" : base / "content");
+        }
+        for (const auto& pack : packs) {
+            if (!std::filesystem::exists(pack / "skin.txt")) continue;
+            skin = sf::Skin::load(std::make_unique<sf::DirectoryFileSystem>(pack), app.renderer);
+            if (skin) {
+                sf::log::info("Drawing the game with the art in {}", pack.string());
+                break;
+            }
+        }
+        if (!skin && options.skin) sf::log::warn("No usable skin.txt in {}", options.skin->string());
+    }
+    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, skin.get());
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     app.game->setInventoryOpen(options.inventory);
@@ -298,16 +339,29 @@ int main(int argc, char** argv) {
         app.game->setSaveFile(std::string(prefs) + "save.txt");
         SDL_free(prefs);
     }
-    if (options.load) app.game->loadGame();
-    if (options.level > 0) app.game->setLevel(options.level);
-    if (options.original) app.game->setOriginalMode(true);
     // The main menu, unless this is a scripted run (tests, screenshots) or
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight || options.talk >= 0 || options.cast;
-    if (!scripted) app.game->openMenu(true);
-    for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
+                          options.level > 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast;
+    // The player's options (Esc in the game); scripted runs keep the
+    // defaults so they come out the same on every machine.
+    if (!options.optionsFile.empty()) {
+        app.game->setSettingsFile(options.optionsFile);
+    } else if (!scripted) {
+        if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
+            app.game->setSettingsFile(std::string(prefs) + "options.txt");
+            SDL_free(prefs);
+        }
+    }
+    if (options.load) app.game->loadGame();
+    if (options.level > 0) app.game->setLevel(options.level);
+    if (options.original) app.game->setOriginalMode(true);
+    if (!scripted) app.game->openMenu();
+    if (options.options) app.game->openOptions(true);
+    if (options.help) app.game->setHelpOpen(true);
+    for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);
+    if (options.partner >= 0) app.game->bringPartner(options.partner);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
@@ -330,6 +384,7 @@ int main(int argc, char** argv) {
     }
     sf::log::info("Exited after {} frames, {} ticks", app.frames, app.game->tickCount());
     app.game.reset();
+    skin.reset();
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();

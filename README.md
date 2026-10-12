@@ -7,7 +7,9 @@ ways to play:
 
 - With your own copy of ShadowFlare: copy its files into a `game/` folder at
   the repository root (git ignores it), or point the engine elsewhere with
-  `--data`. The engine reads them at runtime.
+  `--data`. The engine reads them at runtime and draws the game's own maps,
+  people and monsters with the art in [content/](content/) where it has
+  some (`--original-art` shows the original's art instead).
 - Without it: the engine falls back to the open replacement content in
   [content/](content/): our own ShadowFlare-style art, made from scratch
   in Blender, with seven areas from a village meadow down to a castle.
@@ -37,17 +39,23 @@ Change Career button. Heroes learn spells as they level up, as in the
 original (see [docs/magic.md](docs/magic.md)). Sound is not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
-Controls: hold the left mouse button to walk towards the cursor (or to
-attack the monster under it), or use
-the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
-map, Home returns to the start point, J shows the walkability grid, Esc opens the menu (resume, save, load, new game,
-original mode, quit). F1-F8 choose a spell from the bar at the bottom right
-and the right mouse button casts it at the cursor; casting a shield or
-Berserker again turns it off.
-Walk onto an item to pick it up. I opens the inventory: click an item to
+Controls follow the original manual (see [docs/controls.md](docs/controls.md)):
+hold the left mouse button to walk towards the cursor (or to attack the
+monster under it), hold Ctrl to run or press R to switch between walking
+and running, and hold Shift to stop or to attack in place. F1-F8 choose a
+spell from the bar at the bottom right and F9 the attack; the right mouse
+button casts the spell (or attacks) at the cursor; casting a shield or
+Berserker again turns it off. With the original game's files the hero has
+a dog: Space (or a click on its gauge) sends it into battle or calls it back
+(see [docs/partners.md](docs/partners.md)). S opens the status window, I the inventory,
+H the keyboard help, and Print Screen saves a screen shot. Esc closes the
+open window, or opens the Settings Menu: the original's options (screen
+mode, see-through player and shadows, click range and priority), original
+mode, help, and save and return to title or save and exit.
+Walk onto an item to pick it up. In the inventory, click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
-at the hero's feet. F10 saves the game and F9 loads it. The save is a small
+at the hero's feet. F10 saves the game and F11 loads it. The save is a small
 text file, `save.txt` in SDL's settings folder for the game (on Linux
 `~/.local/share/ShadowFlare/open/`, on Windows `%APPDATA%\ShadowFlare\open\`).
 
@@ -65,6 +73,8 @@ Options:
 - `--data <path>` folder with the original game files (default `game`, then
   `content`). It can be the install folder itself or any folder above it, or
   an open content pack.
+- `--original-art` draw the original game with its own art rather than ours
+- `--skin <path>` draw the original game with another content pack's art
 - `--map <name>` map to open first, e.g. `c02_00` (the default with the original
   game) or `d02_01`
 - `--frames <n>` quit after n frames
@@ -72,12 +82,14 @@ Options:
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
+- `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk, original data only), ACTIVE
 - `--show-judge` start with the walkability grid shown
 - `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 - `--give <class>:<code>[:<count>]` start with an item in the bag (class 0 weapon,
   1 armour, 2 accessory, 3 consumable, 4 special; `--give 4:0:500` is 500 gold)
-- `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword)
+- `--equip <class>:<code>` start wearing an item, e.g. `--equip 0:0` (Short Sword);
+  both take a fourth number for how worn the item starts, e.g. `--equip 0:0:1:150`
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
 - `--status` start with the status window open
@@ -94,6 +106,8 @@ Options:
 - `--spell <n>[:<level>]` teach spell n (0-21, the original's numbering) at
   that level and put it on F1, e.g. `--spell 3:10 --cast 1:200,60` for Plasma
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
+- `--options` / `--help-window` start with the Settings Menu or the Help window open
+- `--options-file <path>` read and write the options there instead of `options.txt`
 
 Run the unit tests with `ctest --test-dir build`.
 

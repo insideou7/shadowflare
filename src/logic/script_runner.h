@@ -58,6 +58,12 @@ public:
     virtual void offerClass(int /*cls*/) {}
     // STORAGE: opens the warehouse.
     virtual void openStorage() {}
+    // IDENTIFY, CHECKUNOPINIONITEM, REPAIR and GETREPAIRPRICE: see
+    // Inventory for the part numbers.
+    virtual void identifyItems() {}
+    virtual bool hasUnidentifiedItems() const { return false; }
+    virtual void repair(int /*part*/) {}
+    virtual int repairPrice(int /*part*/) const { return 0; }
     // MESSAGEBOX and MESSAGEBOXVALUE: a line of text floating at (dx, dy)
     // screen pixels from a character, such as an area's name over its warp
     // gate, for `duration` (1000 = a second, inferred).
@@ -69,12 +75,20 @@ public:
         int duration = 1000;
     };
     virtual void showLabel(const Label&) {}
+    // The hero's companion. GETPARTNERKIND and CHANGEPARTNER (a free swap);
+    // GETPARTNERLIFE gives false when there is no companion, which leaves the
+    // script's variables alone, and -1 / -1 while it is down.
+    virtual int partnerKind() const { return 0; }
+    virtual void changePartner(int /*kind*/) {}
+    virtual bool partnerLife(int& /*hp*/, int& /*max*/) const { return false; }
+    // TALKPARTNERSTATUS: the status sheet of a kind of companion.
+    virtual std::string partnerStatus(int /*kind*/) const { return {}; }
 };
 
 // The scenario script interpreter (ShadowFlare.exe 0x430f80; command names
 // from RKC_RPG_SCRIPT.dll). Commands run one after another; IF runs another
 // sentence and then carries on. Commands that need something the engine
-// does not have yet (sound, effects, partners, network play) are skipped.
+// does not have yet (sound, effects, network play) are skipped.
 // No SDL, so it can be unit tested.
 class ScriptRunner {
 public:

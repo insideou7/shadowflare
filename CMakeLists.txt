@@ -20,6 +20,7 @@ add_library(sf_formats STATIC
     src/formats/table_data.cpp
     src/formats/item_data.cpp
     src/formats/open_content.cpp
+    src/formats/ground_skin.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -40,6 +41,8 @@ add_library(sf_logic STATIC
     src/logic/save_game.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
+    src/logic/settings.cpp
+    src/logic/partner.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -50,6 +53,7 @@ add_executable(shadowflare
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
+    src/game/skin.cpp
     src/game/character.cpp
     src/game/game.cpp
     src/game/enemy_ai.cpp
@@ -59,6 +63,8 @@ add_executable(shadowflare
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/options.cpp
+    src/game/partner.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
@@ -85,6 +91,9 @@ if(BUILD_TESTING)
     add_executable(open_content_test tests/open_content_test.cpp)
     target_link_libraries(open_content_test PRIVATE sf_formats)
     add_test(NAME open_content COMMAND open_content_test)
+    add_executable(ground_skin_test tests/ground_skin_test.cpp)
+    target_link_libraries(ground_skin_test PRIVATE sf_formats)
+    add_test(NAME ground_skin COMMAND ground_skin_test)
 endif()
 
 if(EMSCRIPTEN)

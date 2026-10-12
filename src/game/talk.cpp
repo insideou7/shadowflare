@@ -74,8 +74,19 @@ public:
 
     void talk(const Talk& t) override { g_.openDialogue(t); }
     void initTrade(int shop, int list) override {
-        if (g_.tables_.tables.empty()) return;
-        g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.random_);
+        if (!g_.tables_.tables.empty()) {
+            g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.random_);
+            return;
+        }
+        const auto goods = g_.openShops_.find(list);
+        if (goods == g_.openShops_.end()) return;
+        auto& stock = g_.shops_[shop];
+        stock.goods.clear();
+        for (const auto& g : goods->second) {
+            const ItemDef* def = g_.items_.find(g.cls, g.code);
+            if (!def) continue;
+            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def));
+        }
     }
     void trade(int shop) override {
         g_.shops_.try_emplace(shop);
@@ -83,12 +94,16 @@ public:
         g_.showStatus_ = false;  // the shop takes the left of the screen
         g_.showInventory_ = true;
     }
-    void healLife() override { g_.playerHp_ = g_.playerMaxHp(); }
+    void healLife() override {
+        g_.playerHp_ = g_.playerMaxHp();
+        // It fills the companion's health too, but does not bring it back.
+        if (g_.partnerAlive()) g_.partner_->hp = g_.partner_->stats.maxHp;
+    }
     void createItem(int cls, int code, int x, int y, int amount) override {
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def) return;
         if (!def->isGold()) {
-            g_.dropItem({def, 1}, x, y);
+            g_.dropItem(Item::make(def), x, y);
             return;
         }
         // Gold comes in piles of at most 10,000, spread out a little.
@@ -134,7 +149,21 @@ public:
     }
     int entryPoint() const override { return g_.entryPoint_; }
     void openStorage() override { trade(Game::kStorage); }
+    void identifyItems() override { g_.inventory_.identifyAll(); }
+    bool hasUnidentifiedItems() const override { return g_.inventory_.hasUnidentified(); }
+    void repair(int part) override { g_.inventory_.repair(part); }
+    int repairPrice(int part) const override { return g_.inventory_.repairPrice(part); }
     void showLabel(const Label& l) override { g_.showLabel(l); }
+    int partnerKind() const override { return g_.partnerRecord_.kind; }
+    void changePartner(int kind) override { g_.changePartner(kind); }
+    bool partnerLife(int& hp, int& max) const override {
+        if (!g_.partner_) return false;
+        const bool alive = g_.partnerAlive();
+        hp = alive ? g_.partner_->hp : -1;
+        max = alive ? g_.partner_->stats.maxHp : -1;
+        return true;
+    }
+    std::string partnerStatus(int kind) const override { return g_.partnerStatusText(kind); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
         log::info("{} offered", className(g_.career_.offered));
@@ -227,14 +256,15 @@ void Game::runEvent(std::int32_t event, std::int32_t character) {
 
 std::optional<std::size_t> Game::personAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
-    double bestDistance = 40;
+    double bestDistance = INFINITY;
     for (std::size_t i = 0; i < actors_.size(); ++i) {
         const auto& a = actors_[i];
         if (a.hostile() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        const double d = std::hypot(sx - cameraX_ - screenX, sy - 40 - cameraY_ - screenY);
-        if (d < bestDistance) {
+        const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
+        const double d = std::hypot(dx, dy);
+        if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
             best = i;
         }
@@ -592,7 +622,7 @@ void Game::renderShop() {
         }
     }
     const auto& stock = shops_[*openShop_];
-    const ItemDef* hover = nullptr;
+    const Item* hover = nullptr;
     for (const auto& g : stock.goods) {
         const SDL_Rect r{kShopX + g.x * kCell, kShopY + g.y * kCell, g.item.def->width * kCell, g.item.def->height * kCell};
         // Over a picture, a faint wash shows which cells an item takes.
@@ -602,13 +632,13 @@ void Game::renderShop() {
             frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
         }
         drawItemPicture(*g.item.def, r);
-        if (inside(r, mx, my)) hover = g.item.def;
+        if (inside(r, mx, my)) hover = &g.item;
     }
     // What the item under the mouse costs, or what the held one sells for,
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
     if (*openShop_ == kStorage) {
-        if (hover && !hand_) lines.emplace_back(hover->name, kWhite);
+        if (hover && !hand_) lines.emplace_back(hover->shownName(), kWhite);
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
@@ -616,8 +646,8 @@ void Game::renderShop() {
             lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_->def) * std::max(1, hand_->count)), kGold);
         }
     } else if (hover && !hand_) {
-        lines.emplace_back(hover->name, kWhite);
-        lines.emplace_back(std::format("{} gold", buyPrice(*hover)), buyPrice(*hover) > inventory_.gold() ? kGrey : kGold);
+        lines.emplace_back(hover->shownName(), kWhite);
+        lines.emplace_back(std::format("{} gold", buyPrice(*hover->def)), buyPrice(*hover->def) > inventory_.gold() ? kGrey : kGold);
     }
     if (!lines.empty()) {
         int w = 0;

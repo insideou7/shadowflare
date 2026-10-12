@@ -2,6 +2,7 @@
 
 #include <array>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "formats/item_data.h"
@@ -14,6 +15,25 @@ class Random;
 struct Item {
     const ItemDef* def = nullptr;
     int count = 1;  // gold: the amount
+    // Weapons and armour: how worn it is. It breaks, and stops counting
+    // towards the hero's stats, when this reaches the item's durability.
+    // The exe keeps the points left instead (+0xbc, out of +0xb8).
+    int wear = 0;
+    bool unidentified = false;  // the exe's flag at +0x1c, inverted
+
+    // A newly made item: magic and unique ones start unidentified, as
+    // ShadowFlare.exe makes them (0x462d30).
+    static Item make(const ItemDef* def, int count = 1);
+
+    // Durability points left, and whether it is broken (0 left). Items
+    // with no durability never wear out.
+    int durability() const;
+    bool broken() const { return def->durability > 0 && wear >= def->durability; }
+    // Its name, or the plain one before it is identified.
+    const std::string& shownName() const;
+    // What mending it costs (0x4667a0): nothing when it is not worn,
+    // otherwise the worn share of a tenth of its price, at least 1.
+    int repairPrice() const;
 };
 
 // Where worn items go, as in ShadowFlare.exe's item window (slot table
@@ -78,9 +98,31 @@ public:
     // what it was, or null when the entry is not a consumable.
     const ItemDef* use(int index);
 
-    // The ten stats of everything worn, added up.
+    // Wear from fighting, as ShadowFlare.exe does it: each blow the hero
+    // aims wears the weapon one point 30% of the time (0x4362cb and the
+    // other weapon attacks); each blow the hero takes wears the helmet and
+    // boots 20% and the body armour and shield 30% of the time, but not a
+    // shield hidden by a two-handed weapon (0x443fa8). Broken items stop
+    // wearing. Return the slots of what broke.
+    std::vector<EquipSlot> wearFromAttacking(Random& random);
+    std::vector<EquipSlot> wearFromBlow(Random& random);
+
+    bool hasUnidentified() const;
+    bool carries(ItemDef::Class cls, std::int32_t code) const;  // in the bag  // CHECKUNOPINIONITEM (0x43397d)
+    void identifyAll();            // IDENTIFY: everything worn and in the bag (0x432296)
+
+    // What REPAIR and GETREPAIRPRICE call a part (0x43234a, 0x4310d7):
+    // 0 weapon, 1 helmet, 2 body, 3 shield, 4 boots; -1 every weapon and
+    // armour in the bag. GETREPAIRPRICE also prices the bag for any other
+    // number, REPAIR does nothing for one.
+    static constexpr int kRepairBag = -1;
+    int repairPrice(int part) const;
+    void repair(int part);
+
+    // The ten stats of everything worn and not broken, added up.
     std::array<int, ItemDef::kStatCount> stats() const;
-    // Their element levels, added up (0x44fca0).
+    // Their element levels, added up (0x44fca0). Broken items still count:
+    // that code, unlike the stats at 0x44eb5b, does not seem to check.
     std::array<int, 8> elements() const;
     // Layers of the hero's animation to draw: 0 (body) and 1 (shadow), then
     // the body armour's, the weapon's and its glow, and the shield's unless

@@ -141,6 +141,53 @@ on each line is the monster's strength it starts from. `item` places an item fro
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
+`person` takes an optional fifth field, a name that `script.txt` calls
+them by.
+
+### Scenario/\<number\>/script.txt
+
+What the people of a scenario say and do, in the original's script
+commands (docs/formats.md lists them). Optional; Goblin Meadow's is a
+worked example.
+
+    person=8,3072,6048,0,merchant   # more people: kind, x, y, direction, name
+    object=0,0,640,320,well         # something to click: left, top, right, bottom, name
+    temp=1000001,7                  # a TEMP flag and its value when the scenario starts
+
+    [message 2]
+    Fresh from the city, every piece of it.
+    ~Buy and sell~  ~Leave~
+
+    [sentence merchant]
+    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick or start
+    C_STOP merchant
+    TALK msg:2 temp:2 0 0 -1 -1
+
+    [sentence merchant-end]
+    on=talk-end merchant
+    IF temp:2 = 0 @merchant-shop
+
+    [sentence merchant-shop]
+    INITTRADE 0 0
+    TRADE 0
+
+A message is the lines under `[message <id>]`, each ending in a line
+break; options go between `~` marks. A sentence is a list of commands, one
+per line, and `on=` lines that start it. Operands are separated by spaces:
+a number, `temp:<id>`, `save:<id>`, `quest:<id>` or `net:<id>` for a
+flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
+someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
+sentence to run, and a person's or object's name for their id. As in the
+original, `IF` runs its sentence and then carries on, and closing any of
+a person's message boxes runs their talk-end sentences, so a script keeps
+the question it asked in a flag.
+
+### shops.txt
+
+    [shop 0]                 # the list INITTRADE names
+    sell=weapon,0            # class and code from items.txt
+    sell=consumable,0,6      # and how many
+
 ### ai.txt
 
     [list goblin]
@@ -180,13 +227,78 @@ thunder, holy, dark, gel and metal levels (docs/magic.md).
 Consumables have `effect=`, nine numbers as in the original: the first is
 1 if it may go in the belt, the second the health it restores, the third
 the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
-quest; only normal items drop) and `glow` (a second hero layer).
+quest; only normal items drop; magic and unique ones start unidentified),
+`unidentified` (the name shown until then), `durability` (weapons and
+armour: the wear they take before they break; none or 0 never wears out)
+and `glow` (a second hero layer).
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with
 either. Every key but the section line may be left out. When the folder
 of a `ground` picture holds `Animation.anim`, the number is a chart of it
 instead, as with the original's animated item folders.
+
+## Drawing the original game with this art
+
+A player who has the original game sees its own maps, people and monsters,
+but drawn with the pack's art: the engine reads the maps, scripts and
+characters from their copy and draws them with content/'s ground
+textures, props, characters and hero. `skin.txt` at the pack's root says
+how; whatever it does not cover (and any character the pack has no
+`.anim` for) is drawn from the original files as before. This is the
+default when both are found; `--original-art` turns it off and
+`--skin <pack>` uses another pack.
+
+    props=Map/props.sheet        # the sheet whose named frames [objects] uses
+
+    [material grass]             # a ground texture
+    tiles=Map/ground.sheet,240   # sheet, first frame[, period (default 4)]
+    tile=320                     # world units per tile edge (the default)
+
+    [ground 00f_ground.njp]      # one of the original's ground banks
+    grass=44,50,14               # a material it is painted with, and its
+    dirt=47,35,19                #   average colour there
+
+    [objects 00f_obj00.njp]      # one of the original's object banks
+    0=copper_tank                # pattern = prop
+    21-22=wall_x@-190,-117 wall_x@-43,-117
+    16-17=log!                   # ! mirrors a prop left to right
+    5=-                          # draws nothing
+
+A material is `period` x `period` tiles of a ground sheet, from frame
+`first` on, laid out on their diamond as the map draws them; they must
+repeat seamlessly every `period` tiles, as the sheets `tools/art/ground.py`
+makes do. The original's ground is painted on screen-aligned chips; each
+pixel (smoothed over a few pixels) is given the material whose colour is
+nearest, so the original's paths, shores and clearings keep their shape,
+and that material's texture is drawn there, tinted to the original's
+average colour. `none` paints black.
+
+Props are frames of the props sheet that carry a name (a seventh field on
+the `frame=` line; `build_pack.py` writes them). A prop is anchored at the
+foot of the original piece's picture (the middle of its bottom edge), moved
+by `@x,y` world units if given; a piece may be drawn as several props, so a
+long wall becomes two shorter ones. Our props carry their own shadows, so
+the original's shadow for a replaced piece is not drawn.
+
+`tools/content/skin_preview.py` checks the rules against the original:
+for each piece of a bank it draws the original, our props and the two laid
+over each other, with the foot marked.
+
+    python3 tools/content/skin_preview.py game 00f_obj00.njp /tmp/fences.png 13 14
+
+`tools/content/skin_fit.py` suggests the lines in the first place: given
+a bank, some of its pieces and the props that might stand in for them, it
+slides each prop's silhouette over each piece's (keeping their feet close)
+and prints the prop and `@x,y` that overlap best.
+
+    python3 tools/content/skin_fit.py game nomal.njp 23-40 conifer_green conifer_gold
+
+Nearly every piece of the original's maps is covered. Still drawn from the
+original: the village's tall stone walls and gate towers (00f_city02,
+mon01; none of our props is tall enough yet), blood, bodies and the pits
+and holes in the ground (blood00, deadbody00, 00d_blood, jimen_x00,
+map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
 ## Rebuilding content/
 
@@ -210,6 +322,11 @@ font) are kept in content/ and rebuilt on their own:
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.
+
+A few new props can be added to the existing props sheet without
+rebuilding everything: render them, then
+
+    python3 tools/art/add_props.py /tmp/art/deep /tmp/art/deep/deep.txt earth_tall_x earth_tall_y
 
 ## Importing Flare
 

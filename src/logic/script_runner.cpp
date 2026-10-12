@@ -203,10 +203,37 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 host_->showLabel(l);
                 break;
             }
-            // Nothing wears out or needs identifying in the engine yet.
-            case S::kGetRepairPrice:
-                if (ops.size() >= 2) store(ops[1], 0);
+            case S::kIdentify: host_->identifyItems(); break;
+            case S::kCheckUnopinionItem:
+                if (!ops.empty()) store(ops[0], host_->hasUnidentifiedItems() ? 1 : 0);
                 break;
+            case S::kRepair: host_->repair(arg(0)); break;
+            case S::kGetRepairPrice:
+                if (ops.size() >= 2) store(ops[1], host_->repairPrice(arg(0)));
+                break;
+            case S::kGetPartnerKind:
+                if (!ops.empty()) store(ops[0], host_->partnerKind());
+                break;
+            case S::kChangePartner: host_->changePartner(arg(0)); break;
+            case S::kGetPartnerLife: {
+                int hp = 0, max = 0;
+                if (ops.size() >= 2 && host_->partnerLife(hp, max)) {
+                    store(ops[0], hp);
+                    store(ops[1], max);
+                }
+                break;
+            }
+            case S::kTalkPartnerStatus: {
+                // kind answer: a talk with no options over the speaker.
+                if (ops.size() < 2) break;
+                ScriptHost::Talk t;
+                t.text = host_->partnerStatus(arg(0));
+                if (t.text.empty()) break;
+                t.answer = ops[1];
+                t.speaker = character_;
+                host_->talk(t);
+                break;
+            }
             default: break;
         }
     }

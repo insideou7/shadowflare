@@ -79,6 +79,13 @@ void Game::loadItems() {
         } catch (const FormatError& e) {
             log::warn("items.txt: {}", e.what());
         }
+        if (auto shops = data_->read("shops.txt")) {
+            try {
+                openShops_ = open::parseShops(*shops);
+            } catch (const FormatError& e) {
+                log::warn("shops.txt: {}", e.what());
+            }
+        }
     }
     log::info("Loaded {} item definitions", items_.items.size());
 }
@@ -91,18 +98,20 @@ void Game::giveStartingKit() {
     for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), 10000000, 1, GiveTo::Bag);
 }
 
-bool Game::give(int itemClass, int code, int count, GiveTo to) {
+bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
     if (itemClass < 0 || itemClass > 4) return false;
     const ItemDef* def = items_.find(static_cast<ItemDef::Class>(itemClass), code);
     if (!def) {
         log::warn("No item {}/{}", itemClass, code);
         return false;
     }
+    Item item = Item::make(def, def->isGold() ? count : 1);
+    item.wear = wear;
     if (to == GiveTo::Ground) {
         if (!player_) return false;
         // Side by side in a row below the hero.
         const double k = static_cast<double>(groundItems_.size() % 5) - 2;
-        dropItem({def, def->isGold() ? count : 1}, player_->x + 160 + k * 100, player_->y + 160 - k * 100);
+        dropItem(item, player_->x + 160 + k * 100, player_->y + 160 - k * 100);
         groundItems_.back().waitForLeave = true;
         return true;
     }
@@ -112,11 +121,11 @@ bool Game::give(int itemClass, int code, int count, GiveTo to) {
             log::warn("Cannot wear {}", def->name);
             return false;
         }
-        if (auto old = inventory_.equip(*slot, {def, 1})) inventory_.add(*old);
+        if (auto old = inventory_.equip(*slot, item)) inventory_.add(*old);
         updateEquipment();
         return true;
     }
-    if (!inventory_.add({def, def->isGold() ? count : 1})) {
+    if (!inventory_.add(item)) {
         log::warn("No room in the bag for {}", def->name);
         return false;
     }
@@ -133,7 +142,7 @@ void Game::spawnGroundItems() {
             ++unknown;
             continue;
         }
-        dropItem({def, 1}, p.x, p.y);
+        dropItem(Item::make(def), p.x, p.y);
     }
     if (unknown > 0) log::warn("{} placed items are not in the item table", unknown);
 }
@@ -179,7 +188,7 @@ void Game::dropLoot(const Actor& enemy) {
     }
     if (random_.next(100) < kItemDropChance) {
         if (const ItemDef* def = pickDrop(items_, stats.level, random_)) {
-            dropItem({def, 1}, x + 60, y + 60);
+            dropItem(Item::make(def), x + 60, y + 60);
             log::info("A monster dropped {}", def->name);
         }
     }
@@ -199,7 +208,7 @@ void Game::pickUpItems() {
         }
         const Item item = it->item;
         if (!inventory_.add(item)) {
-            showMessage(std::format("No room for {}", item.def->name));
+            showMessage(std::format("No room for {}", item.shownName()));
             it->waitForLeave = true;
             ++it;
             continue;
@@ -207,7 +216,7 @@ void Game::pickUpItems() {
         if (item.def->isGold()) {
             showMessage(std::format("{} gold", item.count));
         } else {
-            showMessage(item.def->name);
+            showMessage(item.shownName());
         }
         log::info("Picked up {}{}", item.def->isGold() ? std::format("{} ", item.count) : std::string(), item.def->name);
         it = groundItems_.erase(it);
@@ -265,6 +274,8 @@ void Game::loadLevelCurve() {
     }
     if (levels_.needs.empty()) levels_ = LevelCurve::standard();
     magic_ = tables_.tables.empty() ? MagicTables::standard() : MagicTables::fromTables(tables_);
+    partnerTables_ = PartnerTables::load(tables_);
+    if (!partnerTables_ && !tables_.tables.empty()) log::warn("No partner tables (60, 800-805); playing without a companion");
 }
 
 void Game::gainExperience(int amount) {
@@ -349,12 +360,13 @@ bool Game::inventoryClick(int x, int y, bool right) {
 
 std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
-    double bestDistance = 28;
+    double bestDistance = INFINITY;
     for (std::size_t i = 0; i < groundItems_.size(); ++i) {
         int sx, sy;
         worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
-        const double d = std::hypot(sx - cameraX_ - screenX, sy - 8 - cameraY_ - screenY);
-        if (d < bestDistance) {
+        const double dx = sx - cameraX_ - screenX, dy = sy - 8 - cameraY_ - screenY;
+        const double d = std::hypot(dx, dy);
+        if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
             best = i;
         }
@@ -456,7 +468,7 @@ void Game::renderInventory() {
         mx = static_cast<int>(lx);
         my = static_cast<int>(ly);
     }
-    const ItemDef* hover = nullptr;
+    const Item* hover = nullptr;
     if (showInventory_) {
         // The panel's picture has the slots and bag cells drawn in; without
         // one, plain rectangles stand in.
@@ -468,7 +480,7 @@ void Game::renderInventory() {
             if (!picture) frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
             if (const auto& worn = inventory_.equipped(box.slot)) {
                 drawItemPicture(*worn->def, r);
-                if (inside(r, mx, my)) hover = worn->def;
+                if (inside(r, mx, my)) hover = &*worn;
             }
         }
         // A shield shown but not drawn on the hero is greyed out.
@@ -495,7 +507,7 @@ void Game::renderInventory() {
                 frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
             }
             drawItemPicture(*p.item.def, r);
-            if (inside(r, mx, my)) hover = p.item.def;
+            if (inside(r, mx, my)) hover = &p.item;
         }
         // Totals on the left.
         int ty = 20;
@@ -508,14 +520,21 @@ void Game::renderInventory() {
         }
         drawText(renderer_, 336, kBagY + Inventory::kBagHeight * kCell + 10, std::format("GOLD {}", inventory_.gold()), kGoldColor);
         if (hover && !hand_) {
-            std::string text = hover->name;
-            const auto& s = hover->stats;
-            if (s[ItemDef::kAttack]) text += std::format("  ATK {}", s[ItemDef::kAttack]);
-            if (s[ItemDef::kDefense]) text += std::format("  DEF {}", s[ItemDef::kDefense]);
-            if (hover->requiredLevel > 1) text += std::format("  LV {}", hover->requiredLevel);
-            if (hover->effect[1] > 0) text += std::format("  +{} HP", hover->effect[1]);
-            if (text.size() > 36) text.resize(36);
-            drawText(renderer_, 336, kBagY - 18, text, hover->requiredLevel > playerLevel_ ? kRed : kWhite);
+            const ItemDef& def = *hover->def;
+            std::string text = hover->shownName();
+            const auto& s = def.stats;
+            // Unidentified items keep what they do to themselves.
+            if (hover->unidentified) {
+                text += "  ?";
+            } else {
+                if (s[ItemDef::kAttack]) text += std::format("  ATK {}", s[ItemDef::kAttack]);
+                if (s[ItemDef::kDefense]) text += std::format("  DEF {}", s[ItemDef::kDefense]);
+            }
+            if (def.durability > 0) text += std::format("  DUR {}/{}", hover->durability(), def.durability);
+            if (def.requiredLevel > 1) text += std::format("  LV {}", def.requiredLevel);
+            if (def.effect[1] > 0) text += std::format("  +{} HP", def.effect[1]);
+            if (text.size() > 40) text.resize(40);
+            drawText(renderer_, 336, kBagY - 18, text, def.requiredLevel > playerLevel_ || hover->broken() ? kRed : kWhite);
         }
     }
     if (hand_) {

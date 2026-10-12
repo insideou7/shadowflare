@@ -176,6 +176,7 @@ with none of our fixes; it is off by default. Each fix is a switch in
 | switch | ours | original |
 |---|---|---|
 | `shieldsCostTheirOwnMp` | Magic Shield and Counter Burst cost their own MP | they cost the chosen spell's MP |
+| `partnerStatusShowsMagicEvasion` | the partner's status sheet shows its magic evasion | it shows its defence there ([partners.md](partners.md)) |
 
 Data the engine used to misread, such as the monster stat words, is
 corrected in both modes.

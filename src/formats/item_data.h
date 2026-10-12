@@ -27,6 +27,7 @@ struct ItemDef {
     Class cls = Class::Special;
     std::int32_t code = 0;  // the item's id within its class; Mct placements use (class, code)
     std::string name;       // as shown once identified
+    std::string unidentifiedName;  // as shown before (magic and unique items drop unidentified)
     std::int32_t subtype = -1;
     std::int32_t quality = 0;  // 0 normal, 1 magic, 2 unique, 3 quest
     std::int32_t width = 1, height = 1;  // in 32-pixel inventory cells
@@ -41,6 +42,9 @@ struct ItemDef {
     std::int32_t poolMask = 0;     // which drop lists and shops may pick it (bits)
     std::int32_t itemLevel = 0;    // how deep in the game it starts dropping
     std::int32_t requiredLevel = 0;
+    // Weapons and armour: how much wear it takes before it breaks (0xb8),
+    // 0 = never wears out.
+    std::int32_t durability = 0;
     std::array<std::int32_t, kStatCount> stats{};  // weapons and armour
     // Weapons and armour: what wearing it adds to the hero's level in each
     // element (fire, water, earth, thunder, holy, dark, gel, metal; see

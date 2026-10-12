@@ -10,6 +10,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
+#include "game/skin.h"
 #include "logic/movement.h"
 #include "render/tiny_font.h"
 #include "platform/filesystem.h"
@@ -18,8 +19,10 @@ namespace sf {
 
 namespace {
 
-// Walking speed in world units per tick. Not yet taken from the original.
-constexpr double kWalkSpeed = 70.0;
+// Walking speed in world units per tick. Not yet taken from the original;
+// nor is running, which is ours at twice the walk.
+constexpr double kWalkSpeed = kPlayerWalkSpeed;
+constexpr double kRunSpeed = 140.0;
 
 // Monsters take their health, attack and defense from the scenario file.
 // Blows follow the original's rules (see strikeEnemy and strikePlayer).
@@ -49,8 +52,8 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 
 }  // namespace
 
-Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap)
-    : renderer_(renderer), data_(data), sprites_(renderer) {
+Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin)
+    : renderer_(renderer), data_(data), skin_(skin), sprites_(renderer) {
     // Every level has a ground file; use those to enumerate maps. An open
     // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
@@ -59,7 +62,8 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
             if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
     }
-    playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    if (skin_) playerModel_ = skin_->character("Player/Male/Animation00");
+    if (!playerModel_) playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
             ai_ = AiControl::parse(*raw);
@@ -88,10 +92,14 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
+    // The companion keeps its health from map to map (0x4505d0).
+    if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
+    partner_.reset();
     clearSpells();
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
+    if (skin_) skin_->setMap(map_ ? &*map_ : nullptr);
     drawOrder_.clear();
     if (!map_) return;
 
@@ -160,6 +168,7 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
     try {
         if (auto text = data_->read(dir + "/scenario.txt")) {
             auto parsed = open::parseScenario(*text);
+            if (auto events = data_->read(dir + "/script.txt")) open::parseScript(*events, parsed);
             control = std::move(parsed.control);
             if (script) *script = std::move(parsed.script);
             return true;
@@ -180,7 +189,9 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
 const CharacterModel* Game::model(const std::string& stem) {
     auto [it, inserted] = models_.try_emplace(stem);
     if (inserted) {
-        if (auto loaded = CharacterModel::load(*data_, stem)) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
+        auto loaded = skin_ ? skin_->character(stem) : std::nullopt;
+        if (!loaded) loaded = CharacterModel::load(*data_, stem);
+        if (loaded) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
     }
     return it->second.get();
 }
@@ -291,6 +302,7 @@ void Game::placePlayerAt(double screenX, double screenY) {
         playerHp_ = playerMaxHp();
         playerMp_ = playerMaxMp();
         casting_.reset();
+        spawnPartner();
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
@@ -316,7 +328,12 @@ void Game::updateCamera() {
     cameraY_ = sy - kScreenHeight / 2.0;
 }
 
+// The keys follow the manual's Shortcut Keys page (see docs/controls.md).
 void Game::handleEvent(const SDL_Event& event) {
+    if (optionsOpen_) {
+        optionsEvent(event);
+        return;
+    }
     if (menuOpen_) {
         menuEvent(event);
         return;
@@ -328,20 +345,29 @@ void Game::handleEvent(const SDL_Event& event) {
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
         case SDL_KEYDOWN:
+            if (event.key.repeat) break;
             switch (event.key.keysym.sym) {
                 case SDLK_ESCAPE:
-                    if (openShop_ && !hand_) {
-                        closeShop();
+                    // Esc closes a window, or opens the Settings Menu when
+                    // none is open.
+                    if (helpOpen_) {
+                        helpOpen_ = false;
+                    } else if (openShop_) {
+                        if (!hand_) closeShop();
+                    } else if (showInventory_) {
+                        closeInventory();
+                    } else if (showStatus_) {
+                        showStatus_ = false;
                     } else {
-                        openMenu(false);
+                        openOptions(true);
                     }
                     break;
+                // Map switching for testing; N and P are the manual's map
+                // and power keys.
                 case SDLK_PAGEDOWN:
-                case SDLK_n:
                     if (!mapNames_.empty()) loadMap((mapIndex_ + 1) % mapNames_.size());
                     break;
                 case SDLK_PAGEUP:
-                case SDLK_p:
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
@@ -351,24 +377,46 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_i:
                     if (openShop_) {
                         closeShop();
-                        break;
+                    } else if (showInventory_) {
+                        closeInventory();
+                    } else {
+                        showInventory_ = true;
                     }
-                    showInventory_ = !showInventory_;
-                    // Closing the panel puts a held item back, or drops it.
-                    if (!showInventory_ && hand_) {
-                        if (inventory_.add(*hand_)) {
-                            hand_.reset();
-                        } else {
-                            dropHand();
-                        }
-                    }
+                    break;
+                case SDLK_h: helpOpen_ = !helpOpen_; break;
+                case SDLK_r:
+                    runMode_ = !runMode_;
+                    showMessage(runMode_ ? "Run" : "Walk");
                     break;
                 case SDLK_F1: case SDLK_F2: case SDLK_F3: case SDLK_F4:
                 case SDLK_F5: case SDLK_F6: case SDLK_F7: case SDLK_F8:
                     selectSpellSlot(event.key.keysym.sym - SDLK_F1);
                     break;
+                case SDLK_F9:
+                    // The right button attacks instead of casting.
+                    spells_.selected = -1;
+                    showMessage("Attack");
+                    break;
                 case SDLK_F10: saveGame(); break;
-                case SDLK_F9: loadGame(); break;
+                case SDLK_F11: loadGame(); break;
+                case SDLK_PRINTSCREEN: screenshotPending_ = true; break;
+                case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
+                case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: notYet("The belt pocket"); break;
+                case SDLK_b: notYet("Mines"); break;
+                case SDLK_p: notYet("Increased-power mode"); break;
+                case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
+                case SDLK_SPACE:
+                    // Open content has no companions.
+                    if (partner_) {
+                        togglePartnerMode();
+                    } else {
+                        notYet("Companions");
+                    }
+                    break;
+                case SDLK_x: notYet("The special items window"); break;
+                case SDLK_m: notYet("The magic window"); break;
+                case SDLK_q: notYet("The mission list"); break;
+                case SDLK_n: notYet("The map"); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
@@ -378,24 +426,39 @@ void Game::handleEvent(const SDL_Event& event) {
         case SDL_MOUSEBUTTONDOWN:
             // Mouse events arrive in logical (640x480) coordinates.
             if (event.button.button != SDL_BUTTON_LEFT && event.button.button != SDL_BUTTON_RIGHT) break;
+            if (helpOpen_) {
+                helpOpen_ = false;
+                break;
+            }
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
-                // The right button casts the chosen spell at the cursor.
-                double wx, wy;
-                screenToWorld(cameraX_ + event.button.x, cameraY_ + event.button.y, wx, wy);
-                startCast(wx, wy);
+                if (spells_.knows(spells_.selected)) {
+                    // The right button casts the chosen spell at the cursor.
+                    double wx, wy;
+                    screenToWorld(cameraX_ + event.button.x, cameraY_ + event.button.y, wx, wy);
+                    startCast(wx, wy);
+                } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
+                           target.kind == Settings::kEnemy) {
+                    // With the attack chosen (F9) it strikes the monster under it.
+                    attackTarget_ = target.index;
+                    talkTarget_.reset();
+                    objectTarget_.reset();
+                }
             }
             if (event.button.button == SDL_BUTTON_LEFT) {
                 mouseHeld_ = true;
-                // Clicking a person walks up to them to talk.
-                if (const auto person = personAt(event.button.x, event.button.y); person && player_) {
-                    talkTarget_ = person;
+                // Clicking a person walks up to them to talk, unless
+                // something nearer the front of the click priority is there.
+                const auto target = clickTarget(event.button.x, event.button.y, ~0u);
+                if (target.kind == Settings::kPerson && player_) {
+                    talkTarget_ = target.index;
                     attackTarget_.reset();
                     mouseHeld_ = false;
-                } else if (const auto object = objectAt(event.button.x, event.button.y); object && player_) {
-                    objectTarget_ = object;
+                } else if (target.kind == Settings::kObject && player_) {
+                    objectTarget_ = target.index;
                     attackTarget_.reset();
                     mouseHeld_ = false;
                 }
@@ -408,9 +471,44 @@ void Game::handleEvent(const SDL_Event& event) {
     }
 }
 
+void Game::closeInventory() {
+    showInventory_ = false;
+    // Closing the panel puts a held item back, or drops it.
+    if (hand_) {
+        if (inventory_.add(*hand_)) {
+            hand_.reset();
+        } else {
+            dropHand();
+        }
+    }
+}
+
+void Game::notYet(const char* what) { showMessage(std::format("{} is not in the game yet", what)); }
+
+bool Game::inClickRange(double dx, double dy) const {
+    const int reach = settings_.clickReach();
+    return std::abs(dx) <= reach && std::abs(dy) <= reach;
+}
+
+Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds) const {
+    for (const int kind : settings_.clickPriority) {
+        if (!(kinds & (1u << kind))) continue;
+        std::optional<std::size_t> found;
+        switch (kind) {
+            case Settings::kEnemy: found = enemyAt(screenX, screenY); break;
+            case Settings::kItem: found = groundItemAt(screenX, screenY); break;
+            case Settings::kObject: found = objectAt(screenX, screenY); break;
+            case Settings::kPerson: found = personAt(screenX, screenY); break;
+            default: break;  // clicking the companion (its Tab skills) is not in yet
+        }
+        if (found) return {kind, *found};
+    }
+    return {};
+}
+
 void Game::tick() {
     ++ticks_;
-    if (!map_ || menuOpen_) return;  // the world waits while the menu is open
+    if (!map_ || menuOpen_ || optionsOpen_) return;  // the world waits while a menu is open
     if (startScripts_) {
         startScripts_ = false;
         runEvent(ScenarioScript::kOnStart);
@@ -442,6 +540,7 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    tickPartner();
     tickSpells();
     pickUpItems();
     for (auto& g : groundItems_) {
@@ -497,6 +596,10 @@ void Game::changeScenario(int number, int entry) {
         player_->x = e.x;
         player_->y = e.y;
         if (e.direction >= 0 && e.direction < 8) player_->direction = e.direction;
+        if (partner_) {
+            partner_->character.x = e.x;
+            partner_->character.y = e.y;
+        }
         log::info("Player enters at world ({}, {})", e.x, e.y);
         break;
     }
@@ -507,14 +610,15 @@ void Game::changeScenario(int number, int entry) {
 std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
     // Characters stand on their feet; aim at the middle of the body.
     std::optional<std::size_t> best;
-    double bestDistance = 48;
+    double bestDistance = INFINITY;
     for (std::size_t i = 0; i < actors_.size(); ++i) {
         const auto& a = actors_[i];
         if (!a.hostile() || !a.alive()) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        const double d = std::hypot(sx - cameraX_ - screenX, sy - 40 - cameraY_ - screenY);
-        if (d < bestDistance) {
+        const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
+        const double d = std::hypot(dx, dy);
+        if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
             best = i;
         }
@@ -545,19 +649,33 @@ void Game::tickPlayer() {
 
     // Holding the left button walks towards the cursor, or attacks the
     // monster under it, like the original.
+    // Shift holds the hero where they stand; with the button down they
+    // strike in place, at whatever is in reach.
+    const bool stayPut = (SDL_GetModState() & KMOD_SHIFT) != 0;
     if (mouseHeld_) {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
         float lx, ly;
         SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
-        attackTarget_ = enemyAt(lx, ly);
+        const auto target = clickTarget(lx, ly, (1u << Settings::kEnemy) | (1u << Settings::kItem));
+        attackTarget_.reset();
         talkTarget_.reset();
         objectTarget_.reset();
-        if (attackTarget_) {
+        if (stayPut) {
             walkTarget_.reset();
-        } else if (const auto item = groundItemAt(lx, ly)) {
+            if (target.kind == Settings::kEnemy) attackTarget_ = target.index;
+            double wx, wy;
+            screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
+            player_->faceTowards(wx - player_->x, wy - player_->y);
+            player_->restart(chart::kPlayerPunch);
+            return;
+        }
+        if (target.kind == Settings::kEnemy) {
+            attackTarget_ = target.index;
+            walkTarget_.reset();
+        } else if (target.kind == Settings::kItem) {
             // Walking onto an item picks it up.
-            walkTarget_.emplace(groundItems_[*item].x, groundItems_[*item].y);
+            walkTarget_.emplace(groundItems_[target.index].x, groundItems_[target.index].y);
         } else {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
@@ -613,13 +731,23 @@ void Game::tickPlayer() {
         }
     }
 
-    // Keyboard movement in screen directions.
+    if (stayPut && !autoFight_) {
+        walkTarget_.reset();
+        talkTarget_.reset();
+        objectTarget_.reset();
+        attackTarget_.reset();
+        player_->setAction(Action::Idle);
+        return;
+    }
+
+    // Keyboard movement in screen directions (ours: the original walks by
+    // mouse only, and its letter keys open windows).
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
     double kx = 0, ky = 0;
-    if (keys[SDL_SCANCODE_LEFT] || keys[SDL_SCANCODE_A]) kx -= 1;
-    if (keys[SDL_SCANCODE_RIGHT] || keys[SDL_SCANCODE_D]) kx += 1;
-    if (keys[SDL_SCANCODE_UP] || keys[SDL_SCANCODE_W]) ky -= 1;
-    if (keys[SDL_SCANCODE_DOWN] || keys[SDL_SCANCODE_S]) ky += 1;
+    if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
+    if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
+    if (keys[SDL_SCANCODE_UP]) ky -= 1;
+    if (keys[SDL_SCANCODE_DOWN]) ky += 1;
 
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
@@ -645,13 +773,16 @@ void Game::tickPlayer() {
         dy = walkTarget_->second - player_->y;
     }
 
+    // Run when RUN is chosen (R), or while Ctrl is held.
+    const bool running = runMode_ || (SDL_GetModState() & KMOD_CTRL) != 0;
+    const double speed = running ? kRunSpeed : kWalkSpeed;
     const double length = std::hypot(dx, dy);
     if (length > 1.0) {
-        const double step = std::min(kWalkSpeed, walkTarget_ ? length : kWalkSpeed);
+        const double step = std::min(speed, walkTarget_ ? length : speed);
         player_->faceTowards(dx, dy);
         if (tryMove(*player_, dx / length * step, dy / length * step)) {
-            player_->setAction(Action::Walk);
-            if (walkTarget_ && length <= kWalkSpeed) walkTarget_.reset();
+            player_->play(running && player_->hasChart(chart::kPlayerRun) ? chart::kPlayerRun : chart::kWalk);
+            if (walkTarget_ && length <= speed) walkTarget_.reset();
         } else {
             // Ran into a wall: give up rather than pushing against it.
             walkTarget_.reset();
@@ -716,10 +847,22 @@ void Game::tickEnemy(Actor& enemy) {
 
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
-    if (random_.next(100) >= hitChance(playerHit(), s.evasion)) return;
-    // Table 7: the hero's level in the monster's opposite element
-    // strengthens the blow (0x412a40).
-    hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+    if (random_.next(100) < hitChance(playerHit(), s.evasion)) {
+        // Table 7: the hero's level in the monster's opposite element
+        // strengthens the blow (0x412a40).
+        hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+    }
+    // Every blow wears the weapon a little, hit or miss.
+    sayBroken(inventory_.wearFromAttacking(random_));
+}
+
+void Game::sayBroken(const std::vector<EquipSlot>& slots) {
+    for (EquipSlot slot : slots) {
+        if (const auto& item = inventory_.equipped(slot)) {
+            showMessage(std::format("{} is broken", item->shownName()));
+            log::info("{} broke", item->def->name);
+        }
+    }
 }
 
 void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
@@ -739,6 +882,8 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
         hurtPlayer(damage, true, &enemy);
         return;
     }
+    // The blow also catches an ACTIVE companion in front of the monster.
+    if (partnerInReach(enemy)) strikePartner(enemy, slot);
     if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
     // Table 11: the hero's level in the monster's element strengthens their
     // defence. Energy Shield changes the defence first (0x443cb0).
@@ -747,7 +892,7 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
     hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
 }
 
-void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell) {
+void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
     if (!enemy.alive()) return;
     enemy.hp -= damage;
     if (enemy.hp <= 0) {
@@ -755,9 +900,11 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell) {
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
         dropLoot(enemy);
-        // The original counts how monsters die, to offer a class (0x4134a0).
+        // The original counts how the hero kills monsters, to offer a class
+        // (0x4134a0), and every kill trains the companion (0x413640).
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
-        career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        if (!byPartner) career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        partnerCountKill();
         // Moon, Berserker and Energy Shield train by kills while they are
         // on (0x419c91).
         for (int spell = 0; spell < kSpellCount; ++spell) {
@@ -813,6 +960,8 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
         placePlayer();
         return;
     }
+    // Blows that get through wear out the armour (0x443fa8).
+    sayBroken(inventory_.wearFromBlow(random_));
     // Counter Burst sends part of a monster's blow back (0x444150): half
     // as much to monsters whose word 7 is 100, at least 1.
     if (!magic && attacker && attacker->alive() && spellOn(kCounterBurst)) {
@@ -837,7 +986,12 @@ void Game::render(double interpolation) {
     } else {
         renderPlaceholder(interpolation);
     }
-    if (menuOpen_) renderMenu();
+    if (optionsOpen_) {
+        renderOptions();
+    } else if (menuOpen_) {
+        renderMenu();
+    }
+    if (screenshotPending_) takeScreenshot();
     SDL_RenderPresent(renderer_);
 }
 
@@ -851,6 +1005,8 @@ void Game::renderMap() {
 
     if (g.isoTile > 0) {
         renderIsoGround(camX, camY);
+    } else if (skin_) {
+        skin_->renderGround(camX, camY);
     } else {
         renderChips(camX, camY);
     }
@@ -860,6 +1016,7 @@ void Game::renderMap() {
     // stands under one; characters draw their own shadows.
     std::vector<const Character*> characters;
     if (player_) characters.push_back(&*player_);
+    if (partner_ && partner_->character.tint.a > 0) characters.push_back(&partner_->character);
     for (const auto& actor : actors_) {
         if (!actor.active) continue;
         int sx, sy;
@@ -869,6 +1026,8 @@ void Game::renderMap() {
     }
     std::ranges::stable_sort(characters, [](const Character* a, const Character* b) { return a->x + a->y < b->x + b->y; });
 
+    // Semi-transparent Shadow off draws them solid black.
+    const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     const auto& objects = map_->objects().objects;
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
@@ -880,11 +1039,15 @@ void Game::renderMap() {
             // the front is still waiting for a later object.
             for (auto it = pending.begin(); it != pending.end();) {
                 if (o.hides((*it)->x, (*it)->y)) {
-                    (*it)->draw(renderer_, sprites_, camX, camY);
+                    (*it)->draw(renderer_, sprites_, camX, camY, shadowAlpha);
                     it = pending.erase(it);
                 } else {
                     ++it;
                 }
+            }
+            if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
+                if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
+                continue;
             }
             if (map_->isShadowBank(o.bank) != shadows) continue;
             const SpriteBank* bank = map_->bank(o.bank);
@@ -900,12 +1063,15 @@ void Game::renderMap() {
             if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) continue;
             if (shadows) {
                 SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-                SDL_SetTextureAlphaMod(sprite->texture, 96);
+                SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
             }
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         }
-        for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY);
+        for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY, shadowAlpha);
     }
+    // Semi-transparent Player: a faint copy on top shows the hero through
+    // walls; where nothing covers them it lands on itself and changes nothing.
+    if (player_ && settings_.seeThroughPlayer) player_->draw(renderer_, sprites_, camX, camY, shadowAlpha, 96);
     renderSpells(camX, camY);
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
@@ -914,7 +1080,9 @@ void Game::renderMap() {
     renderStatus();
     renderInventory();
     renderHud();
+    renderPartnerGauge();
     renderDialogue();
+    renderHelp();
 }
 
 // The original's ground: pre-drawn chips on a screen-aligned grid.

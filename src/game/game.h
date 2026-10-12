@@ -16,11 +16,14 @@
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
 #include "logic/magic.h"
+#include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/settings.h"
 #include "logic/shop.h"
 #include "formats/table_data.h"
+#include "formats/open_content.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
 #include "formats/scenario.h"
@@ -31,6 +34,7 @@
 namespace sf {
 
 class FileSystem;
+class Skin;
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -40,13 +44,18 @@ inline constexpr int kScreenHeight = 480;
 // can later be matched tick-for-tick against the original executable.
 inline constexpr int kTicksPerSecond = 20;
 
-// The player's health until characters have stats.
+// The hero's step in world units per tick. Not yet taken from the original.
+inline constexpr double kPlayerWalkSpeed = 70.0;
+// Top of the companion's health gauge, as in the original.
+inline constexpr int kPartnerGaugeY = 395;
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
 class Game {
 public:
-    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap);
+    // With a skin, the original's maps and characters are drawn with an
+    // open content pack's art where it has some.
+    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin = nullptr);
 
     void handleEvent(const SDL_Event& event);
     void tick();
@@ -64,12 +73,14 @@ public:
     // Makes the player attack the nearest monster on their own (for
     // scripted smoke tests of combat).
     void setAutoFight(bool on) { autoFight_ = on; }
+    // Swaps in a kind of companion and sets it ACTIVE (for scripted tests).
+    void bringPartner(int kind);
 
     // Puts an item in the bag, on the hero or on the ground next to them
     // (for scripted tests). For gold, `count` is the amount. False when the
     // item is unknown, does not fit or cannot be worn.
     enum class GiveTo { Bag, Wear, Ground };
-    bool give(int itemClass, int code, int count, GiveTo to);
+    bool give(int itemClass, int code, int count, GiveTo to, int wear = 0);  // wear: how worn it starts
 
     // Shows the inventory panel (toggled with I).
     void setInventoryOpen(bool open) { showInventory_ = open; }
@@ -78,8 +89,6 @@ public:
     void setShowJudge(bool show) { showJudge_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
-    // Saves the game to a text file (F10) or loads it back (F9). False, with
-    // a message on screen, when that fails.
     // Starts the hero at a level, fully healed (for testing): a warrior from
     // level 5, as the original makes every hero.
     void setLevel(int level) {
@@ -106,11 +115,18 @@ public:
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
 
-    // The main menu. At the start it offers Continue, New Game and Quit;
-    // Esc during play opens it with Resume, Save and Load as well.
-    enum class MenuItem { Resume, Continue, NewGame, Save, Load, OriginalMode, Quit };
-    void openMenu(bool atStart);
+    // The title menu: Continue, New Game, Options and Quit.
+    enum class MenuItem { Continue, NewGame, Options, Quit };
+    void openMenu();
     bool menuOpen() const { return menuOpen_; }
+
+    // The Settings Menu, as the original's (Esc in the game); from the
+    // title menu it is Options, without the save and exit rows.
+    void openOptions(bool inGame);
+    // Reads the options from this file and writes them back when they change.
+    void setSettingsFile(std::string path);
+    const Settings& settings() const { return settings_; }
+    void setHelpOpen(bool open) { helpOpen_ = open; }
 
     // Walks the player up to a character and speaks to them (for scripted
     // tests); `answers` close the messages that follow, one each.
@@ -119,6 +135,8 @@ public:
     // Sets a SAVE story flag, for testing scripts part way through the story.
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
 
+    // Saves the game to a text file (F10) or loads it back (F11). False, with
+    // a message on screen, when that fails.
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
     bool loadGame();
@@ -223,10 +241,12 @@ private:
     // A blow from the player or from a monster: it may miss, otherwise it
     // does the original's damage.
     void strikeEnemy(Actor& enemy);
+    void sayBroken(const std::vector<EquipSlot>& slots);  // a message for each item that broke
     // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
     void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
     // `bySpell` counts the kill as a magic one for the class offer.
-    void hurtEnemy(Actor& enemy, int damage, bool bySpell = false);
+    // byPartner: the companion's bite, which the class kill counts skip.
+    void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
     void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
@@ -342,6 +362,35 @@ private:
     int spellPower(int spell, int level) const;
     int spellHit(int spell, int level) const;
     void renderSpells(int camX, int camY);
+
+    // The hero's companion (partner.cpp).
+    struct Partner {
+        explicit Partner(Character c) : character(std::move(c)) {}
+        Character character;
+        PartnerStats stats{};
+        int hp = 1;
+        enum class State { Idle, Walk, Run, Bite, Hit, Dead } state = State::Idle;
+        std::optional<std::size_t> target{};  // the monster it fights, in actors_
+        int walkDelay = 5;   // ticks before it starts walking after the hero
+        int regenCarry = 0;  // thousandths of a point of health
+        int deadTicks = 0;   // since it fell, for the fade
+        bool struck = false;  // the current bite has landed
+    };
+    void spawnPartner();
+    void changePartner(int kind);
+    void refreshPartnerStats();
+    void togglePartnerMode();
+    bool partnerAlive() const;
+    void tickPartner();
+    void partnerBites(Actor& enemy);
+    void strikePartner(Actor& enemy, int slot);
+    bool partnerInReach(const Actor& enemy) const;
+    void hurtPartner(int damage);
+    void partnerCountKill();
+    double partnerSpeed(int stat) const;
+    std::string partnerStatusText(int kind) const;
+    void renderPartnerGauge();
+    bool partnerGaugeClick(int x, int y);
     void renderSpellBar();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
@@ -350,8 +399,43 @@ private:
     void chooseMenuItem(MenuItem item);
     void newGame();
 
+    // The Settings Menu and Help window (options.cpp).
+    enum class OptionRow {
+        ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
+        EffectVolume, MusicVolume, OriginalMode, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back
+    };
+    std::vector<OptionRow> optionRows() const;
+    bool optionEnabled(OptionRow row) const;
+    static const char* optionLabel(OptionRow row);
+    static bool optionIsSlider(OptionRow row);
+    std::vector<std::string> optionChoices(OptionRow row, int& chosen) const;
+    SDL_Rect optionChoiceRect(int row, int choice);
+    void setOption(OptionRow row, int index);
+    void chooseOption(OptionRow row);
+    void closeOptions();
+    void optionsEvent(const SDL_Event& event);
+    void renderOptions();
+    void renderHelp();
+    void saveSettings();
+    void applyScreenMode();
+    void takeScreenshot();
+    // Closes the inventory panel, putting a held item back or dropping it.
+    void closeInventory();
+    // A key from the manual for something the engine does not have yet.
+    void notYet(const char* what);
+    // What a left click at a point on the screen is aimed at, by the click
+    // priority. Only the kinds in `kinds` (bits of Settings::Target) count.
+    struct ClickTarget {
+        int kind = -1;  // Settings::Target, or -1 for the ground
+        std::size_t index = 0;
+    };
+    ClickTarget clickTarget(float screenX, float screenY, unsigned kinds) const;
+    // A point within the click range of something drawn at (sx, sy).
+    bool inClickRange(double dx, double dy) const;
+
     SDL_Renderer* renderer_;
     const FileSystem* data_;
+    Skin* skin_ = nullptr;
     SpriteCache sprites_;
     std::vector<std::string> mapNames_;
     std::size_t mapIndex_ = 0;
@@ -393,6 +477,10 @@ private:
     int nextEffectId_ = 1;
     double originalTicks_ = 0;  // carried between engine ticks
     Rules rules_;
+    std::optional<PartnerTables> partnerTables_;  // none with open content
+    PartnerRecord partnerRecord_;
+    std::optional<Partner> partner_;
+    int partnerHpCarried_ = 0;  // its health across a map change (+0x156c); 0 = full
     bool mouseHeld_ = false;
     bool showJudge_ = false;
     bool autoFight_ = false;
@@ -408,6 +496,7 @@ private:
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     GameTables tables_;  // Table.Tbd; empty with open content
+    open::ShopLists openShops_;  // shops.txt, INITTRADE's lists with open content
     Career career_;  // the hero's class, its history and the class on offer
     bool showStatus_ = false;
     std::optional<Dialogue> dialogue_;
@@ -424,6 +513,14 @@ private:
     std::uint64_t ticks_ = 0;
     bool quit_ = false;
     bool menuOpen_ = false;
+    Settings settings_;
+    std::string settingsFile_;
+    bool optionsOpen_ = false;
+    bool optionsInGame_ = false;
+    int optionsChoice_ = 0;
+    bool helpOpen_ = false;
+    bool runMode_ = false;  // R or the RUN button: run instead of walk
+    bool screenshotPending_ = false;
     std::vector<MenuItem> menuItems_;
     int menuChoice_ = 0;
     std::size_t startMapIndex_ = 0;

@@ -26,6 +26,10 @@ public:
     // Returns null for unused list slots or banks that fail to load.
     const SpriteBank* bank(int index) const;
 
+    // The .lst entries: bank file names, "?" for unused slots.
+    std::size_t bankCount() const { return bankFiles_.size(); }
+    const std::string& bankFile(int index) const { return bankFiles_[index]; }
+
     // True when the list entry is a shadow bank (.sdw).
     bool isShadowBank(int index) const;
 

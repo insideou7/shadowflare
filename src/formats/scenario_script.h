@@ -2,8 +2,10 @@
 
 #include <cstdint>
 #include <map>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace sf {
@@ -42,7 +44,7 @@ struct ScenarioScript {
         kInitTrade = 6,         // INITTRADE shop list: stocks a shop from Table.Tbd table 32 row `list`
         kHealLife = 7,          // HEALLIFE
         kHealMental = 8,        // HEALMENTAL
-        kRepair = 9,            // REPAIR slot
+        kRepair = 9,            // REPAIR part: 0 weapon, 1 helmet, 2 body, 3 shield, 4 boots, -1 the bag
         kCreateItem = 10,       // CREATEITEM class code x y min max
         kAdd = 11, kSub = 12, kMul = 13, kDiv = 14, kRem = 15,  // ADD var value...
         kPlaySound = 16,        // PLAYSOUND sound ? x y
@@ -78,7 +80,7 @@ struct ScenarioScript {
         kGetRepairPrice = 52,   // GETREPAIRPRICE slot var
         kGetTotalGold = 53,     // GETTOTALGOLD var
         kPayGold = 54,          // PAYGOLD amount
-        kCheckUnopinionItem = 55,
+        kCheckUnopinionItem = 55,  // CHECKUNOPINIONITEM var: 1 if anything is unidentified
         kAbsoluteObjectFlag = 56,
         kGetPlayerSex = 57,
         kCheckItemExist = 58, kDeleteItem = 59,
@@ -129,6 +131,11 @@ struct ScenarioScript {
     std::vector<std::vector<Command>> sentences;
 
     static ScenarioScript parse(std::span<const std::uint8_t> data);
+
+    // A command's name, such as "TALK" for 2 (empty for unknown numbers),
+    // and the number for a name.
+    static std::string_view commandName(std::int32_t opcode);
+    static std::optional<std::int32_t> commandNumber(std::string_view name);
 };
 
 }  // namespace sf

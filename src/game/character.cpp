@@ -114,7 +114,8 @@ void Character::tick() {
     }
 }
 
-void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY) const {
+void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha,
+                     int alpha) const {
     const auto* dir = currentDirection();
     if (!dir) return;
     int sx, sy;
@@ -132,6 +133,7 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         if (frame_ >= static_cast<int>(layer.size())) continue;
         const auto& cell = layer[frame_];
         const bool shadow = cell.status == AnimationSet::kShadowStatus;
+        if (shadow && alpha < 255) continue;
         if (!shadow && std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
         items.push_back({&cell, shadow});
     }
@@ -146,12 +148,21 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         const SpriteBank& bank = item.shadow ? model_->shadow : model_->body;
         const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false);
         if (!sprite) continue;
+        // Textures are shared: set their colour for this draw and put it
+        // back after.
         if (item.shadow) {
             SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-            SDL_SetTextureAlphaMod(sprite->texture, 96);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha * tint.a / 255));
+        } else {
+            SDL_SetTextureColorMod(sprite->texture, tint.r, tint.g, tint.b);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha * tint.a / 255));
         }
         SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
         SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
+        if (!item.shadow) {
+            SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
+            SDL_SetTextureAlphaMod(sprite->texture, 255);
+        }
     }
 }
 

@@ -11,7 +11,8 @@ namespace {
 
 constexpr int kVersion = 1;
 
-std::vector<long long> numbers(std::string_view value, std::size_t count, int line) {
+// A line of comma-separated numbers: `count` of them, or up to `most`.
+std::vector<long long> numbers(std::string_view value, std::size_t count, int line, std::size_t most = 0) {
     std::vector<long long> out;
     while (!value.empty()) {
         const auto comma = value.find(',');
@@ -25,7 +26,9 @@ std::vector<long long> numbers(std::string_view value, std::size_t count, int li
         if (comma == std::string_view::npos) break;
         value.remove_prefix(comma + 1);
     }
-    if (out.size() != count) throw FormatError(std::format("save line {}: expected {} numbers", line, count));
+    if (out.size() < count || out.size() > std::max(count, most)) {
+        throw FormatError(std::format("save line {}: expected {} numbers", line, count));
+    }
     return out;
 }
 
@@ -35,7 +38,30 @@ HeroClass heroClass(long long n, int line) {
 }
 
 SaveGame::ItemRef ref(const Item& item) {
-    return {static_cast<int>(item.def->cls), item.def->code, item.count};
+    return {static_cast<int>(item.def->cls), item.def->code, item.count, item.wear, item.unidentified};
+}
+
+// An item's wear and whether it is unidentified, after its other numbers;
+// left off when it is new and identified.
+std::string condition(const SaveGame::ItemRef& r) {
+    return r.wear != 0 || r.unidentified ? std::format(",{},{}", r.wear, r.unidentified ? 1 : 0) : std::string();
+}
+
+// cls,code,count then `extra` numbers, then optionally wear,unidentified.
+SaveGame::ItemRef readRef(const std::vector<long long>& v, std::size_t extra) {
+    SaveGame::ItemRef r{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])};
+    if (v.size() >= 5 + extra) {
+        r.wear = static_cast<int>(v[3 + extra]);
+        r.unidentified = v[4 + extra] != 0;
+    }
+    return r;
+}
+
+Item toItem(const ItemDef* def, const SaveGame::ItemRef& r) {
+    Item item{def, r.count};
+    item.wear = r.wear;
+    item.unidentified = r.unidentified;
+    return item;
 }
 
 }  // namespace
@@ -65,12 +91,25 @@ std::string SaveGame::write() const {
         out += std::format("{}\n", spells->selected);
     }
     if (originalMode) out += "original=1\n";
+    if (partner) {
+        // partner=kind,active,revive ticks,hp, then each kind's level and
+        // experience.
+        out += std::format("partner={},{},{},{}", partner->kind, partner->active ? 1 : 0, partner->reviveTicks, partnerHp);
+        for (int k = 0; k < kPartnerKinds; ++k) {
+            const auto i = static_cast<std::size_t>(k);
+            out += std::format(",{},{}", partner->levels[i], partner->experience[i]);
+        }
+        out += '\n';
+    }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
-    for (const auto& e : bag) out += std::format("bag={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
-    for (const auto& e : storage) out += std::format("stored={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
+    // Items: class,code,count[,x,y], then wear,unidentified when not 0,0.
+    for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+    for (const auto& e : storage) {
+        out += std::format("stored={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+    }
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         if (const auto& e = equipped[static_cast<std::size_t>(slot)]) {
-            out += std::format("wear={},{},{},{}\n", slot, e->cls, e->code, e->count);
+            out += std::format("wear={},{},{},{}{}\n", slot, e->cls, e->code, e->count, condition(*e));
         }
     }
     return out;
@@ -121,6 +160,19 @@ SaveGame SaveGame::parse(std::string_view text) {
             auto spell = [&](long long n) { return n >= 0 && n < kSpellCount ? static_cast<int>(n) : -1; };
             for (std::size_t b = 0; b < kSpellBarSize; ++b) save.spells->bar[b] = spell(v[b]);
             save.spells->selected = spell(v[kSpellBarSize]);
+        } else if (key == "partner") {
+            const auto v = numbers(value, 4 + 2 * kPartnerKinds, lineNumber);
+            if (v[0] < 0 || v[0] >= kPartnerKinds) throw FormatError(std::format("save line {}: no such companion", lineNumber));
+            PartnerRecord p;
+            p.kind = static_cast<int>(v[0]);
+            p.active = v[1] != 0;
+            p.reviveTicks = static_cast<int>(std::max(0LL, v[2]));
+            save.partnerHp = static_cast<int>(std::max(0LL, v[3]));
+            for (std::size_t i = 0; i < kPartnerKinds; ++i) {
+                p.levels[i] = static_cast<int>(std::clamp(v[4 + 2 * i], 1LL, static_cast<long long>(kPartnerMaxLevel)));
+                p.experience[i] = static_cast<int>(std::max(0LL, v[5 + 2 * i]));
+            }
+            save.partner = p;
         } else if (key == "original") {
             save.originalMode = numbers(value, 1, lineNumber)[0] != 0;
         } else if (key == "level") {
@@ -143,19 +195,13 @@ SaveGame SaveGame::parse(std::string_view text) {
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);
-        } else if (key == "bag") {
-            const auto v = numbers(value, 5, lineNumber);
-            save.bag.push_back({{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])},
-                                static_cast<int>(v[3]), static_cast<int>(v[4])});
-        } else if (key == "stored") {
-            const auto v = numbers(value, 5, lineNumber);
-            save.storage.push_back({{static_cast<int>(v[0]), static_cast<std::int32_t>(v[1]), static_cast<int>(v[2])},
-                                    static_cast<int>(v[3]), static_cast<int>(v[4])});
+        } else if (key == "bag" || key == "stored") {
+            const auto v = numbers(value, 5, lineNumber, 7);
+            (key == "bag" ? save.bag : save.storage).push_back({readRef(v, 2), static_cast<int>(v[3]), static_cast<int>(v[4])});
         } else if (key == "wear") {
-            const auto v = numbers(value, 4, lineNumber);
+            const auto v = numbers(value, 4, lineNumber, 6);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
-            save.equipped[static_cast<std::size_t>(v[0])] =
-                ItemRef{static_cast<int>(v[1]), static_cast<std::int32_t>(v[2]), static_cast<int>(v[3])};
+            save.equipped[static_cast<std::size_t>(v[0])] = readRef({v.begin() + 1, v.end()}, 0);
         }  // unknown keys are skipped, so newer saves still mostly load
     }
     if (!versioned) throw FormatError("not a saved game");
@@ -180,13 +226,13 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
     auto find = [&](const ItemRef& r) { return items.find(static_cast<ItemDef::Class>(r.cls), r.code); };
     for (const auto& e : bag) {
         const ItemDef* def = find(e.item);
-        if (!def || !inventory.addAt({def, e.item.count}, e.x, e.y)) ++skipped;
+        if (!def || !inventory.addAt(toItem(def, e.item), e.x, e.y)) ++skipped;
     }
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         const auto& r = equipped[static_cast<std::size_t>(slot)];
         if (!r) continue;
         if (const ItemDef* def = find(*r)) {
-            inventory.equip(static_cast<EquipSlot>(slot), {def, r->count});
+            inventory.equip(static_cast<EquipSlot>(slot), toItem(def, *r));
         } else {
             ++skipped;
         }
@@ -208,7 +254,7 @@ int SaveGame::restoreStorage(ShopStock& stock, const ItemTable& items) const {
             ++skipped;
             continue;
         }
-        stock.goods.push_back({{def, e.item.count}, e.x, e.y});
+        stock.goods.push_back({toItem(def, e.item), e.x, e.y});
     }
     return skipped;
 }

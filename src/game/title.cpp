@@ -1,4 +1,5 @@
-// The main menu: shown when the game starts and on Esc during play.
+// The title menu, shown when the game starts and after Save and Return to
+// Title. Esc during play opens the Settings Menu instead (options.cpp).
 #include <filesystem>
 
 #include "core/log.h"
@@ -17,14 +18,11 @@ constexpr int kItemScale = 3;
 constexpr int kItemGap = 28;
 constexpr int kFirstItemY = 230;
 
-const char* label(Game::MenuItem item, bool originalMode) {
+const char* label(Game::MenuItem item) {
     switch (item) {
-        case Game::MenuItem::OriginalMode: return originalMode ? "ORIGINAL MODE: ON" : "ORIGINAL MODE: OFF";
-        case Game::MenuItem::Resume: return "RESUME";
         case Game::MenuItem::Continue: return "CONTINUE";
         case Game::MenuItem::NewGame: return "NEW GAME";
-        case Game::MenuItem::Save: return "SAVE GAME";
-        case Game::MenuItem::Load: return "LOAD GAME";
+        case Game::MenuItem::Options: return "OPTIONS";
         case Game::MenuItem::Quit: return "QUIT";
     }
     return "";
@@ -32,11 +30,12 @@ const char* label(Game::MenuItem item, bool originalMode) {
 
 }  // namespace
 
-void Game::openMenu(bool atStart) {
+void Game::openMenu() {
     menuOpen_ = true;
+    optionsOpen_ = false;
+    helpOpen_ = false;
     using M = MenuItem;
-    menuItems_ = atStart ? std::vector<M>{M::Continue, M::NewGame, M::OriginalMode, M::Quit}
-                         : std::vector<M>{M::Resume, M::Save, M::Load, M::NewGame, M::OriginalMode, M::Quit};
+    menuItems_ = {M::Continue, M::NewGame, M::Options, M::Quit};
     menuChoice_ = 0;
     // Start on the first thing that can be chosen (New Game without a save).
     while (!menuItemEnabled(menuItems_[menuChoice_])) ++menuChoice_;
@@ -46,34 +45,24 @@ void Game::openMenu(bool atStart) {
 }
 
 bool Game::menuItemEnabled(MenuItem item) const {
-    if (item == MenuItem::Continue || item == MenuItem::Load) {
+    if (item == MenuItem::Continue) {
         std::error_code ec;
         return std::filesystem::exists(saveFile_, ec);
     }
-    if (item == MenuItem::Save) return map_ && player_;
     return true;
 }
 
 void Game::chooseMenuItem(MenuItem item) {
     if (!menuItemEnabled(item)) return;
     switch (item) {
-        case MenuItem::Resume: menuOpen_ = false; break;
         case MenuItem::Continue:
-        case MenuItem::Load:
             if (loadGame()) menuOpen_ = false;
             break;
         case MenuItem::NewGame:
             newGame();
             menuOpen_ = false;
             break;
-        case MenuItem::Save:
-            if (saveGame()) menuOpen_ = false;
-            break;
-        case MenuItem::OriginalMode:
-            // Stays in the menu, showing the new setting.
-            setOriginalMode(!originalMode());
-            log::info("Original mode {}", originalMode() ? "on" : "off");
-            break;
+        case MenuItem::Options: openOptions(false); break;
         case MenuItem::Quit: quit_ = true; break;
     }
 }
@@ -93,6 +82,10 @@ void Game::newGame() {
     spellOn_ = {};
     casting_.reset();
     clearSpells();
+    setOriginalMode(settings_.originalMode);
+    partnerRecord_ = {};
+    partner_.reset();
+    partnerHpCarried_ = 0;
     giveStartingKit();
     updateEquipment();
     if (!mapNames_.empty()) loadMap(startMapIndex_);
@@ -105,7 +98,7 @@ void Game::newGame() {
 // Which menu line is under a point on the screen, or -1.
 int Game::menuItemAt(int x, int y) const {
     for (std::size_t i = 0; i < menuItems_.size(); ++i) {
-        const int w = textWidth(label(menuItems_[i], originalMode()), kItemScale);
+        const int w = textWidth(label(menuItems_[i]), kItemScale);
         const int top = kFirstItemY + static_cast<int>(i) * kItemGap;
         if (x >= (kScreenWidth - w) / 2 - 8 && x <= (kScreenWidth + w) / 2 + 8 && y >= top - 6 &&
             y <= top + textHeight(kItemScale) + 6) {
@@ -134,10 +127,6 @@ void Game::menuEvent(const SDL_Event& event) {
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                 case SDLK_SPACE: chooseMenuItem(menuItems_[menuChoice_]); break;
-                case SDLK_ESCAPE:
-                    // Back to the game if there is one to go back to.
-                    if (menuItems_.front() == MenuItem::Resume) menuOpen_ = false;
-                    break;
                 default: break;
             }
             break;
@@ -170,7 +159,7 @@ void Game::renderMenu() {
         const auto item = menuItems_[i];
         const bool chosen = static_cast<int>(i) == menuChoice_;
         const SDL_Color color = !menuItemEnabled(item) ? kDisabled : chosen ? kChosen : kOther;
-        const char* text = label(item, originalMode());
+        const char* text = label(item);
         const int x = (kScreenWidth - textWidth(text, kItemScale)) / 2, y = kFirstItemY + static_cast<int>(i) * kItemGap;
         if (chosen) {
             // A small gold marker on each side of the chosen line.

@@ -318,7 +318,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE char dx dy value r g b` | 52 | `GETREPAIRPRICE slot var` |
 | 1 | `SETFLAG var value` | 27 | `MESSAGEBOX char dx dy msg r g b time` | 53 | `GETTOTALGOLD var` |
 | 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
-| 3 | `TALKPARTNERSTATUS` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
+| 3 | `TALKPARTNERSTATUS kind answer` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
 | 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
 | 5 | `TRADE shop` | 31 | `CHECKENEMYLIVE` | 57 | `GETPLAYERSEX var` |
 | 6 | `INITTRADE shop list` | 32 | `CHECKENEMYDEAD` | 58 | `CHECKITEMEXIST` |
@@ -326,7 +326,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 8 | `HEALMENTAL` | 34 | `CALCMYPLAYERDIST char var` | 60 | `SETUNLOCKSW` |
 | 9 | `REPAIR slot` | 35 | `CALCANGLE` | 61 | `GETPLAYERLEVEL var` |
 | 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT` | 62 | `SETQUESTFLAG` |
-| 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE` |
+| 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE life max` |
 | 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
@@ -334,7 +334,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
 | 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
-| 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER` | 71 | `GETCLASS var` |
+| 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER kind` | 71 | `GETCLASS var` |
 | 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS` | 72 | `CHANGECOLOR` |
 | 25 | `RESSURECT` | 47 | `GETCHARTRANS` | 73 | `STARTCARDGAME` |
 | | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT` |
@@ -349,6 +349,18 @@ number. The colour is red, green, blue; `time` is 1000 where it appears,
 taken as a second. `STORAGE` opens the warehouse, the shop window's twin
 (Status.njp patterns 14 and 15, a 9 x 10 grid); Remote Town runs it when
 the player uses the Warehouse object (10000300).
+
+`IDENTIFY` identifies everything the player wears and carries;
+`CHECKUNOPINIONITEM` sets its variable to 1 when anything is still
+unidentified, else 0. `REPAIR` and `GETREPAIRPRICE` take a part: 0 the
+weapon, 1 helmet, 2 body armour, 3 shield, 4 boots, -1 every weapon and
+armour in the bag (GETREPAIRPRICE prices the bag for any number above 4
+too; REPAIR then does nothing). Neither takes gold: the script pays with
+`PAYGOLD`. Remote Town's blacksmith (12000001) uses them all, with the
+identify price in TEMP 1000017.
+
+The partner commands (3, 44, 45, 63) are described in
+[partners.md](partners.md).
 
 `TALK` shows a message over the speaker (-1 = the character whose trigger
 is running), filled in with sprintf from the values `SETMSGDEFINE` set.
@@ -542,6 +554,18 @@ Accessories have item level, required level and modifiers. Consumables
 have item level and nine effect words (word 0: may go in the belt; 1:
 health restored; 2: mental power restored). Special items have nothing
 more.
+
+Each item the game makes keeps its own durability left (+0xbc, out of
++0xb8 from the record) and an identified flag (+0x1c). Magic and unique
+items (quality 1 and 2) are made unidentified and show the second name
+until then (0x462d30). Each blow the hero aims wears the weapon one point
+30% of the time; each blow that reaches the hero wears the helmet and
+boots 20% and the body armour and shield 30% of the time (not a shield
+behind a two-handed weapon). An item at 0 is broken and adds nothing to
+the hero's stats (0x44eb5b). Mending one costs nothing when it is unworn,
+else max(1, worn points x (price / 10) / durability) (0x4667a0). The
+original adds its modifiers' surcharges to the price first; the engine
+does not read modifiers yet.
 
 Axes and two-handed swords (subtypes 1 and 3) or the two-handed flag hide
 the shield. Worn weapons, body armour and shields turn on their hero

@@ -33,6 +33,7 @@ enum class Action { Idle = 0, Walk = 1 };
 namespace chart {
 inline constexpr int kIdle = 0;
 inline constexpr int kWalk = 1;
+inline constexpr int kPlayerRun = 2;
 inline constexpr int kPlayerHit = 3;
 inline constexpr int kPlayerPunch = 5;
 inline constexpr int kPlayerHeal = 11;  // Heal's own casting (the spell's controller)
@@ -57,6 +58,9 @@ public:
     // Which layers to draw besides the shadow. The player's follow what
     // they wear (Inventory::heroLayers).
     std::vector<int> visibleLayers = {0};
+    // Colour and opacity the body is drawn with (partner dogs are recoloured
+    // per kind, and fade out when they die).
+    SDL_Color tint{255, 255, 255, 255};
 
     void setAction(Action action) { play(static_cast<int>(action)); }
 
@@ -76,7 +80,10 @@ public:
     void faceTowards(double dx, double dy);
 
     void tick();
-    void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY) const;
+    // `shadowAlpha` is how dark the shadow is drawn. Below 255, `alpha`
+    // draws a see-through copy with no shadow.
+    void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
+              int alpha = 255) const;
 
 private:
     const AnimationSet::Direction* currentDirection() const;

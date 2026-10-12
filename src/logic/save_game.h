@@ -9,6 +9,7 @@
 
 #include "logic/inventory.h"
 #include "logic/magic.h"
+#include "logic/partner.h"
 #include "logic/progression.h"
 #include "logic/shop.h"
 #include "logic/script_runner.h"
@@ -24,6 +25,8 @@ struct SaveGame {
         int cls = 0;
         std::int32_t code = 0;
         int count = 1;
+        int wear = 0;               // Item::wear
+        bool unidentified = false;  // Item::unidentified
     };
     struct BagEntry {
         ItemRef item;
@@ -46,6 +49,8 @@ struct SaveGame {
     std::optional<SpellBook> spells;  // none in saves from before magic
     std::array<bool, kSpellCount> spellsOn{};  // toggle spells that are on
     bool originalMode = false;
+    std::optional<PartnerRecord> partner;  // none in saves from before companions
+    int partnerHp = 0;                     // 0 = full (or down, with reviveTicks)
 
     std::string write() const;
     // Throws FormatError on a malformed file.

@@ -26,12 +26,16 @@ from town import IRON, _mats, ball, box, cyl, mat  # noqa: E402
 
 EARTHWALL = dict(colour=(0.30, 0.14, 0.05), dark=(0.025, 0.01, 0.005), scale=22, detail=14, rough=1.0, bump=1.8,
                  band=(0.4, 0.72), spot=0.25, spot_colour=(0.70, 0.36, 0.10))
+# The tall faces and blocks: browner, with lit orange flecks.
+GORGE = dict(EARTHWALL, colour=(0.28, 0.16, 0.08), scale=26, detail=16, bump=2.6, spot=0.4, spot_colour=(0.72, 0.44, 0.18))
 SHADOW = dict(colour=(0.035, 0.022, 0.015), dark=(0.01, 0.006, 0.004), scale=14, rough=1.0, bump=0.6)
 RAIL = dict(colour=(0.40, 0.39, 0.36), dark=(0.10, 0.10, 0.09), scale=6, bump=0.6, stretch=(8, 1, 1), grime=0.5)
 STONE = dict(colour=(0.30, 0.30, 0.31), dark=(0.07, 0.07, 0.08), scale=6, bump=0.8, grime=0.6,
              bricks=dict(width=0.9, height=0.45, mortar=0.04, vary=0.75, joint=0.3))
 
 WALL_L, WALL_H = 6.4, 6.6
+TALL_L, TALL_H = 5.0, 9.6   # the deep caves' tall rock faces
+BLOCK = 6.8                 # and their broad blocks
 
 
 def glow(name, colour, dark, strength, **kw):
@@ -61,6 +65,25 @@ def earth_wall(along_y=False, seed=1, dark=False):
             o.rotation_euler.z = rng.uniform(-0.3, 0.3)
     if along_y:
         turn(math.pi / 2)
+
+
+def earth_tall(along_y=False, seed=11):
+    """A tall, thick face of rock at a deep cavern's edge, standing above
+    the floor like the side of a gorge, with a ragged lit top."""
+    m = mat("gorge", GORGE)
+    rough(solid(box((TALL_L, 1.6, TALL_H), (0, 0.3, TALL_H / 2), m)), 0.9, 1.5, seed, cuts=30)
+    rough(solid(box((TALL_L + 0.3, 2.0, 0.8), (0, 0.3, TALL_H), m)), 0.6, 0.9, seed + 1, cuts=14)
+    if along_y:
+        turn(math.pi / 2)
+
+
+def earth_block(seed=12, dark=False):
+    """A broad block of rock between cavern passages, seen from its corner:
+    two earth faces (or, dark, the black drop below the floor) under a
+    ragged earth top."""
+    m = mat("gorge", GORGE)
+    rough(solid(box((BLOCK, BLOCK, 4.2), (0, 0, 2.1), mat("shadow", SHADOW) if dark else m)), 0.8, 1.5, seed, cuts=26)
+    rough(solid(box((BLOCK + 0.3, BLOCK + 0.3, 0.8), (0, 0, 4.3), m)), 0.6, 0.9, seed + 1, cuts=18)
 
 
 def earth_post(seed=3):
@@ -238,6 +261,10 @@ PROPS = {
     "shadow_x": (lambda: earth_wall(dark=True, seed=5), 288),
     "shadow_y": (lambda: earth_wall(along_y=True, dark=True, seed=6), 288),
     "earth_post": (earth_post, 224),
+    "earth_tall_x": (earth_tall, 320),
+    "earth_tall_y": (lambda: earth_tall(along_y=True, seed=13), 320),
+    "earth_block": (earth_block, 352),
+    "earth_drop": (lambda: earth_block(seed=14, dark=True), 352),
     "rail_gate_x": (rail_gate, 288),
     "rail_gate_y": (lambda: rail_gate(along_y=True, seed=6), 288),
     "chain_gate_x": (chain_gate, 288),
