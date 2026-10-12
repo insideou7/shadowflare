@@ -28,7 +28,7 @@ from town import IRON, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
 STONE = dict(colour=(0.52, 0.49, 0.43), dark=(0.07, 0.055, 0.04), scale=16, detail=16, bump=1.0, grime=0.5,
              band=(0.4, 0.68), spot=0.45, spot_colour=(0.20, 0.13, 0.08),
              bricks=dict(width=1.0, height=0.45, mortar=0.03, vary=0.9, joint=0.65),
-             fade=(1.6, 0.3, 6.3))  # worn pale at the foot, darker toward the top
+             fade=(3.0, 0.45, 6.3))  # worn pale at the foot, darker toward the top
 CAPSTONE = {k: v for k, v in STONE.items() if k != "bricks"}  # the same stone, uncoursed
 BLOODY = dict(STONE, spot=0.3, spot_colour=(0.34, 0.03, 0.02))
 DOORIRON = dict(colour=(0.09, 0.09, 0.10), dark=(0.02, 0.02, 0.03), scale=20, rough=0.4, bump=0.5)
@@ -68,14 +68,13 @@ def blackout(size, at):
 
 
 def wall(along_y=False, kind=None, seed=1):
-    """A wall of grey stone blocks between a plinth and a dark capping
+    """A wall of grey stone blocks under a dark capping
     course. kind: None, "torch" (an iron bracket on the face), "blood"
     (old stains) or "black" (its face blacked out)."""
     stone = mat("bloody", BLOODY) if kind == "blood" else mat("stone", STONE)
     cap = mat("capstone", CAPSTONE)
     solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), stone))
     box((WALL_L + 0.1, WALL_T + 0.2, 0.3), (0, 0, WALL_H + 0.1), cap)
-    box((WALL_L + 0.1, WALL_T + 0.15, 0.35), (0, 0, 0.17), cap)
     face = -WALL_T / 2
     if kind == "torch":
         # A sconce: an iron plate and arm holding a pale metal cup.
@@ -121,7 +120,6 @@ def pillar(black=""):
     stone, cap = mat("stone", STONE), mat("capstone", CAPSTONE)
     solid(box((2.0, 2.0, WALL_H), (0, 0, WALL_H / 2), stone))
     box((2.1, 2.1, 0.3), (0, 0, WALL_H + 0.1), cap)
-    box((2.1, 2.1, 0.35), (0, 0, 0.17), cap)
     h = WALL_H + 0.25
     if "l" in black:
         blackout((2.24, 0.02, h), (0, -1.12, h / 2))

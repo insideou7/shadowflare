@@ -92,9 +92,10 @@ def mine_wall(along_y=False, broken=False, black=False, seed=1):
     rng = random.Random(seed)
     if black:
         import fort
-        box((WALL_L + 0.1, 1.3, WALL_H - 0.2), (0, 0.4, (WALL_H - 0.2) / 2), fort.void())
-        solid(box((WALL_L + 0.1, 1.3, 0.35), (0, 0.4, WALL_H + 0.15), mat("slab", SLAB)))
-        box((WALL_L + 0.1, 0.6, 0.45), (0, 0, WALL_H - 0.2), timber)
+        # One flat plank along the top, a little longer than the wall so
+        # neighbours overlap without a seam.
+        box((WALL_L + 0.3, 0.9, WALL_H - 0.1), (0, 0, (WALL_H - 0.1) / 2), fort.void())
+        box((WALL_L + 0.3, 0.9, 0.4), (0, 0, WALL_H + 0.1), timber)
         if along_y:
             turn(math.pi / 2)
         return
@@ -121,9 +122,17 @@ def mine_pillar():
     solid(box((2.4, 2.4, 8.5), (0, 0, 4.25), mat("slab", SLAB)))
 
 
-def post():
-    """A single pit prop."""
-    box((0.45, 0.45, 7.0), (0, 0, 3.5), mat("timber", TIMBER))
+def post(black=""):
+    """A single square pit prop, its top level with the gallery beams.
+    black: which of its near faces the original blacks out, "l" (lower
+    left on screen), "r" (lower right) or both."""
+    box((0.8, 0.8, 7.0), (0, 0, 3.5), mat("timber", TIMBER))
+    if black:
+        import fort
+        if "l" in black:
+            box((0.82, 0.02, 7.0), (0, -0.41, 3.5), fort.void())
+        if "r" in black:
+            box((0.02, 0.82, 7.0), (0.41, 0, 3.5), fort.void())
 
 
 def frame(along_y=False):
@@ -263,6 +272,9 @@ PROPS = {
     "mine_black_y": (lambda: mine_wall(along_y=True, black=True), 288),
     "mine_pillar": (mine_pillar, 288),
     "pit_prop": (post, 192),
+    "pit_prop_black_l": (lambda: post("l"), 192),
+    "pit_prop_black_r": (lambda: post("r"), 192),
+    "pit_prop_black": (lambda: post("lr"), 192),
     "frame_x": (frame, 224),
     "frame_y": (lambda: frame(along_y=True), 224),
     "lantern": (lantern, 64),
@@ -280,7 +292,7 @@ PROPS = {
 
 
 # Drawn at the original's steeper angle for walls (studio.WALL_ELEVATION).
-WALLS = ("mine_", "frame_")
+WALLS = ("mine_", "frame_", "pit_prop")
 
 
 def main():
