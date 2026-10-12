@@ -1,6 +1,6 @@
 // Increased-power mode (see PowerMode in logic/magic.h): P or the power
 // button on the panel starts it once the hero has killed enough monsters,
-// and a blue glow plays round the hero while it runs.
+// and a blue glow plays around the hero while it runs.
 #include <algorithm>
 
 #include "core/log.h"
