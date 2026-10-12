@@ -56,6 +56,25 @@ public:
     // ENABLECLASSCHANGE: offers class 1 warrior, 2 hunter or 3 wizard; the
     // player takes it in the status window.
     virtual void offerClass(int /*cls*/) {}
+    // STORAGE: opens the warehouse.
+    virtual void openStorage() {}
+    // IDENTIFY, CHECKUNOPINIONITEM, REPAIR and GETREPAIRPRICE: see
+    // Inventory for the part numbers.
+    virtual void identifyItems() {}
+    virtual bool hasUnidentifiedItems() const { return false; }
+    virtual void repair(int /*part*/) {}
+    virtual int repairPrice(int /*part*/) const { return 0; }
+    // MESSAGEBOX and MESSAGEBOXVALUE: a line of text floating at (dx, dy)
+    // screen pixels from a character, such as an area's name over its warp
+    // gate, for `duration` (1000 = a second, inferred).
+    struct Label {
+        std::int32_t character = -1;
+        int dx = 0, dy = 0;
+        std::string text;
+        std::uint8_t r = 224, g = 224, b = 224;
+        int duration = 1000;
+    };
+    virtual void showLabel(const Label&) {}
 };
 
 // The scenario script interpreter (ShadowFlare.exe 0x430f80; command names

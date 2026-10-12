@@ -227,24 +227,42 @@ i32  unknown
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
 ```
 
-The enemy block (0x13c bytes) holds the monster's stats. Read as i32
-words, these meanings were inferred by comparing 18,754 placements
-(goblins near Kanfore have 40 HP, Cold Ruins goblins 400), not taken
-from the exe, so treat them as likely rather than certain:
+The enemy block (0x13c bytes) holds the monster's stats, read as i32
+words. The loader (0x428bc2-0x428f02) copies the words, out of order, into
+the monster object from + 0xc4 on, and the combat code reads them there:
+0x459690 hands the damage code (0x412a40) + 0xe8 as defence, + 0xf0 as
+magic defence and + 0xd8 as element; the attack code (0x45a749) reads the
+attack and hit of the chosen slot at + 0xf8 and + 0x104; the hit test
+(0x45eb2b) takes evasion from + 0xec, or + 0xf4 for spells; the spell
+code (0x45b043) reads + 0x134 to + 0x158.
 
-| word | meaning |
-|---|---|
-| 6 | element |
-| 8 | hit points |
-| 9 | attack |
-| 11 | defense |
-| 13 | experience given |
-| 14 | level |
-| 1-4 | area it wanders in: left, top, right, bottom around its position |
-| 15-30 | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
-| 49 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
-| 50, 51 | gold dropped, min and max |
-| 77 | movement speed, per mille (usually 1000) |
+| word | monster + | meaning |
+|---|---|---|
+| 1-4 | 0xc4 | area it wanders in: left, top, right, bottom around its position |
+| 6 | 0xd8 | element: 0 fire, 1 water, 2 earth, 3 thunder, 4 holy, 5 dark, 6 gel, 7 metal |
+| 7 | 0xdc | unknown: 1 for almost every monster, 100 for 19 kinds (perhaps bosses); Counter Burst reflects half as much onto those |
+| 8 | 0xe4 | hit points |
+| 9 | 0xe8 | defence |
+| 10 | 0xec | evasion (50 for almost all) |
+| 11 | 0xf0 | magic defence |
+| 12 | 0xf4 | magic evasion |
+| 13 | 0x17c | experience given |
+| 14 | 0x180 | level |
+| 15-22 | | name of its behaviour list in `Control.aid` (Shift-JIS, NUL-terminated) |
+| 23-25 | 0xf8 | attack of each of its three attacks (Control.aid actions 2-4) |
+| 29-31 | 0x104 | hit of each attack |
+| 32-34 | 0x134 | its three spells (actions 5-7), as the hero's spell numbers; -1 none |
+| 35-37 | 0x14c | each spell's power |
+| 38-40 | 0x140 | the level whose Table.Tbd columns each spell uses (hit, element) |
+| 41-43 | 0x158 | added to each spell's hit |
+| 49 | 0x198 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
+| 50, 51 | 0x19c | gold dropped, min and max |
+| 77 | | movement speed, per mille (usually 1000) |
+
+Words 26-28, 44-48, 52-75 and 78 are copied too but their use is not known
+yet. Before this was read from the exe, the engine took word 9 as the
+attack and 10-12 as hit, defence and evasion, which made monsters far too
+weak.
 
 The item block (0x10 bytes) is the item's class and code in Item.Ibn
 (see Items below) and two zeros.
@@ -297,8 +315,8 @@ a switch at 0x430ffe (jump table 0x4344f0):
 
 | # | Command | # | Command | # | Command |
 |---|---------|---|---------|---|---------|
-| 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE` | 52 | `GETREPAIRPRICE slot var` |
-| 1 | `SETFLAG var value` | 27 | `MESSAGEBOX` (floating label) | 53 | `GETTOTALGOLD var` |
+| 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE char dx dy value r g b` | 52 | `GETREPAIRPRICE slot var` |
+| 1 | `SETFLAG var value` | 27 | `MESSAGEBOX char dx dy msg r g b time` | 53 | `GETTOTALGOLD var` |
 | 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
 | 3 | `TALKPARTNERSTATUS` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
 | 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
@@ -312,7 +330,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
-| 19 | `C_MOVABLE char` | 41 | `STORAGE` | 67 | `MEMORIZEMAGIC` |
+| 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC` |
 | 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
 | 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
@@ -323,6 +341,23 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | | | 49 | `SETCOMPASSES msg` | 75 | `SETITEMDIRECT` |
 | | | 50 | `GETENTRYPOINT var` | | |
 | | | 51 | `SETMSGDEFINE v0 ... v19` | | |
+
+`MESSAGEBOX` floats a message at (dx, dy) screen pixels from a character
+or map object, such as an area's name over its warp gate (Remote Town runs
+it every frame near the gate); `MESSAGEBOXVALUE` does the same with a
+number. The colour is red, green, blue; `time` is 1000 where it appears,
+taken as a second. `STORAGE` opens the warehouse, the shop window's twin
+(Status.njp patterns 14 and 15, a 9 x 10 grid); Remote Town runs it when
+the player uses the Warehouse object (10000300).
+
+`IDENTIFY` identifies everything the player wears and carries;
+`CHECKUNOPINIONITEM` sets its variable to 1 when anything is still
+unidentified, else 0. `REPAIR` and `GETREPAIRPRICE` take a part: 0 the
+weapon, 1 helmet, 2 body armour, 3 shield, 4 boots, -1 every weapon and
+armour in the bag (GETREPAIRPRICE prices the bag for any number above 4
+too; REPAIR then does nothing). Neither takes gold: the script pays with
+`PAYGOLD`. Remote Town's blacksmith (12000001) uses them all, with the
+identify price in TEMP 1000017.
 
 `TALK` shows a message over the speaker (-1 = the character whose trigger
 is running), filled in with sprintf from the values `SETMSGDEFINE` set.
@@ -432,11 +467,11 @@ descriptions. The numeric tables found so far:
   5 attack, 6 defence, 7 magic attack, 8 magic defence, 9 hit, 10 evasion,
   11 magic hit, 12 magic evasion.
 
-Combat between the player and a monster (no elements): the chance to hit
-is hit minus evasion, kept between 20 and 98 percent (0x413e00); damage is
-attack x (90, 100 or 110)% minus defence, at least 1 (0x412a40). Elements
-scale these through tables 7 and 11 (not used yet). Monsters keep hit in
-Mct enemy word 10 (50 for all) and evasion in word 12.
+Combat between the player and a monster: the chance to hit is hit minus
+evasion, kept between 20 and 98 percent (0x413e00); damage is attack x
+(90, 100 or 110)% minus defence, at least 1 (0x412a40), scaled by the
+elements through tables 7 and 11. See [magic.md](magic.md) for elements,
+spells and the tables they use.
 
 ## Classes (ShadowFlare.exe)
 
@@ -516,6 +551,18 @@ Accessories have item level, required level and modifiers. Consumables
 have item level and nine effect words (word 0: may go in the belt; 1:
 health restored; 2: mental power restored). Special items have nothing
 more.
+
+Each item the game makes keeps its own durability left (+0xbc, out of
++0xb8 from the record) and an identified flag (+0x1c). Magic and unique
+items (quality 1 and 2) are made unidentified and show the second name
+until then (0x462d30). Each blow the hero aims wears the weapon one point
+30% of the time; each blow that reaches the hero wears the helmet and
+boots 20% and the body armour and shield 30% of the time (not a shield
+behind a two-handed weapon). An item at 0 is broken and adds nothing to
+the hero's stats (0x44eb5b). Mending one costs nothing when it is unworn,
+else max(1, worn points x (price / 10) / durability) (0x4667a0). The
+original adds its modifiers' surcharges to the price first; the engine
+does not read modifiers yet.
 
 Axes and two-handed swords (subtypes 1 and 3) or the two-handed flag hide
 the shield. Worn weapons, body armour and shields turn on their hero

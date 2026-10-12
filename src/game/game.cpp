@@ -90,6 +90,8 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
+    missiles_.clear();
+    spellEffects_.clear();
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -126,6 +128,8 @@ void Game::loadScenario(const std::string& dir) {
     dialogue_.reset();
     openShop_.reset();
     talkTarget_.reset();
+    objectTarget_.reset();
+    labels_.clear();
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
     startScripts_ = true;
@@ -291,6 +295,8 @@ void Game::placePlayerAt(double screenX, double screenY) {
         player_->y = wy;
         player_->setAction(Action::Idle);
         playerHp_ = playerMaxHp();
+        playerMp_ = playerMaxMp();
+        casting_.reset();
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
@@ -363,7 +369,11 @@ void Game::handleEvent(const SDL_Event& event) {
                         }
                     }
                     break;
-                case SDLK_F5: saveGame(); break;
+                case SDLK_F1: case SDLK_F2: case SDLK_F3: case SDLK_F4:
+                case SDLK_F5: case SDLK_F6: case SDLK_F7: case SDLK_F8:
+                    selectSpellSlot(event.key.keysym.sym - SDLK_F1);
+                    break;
+                case SDLK_F10: saveGame(); break;
                 case SDLK_F9: loadGame(); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
@@ -377,11 +387,21 @@ void Game::handleEvent(const SDL_Event& event) {
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
+                // The right button casts the chosen spell at the cursor.
+                double wx, wy;
+                screenToWorld(cameraX_ + event.button.x, cameraY_ + event.button.y, wx, wy);
+                startCast(wx, wy);
+            }
             if (event.button.button == SDL_BUTTON_LEFT) {
                 mouseHeld_ = true;
                 // Clicking a person walks up to them to talk.
                 if (const auto person = personAt(event.button.x, event.button.y); person && player_) {
                     talkTarget_ = person;
+                    attackTarget_.reset();
+                    mouseHeld_ = false;
+                } else if (const auto object = objectAt(event.button.x, event.button.y); object && player_) {
+                    objectTarget_ = object;
                     attackTarget_.reset();
                     mouseHeld_ = false;
                 }
@@ -428,11 +448,14 @@ void Game::tick() {
     if (!player_) return;
     tickPlayer();
     player_->tick();
+    tickSpells();
     pickUpItems();
     for (auto& g : groundItems_) {
         if (g.sprite) g.sprite->tick();
     }
     if (messageTicks_ > 0) --messageTicks_;
+    for (auto& l : labels_) --l.ticks;
+    std::erase_if(labels_, [](const Label& l) { return l.ticks <= 0; });
     checkTriggers();
     if (pendingScenario_) {
         const auto [number, entry] = *pendingScenario_;
@@ -508,6 +531,13 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 void Game::tickPlayer() {
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
+    if (casting_) {
+        // The spell leaves the hand halfway through the casting animation.
+        if (!castReleased_ && player_->frame() >= player_->frameCount() / 2) releaseSpell();
+        if (!player_->finished()) return;
+        casting_.reset();
+        player_->play(chart::kIdle);
+    }
     if (current == chart::kPlayerHit && !player_->finished()) return;
     if (current == chart::kPlayerPunch) {
         // The blow lands halfway through the swing.
@@ -528,6 +558,7 @@ void Game::tickPlayer() {
         SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
         attackTarget_ = enemyAt(lx, ly);
         talkTarget_.reset();
+        objectTarget_.reset();
         if (attackTarget_) {
             walkTarget_.reset();
         } else if (const auto item = groundItemAt(lx, ly)) {
@@ -549,6 +580,21 @@ void Game::tickPlayer() {
             return;
         }
         walkTarget_.emplace(person.character.x, person.character.y);
+    }
+    if (objectTarget_) {
+        // Objects are used from anywhere in their rectangle or close to it.
+        const auto& p = control_.placements[*objectTarget_];
+        const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));
+        const double ny = std::clamp(player_->y, double(p.y + p.rect[1]), double(p.y + p.rect[3]));
+        if (std::hypot(nx - player_->x, ny - player_->y) <= kTalkRange) {
+            const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
+            objectTarget_.reset();
+            walkTarget_.reset();
+            player_->setAction(Action::Idle);
+            runEvent(ScenarioScript::kOnTalk, id);
+            return;
+        }
+        walkTarget_.emplace(nx, ny);
     }
     if (autoFight_ && !attackTarget_) {
         double best = kAggroRange;
@@ -585,6 +631,7 @@ void Game::tickPlayer() {
     if (kx != 0 || ky != 0) {
         walkTarget_.reset();
         talkTarget_.reset();
+        objectTarget_.reset();
         attackTarget_.reset();
         // A screen-space step converted to world space.
         screenToWorld(kx * projection.x, ky * projection.y, dx, dy);
@@ -675,17 +722,50 @@ void Game::tickEnemy(Actor& enemy) {
 
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
-    if (random_.next(100) >= hitChance(playerHit(), s.evasion)) return;
-    hurtEnemy(enemy, meleeDamage(playerAttack(), s.defense, random_.next(3)));
+    if (random_.next(100) < hitChance(playerHit(), s.evasion)) {
+        // Table 7: the hero's level in the monster's opposite element
+        // strengthens the blow (0x412a40).
+        hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+    }
+    // Every blow wears the weapon a little, hit or miss.
+    sayBroken(inventory_.wearFromAttacking(random_));
 }
 
-void Game::strikePlayer(const Actor& enemy) {
+void Game::sayBroken(const std::vector<EquipSlot>& slots) {
+    for (EquipSlot slot : slots) {
+        if (const auto& item = inventory_.equipped(slot)) {
+            showMessage(std::format("{} is broken", item->shownName()));
+            log::info("{} broke", item->def->name);
+        }
+    }
+}
+
+void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
     const auto& s = enemy.placement.stats;
-    if (random_.next(100) >= hitChance(s.hit, playerEvasion())) return;
-    hurtPlayer(meleeDamage(s.attack, playerDefense(), random_.next(3)));
+    const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
+    const HeroStats stats = playerStats();
+    if (magic && s.spells[k] >= 0 && s.spells[k] < kSpellCount) {
+        // A monster's spell, as the cast code at 0x45b043 sets it up: the
+        // spell's element and hit at the monster's spell level, its own
+        // power, and its bonus to hit.
+        const int spell = s.spells[k];
+        const int hit = magic_.hit(spell, s.spellLevel[k]) + s.spellHit[k];
+        if (random_.next(100) >= hitChance(hit, stats[HeroStats::kMagicEvasion])) return;
+        const int element = magic_.spell(spell).element;
+        const int damage = damageToHero(magic_, s.spellPower[k], element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
+        spellEffects_.push_back({SpellEffect::Kind::Spark, element, player_->x, player_->y, 120, 0, 8});
+        hurtPlayer(damage, true, &enemy);
+        return;
+    }
+    if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
+    // Table 11: the hero's level in the monster's element strengthens their
+    // defence. Energy Shield changes the defence first (0x443cb0).
+    int defense = stats[HeroStats::kDefense];
+    if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, spells_.castLevel(kEnergyShield)) / 100;
+    hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
 }
 
-void Game::hurtEnemy(Actor& enemy, int damage) {
+void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell) {
     if (!enemy.alive()) return;
     enemy.hp -= damage;
     if (enemy.hp <= 0) {
@@ -695,10 +775,15 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
         dropLoot(enemy);
         // The original counts how monsters die, to offer a class (0x4134a0).
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
-        career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, false);
+        career_.countKill(weapon ? std::optional(weapon->def->subtype) : std::nullopt, bySpell);
+        // Moon, Berserker and Energy Shield train by kills while they are
+        // on (0x419c91).
+        for (int spell = 0; spell < kSpellCount; ++spell) {
+            if (trainsByKills(spell) && spellOn(spell)) trainSpell(spell);
+        }
         runEvent(ScenarioScript::kOnEnemyDead, enemy.gameId());
         const auto& s = enemy.placement.stats;
-        gainExperience(s.experience > 0 ? s.experience : defaultExperience(s.hp, s.attack));
+        gainExperience(s.experience > 0 ? s.experience : defaultExperience(s.hp, s.attack()));
     } else {
         enemy.state = Actor::State::Hit;
         enemy.character.restart(chart::kEnemyHit);
@@ -707,8 +792,29 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
     }
 }
 
-void Game::hurtPlayer(int damage) {
-    playerHp_ -= damage;
+// What happens to a blow or spell that got through (0x443cb0).
+void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
+    // Shields charge MP each time they work. The original charges the
+    // chosen spell's cost at the shield's level; ours the shield's own.
+    auto chargeShield = [&](int shield) {
+        const int charged = rules_.shieldsCostTheirOwnMp || spells_.selected < 0 ? shield : spells_.selected;
+        playerMp_ -= spellMpCost(magic_, charged, spells_.castLevel(shield));
+        if (playerMp_ <= 0) {
+            playerMp_ = 0;
+            setSpellOn(shield, false);
+        }
+    };
+    if (magic && spellOn(kMagicShield)) {
+        damage = std::max(1, damage * (100 - magic_.power(kMagicShield, spells_.castLevel(kMagicShield))) / 100);
+        if (damage >= 20) trainSpell(kMagicShield);
+        chargeShield(kMagicShield);
+    }
+    // Energy Shield takes blows out of MP while there is any.
+    if (!magic && spellOn(kEnergyShield) && playerMp_ > 0) {
+        playerMp_ = std::max(0, playerMp_ - damage);
+    } else {
+        playerHp_ -= damage;
+    }
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
@@ -724,9 +830,20 @@ void Game::hurtPlayer(int damage) {
         placePlayer();
         return;
     }
+    // Blows that get through wear out the armour (0x443fa8).
+    sayBroken(inventory_.wearFromBlow(random_));
+    // Counter Burst sends part of a monster's blow back (0x444150): half
+    // as much to monsters whose word 7 is 100, at least 1.
+    if (!magic && attacker && attacker->alive() && spellOn(kCounterBurst)) {
+        int back = damage * magic_.power(kCounterBurst, spells_.castLevel(kCounterBurst)) / 100;
+        if (attacker->placement.stats.word7 == 100) back /= 2;
+        if (damage >= 20) trainSpell(kCounterBurst);
+        chargeShield(kCounterBurst);
+        hurtEnemy(*attacker, std::max(1, back), true);
+    }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.
-    if (player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+    if (!casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
         player_->restart(chart::kPlayerHit);
         walkTarget_.reset();
     }
@@ -813,8 +930,10 @@ void Game::renderMap() {
         }
         for (const Character* c : pending) c->draw(renderer_, sprites_, camX, camY);
     }
+    renderSpells(camX, camY);
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
+    renderLabels(camX, camY);
     renderShop();
     renderStatus();
     renderInventory();
@@ -879,12 +998,12 @@ void Game::renderIsoGround(int camX, int camY) {
 // Simple bars until the original status panel is drawn: the player's
 // health in the corner and a bar over each wounded monster.
 void Game::renderHealthBars(int camX, int camY) {
-    auto bar = [&](int x, int y, int w, int h, double fraction) {
+    auto bar = [&](int x, int y, int w, int h, double fraction, SDL_Color color = {200, 30, 30, 255}) {
         SDL_Rect back{x, y, w, h};
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderFillRect(renderer_, &back);
         SDL_Rect fill{x + 1, y + 1, static_cast<int>((w - 2) * std::clamp(fraction, 0.0, 1.0)), h - 2};
-        SDL_SetRenderDrawColor(renderer_, 200, 30, 30, 255);
+        SDL_SetRenderDrawColor(renderer_, color.r, color.g, color.b, 255);
         SDL_RenderFillRect(renderer_, &fill);
     };
     for (const auto& a : actors_) {
@@ -894,7 +1013,8 @@ void Game::renderHealthBars(int camX, int camY) {
         bar(sx - camX - 20, sy - camY - 100, 40, 5, static_cast<double>(a.hp) / a.maxHp);
     }
     if (player_ && !menuOpen_) {
-        bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
+        bar(8, kScreenHeight - 30, 120, 10, static_cast<double>(playerHp_) / playerMaxHp());
+        bar(8, kScreenHeight - 18, 120, 10, static_cast<double>(playerMp_) / std::max(1, playerMaxMp()), {40, 70, 210, 255});
         // Experience towards the next level, in a thin blue bar underneath.
         const auto need = levels_.need(playerLevel_);
         const double fraction = need > 0 ? static_cast<double>(playerExperience_) / static_cast<double>(need) : 1.0;
@@ -904,7 +1024,7 @@ void Game::renderHealthBars(int camX, int camY) {
         SDL_Rect fill{9, kScreenHeight - 6, static_cast<int>(118 * std::clamp(fraction, 0.0, 1.0)), 2};
         SDL_SetRenderDrawColor(renderer_, 70, 120, 230, 255);
         SDL_RenderFillRect(renderer_, &fill);
-        drawText(renderer_, 134, kScreenHeight - 18, std::format("LV {}", playerLevel_), {255, 255, 255, 255});
+        drawText(renderer_, 134, kScreenHeight - 30, std::format("LV {}", playerLevel_), {255, 255, 255, 255});
     }
 }
 

@@ -47,17 +47,26 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         for (auto& w : words) w = block.i32();
         for (int k = 0; k < 4; ++k) p.stats.area[k] = words[1 + k];
         p.stats.speed = words[77];
-        // Bytes 0x3c to 0x7b: the AI list name, NUL-terminated.
-        const std::string_view name(reinterpret_cast<const char*>(raw.data()) + 0x3c, 0x40);
+        // Bytes 0x3c to 0x5b: the AI list name, NUL-terminated.
+        const std::string_view name(reinterpret_cast<const char*>(raw.data()) + 0x3c, 0x20);
         p.stats.ai = std::string(name.substr(0, name.find('\0')));
         p.stats.element = words[6];
         p.stats.hp = words[8];
-        p.stats.attack = words[9];
-        p.stats.hit = words[10];
-        p.stats.defense = words[11];
-        p.stats.evasion = words[12];
+        p.stats.defense = words[9];
+        p.stats.evasion = words[10];
+        p.stats.magicDefense = words[11];
+        p.stats.magicEvasion = words[12];
+        p.stats.word7 = words[7];
         p.stats.experience = words[13];
         p.stats.level = words[14];
+        for (int k = 0; k < 3; ++k) {
+            p.stats.attacks[k] = words[23 + k];
+            p.stats.hits[k] = words[29 + k];
+            p.stats.spells[k] = words[32 + k];
+            p.stats.spellPower[k] = words[35 + k];
+            p.stats.spellLevel[k] = words[38 + k];
+            p.stats.spellHit[k] = words[41 + k];
+        }
         p.stats.goldChance = words[49];
         p.stats.goldMin = words[50];
         p.stats.goldMax = words[51];

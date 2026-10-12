@@ -91,18 +91,20 @@ void Game::giveStartingKit() {
     for (int i = 0; i < 4; ++i) give(static_cast<int>(ItemDef::Class::Consumable), 10000000, 1, GiveTo::Bag);
 }
 
-bool Game::give(int itemClass, int code, int count, GiveTo to) {
+bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
     if (itemClass < 0 || itemClass > 4) return false;
     const ItemDef* def = items_.find(static_cast<ItemDef::Class>(itemClass), code);
     if (!def) {
         log::warn("No item {}/{}", itemClass, code);
         return false;
     }
+    Item item = Item::make(def, def->isGold() ? count : 1);
+    item.wear = wear;
     if (to == GiveTo::Ground) {
         if (!player_) return false;
         // Side by side in a row below the hero.
         const double k = static_cast<double>(groundItems_.size() % 5) - 2;
-        dropItem({def, def->isGold() ? count : 1}, player_->x + 160 + k * 100, player_->y + 160 - k * 100);
+        dropItem(item, player_->x + 160 + k * 100, player_->y + 160 - k * 100);
         groundItems_.back().waitForLeave = true;
         return true;
     }
@@ -112,11 +114,11 @@ bool Game::give(int itemClass, int code, int count, GiveTo to) {
             log::warn("Cannot wear {}", def->name);
             return false;
         }
-        if (auto old = inventory_.equip(*slot, {def, 1})) inventory_.add(*old);
+        if (auto old = inventory_.equip(*slot, item)) inventory_.add(*old);
         updateEquipment();
         return true;
     }
-    if (!inventory_.add({def, def->isGold() ? count : 1})) {
+    if (!inventory_.add(item)) {
         log::warn("No room in the bag for {}", def->name);
         return false;
     }
@@ -133,7 +135,7 @@ void Game::spawnGroundItems() {
             ++unknown;
             continue;
         }
-        dropItem({def, 1}, p.x, p.y);
+        dropItem(Item::make(def), p.x, p.y);
     }
     if (unknown > 0) log::warn("{} placed items are not in the item table", unknown);
 }
@@ -179,7 +181,7 @@ void Game::dropLoot(const Actor& enemy) {
     }
     if (random_.next(100) < kItemDropChance) {
         if (const ItemDef* def = pickDrop(items_, stats.level, random_)) {
-            dropItem({def, 1}, x + 60, y + 60);
+            dropItem(Item::make(def), x + 60, y + 60);
             log::info("A monster dropped {}", def->name);
         }
     }
@@ -199,7 +201,7 @@ void Game::pickUpItems() {
         }
         const Item item = it->item;
         if (!inventory_.add(item)) {
-            showMessage(std::format("No room for {}", item.def->name));
+            showMessage(std::format("No room for {}", item.shownName()));
             it->waitForLeave = true;
             ++it;
             continue;
@@ -207,7 +209,7 @@ void Game::pickUpItems() {
         if (item.def->isGold()) {
             showMessage(std::format("{} gold", item.count));
         } else {
-            showMessage(item.def->name);
+            showMessage(item.shownName());
         }
         log::info("Picked up {}{}", item.def->isGold() ? std::format("{} ", item.count) : std::string(), item.def->name);
         it = groundItems_.erase(it);
@@ -218,19 +220,38 @@ void Game::updateEquipment() {
     if (player_) player_->visibleLayers = inventory_.heroLayers();
 }
 
-int Game::playerAttack() const { return heroStats()[HeroStats::kAttack] + inventory_.stats()[ItemDef::kAttack]; }
-int Game::playerDefense() const { return heroStats()[HeroStats::kDefense] + inventory_.stats()[ItemDef::kDefense]; }
-int Game::playerHit() const { return heroStats()[HeroStats::kHit] + inventory_.stats()[ItemDef::kHit]; }
-int Game::playerEvasion() const { return heroStats()[HeroStats::kEvasion] + inventory_.stats()[ItemDef::kEvasion]; }
+// As 0x44ea60 sums them: the hero's own stats, what they wear, their
+// element levels, then Berserker while it is on.
+HeroStats Game::playerStats() const {
+    HeroStats stats = heroStats();
+    const auto worn = inventory_.stats();
+    auto& v = stats.value;
+    v[HeroStats::kAttack] += worn[ItemDef::kAttack];
+    v[HeroStats::kHit] += worn[ItemDef::kHit];
+    v[HeroStats::kDefense] += worn[ItemDef::kDefense];
+    v[HeroStats::kEvasion] += worn[ItemDef::kEvasion];
+    v[HeroStats::kMagicAttack] += worn[ItemDef::kMagicAttack];
+    v[HeroStats::kMagicHit] += worn[ItemDef::kMagicHit];
+    v[HeroStats::kMagicDefense] += worn[ItemDef::kMagicDefense];
+    v[HeroStats::kMagicEvasion] += worn[ItemDef::kMagicEvasion];
+    v[HeroStats::kAttackSpeed] += worn[ItemDef::kAttackSpeed];
+    v[HeroStats::kWalkSpeed] += worn[ItemDef::kWalkSpeed];
+    int chant = 0;  // chant speed has no source yet besides elements
+    applyElementLevels(stats, chant, playerElements());
+    if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, spells_.castLevel(kBerserker));
+    return stats;
+}
+
+// A new hero stands in the middle of the attribute disc, so their own
+// levels are all 0; what they wear adds to that.
+ElementLevels Game::playerElements() const { return elementLevels({}, inventory_.elements()); }
 
 void Game::useItem(int index) {
     const ItemDef* def = inventory_.use(index);
     if (!def) return;
-    // Effect words 1 and 2 restore health and mental power; there is no
-    // mental power yet.
-    if (def->effect[1] > 0) {
-        playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
-    }
+    // Effect words 1 and 2 restore health and mental power.
+    if (def->effect[1] > 0) playerHp_ = std::min(playerMaxHp(), playerHp_ + def->effect[1]);
+    if (def->effect[2] > 0) playerMp_ = std::min(playerMaxMp(), playerMp_ + def->effect[2]);
     showMessage(std::format("Used {}", def->name));
 }
 
@@ -245,6 +266,7 @@ void Game::loadLevelCurve() {
         }
     }
     if (levels_.needs.empty()) levels_ = LevelCurve::standard();
+    magic_ = tables_.tables.empty() ? MagicTables::standard() : MagicTables::fromTables(tables_);
 }
 
 void Game::gainExperience(int amount) {
@@ -255,15 +277,24 @@ void Game::gainExperience(int amount) {
     ++playerLevel_;
     playerExperience_ = 0;
     career_.levelUp(playerLevel_);
-    playerHp_ = playerMaxHp();  // a new level heals fully, as in the original
+    const std::vector<int> learned = spells_.learn(magic_, career_.history);
+    // A new level heals fully and refills magic, as in the original.
+    playerHp_ = playerMaxHp();
+    playerMp_ = playerMaxMp();
     log::info("Level {}, {}", playerLevel_, className(career_.current));
+    std::string spells;
+    for (const int spell : learned) {
+        log::info("Learned {}", magic_.spell(spell).name);
+        spells += std::format("{}{}", spells.empty() ? " Learned " : ", ", magic_.spell(spell).name);
+    }
     // The level-up window's lines about the class (0x451771).
     if (playerLevel_ == 5) {
-        showMessage(std::format("Level {}! Changed your occupation to [{}]", playerLevel_, className(career_.current)));
+        showMessage(std::format("Level {}! Changed your occupation to [{}]{}", playerLevel_, className(career_.current), spells));
     } else if (career_.canChange()) {
-        showMessage(std::format("Level {}! It is possible to change your occupation to [{}]", playerLevel_, className(career_.offered)));
+        showMessage(std::format("Level {}! It is possible to change your occupation to [{}]{}", playerLevel_,
+                                className(career_.offered), spells));
     } else {
-        showMessage(std::format("Level {}!", playerLevel_));
+        showMessage(std::format("Level {}!{}", playerLevel_, spells));
     }
 }
 
@@ -427,7 +458,7 @@ void Game::renderInventory() {
         mx = static_cast<int>(lx);
         my = static_cast<int>(ly);
     }
-    const ItemDef* hover = nullptr;
+    const Item* hover = nullptr;
     if (showInventory_) {
         // The panel's picture has the slots and bag cells drawn in; without
         // one, plain rectangles stand in.
@@ -439,7 +470,7 @@ void Game::renderInventory() {
             if (!picture) frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
             if (const auto& worn = inventory_.equipped(box.slot)) {
                 drawItemPicture(*worn->def, r);
-                if (inside(r, mx, my)) hover = worn->def;
+                if (inside(r, mx, my)) hover = &*worn;
             }
         }
         // A shield shown but not drawn on the hero is greyed out.
@@ -466,7 +497,7 @@ void Game::renderInventory() {
                 frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
             }
             drawItemPicture(*p.item.def, r);
-            if (inside(r, mx, my)) hover = p.item.def;
+            if (inside(r, mx, my)) hover = &p.item;
         }
         // Totals on the left.
         int ty = 20;
@@ -479,14 +510,21 @@ void Game::renderInventory() {
         }
         drawText(renderer_, 336, kBagY + Inventory::kBagHeight * kCell + 10, std::format("GOLD {}", inventory_.gold()), kGoldColor);
         if (hover && !hand_) {
-            std::string text = hover->name;
-            const auto& s = hover->stats;
-            if (s[ItemDef::kAttack]) text += std::format("  ATK {}", s[ItemDef::kAttack]);
-            if (s[ItemDef::kDefense]) text += std::format("  DEF {}", s[ItemDef::kDefense]);
-            if (hover->requiredLevel > 1) text += std::format("  LV {}", hover->requiredLevel);
-            if (hover->effect[1] > 0) text += std::format("  +{} HP", hover->effect[1]);
-            if (text.size() > 36) text.resize(36);
-            drawText(renderer_, 336, kBagY - 18, text, hover->requiredLevel > playerLevel_ ? kRed : kWhite);
+            const ItemDef& def = *hover->def;
+            std::string text = hover->shownName();
+            const auto& s = def.stats;
+            // Unidentified items keep what they do to themselves.
+            if (hover->unidentified) {
+                text += "  ?";
+            } else {
+                if (s[ItemDef::kAttack]) text += std::format("  ATK {}", s[ItemDef::kAttack]);
+                if (s[ItemDef::kDefense]) text += std::format("  DEF {}", s[ItemDef::kDefense]);
+            }
+            if (def.durability > 0) text += std::format("  DUR {}/{}", hover->durability(), def.durability);
+            if (def.requiredLevel > 1) text += std::format("  LV {}", def.requiredLevel);
+            if (def.effect[1] > 0) text += std::format("  +{} HP", def.effect[1]);
+            if (text.size() > 40) text.resize(40);
+            drawText(renderer_, 336, kBagY - 18, text, def.requiredLevel > playerLevel_ || hover->broken() ? kRed : kWhite);
         }
     }
     if (hand_) {
@@ -497,7 +535,8 @@ void Game::renderInventory() {
 
 void Game::renderHud() {
     if (menuOpen_) return;
-    if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 34, std::format("GOLD {}", inventory_.gold()), kGoldColor);
+    renderSpellBar();
+    if (player_ && !showInventory_) drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     if (messageTicks_ > 0 && !message_.empty()) {
         drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
     }

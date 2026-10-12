@@ -117,12 +117,14 @@ pixel chips, as in the original game.
 direction, hit points, attack, wander radius in world units, and the AI
 list it follows, optionally followed by its level (which items it may
 drop), the chance in percent that it drops gold and the least and most
-gold, then the experience it gives, and then its defence, hit and evasion
-(0, 50 and 0 when left out, the original's usual values). Without an
+gold, then the experience it gives, then its defence, hit and evasion
+(0, 50 and 0 when left out, the original's usual values), and then its
+magic defence and element (0 fire, 1 water, 2 earth, 3 thunder, 4 holy,
+5 dark, 6 gel, 7 metal, -1 none; 0 and -1 when left out). Without an
 experience field, a monster gives a third of its hit points plus its attack.
 Combat follows the original: a blow lands with a chance of hit minus
 evasion (20 to 98 percent) and does 90-110% of the attack minus the
-defence, at least 1. `tools/content/balance.py` sets these numbers for our
+defence, at least 1, changed by elements as described in docs/magic.md. `tools/content/balance.py` sets these numbers for our
 maps from the level the player should be at on each; the `# base` comment
 on each line is the monster's strength it starts from. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
@@ -162,10 +164,15 @@ Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
 shield). Armour subtypes say where it is worn: 0 helmet, 1 body, 2 shield,
 3 boots. `stats` are attack, hit, defense, evasion, magic attack, magic
 hit, magic defense, magic evasion, attack speed and walking speed.
+`elements=` is what wearing it adds to the hero's fire, water, earth,
+thunder, holy, dark, gel and metal levels (docs/magic.md).
 Consumables have `effect=`, nine numbers as in the original: the first is
 1 if it may go in the belt, the second the health it restores, the third
 the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
-quest; only normal items drop) and `glow` (a second hero layer).
+quest; only normal items drop; magic and unique ones start unidentified),
+`unidentified` (the name shown until then), `durability` (weapons and
+armour: the wear they take before they break; none or 0 never wears out)
+and `glow` (a second hero layer).
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with

@@ -71,6 +71,7 @@ bool Game::statusClick(int x, int y) {
 void Game::changeCareer() {
     if (!career_.change()) return;
     playerHp_ = std::min(playerHp_, playerMaxHp());
+    playerMp_ = std::min(playerMp_, playerMaxMp());
     log::info("Changed class to {}", className(career_.current));
     showMessage(std::format("Changed your occupation to [{}]", className(career_.current)));
 }
@@ -98,24 +99,23 @@ void Game::renderStatus() {
         drawText(renderer_, 16, 16, "STATUS", kGold);
     }
 
-    const HeroStats base = heroStats();
+    const HeroStats stats = playerStats();
     std::string values[kFieldCount];
     values[kLevel] = std::format("{}", playerLevel_);
     values[kExperience] = std::format("{}", playerExperience_);
-    values[kHp] = std::format("{}/{}", playerHp_, playerMaxHp());
-    values[kStrength] = std::format("{}", base[HeroStats::kStrength]);
-    values[kAttack] = std::format("{}", playerAttack());
-    values[kDefense] = std::format("{}", playerDefense());
-    values[kHit] = std::format("{}", playerHit());
-    values[kEvasion] = std::format("{}", playerEvasion());
-    values[kWalkSpeed] = std::format("{}", base[HeroStats::kWalkSpeed]);
-    values[kAttackSpeed] = std::format("{}", base[HeroStats::kAttackSpeed]);
-    // No spells yet, so magic is always full.
-    values[kMp] = std::format("{}/{}", base[HeroStats::kMp], base[HeroStats::kMp]);
-    values[kMagicAttack] = std::format("{}", base[HeroStats::kMagicAttack]);
-    values[kMagicDefense] = std::format("{}", base[HeroStats::kMagicDefense]);
-    values[kMagicHit] = std::format("{}", base[HeroStats::kMagicHit]);
-    values[kMagicEvasion] = std::format("{}", base[HeroStats::kMagicEvasion]);
+    values[kHp] = std::format("{}/{}", playerHp_, stats[HeroStats::kHp]);
+    values[kStrength] = std::format("{}", stats[HeroStats::kStrength]);
+    values[kAttack] = std::format("{}", stats[HeroStats::kAttack]);
+    values[kDefense] = std::format("{}", stats[HeroStats::kDefense]);
+    values[kHit] = std::format("{}", stats[HeroStats::kHit]);
+    values[kEvasion] = std::format("{}", stats[HeroStats::kEvasion]);
+    values[kWalkSpeed] = std::format("{}", stats[HeroStats::kWalkSpeed]);
+    values[kAttackSpeed] = std::format("{}", stats[HeroStats::kAttackSpeed]);
+    values[kMp] = std::format("{}/{}", playerMp_, stats[HeroStats::kMp]);
+    values[kMagicAttack] = std::format("{}", stats[HeroStats::kMagicAttack]);
+    values[kMagicDefense] = std::format("{}", stats[HeroStats::kMagicDefense]);
+    values[kMagicHit] = std::format("{}", stats[HeroStats::kMagicHit]);
+    values[kMagicEvasion] = std::format("{}", stats[HeroStats::kMagicEvasion]);
     for (int f = 0; f < kFieldCount; ++f) {
         const SDL_Rect& r = kFields[f].box;
         if (!window) {

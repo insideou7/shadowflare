@@ -1,4 +1,4 @@
-// Saving and loading the game (F5 and F9).
+// Saving and loading the game (F10 and F9).
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -22,10 +22,15 @@ bool Game::saveGame() {
     save.y = static_cast<int>(player_->y);
     save.direction = player_->direction;
     save.hp = playerHp_;
+    save.mp = playerMp_;
+    save.spells = spells_;
+    save.spellsOn = spellOn_;
+    save.originalMode = originalMode();
     save.level = playerLevel_;
     save.experience = playerExperience_;
     save.career = career_;
     save.store(inventory_);
+    if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
     for (const auto& [key, value] : flags_) {
         if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
     }
@@ -82,9 +87,23 @@ bool Game::loadGame() {
     // Saves from before classes: a warrior from level 5.
     career_ = save.career && save.career->history.size() == static_cast<std::size_t>(playerLevel_ - 1) ? *save.career
                                                                                                     : Career::at(playerLevel_);
+    // Saves from before magic: the spells the hero would have learned.
+    spells_ = save.spells ? *save.spells : SpellBook::replay(magic_, career_.history);
+    spellOn_ = save.spells ? save.spellsOn : std::array<bool, kSpellCount>{};
+    for (int s = 0; s < kSpellCount; ++s) {
+        if (!isToggleSpell(s) || !spells_.knows(s)) setSpellOn(s, false);
+    }
+    setOriginalMode(save.originalMode);
+    casting_.reset();
+    missiles_.clear();
+    spellEffects_.clear();
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
+    if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
+        log::warn("{}: {} stored items are unknown", saveFile_, skipped);
+    }
     updateEquipment();
     playerHp_ = std::clamp(save.hp, 1, playerMaxHp());
+    playerMp_ = std::clamp(save.mp.value_or(playerMaxMp()), 0, playerMaxMp());
     checkTriggers(false);  // loading inside an exit does not take it
     updateCamera();
     log::info("Loaded the game from {}", saveFile_);

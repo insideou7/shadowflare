@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include "logic/inventory.h"
@@ -19,6 +20,10 @@ struct ShopStock {
     // top row first, like the original (0x466f80). False when it does not fit.
     bool add(const Item& item);
     int indexAt(int x, int y) const;  // -1 when the cell is empty
+    // Storage: with an empty hand, picks up the item at (x, y); with an item
+    // in hand, puts it down with its top-left at (x, y), picking up the one
+    // item it covers, as the bag does.
+    Inventory::Result click(std::optional<Item>& hand, int x, int y);
 };
 
 // INITTRADE's stock, as ShadowFlare.exe builds it (0x430c10): row `list` of

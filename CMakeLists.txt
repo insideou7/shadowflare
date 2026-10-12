@@ -39,6 +39,8 @@ add_library(sf_logic STATIC
     src/logic/shop.cpp
     src/logic/progression.cpp
     src/logic/save_game.cpp
+    src/logic/magic.cpp
+    src/logic/magic_tables.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -58,6 +60,7 @@ add_executable(shadowflare
     src/game/title.cpp
     src/game/talk.cpp
     src/game/status.cpp
+    src/game/spells.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
