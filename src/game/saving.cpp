@@ -29,6 +29,8 @@ bool Game::saveGame() {
     save.level = playerLevel_;
     save.experience = playerExperience_;
     save.career = career_;
+    save.partner = partnerRecord_;
+    save.partnerHp = !partner_ ? partnerHpCarried_ : partnerAlive() ? partner_->hp : 0;
     save.store(inventory_);
     if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
     for (const auto& [key, value] : flags_) {
@@ -75,6 +77,10 @@ bool Game::loadGame() {
 
     hand_.reset();
     flags_ = save.flags;
+    // Saves from before companions: Kerberos at level 1, at rest.
+    partnerRecord_ = save.partner.value_or(PartnerRecord{});
+    partner_.reset();
+    partnerHpCarried_ = save.partnerHp;
     loadMap(index, save.scenario);
     if (!map_ || !player_) return false;
     player_->x = save.x;

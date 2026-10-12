@@ -15,6 +15,7 @@
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
 #include "logic/magic.h"
+#include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
@@ -42,7 +43,10 @@ inline constexpr int kScreenHeight = 480;
 // can later be matched tick-for-tick against the original executable.
 inline constexpr int kTicksPerSecond = 20;
 
-// The player's health until characters have stats.
+// The hero's step in world units per tick. Not yet taken from the original.
+inline constexpr double kPlayerWalkSpeed = 70.0;
+// Top of the companion's health gauge, as in the original.
+inline constexpr int kPartnerGaugeY = 395;
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
@@ -68,6 +72,8 @@ public:
     // Makes the player attack the nearest monster on their own (for
     // scripted smoke tests of combat).
     void setAutoFight(bool on) { autoFight_ = on; }
+    // Swaps in a kind of companion and sets it ACTIVE (for scripted tests).
+    void bringPartner(int kind);
 
     // Puts an item in the bag, on the hero or on the ground next to them
     // (for scripted tests). For gold, `count` is the amount. False when the
@@ -236,7 +242,8 @@ private:
     // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
     void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
     // `bySpell` counts the kill as a magic one for the class offer.
-    void hurtEnemy(Actor& enemy, int damage, bool bySpell = false);
+    // byPartner: the companion's bite, which the class kill counts skip.
+    void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
     void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
@@ -315,6 +322,35 @@ private:
     int spellPower(int spell, int level) const;
     int spellHit(int spell, int level) const;
     void renderSpells(int camX, int camY);
+
+    // The hero's companion (partner.cpp).
+    struct Partner {
+        explicit Partner(Character c) : character(std::move(c)) {}
+        Character character;
+        PartnerStats stats{};
+        int hp = 1;
+        enum class State { Idle, Walk, Run, Bite, Hit, Dead } state = State::Idle;
+        std::optional<std::size_t> target{};  // the monster it fights, in actors_
+        int walkDelay = 5;   // ticks before it starts walking after the hero
+        int regenCarry = 0;  // thousandths of a point of health
+        int deadTicks = 0;   // since it fell, for the fade
+        bool struck = false;  // the current bite has landed
+    };
+    void spawnPartner();
+    void changePartner(int kind);
+    void refreshPartnerStats();
+    void togglePartnerMode();
+    bool partnerAlive() const;
+    void tickPartner();
+    void partnerBites(Actor& enemy);
+    void strikePartner(Actor& enemy, int slot);
+    bool partnerInReach(const Actor& enemy) const;
+    void hurtPartner(int damage);
+    void partnerCountKill();
+    double partnerSpeed(int stat) const;
+    std::string partnerStatusText(int kind) const;
+    void renderPartnerGauge();
+    bool partnerGaugeClick(int x, int y);
     void renderSpellBar();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
@@ -397,6 +433,10 @@ private:
     std::vector<Missile> missiles_;
     std::vector<SpellEffect> spellEffects_;
     Rules rules_;
+    std::optional<PartnerTables> partnerTables_;  // none with open content
+    PartnerRecord partnerRecord_;
+    std::optional<Partner> partner_;
+    int partnerHpCarried_ = 0;  // its health across a map change (+0x156c); 0 = full
     bool mouseHeld_ = false;
     bool showJudge_ = false;
     bool autoFight_ = false;

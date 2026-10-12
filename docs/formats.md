@@ -318,7 +318,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE char dx dy value r g b` | 52 | `GETREPAIRPRICE slot var` |
 | 1 | `SETFLAG var value` | 27 | `MESSAGEBOX char dx dy msg r g b time` | 53 | `GETTOTALGOLD var` |
 | 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
-| 3 | `TALKPARTNERSTATUS` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
+| 3 | `TALKPARTNERSTATUS kind answer` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
 | 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
 | 5 | `TRADE shop` | 31 | `CHECKENEMYLIVE` | 57 | `GETPLAYERSEX var` |
 | 6 | `INITTRADE shop list` | 32 | `CHECKENEMYDEAD` | 58 | `CHECKITEMEXIST` |
@@ -326,7 +326,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 8 | `HEALMENTAL` | 34 | `CALCMYPLAYERDIST char var` | 60 | `SETUNLOCKSW` |
 | 9 | `REPAIR slot` | 35 | `CALCANGLE` | 61 | `GETPLAYERLEVEL var` |
 | 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT` | 62 | `SETQUESTFLAG` |
-| 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE` |
+| 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE life max` |
 | 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
@@ -334,7 +334,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
 | 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
-| 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER` | 71 | `GETCLASS var` |
+| 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER kind` | 71 | `GETCLASS var` |
 | 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS` | 72 | `CHANGECOLOR` |
 | 25 | `RESSURECT` | 47 | `GETCHARTRANS` | 73 | `STARTCARDGAME` |
 | | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT` |
@@ -358,6 +358,9 @@ armour in the bag (GETREPAIRPRICE prices the bag for any number above 4
 too; REPAIR then does nothing). Neither takes gold: the script pays with
 `PAYGOLD`. Remote Town's blacksmith (12000001) uses them all, with the
 identify price in TEMP 1000017.
+
+The partner commands (3, 44, 45, 63) are described in
+[partners.md](partners.md).
 
 `TALK` shows a message over the speaker (-1 = the character whose trigger
 is running), filled in with sprintf from the values `SETMSGDEFINE` set.

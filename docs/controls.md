@@ -32,7 +32,7 @@ Settings Menu, and how far from the cursor it reaches by Click Range.
 | Shift | stop where you are; with a left click, attack in place | yes |
 | Caps Lock | swap between the two equipment sets | no |
 | Tab + click | companion: pick up, jump, dash, status | no |
-| Space | companion active / inactive | no |
+| Space | companion active / inactive (or click its gauge at the bottom left); see [partners.md](partners.md) | yes |
 | S | status window | yes |
 | I | items window | yes |
 | X | special items window | no |

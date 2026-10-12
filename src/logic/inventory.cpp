@@ -202,6 +202,10 @@ bool Inventory::hasUnidentified() const {
            std::ranges::any_of(equipped_, [](const auto& worn) { return worn && worn->unidentified; });
 }
 
+bool Inventory::carries(ItemDef::Class cls, std::int32_t code) const {
+    return std::ranges::any_of(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; });
+}
+
 void Inventory::identifyAll() {
     for (auto& p : bag_) p.item.unidentified = false;
     for (auto& worn : equipped_) {

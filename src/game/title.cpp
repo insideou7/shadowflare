@@ -84,6 +84,9 @@ void Game::newGame() {
     missiles_.clear();
     spellEffects_.clear();
     setOriginalMode(settings_.originalMode);
+    partnerRecord_ = {};
+    partner_.reset();
+    partnerHpCarried_ = 0;
     giveStartingKit();
     updateEquipment();
     if (!mapNames_.empty()) loadMap(startMapIndex_);
