@@ -1888,8 +1888,15 @@ def pose(rig, animation, t, frames):
         return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
-    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk"):
-        rig.pose(hero_guard(animation, s, c))
+    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
+        k = min(1.0, t * frames / max(1, frames - 1))
+        if animation == "attack":
+            r = keyframes(HERO_ATTACK, k)
+        elif animation == "hit":
+            r = keyframes(HERO_HIT, k)
+        else:
+            r = hero_guard(animation, s, c)
+        rig.pose(r)
         plant(rig)
         return
     if animation == "idle":
@@ -1990,6 +1997,53 @@ def hero_guard(animation, s, c):
         r["elbow_r"] = (0, -0.55, 0)
         r["weapon"] = (0, math.radians(70), 0)
     return r
+
+
+def keyframes(keys, k):
+    """Joint rotations at k in [0, 1], eased between (k, rotations) keys."""
+    for (k0, a), (k1, b) in zip(keys, keys[1:]):
+        if k <= k1:
+            u = (k - k0) / (k1 - k0)
+            u = u * u * (3 - 2 * u)
+            return {j: tuple(x + (y - x) * u for x, y in zip(a.get(j, (0, 0, 0)), b.get(j, (0, 0, 0))))
+                    for j in set(a) | set(b)}
+    return dict(keys[-1][1])
+
+
+def hero_key(base, **joints):
+    pose = dict(base)
+    pose.update(joints)
+    return pose
+
+
+GUARD = hero_guard("idle", 0.0, 1.0)
+# A slash like the original's: the sword drawn back with the shield raised,
+# swung up over the head, then down and forward in a deep lunge.
+HERO_ATTACK = [
+    (0.0, GUARD),
+    (0.25, hero_key(GUARD, spine=(0, 0.15, 0.40), head=(0, -0.10, -0.35), arm_r=(-0.45, 1.5, 0),
+                    elbow_r=(0, 0, 0), weapon=(0, math.radians(90), 0), arm_l=(0.45, -2.6, 0), elbow_l=(-0.5, 0, 0))),
+    (0.5, hero_key(GUARD, spine=(0, -0.05, 0.25), head=(0, 0.0, -0.20), arm_r=(-0.20, -2.9, 0),
+                   elbow_r=(0, -1.1, 0), weapon=(0, math.radians(90), 0), arm_l=(0.45, -2.7, 0), elbow_l=(-0.5, 0, 0))),
+    (0.72, hero_key(GUARD, spine=(0, 0.95, -0.10), head=(0, -0.80, 0.05), arm_r=(-0.10, -1.5, 0),
+                    elbow_r=(0, -0.1, 0), weapon=(0, math.radians(60), 0), arm_l=(0.45, -2.5, 0),
+                    elbow_l=(-0.5, 0, 0), leg_l=(0.12, -1.35, 0.1), knee_l=(0, 1.55, 0),
+                    leg_r=(-0.12, 1.05, -0.1), knee_r=(0, 0.10, 0))),
+    (1.0, hero_key(GUARD, spine=(0, 0.95, -0.10), head=(0, -0.80, 0.05), arm_r=(-0.10, -1.4, 0),
+                   elbow_r=(0, -0.1, 0), weapon=(0, math.radians(65), 0), arm_l=(0.45, -2.4, 0),
+                   elbow_l=(-0.5, 0, 0), leg_l=(0.12, -1.35, 0.1), knee_l=(0, 1.55, 0),
+                   leg_r=(-0.12, 1.05, -0.1), knee_r=(0, 0.10, 0))),
+]
+# Struck: doubled over, then thrown back with the shield arm flung up, and
+# back into the stance.
+HERO_HIT = [
+    (0.0, hero_key(GUARD, spine=(0, 1.15, 0), head=(0, 0.3, 0), arm_l=(0.3, -0.6, 0), elbow_l=(-1.0, 0, 0),
+                   arm_r=(-0.2, -0.9, 0), elbow_r=(0, -0.4, 0), leg_l=(0.3, -1.1, 0.2), knee_l=(0, 1.5, 0),
+                   leg_r=(-0.3, -0.3, -0.2), knee_r=(0, 1.3, 0))),
+    (0.35, hero_key(GUARD, spine=(0, -0.60, 0.2), head=(0, -0.40, 0), arm_l=(0.5, -2.7, 0), elbow_l=(-0.6, 0, 0),
+                    arm_r=(-0.5, 0.5, 0), elbow_r=(0, -0.3, 0), leg_l=(0.3, -0.9, 0.2), knee_l=(0, 0.5, 0))),
+    (1.0, GUARD),
+]
 
 
 def plant(rig):
