@@ -157,7 +157,9 @@ void testScenario() {
     text("MCED DATA v0000\x1a", 16);
     text("System\\Game\\Parameter\\Control.aid", 0x104);
     text("Map\\c02_00.map", 0x104);
-    for (int k = 0; k < 3; ++k) i32(0);
+    i32(0);
+    i32(0);
+    i32(5);  // a cave
     text("Kanfore", 0x100);
     for (int k = 0; k < 3; ++k) i32(0);  // character type lists
     i32(0);                              // objects
@@ -178,7 +180,7 @@ void testScenario() {
     i32(1);  // has a table
     i32(2);
     d.resize(d.size() + 2 * 10);
-    i32(-1);
+    i32(2);  // carries Dark.njp's light 2
     d.resize(d.size() + 0x2c);
     i32(1);  // enemies
     i32(7);
@@ -210,7 +212,12 @@ void testScenario() {
     for (int v : {3, 40000008, 0, 0}) i32(v);
     i32(1);  // entry points
     for (int v : {4, 90000, 5000, 7}) i32(v);
+    const auto lit = sf::ScenarioControl::parse(d);
+    check(lit.light == sf::ScenarioControl::kLit, "a scenario without its closing words is lit");
+    for (int v : {0, 0, 1000}) i32(v);  // two flags and the area's light
     const auto s = sf::ScenarioControl::parse(d);
+    check(s.areaKind == 5 && s.light == 1000, "scenario area kind and light");
+    check(s.placements[0].light == 2 && s.placements[1].light == -1, "scenario placement lights");
     check(s.mapPath == "Map\\c02_00.map" && s.title == "Kanfore", "scenario header");
     check(s.placements.size() == 3, "scenario placement count");
     const auto& e = s.placements[1];

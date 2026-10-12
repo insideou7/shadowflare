@@ -1,0 +1,7 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The area map: window, gem, the hero's arrow, the PLAYER label.
+image=Map.png
+frame=0,0,320,415,0,0
+frame=0,415,28,23,-36,-44
+frame=30,415,7,8,3,8
+frame=39,415,37,10,18,18
