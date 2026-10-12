@@ -117,7 +117,8 @@ pixel chips, as in the original game.
 direction, hit points, attack, wander radius in world units, and the AI
 list it follows, optionally followed by its level (which items it may
 drop), the chance in percent that it drops gold and the least and most
-gold. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
+gold, and then the experience it gives. Without that, a monster gives a
+third of its hit points plus its attack. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 

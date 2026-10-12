@@ -12,6 +12,7 @@
 #include "game/character.h"
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
+#include "logic/progression.h"
 #include "logic/script_runner.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
@@ -33,7 +34,6 @@ inline constexpr int kScreenHeight = 480;
 inline constexpr int kTicksPerSecond = 20;
 
 // The player's health until characters have stats.
-inline constexpr int kPlayerMaxHp = 100;
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
@@ -143,6 +143,10 @@ private:
     void pickUpItems();
     void updateEquipment();
     int playerDamage() const;
+    int playerDefense() const;
+    int playerMaxHp() const { return statsAtLevel(playerLevel_).maxHp; }
+    void loadLevelCurve();
+    void gainExperience(int amount);
     void useItem(int index);
     void showMessage(std::string text);
     bool inventoryClick(int x, int y, bool right);
@@ -190,7 +194,9 @@ private:
     std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
-    int playerLevel_ = 1;  // no experience yet
+    int playerLevel_ = 1;
+    std::int64_t playerExperience_ = 0;
+    LevelCurve levels_;
     std::string message_;
     int messageTicks_ = 0;
 

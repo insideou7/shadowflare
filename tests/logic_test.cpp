@@ -4,7 +4,9 @@
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "formats/table_data.h"
 #include "logic/movement.h"
+#include "logic/progression.h"
 #include "logic/script_runner.h"
 
 namespace {
@@ -156,6 +158,31 @@ void testMovement() {
     check(!sf::tryMove(g, x, y, -160, 0), "the edge of the grid is a wall");
 }
 
+void testLevels() {
+    const auto curve = sf::LevelCurve::standard();
+    check(curve.levelFor(0) == 1, "no experience is level 1");
+    check(curve.levelFor(29) == 1 && curve.levelFor(30) == 2, "30 experience reaches level 2");
+    check(curve.levelFor(120) == 3, "120 experience reaches level 3");
+    check(curve.start(1) == 0 && curve.start(2) == 30 && curve.start(3) == 120, "level start totals");
+    check(curve.levelFor(1'000'000'000) == curve.maxLevel(), "levels stop at the top of the curve");
+
+    // A Table.Tbd table 13 like the original's: rising totals, then 999999999 and 0.
+    sf::GameTables tables;
+    auto& t = tables.tables[13];
+    t.rows = 5;
+    t.cols = 1;
+    t.values = {25, 80, 150, 999999999, 0};
+    t.strings.resize(5);
+    const auto original = sf::LevelCurve::fromTables(tables);
+    check(original.thresholds.size() == 3, "the original curve stops before 999999999");
+    check(original.levelFor(79) == 2 && original.levelFor(80) == 3, "the original curve's levels");
+    check(sf::LevelCurve::fromTables(sf::GameTables{}).thresholds.empty(), "no table 13, no curve");
+
+    check(sf::statsAtLevel(1).maxHp == 100 && sf::statsAtLevel(1).attack == 0, "level 1 has the base stats");
+    check(sf::statsAtLevel(5).maxHp > sf::statsAtLevel(4).maxHp, "each level adds health");
+    check(sf::defaultExperience(30, 4) == 14, "a goblin's default experience");
+}
+
 }  // namespace
 
 int main() {
@@ -167,6 +194,7 @@ int main() {
     testAiHealthCondition();
     testAiSameSeedSameChoices();
     testMovement();
+    testLevels();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

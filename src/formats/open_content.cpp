@@ -347,12 +347,12 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             c.entryPoints.push_back({v[0] * 4, v[1], v[2], v[3]});
         } else if (key == "enemy" || key == "person") {
             // enemy=kind,x,y,direction,hp,attack,wander radius,ai list name
-            //       [,level,gold chance,gold min,gold max]
+            //       [,level,gold chance,gold min,gold max[,experience]]
             // person=kind,x,y,direction
             const bool enemy = key == "enemy";
             auto fields = Lines::split(value, ',');
-            if (enemy ? fields.size() != 8u && fields.size() != 12u : fields.size() != 4u) {
-                lines.fail(enemy ? "enemy needs 8 or 12 fields" : "person needs 4 fields");
+            if (enemy ? fields.size() != 8u && fields.size() != 12u && fields.size() != 13u : fields.size() != 4u) {
+                lines.fail(enemy ? "enemy needs 8, 12 or 13 fields" : "person needs 4 fields");
             }
             ScenarioControl::Placement p;
             p.group = enemy ? Group::Enemy : Group::Person;
@@ -371,12 +371,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                 p.stats.area[0] = p.stats.area[1] = -r;
                 p.stats.area[2] = p.stats.area[3] = r;
                 p.stats.ai = fields[7];
-                if (fields.size() == 12) {
+                if (fields.size() >= 12) {
                     p.stats.level = lines.toInt(fields[8]);
                     p.stats.goldChance = lines.toInt(fields[9]);
                     p.stats.goldMin = lines.toInt(fields[10]);
                     p.stats.goldMax = lines.toInt(fields[11]);
                 }
+                if (fields.size() == 13) p.stats.experience = lines.toInt(fields[12]);
             }
             c.placements.push_back(std::move(p));
         } else if (key == "item") {
