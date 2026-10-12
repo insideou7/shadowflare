@@ -191,5 +191,5 @@ frame=200,9756,109,167,60,126,dwall_pipes_x
 frame=311,9756,109,159,49,126,dwall_pipes_y
 frame=422,9756,98,159,49,126,dwall_grate_x
 frame=522,9756,98,159,49,126,dwall_grate_y
-frame=0,9925,114,168,68,124,dstairs
-frame=116,9925,113,168,67,124,dstairs_pit
+frame=0,10446,120,175,68,131,dstairs
+frame=0,10623,119,172,67,128,dstairs_pit

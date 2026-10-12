@@ -130,7 +130,7 @@ def pillar(black=""):
 
 
 def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=0.6,
-             cap=True, thick=WALL_T, deep=2.25):
+             cap=True, thick=WALL_T, deep=2.25, far_jamb=1.0, near_jamb=1.0):
     """Stone steps climbing through a gateway in the wall into the dark,
     on a half round dais of dark carved stone in front of it, with a low
     wall along the left of the flight. side: only the low wall along the
@@ -140,7 +140,8 @@ def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=
     flight goes down into a pit instead of up; raise_top: how much taller
     than a wall the gateway stands; cap: a capstone along the top; thick:
     how thick the gateway is; deep: how far back the dark and the flight
-    go behind the wall's face."""
+    go behind the wall's face; far_jamb, near_jamb: how wide the jambs on the
+    far (left) and near (right) sides are."""
     look = look or dict(stone=STONE, cap=CAPSTONE, dais=DAIS)
     stone, capstone, hole = mat("stone", look["stone"]), mat("capstone", look["cap"]), mat("hole", DARK)
     w, n, rise, run = 2.6, 8, 0.38, 0.5
@@ -164,8 +165,8 @@ def stairway(side=False, look=None, dais=True, sides="l", down=False, raise_top=
     # the wall line, so it is built taller for its top to run on in line
     # with the walls beside it.
     jamb, top = 1.0, WALL_H + raise_top
-    for x in (-w / 2 - jamb / 2, w / 2 + jamb / 2):
-        solid(box((jamb, thick, top), (x, thick / 2, top / 2), stone))
+    for x, j in ((-w / 2 - far_jamb / 2, far_jamb), (w / 2 + near_jamb / 2, near_jamb)):
+        solid(box((j, thick, top), (x, thick / 2, top / 2), stone))
     gate = 4.6
     solid(box((w, thick, top - gate), (0, thick / 2, (top + gate) / 2), stone))
     if cap:
