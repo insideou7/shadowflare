@@ -362,28 +362,34 @@ def tube(colour, kind):
     return Image.fromarray(out, "RGBA")
 
 
-def rail_rows(fx, step, rising):
-    """The three rows of a stepped gauge's track at column fx of its frame:
-    low on one side of the step and high on the other, sloping between."""
-    t = np.clip((fx - step) / 5, 0, 1)
+def rail_rows(fx, step, rising, low=6, high=2, slope=4):
+    """The five rows of a stepped gauge's track at column fx of its frame:
+    rows low..low+4 on one side of the step and high..high+4 on the other,
+    sloping between over `slope` columns. The EXP rail's stay inside the
+    rows the engine shows its gauge in (frame rows 2-10)."""
+    t = np.clip((fx - step) / slope, 0, 1)
     if not rising:
         t = 1 - t
-    top = int(round(9 - 7 * t))
-    return top, top + 1, top + 2
+    top = int(round(low + (high - low) * t))
+    return tuple(range(top, top + 5))
 
 
-def rail_frame(w, h, step, rising, gauge_x, label, tag_x, ink=(150, 200, 255, 255), label_row=8):
+def rail_frame(w, h, step, rising, gauge_x, label, tag_x, ink=(150, 200, 255, 255), label_row=8, bed=(22, 26, 44),
+               shape=None, plate=True):
     """A gauge's track: a dark channel in a black outline that steps up
     (or down) once, and its name, beside the low part or under the high
     part."""
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     for fx in range(gauge_x, w):
-        rows = rail_rows(fx, step, rising)
+        rows = rail_rows(fx, step, rising, **(shape or {}))
         for fy in range(rows[0] - 1, rows[-1] + 2):
             if 0 <= fy < h:
                 img.putpixel((fx, fy), (0, 0, 0, 255))
         for fy in rows:
-            img.putpixel((fx, fy), (22, 26, 44, 255))
+            img.putpixel((fx, fy), bed + (255,))
+    if not plate:  # the name on its own, with a shadow
+        tiny_text(img, tag_x, label_row, label, ink)
+        return img
     # A black plate under the name, so it reads like part of the rail.
     for fy in range(label_row - 1, min(h, label_row + 6)):
         for fx in range(max(0, tag_x - 1), min(w, tag_x + 4 * len(label))):
@@ -396,14 +402,14 @@ def rail_frame(w, h, step, rising, gauge_x, label, tag_x, ink=(150, 200, 255, 25
     return img
 
 
-def rail_gauge(w, h, offset, step, rising, colour, pale, start=0):
+def rail_gauge(w, h, offset, step, rising, colour, pale, start=0, shape=None):
     """What fills a rail_frame's track, from `colour` to `pale` along it."""
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     for gx in range(max(0, start - offset[0]), w):
-        rows = rail_rows(gx + offset[0], step, rising)
+        rows = rail_rows(gx + offset[0], step, rising, **(shape or {}))
         t = gx / (w - 1)
         c = tuple(int(a + (b - a) * t) for a, b in zip(colour, pale))
-        for fy, shade in zip(rows, (1.15, 1.0, 0.75)):
+        for fy, shade in zip(rows, (1.2, 1.1, 1.0, 0.9, 0.7)):
             gy = fy - offset[1]
             if 0 <= gy < h:
                 img.putpixel((gx, gy), tuple(min(255, int(v * shade)) for v in c) + (255,))
@@ -415,7 +421,8 @@ TINY = {"E": ["###", "#..", "##.", "#..", "###"], "X": ["#.#", "#.#", ".#.", "#.
         "A": [".#.", "#.#", "###", "#.#", "#.#"], "R": ["##.", "#.#", "##.", "#.#", "#.#"],
         "T": ["###", ".#.", ".#.", ".#.", ".#."], "N": ["#.#", "###", "###", "###", "#.#"],
         "C": ["###", "#..", "#..", "#..", "###"], "I": ["###", ".#.", ".#.", ".#.", "###"],
-        "V": ["#.#", "#.#", "#.#", "#.#", ".#."], " ": ["...", "...", "...", "...", "..."]}
+        "V": ["#.#", "#.#", "#.#", "#.#", ".#."], " ": ["...", "...", "...", "...", "..."],
+        "-": ["...", "...", "###", "...", "..."]}
 
 
 def digit(n):
@@ -430,19 +437,23 @@ def digit(n):
     return img
 
 
+def tiny_text(img, x, y, word, colour):
+    """TINY letters 4 apart with a black shadow below right."""
+    for dx, c in ((1, (0, 0, 0, 255)), (0, colour)):
+        cx = x
+        for ch in word:
+            for yy, row in enumerate(TINY[ch]):
+                for xx, bit in enumerate(row):
+                    if bit == "#" and 0 <= cx + xx + dx < img.width and 0 <= y + yy + dx < img.height:
+                        img.putpixel((cx + xx + dx, y + yy + dx), c)
+            cx += 4
+
+
 def mode_label(word, colour):
-    """ACTIVE or INACTIVE over the companion's gauge, on a black plate."""
+    """-ACTIVE- or -INACTIVE- over the low end of the companion's gauge."""
     img = Image.new("RGBA", (56, 8), (0, 0, 0, 0))
-    x = (56 - len(word) * 4) // 2
-    for py in range(8):
-        for px in range(x - 3, x + len(word) * 4 + 2):
-            img.putpixel((px, py), (0, 0, 0, 255))
-    for ch in word:
-        for yy, row in enumerate(TINY[ch]):
-            for xx, bit in enumerate(row):
-                if bit == "#":
-                    img.putpixel((x + xx, 1 + yy), colour)
-        x += 4
+    word = f"-{word}-"
+    tiny_text(img, (56 - len(word) * 4) // 2, 1, word, colour)
     return img
 
 
@@ -459,16 +470,21 @@ def main():
         (mine(True), *MINE[:2]), (button(WALK, "WALK", False), *WALK[:2]), (button(RUN, "RUN", False), *RUN[:2]),
         (power("lit"), *POWER[:2]), (power("pressed"), *POWER[:2]),
         (rail_gauge(109, 10, (15, 2), 50, True, (40, 90, 220), (236, 244, 255), 15), 530, 395),
-        (rail_frame(126, 14, 50, True, 14, "EXP", 1, label_row=9), 515, 393),
+        (rail_frame(126, 14, 50, True, 14, "EXP", 1, label_row=9, bed=(24, 32, 70)), 515, 393),
         (piece_mask((572, 416, 68, 46), "item"), 572, 416), (piece_mask((583, 401, 57, 13), "menu"), 583, 401),
         (piece_mask((509, 408, 96, 54), "status"), 509, 408),
     ]
     parts += [(digit(n), 0, 0) for n in range(10)]
     # The companion's gauge: its name low on the left, the rail stepping
     # up beyond it; the exe fills it from the right (partner.cpp).
-    parts += [(rail_gauge(109, 10, (1, 2), 54, False, (250, 236, 236), (220, 50, 60)), 1, 397),
-              (rail_frame(112, 14, 54, False, 0, "PARTNER HP", 2, (255, 120, 120, 255)), 0, 395),
-              (mode_label("ACTIVE", (255, 120, 120, 255)), 56, 392), (mode_label("INACTIVE", (170, 170, 170, 255)), 56, 392)]
+    # The companion's gauge mirrors the EXP rail, with a longer drop: high
+    # on the left with its name under it, then down to the right, where
+    # ACTIVE or INACTIVE sits over it.
+    drop = {"low": 18, "high": 2, "slope": 10}
+    parts += [(rail_gauge(109, 26, (1, 0), 52, False, (250, 236, 236), (220, 50, 60), shape=drop), 1, 385),
+              (rail_frame(112, 26, 52, False, 0, "PARTNER HP", 4, (255, 110, 110, 255), label_row=10, bed=(80, 22, 28),
+                          shape=drop, plate=False), 0, 385),
+              (mode_label("ACTIVE", (255, 110, 110, 255)), 58, 393), (mode_label("INACTIVE", (170, 170, 170, 255)), 58, 393)]
     # One sheet: the panel's two pieces on top, the small parts in rows under them.
     width, x, y, row = 640, 0, 80, 0
     places = []
