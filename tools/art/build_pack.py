@@ -4,7 +4,7 @@
     python3 tools/art/build_pack.py <rendered art folder> <output pack>
 
 The art folder holds what props.py and creatures.py rendered:
-props/, town/, dungeon/, cave/, fort/, wilds/, hero/, the monsters (one folder per
+props/, town/, dungeon/, cave/, fort/, wilds/, hero/, heroine/, the monsters (one folder per
 ENEMIES entry) and townspeople (person<N>/). This script adds the ground
 tiles (ground.py), lays out the test maps (a meadow with a goblin camp, the
 waterworks under it, the caves and coal mine below that, the fort above
@@ -126,6 +126,10 @@ def main():
 
     (out / "Player" / "Male" / "Animation00.anim").parent.mkdir(parents=True, exist_ok=True)
     (out / "Player" / "Male" / "Animation00.anim").write_text(character(art / "hero", out / "Player" / "Male", PLAYER_CHARTS))
+    if (art / "heroine" / "frames.txt").exists():
+        (out / "Player" / "Female").mkdir(parents=True, exist_ok=True)
+        (out / "Player" / "Female" / "Animation00.anim").write_text(
+            character(art / "heroine", out / "Player" / "Female", PLAYER_CHARTS))
     for name, kind in ENEMIES.items():
         if (art / name / "frames.txt").exists():
             folder = out / "Character" / "ENEMY" / f"{kind:08d}"
