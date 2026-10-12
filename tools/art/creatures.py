@@ -54,6 +54,9 @@ class Rig:
         self.weapon = math.radians(weapon)  # angle the weapon is held at
         self.joints = {}
         self.rest = {}
+        # joint: (lower joint, z where it starts). A limb with a knee or an
+        # elbow: what is attached below that point hangs off the lower joint.
+        self.splits = {}
         self.root = self.joint("root", None, (0, 0, 0))
 
     def joint(self, name, parent, location):
@@ -66,7 +69,28 @@ class Rig:
         self.rest[name] = Vector(location)
         return name
 
+    def split(self, joint, lower, z):
+        """Gives a limb a knee or an elbow `z` below its joint."""
+        self.joint(lower, joint, (0, 0, z))
+        self.splits[joint] = (lower, z)
+
     def attach(self, obj, joint, offset=(0, 0, 0)):
+        if joint in self.splits:
+            lower, z = self.splits[joint]
+            half = obj.scale.z if obj.name.startswith("Cylinder") and not any(obj.rotation_euler) else 0
+            top, bottom = offset[2] + half, offset[2] - half
+            if half and top - 0.05 > z > bottom + 0.05:
+                # A straight piece across the bend: cut in two, each a
+                # little longer so the joint shows no gap when it bends.
+                overlap = min(obj.scale.x, obj.scale.y) * 0.6
+                below = obj.copy()
+                bpy.context.scene.collection.objects.link(below)
+                obj.scale.z = (top - z + overlap) / 2
+                below.scale.z = (z + overlap - bottom) / 2
+                self.attach(below, lower, (offset[0], offset[1], (bottom + z + overlap) / 2 - z))
+                offset = (offset[0], offset[1], (top + z - overlap) / 2)
+            elif offset[2] < z:
+                joint, offset = lower, (offset[0], offset[1], offset[2] - z)
         obj.parent = self.joints[joint]
         obj.location = offset
         return obj
@@ -173,6 +197,9 @@ def build_hero():
     rig.joint("arm_r", "spine", (0, -0.46, 0.80))
     rig.joint("leg_l", "hips", (0, 0.15, 0))
     rig.joint("leg_r", "hips", (0, -0.15, 0))
+    for side in ("l", "r"):
+        rig.split(f"arm_{side}", f"elbow_{side}", -0.475)
+        rig.split(f"leg_{side}", f"knee_{side}", -0.60)
     # A broad chest tapering to the waist.
     rig.attach(shape("ball", (0.27, 0.46, 0.34), tunic), "spine", (0, 0, 0.62))
     rig.attach(shape("cylinder", (0.22, 0.29, 0.28), tunic), "spine", (0, 0, 0.26))
@@ -194,7 +221,7 @@ def build_hero():
     # The right hand holds weapons by this joint. The body itself is
     # unarmed: what the hero wears and wields is built by build_gear and
     # rendered as layers of their own.
-    rig.joint("weapon", "arm_r", (0, 0, -0.95))
+    rig.joint("weapon", "elbow_r", (0, 0, -0.475))
     rig.joints["root"].scale = (1.22, 1.22, 1.22)
     rig.kind = "hero"
     return rig
@@ -304,13 +331,13 @@ def gear_round_shield(rig):
     strapped to the left forearm and held out in front."""
     m = gear_material
     facing_out = (0, math.radians(90), 0)
-    rig.attach(shape("cylinder", (0.44, 0.44, 0.03), m("steel"), rotation=facing_out), "arm_l", (0.21, 0.02, -0.62))
-    rig.attach(shape("cylinder", (0.40, 0.40, 0.035), m("oak"), rotation=facing_out), "arm_l", (0.235, 0.02, -0.62))
+    rig.attach(shape("cylinder", (0.52, 0.52, 0.03), m("steel"), rotation=facing_out), "arm_l", (0.21, 0.02, -0.62))
+    rig.attach(shape("cylinder", (0.48, 0.48, 0.035), m("oak"), rotation=facing_out), "arm_l", (0.235, 0.02, -0.62))
     rig.attach(shape("ball", (0.08, 0.12, 0.12), m("steel")), "arm_l", (0.27, 0.02, -0.62))
     for k in range(8):
         a = 2 * math.pi * k / 8
         rig.attach(shape("ball", (0.03, 0.03, 0.03), m("brass")), "arm_l",
-                   (0.27, 0.02 + 0.31 * math.cos(a), -0.62 + 0.31 * math.sin(a)))
+                   (0.27, 0.02 + 0.38 * math.cos(a), -0.62 + 0.38 * math.sin(a)))
 
 
 def blade_weapon(rig, grip_length, guard, blade_length, blade_width, pommel, angle=0.0):
@@ -1861,6 +1888,10 @@ def pose(rig, animation, t, frames):
         return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
+    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk"):
+        rig.pose(hero_guard(animation, s, c))
+        plant(rig)
+        return
     if animation == "idle":
         r["spine"] = (0, lean + 0.03 * s, 0)
         r["arm_l"] = (0.08, -0.10 - 0.04 * s, 0)
@@ -1925,6 +1956,48 @@ def pose(rig, animation, t, frames):
     rig.pose(r, offset)
     if animation == "death":
         rig.joints["root"].rotation_euler = Euler(r["root"])
+
+
+def hero_guard(animation, s, c):
+    """The hero's fighting stance, as the original's player stands and
+    walks: crouched on bent knees with the feet wide apart, the shield
+    held up in front of the chest and the sword out in front, low."""
+    r = {
+        "spine": (0, 0.18 + 0.02 * s, -0.35),
+        "head": (0, -0.15, 0.30),
+        "arm_l": (0.30, -1.05, 0),
+        "elbow_l": (-1.45, 0.45, 0),
+        "arm_r": (-0.30, -0.15 - 0.03 * s, 0),
+        "elbow_r": (0, -1.10, 0),
+        "weapon": (0, math.radians(45), 0),
+        "leg_l": (0.32, -0.70, 0.2),
+        "knee_l": (0, 0.85, 0),
+        "leg_r": (-0.32, 0.15, -0.2),
+        "knee_r": (0, 0.70 + 0.05 * s, 0),
+    }
+    if animation == "walk":
+        # Upright, the shield hanging at the side, the sword low in front.
+        swing = 0.6
+        r["spine"] = (0, 0.10, 0.06 * s)
+        r["head"] = (0, -0.08, -0.06 * s)
+        r["leg_l"] = (0.06, -swing * s, 0)
+        r["leg_r"] = (-0.06, swing * s, 0)
+        r["knee_l"] = (0, 0.15 + 0.55 * max(0.0, s), 0)
+        r["knee_r"] = (0, 0.15 + 0.55 * max(0.0, -s), 0)
+        r["arm_l"] = (0.18, -0.15 + 0.25 * s, 0)
+        r["elbow_l"] = (0, -0.35, 1.45)
+        r["arm_r"] = (-0.12, -0.25 - 0.15 * s, 0)
+        r["elbow_r"] = (0, -0.55, 0)
+        r["weapon"] = (0, math.radians(70), 0)
+    return r
+
+
+def plant(rig):
+    """Moves the rig down (or up) until its lowest foot stands on the ground."""
+    bpy.context.view_layer.update()
+    low = min((o.matrix_world @ Vector(corner)).z for name in ("knee_l", "knee_r")
+              for o in rig.joints[name].children if o.type == "MESH" for corner in o.bound_box)
+    rig.joints["root"].location.z -= low
 
 
 def facing(direction):
