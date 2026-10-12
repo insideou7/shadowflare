@@ -35,6 +35,7 @@ add_library(sf_logic STATIC
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
+    src/logic/shop.cpp
     src/logic/progression.cpp
     src/logic/save_game.cpp
 )
@@ -53,6 +54,7 @@ add_executable(shadowflare
     src/game/items.cpp
     src/game/saving.cpp
     src/game/title.cpp
+    src/game/talk.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

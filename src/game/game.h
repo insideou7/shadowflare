@@ -15,6 +15,8 @@
 #include "logic/inventory.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/shop.h"
+#include "formats/table_data.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
 #include "formats/scenario.h"
@@ -86,6 +88,11 @@ public:
     void openMenu(bool atStart);
     bool menuOpen() const { return menuOpen_; }
 
+    // Walks the player up to a character and speaks to them (for scripted
+    // tests); `answers` close the messages that follow, one each.
+    void talkToId(std::int32_t id);
+    void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
+
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     bool saveGame();
     bool loadGame();
@@ -109,6 +116,9 @@ private:
         bool struck = false;  // the current attack has landed
         double wanderX = 0, wanderY = 0;
         int wanderPause = 0;
+        bool active = true;   // SETINACTIVE hides a character
+        bool stopped = false;  // C_STOP holds it still while it talks
+        std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
         bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
         bool alive() const { return state != State::Dead; }
     };
@@ -119,6 +129,34 @@ private:
         std::int32_t sentence;
         bool inside = false;  // only entering fires it
     };
+    // Talking, shops and the rest of the scenario script (talk.cpp).
+    friend class GameScript;
+    struct Dialogue {
+        std::vector<std::string> lines;
+        struct Option {
+            int line = 0;
+            std::size_t from = 0, to = 0;  // characters of the line
+        };
+        std::vector<Option> options;
+        int choice = 0;
+        ScenarioScript::Operand answer;
+        std::int32_t speaker = -1;
+    };
+    void runScript(std::int32_t sentence, std::int32_t character = -1);
+    void runEvent(std::int32_t event, std::int32_t character = -1);
+    void openDialogue(const ScriptHost::Talk& talk);
+    void closeDialogue(int answer);
+    void dialogueEvent(const SDL_Event& event);
+    int dialogueOptionAt(int x, int y) const;
+    void renderDialogue();
+    bool shopClick(int x, int y, bool right);
+    void renderShop();
+    std::optional<std::size_t> personAt(float screenX, float screenY) const;
+    Actor* actorById(std::int32_t id);
+    const Actor* actorById(std::int32_t id) const;
+    void talkTo(Actor& person);
+    HeroClass heroClass() const { return autoClass_ ? classAtLevel(playerLevel_) : heroClass_; }
+
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadScenario(const std::string& dir);
     void indexScenarios();
@@ -167,7 +205,7 @@ private:
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
-    HeroStats heroStats() const { return sf::heroStats(playerLevel_, classAtLevel(playerLevel_)); }
+    HeroStats heroStats() const { return sf::heroStats(playerLevel_, heroClass(), autoClass_ ? 5 : classFrom_); }
     int playerAttack() const;
     int playerDefense() const;
     int playerHit() const;
@@ -217,6 +255,7 @@ private:
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_
+    std::optional<std::size_t> talkTarget_;                // a person the player is walking up to
     int playerHp_ = 0;
     bool mouseHeld_ = false;
     bool showJudge_ = false;
@@ -232,6 +271,18 @@ private:
     std::string saveFile_ = "save.txt";
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
+    GameTables tables_;  // Table.Tbd; empty with open content
+    // The hero's class. Original data leaves it to the guild scripts; open
+    // content without scripts makes the hero a warrior from level 6.
+    HeroClass heroClass_ = HeroClass::Novice;
+    int classFrom_ = 5;  // the level the class was taken at
+    bool autoClass_ = true;
+    std::optional<Dialogue> dialogue_;
+    std::map<int, ShopStock> shops_;  // by INITTRADE's shop number
+    std::optional<int> openShop_;
+    int entryPoint_ = 0;
+    std::vector<int> answers_;
+    bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
 

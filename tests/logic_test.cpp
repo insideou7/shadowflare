@@ -8,6 +8,8 @@
 #include "logic/movement.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
+#include "logic/shop.h"
+#include "formats/item_data.h"
 
 namespace {
 
@@ -202,7 +204,103 @@ void testLevels() {
 
 }  // namespace
 
+// A host that records what the script asked for.
+struct TestHost : sf::ScriptHost {
+    std::vector<Talk> talks;
+    std::vector<std::pair<int, int>> trades;
+    int healed = 0, chosenClass = 0;
+    std::int64_t purse = 500;
+    void talk(const Talk& t) override { talks.push_back(t); }
+    void initTrade(int shop, int list) override { trades.emplace_back(shop, list); }
+    void healLife() override { ++healed; }
+    int playerLevel() const override { return 7; }
+    std::int64_t gold() const override { return purse; }
+    void payGold(std::int64_t amount) override { purse -= amount; }
+    void setClass(int cls) override { chosenClass = cls; }
+};
+
+void testScriptTalkAndShop() {
+    using S = sf::ScenarioScript;
+    S script;
+    script.messages[1000000] = "Pay %d gold?\n ~YES~ ~NO~\n";
+    const Op temp{S::kTemp, 1000001};
+    // Sentence 0: price 30, show the question to character 12000001.
+    // Sentence 1: on YES pay and heal, then stock shop 0 from list 22.
+    script.sentences = {
+        {{S::kSetMessageDefine, {constant(30)}}, {S::kTalk, {{S::kMessage, 1000000}, temp, raw(0), constant(1), constant(-1), constant(-1)}}},
+        {ifCmd(temp, 0, constant(0), 2)},
+        {{S::kPayGold, {constant(30)}}, {S::kHealLife, {}}, {S::kInitTrade, {constant(0), constant(22)}},
+         {S::kGetPlayerLevel, {temp}}, {S::kAdd, {temp, constant(3)}}, {S::kEnableClassChange, {constant(2)}}},
+    };
+    sf::ScriptFlags flags;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host, 12000001).run(0);
+    check(host.talks.size() == 1, "TALK shows a message");
+    check(!host.talks.empty() && host.talks[0].text == "Pay 30 gold?\n ~YES~ ~NO~\n", "SETMSGDEFINE fills %d");
+    check(!host.talks.empty() && host.talks[0].speaker == 12000001 && host.talks[0].defaultChoice == 1, "speaker -1 is the trigger's character");
+    sf::ScriptRunner(script, flags, &host).store(temp, 0);  // the player chose YES
+    sf::ScriptRunner(script, flags, &host).run(1);
+    check(host.purse == 470 && host.healed == 1, "PAYGOLD and HEALLIFE");
+    check(host.trades.size() == 1 && host.trades[0] == std::pair(0, 22), "INITTRADE shop list");
+    check(flags[{S::kTemp, 1000001}] == 10, "GETPLAYERLEVEL and ADD");
+    check(host.chosenClass == 2, "ENABLECLASSCHANGE");
+}
+
+void testShopStock() {
+    // Table 32 row 0 lists entries 0 and 1 of table 33: three of item
+    // (3, 7), then two weapons of level 2-4 that are normal quality.
+    sf::GameTables tables;
+    auto& lists = tables.tables[32];
+    lists.rows = 1;
+    lists.cols = 3;
+    lists.values = {0, 1, -1};
+    auto& entries = tables.tables[33];
+    entries.rows = 2;
+    entries.cols = 10;
+    entries.values = {3, -1, -1, 7, 3, 0, 0, 1, 1, 1,   //
+                      0, 4, 2, -1, 2, -1, -1, 1, 0, 0};
+    sf::ItemTable items;
+    auto add = [&](sf::ItemDef::Class cls, int code, int level, int quality, int w, int h) {
+        sf::ItemDef d;
+        d.cls = cls;
+        d.code = code;
+        d.itemLevel = level;
+        d.quality = quality;
+        d.width = w;
+        d.height = h;
+        d.dropWeight = 10;
+        d.poolMask = 1;
+        d.price = 100;
+        items.items.push_back(d);
+    };
+    add(sf::ItemDef::Class::Consumable, 7, 1, 0, 1, 1);
+    add(sf::ItemDef::Class::Weapon, 1, 1, 0, 1, 3);  // too low a level
+    add(sf::ItemDef::Class::Weapon, 2, 3, 1, 1, 3);  // magic: not allowed
+    add(sf::ItemDef::Class::Weapon, 3, 3, 0, 1, 3);
+    sf::Random random(7);
+    const auto stock = sf::stockShop(tables, items, 0, random);
+    check(stock.goods.size() == 5, "shop holds 3 + 2 items");
+    int weapons = 0;
+    for (const auto& g : stock.goods) weapons += g.item.def->cls == sf::ItemDef::Class::Weapon && g.item.def->code == 3;
+    check(weapons == 2, "random picks honour level and quality");
+    check(stock.goods.size() >= 4 && stock.goods[0].x == 0 && stock.goods[1].x == 1 && stock.goods[3].x == 3 && stock.goods[3].y == 0,
+          "goods fill the top row from the left");
+    check(sf::sellPrice(*stock.goods[0].item.def) == 25 && sf::buyPrice(*stock.goods[0].item.def) == 100, "sell for a quarter");
+}
+
+void testClassFrom() {
+    // A magician since level 7: classless gains up to 5, then two magician levels.
+    const auto late = sf::heroStats(9, sf::HeroClass::Magician, 7);
+    const auto early = sf::heroStats(9, sf::HeroClass::Magician, 5);
+    check(late[sf::HeroStats::kHp] < early[sf::HeroStats::kHp], "a late class has fewer class levels");
+    check(sf::heroStats(5, sf::HeroClass::Novice)[sf::HeroStats::kHp] == sf::heroStats(9, sf::HeroClass::Novice)[sf::HeroStats::kHp],
+          "classless stats stop growing at level 5");
+}
+
 int main() {
+    testScriptTalkAndShop();
+    testShopStock();
+    testClassFrom();
     testScriptExit();
     testScriptFlagsAndOperators();
     testScriptStopsAtChange();

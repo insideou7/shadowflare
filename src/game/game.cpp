@@ -25,6 +25,7 @@ constexpr double kWalkSpeed = 70.0;
 // Blows follow the original's rules (see strikeEnemy and strikePlayer).
 constexpr double kEnemySpeed = 35.0;
 constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
+constexpr double kTalkRange = 320.0;      // close enough to speak to someone
 constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
 constexpr double kGiveUpRange = 3200.0;    // and stop chasing beyond this one
 
@@ -70,6 +71,8 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     }
     loadItems();
     loadLevelCurve();
+    // With the original data its guild scripts give the hero a class.
+    autoClass_ = tables_.tables.empty();
     indexScenarios();
     if (playerModel_) player_.emplace(&*playerModel_);
     giveStartingKit();
@@ -119,8 +122,12 @@ void Game::loadScenario(const std::string& dir) {
     spawnActors();
     spawnGroundItems();
     placePlayer();
+    dialogue_.reset();
+    openShop_.reset();
+    talkTarget_.reset();
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
+    startScripts_ = true;
     for (const auto& t : script_->triggers) {
         if (t.event != ScenarioScript::kOnJudge) continue;
         for (const auto& p : control_.placements) {
@@ -311,11 +318,22 @@ void Game::handleEvent(const SDL_Event& event) {
         menuEvent(event);
         return;
     }
+    if (dialogue_ && event.type != SDL_QUIT) {
+        dialogueEvent(event);
+        return;
+    }
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
         case SDL_KEYDOWN:
             switch (event.key.keysym.sym) {
-                case SDLK_ESCAPE: openMenu(false); break;
+                case SDLK_ESCAPE:
+                    if (openShop_ && !hand_) {
+                        openShop_.reset();
+                        showInventory_ = false;
+                    } else {
+                        openMenu(false);
+                    }
+                    break;
                 case SDLK_PAGEDOWN:
                 case SDLK_n:
                     if (!mapNames_.empty()) loadMap((mapIndex_ + 1) % mapNames_.size());
@@ -347,8 +365,17 @@ void Game::handleEvent(const SDL_Event& event) {
         case SDL_MOUSEBUTTONDOWN:
             // Mouse events arrive in logical (640x480) coordinates.
             if (event.button.button != SDL_BUTTON_LEFT && event.button.button != SDL_BUTTON_RIGHT) break;
+            if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
-            if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = true;
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                mouseHeld_ = true;
+                // Clicking a person walks up to them to talk.
+                if (const auto person = personAt(event.button.x, event.button.y); person && player_) {
+                    talkTarget_ = person;
+                    attackTarget_.reset();
+                    mouseHeld_ = false;
+                }
+            }
             break;
         case SDL_MOUSEBUTTONUP:
             if (event.button.button == SDL_BUTTON_LEFT) mouseHeld_ = false;
@@ -360,7 +387,25 @@ void Game::handleEvent(const SDL_Event& event) {
 void Game::tick() {
     ++ticks_;
     if (!map_ || menuOpen_) return;  // the world waits while the menu is open
+    if (startScripts_) {
+        startScripts_ = false;
+        runEvent(ScenarioScript::kOnStart);
+    }
+    if (pendingScenario_ && !dialogue_) {
+        const auto [number, entry] = *pendingScenario_;
+        changeScenario(number, entry);
+        updateCamera();
+        return;
+    }
+    if (dialogue_ && !answers_.empty()) {
+        const int answer = answers_.front();
+        answers_.erase(answers_.begin());
+        closeDialogue(answer);
+    }
+    if (dialogue_ || openShop_) return;  // and while the player talks or trades
+    runEvent(ScenarioScript::kEveryTick);
     for (auto& actor : actors_) {
+        if (!actor.active) continue;
         if (actor.hostile() && player_) {
             if (actor.aiList >= 0) {
                 tickEnemyAi(actor);
@@ -392,7 +437,7 @@ void Game::checkTriggers(bool fire) {
     for (auto& t : triggers_) {
         const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
         if (fire && inside && !t.inside && script_ && !pendingScenario_) {
-            if (const auto change = ScriptRunner(*script_, flags_).run(t.sentence)) pendingScenario_.emplace(change->scenario, change->entry);
+            runScript(t.sentence);
         }
         t.inside = inside;
     }
@@ -417,6 +462,7 @@ void Game::changeScenario(int number, int entry) {
         return;
     }
     log::info("Going to {} \"{}\", entry {}", dir, target.title, entry);
+    entryPoint_ = entry;
     loadMap(static_cast<std::size_t>(found - mapNames_.begin()), dir);
     // The player is the first of the four party members.
     for (const auto& e : target.entryPoints) {
@@ -471,6 +517,7 @@ void Game::tickPlayer() {
         float lx, ly;
         SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
         attackTarget_ = enemyAt(lx, ly);
+        talkTarget_.reset();
         if (attackTarget_) {
             walkTarget_.reset();
         } else if (const auto item = groundItemAt(lx, ly)) {
@@ -483,6 +530,16 @@ void Game::tickPlayer() {
         }
     }
     if (attackTarget_ && !actors_[*attackTarget_].alive()) attackTarget_.reset();
+    if (talkTarget_) {
+        Actor& person = actors_[*talkTarget_];
+        if (distance(*player_, person.character) <= kTalkRange) {
+            player_->faceTowards(person.character.x - player_->x, person.character.y - player_->y);
+            player_->setAction(Action::Idle);
+            talkTo(person);
+            return;
+        }
+        walkTarget_.emplace(person.character.x, person.character.y);
+    }
     if (autoFight_ && !attackTarget_) {
         double best = kAggroRange;
         for (std::size_t i = 0; i < actors_.size(); ++i) {
@@ -517,6 +574,7 @@ void Game::tickPlayer() {
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
         walkTarget_.reset();
+        talkTarget_.reset();
         attackTarget_.reset();
         // A screen-space step converted to world space.
         screenToWorld(kx * projection.x, ky * projection.y, dx, dy);
@@ -625,6 +683,7 @@ void Game::hurtEnemy(Actor& enemy, int damage) {
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
         dropLoot(enemy);
+        runEvent(ScenarioScript::kOnEnemyDead, enemy.gameId());
         const auto& s = enemy.placement.stats;
         gainExperience(s.experience > 0 ? s.experience : defaultExperience(s.hp, s.attack));
     } else {
@@ -690,6 +749,7 @@ void Game::renderMap() {
     std::vector<const Character*> characters;
     if (player_) characters.push_back(&*player_);
     for (const auto& actor : actors_) {
+        if (!actor.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(actor.character.x), static_cast<int>(actor.character.y), sx, sy);
         if (sx - camX < -256 || sy - camY < -256 || sx - camX > kScreenWidth + 256 || sy - camY > kScreenHeight + 256) continue;
@@ -736,8 +796,10 @@ void Game::renderMap() {
     }
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
+    renderShop();
     renderInventory();
     renderHud();
+    renderDialogue();
 }
 
 // The original's ground: pre-drawn chips on a screen-aligned grid.

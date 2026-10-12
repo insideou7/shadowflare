@@ -105,19 +105,20 @@ std::int64_t LevelCurve::need(int level) const {
 
 HeroClass classAtLevel(int level) { return level <= 5 ? HeroClass::Novice : HeroClass::Warrior; }
 
-HeroStats heroStats(int level, HeroClass cls) {
+HeroStats heroStats(int level, HeroClass cls, int classFrom) {
     HeroStats stats;
     stats.value = kStartingStats;
-    for (int l = 2; l <= std::min(level, 5); ++l) {
+    if (cls == HeroClass::Novice) classFrom = level;
+    for (int l = 2; l <= std::min({level, classFrom, 5}); ++l) {
         for (int s = 0; s < HeroStats::kCount; ++s) stats.value[s] += kClasslessGain[s];
     }
     if (cls == HeroClass::Novice) return stats;
     const auto& gains = cls == HeroClass::Warrior ? kWarriorGain : cls == HeroClass::Magician ? kMagicianGain : kHunterGain;
-    for (int column = 0; column < level - 5; ++column) {
+    for (int column = 0; column < level - classFrom; ++column) {
         for (int s = 0; s < HeroStats::kCount; ++s) stats.value[s] += gainAt(gains[s], column);
     }
     // The hunter's attack speed rises every second level (odd columns).
-    if (cls == HeroClass::Hunter) stats.value[HeroStats::kAttackSpeed] += std::max(0, level - 5) / 2;
+    if (cls == HeroClass::Hunter) stats.value[HeroStats::kAttackSpeed] += std::max(0, level - classFrom) / 2;
     return stats;
 }
 

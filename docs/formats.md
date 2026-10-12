@@ -286,9 +286,67 @@ constant, 2 `MSG`, 3 `ELIV`, 4 `TEMP`, 5 `NET`, 6 `CPOSX`, 7 `CPOSY`, 8
 `PLAYMODE`, 9 `CCHECK`, 10 `WARP`, 11 `SAVE`, 12 `QUEST`, 13 `EXSTRG`.
 `IF` operators (`AnalyzeOperator`): 0 `=`, 1 `!`, 2 `>`, 3 `<`.
 
-Opcodes identified so far: 0 `IF a op b sentence` (runs the sentence,
-then carries on), 1 `SETFLAG flag value`, 17 `CHANGESCENARIO scenario
-entry`. The other events and opcodes are not mapped yet.
+Operand values (ShadowFlare.exe 0x4346b0): types 0-2 are the value
+itself; `TEMP`, `NET`, `WARP`, `SAVE` and `QUEST` are variables; `CPOSX`
+and `CPOSY` are a character's world position; `PLAYMODE` is single or
+network play.
+
+Command numbers come from the keyword table in RKC_RPG_SCRIPT.dll (each
+keyword stores its number and operand count). ShadowFlare.exe runs them in
+a switch at 0x430ffe (jump table 0x4344f0):
+
+| # | Command | # | Command | # | Command |
+|---|---------|---|---------|---|---------|
+| 0 | `IF a op b sentence` | 26 | `MESSAGEBOXVALUE` | 52 | `GETREPAIRPRICE slot var` |
+| 1 | `SETFLAG var value` | 27 | `MESSAGEBOX` (floating label) | 53 | `GETTOTALGOLD var` |
+| 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
+| 3 | `TALKPARTNERSTATUS` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
+| 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
+| 5 | `TRADE shop` | 31 | `CHECKENEMYLIVE` | 57 | `GETPLAYERSEX var` |
+| 6 | `INITTRADE shop list` | 32 | `CHECKENEMYDEAD` | 58 | `CHECKITEMEXIST` |
+| 7 | `HEALLIFE` | 33 | `GETNEARPLAYERPOS` | 59 | `DELETEITEM` |
+| 8 | `HEALMENTAL` | 34 | `CALCMYPLAYERDIST char var` | 60 | `SETUNLOCKSW` |
+| 9 | `REPAIR slot` | 35 | `CALCANGLE` | 61 | `GETPLAYERLEVEL var` |
+| 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT` | 62 | `SETQUESTFLAG` |
+| 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE` |
+| 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
+| 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
+| 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
+| 19 | `C_MOVABLE char` | 41 | `STORAGE` | 67 | `MEMORIZEMAGIC` |
+| 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
+| 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
+| 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
+| 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER` | 71 | `GETCLASS var` |
+| 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS` | 72 | `CHANGECOLOR` |
+| 25 | `RESSURECT` | 47 | `GETCHARTRANS` | 73 | `STARTCARDGAME` |
+| | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT` |
+| | | 49 | `SETCOMPASSES msg` | 75 | `SETITEMDIRECT` |
+| | | 50 | `GETENTRYPOINT var` | | |
+| | | 51 | `SETMSGDEFINE v0 ... v19` | | |
+
+`TALK` shows a message over the speaker (-1 = the character whose trigger
+is running), filled in with sprintf from the values `SETMSGDEFINE` set.
+Text between `~` marks is an option to choose; `default` is the option
+picked to begin with. Scripts carry on straight away; when the box closes
+the chosen option (from 0) goes into `answer` and the speaker's event 1
+triggers run. `CREATEITEM` with class 4 code 0 drops a random amount of
+gold between `min` and `max`, in piles of at most 10,000.
+`ENABLECLASSCHANGE` 1, 2 and 3 make the hero a warrior, magician or
+hunter (player +0x30 = 6, 5 or 9; 16 is no class), and `GETCLASS` reports
+them back the same way.
+
+Trigger events (0x4304b0-0x430a40): 0 the player speaks to the character,
+1 its message box closed, 3 `ONJUDGE`, 4 an enemy died (inferred from the
+caller), 5 every frame, 7 the scenario was entered.
+
+Shops: `INITTRADE shop list` stocks shop `shop` from row `list` of
+Table.Tbd table 32, whose cells are rows of table 33 (0x430c10). A table
+33 row is: class (-1 = weapon, armour or accessory), highest item level,
+lowest item level, item code (-1 = pick one), count (-1 = random 0-29),
+two unused, then whether normal, magic and unique items may be picked.
+Picks are weighted by the item's drop weight among items in the level
+range with a non-zero drop pool. Goods fill a 9 x 10 grid row by row.
+A shop sells at the item's price and buys at a quarter of it (0x4661c0).
 
 ## Monster behaviour: `System/Game/Parameter/Control.aid` (`RKC_RPG_AICONTROL::ReadFile`)
 

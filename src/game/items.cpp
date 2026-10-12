@@ -238,7 +238,8 @@ void Game::useItem(int index) {
 void Game::loadLevelCurve() {
     if (auto raw = data_->read("System/Game/Parameter/Table.Tbd")) {
         try {
-            levels_ = LevelCurve::fromTables(GameTables::parse(*raw));
+            tables_ = GameTables::parse(*raw);
+            levels_ = LevelCurve::fromTables(tables_);
         } catch (const FormatError& e) {
             log::warn("Table.Tbd: {}", e.what());
         }
