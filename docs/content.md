@@ -173,6 +173,55 @@ either. Every key but the section line may be left out. When the folder
 of a `ground` picture holds `Animation.anim`, the number is a chart of it
 instead, as with the original's animated item folders.
 
+## Drawing the original game with this art
+
+A player who has the original game sees its own maps, people and monsters,
+but drawn with the pack's art: the engine reads the maps, scripts and
+characters from their copy and draws them with content/'s ground
+textures, props, characters and hero. `skin.txt` at the pack's root says
+how; whatever it does not cover (and any character the pack has no
+`.anim` for) is drawn from the original files as before. This is the
+default when both are found; `--original-art` turns it off and
+`--skin <pack>` uses another pack.
+
+    props=Map/props.sheet        # the sheet whose named frames [objects] uses
+
+    [material grass]             # a ground texture
+    tiles=Map/ground.sheet,240   # sheet, first frame[, period (default 4)]
+    tile=320                     # world units per tile edge (the default)
+
+    [ground 00f_ground.njp]      # one of the original's ground banks
+    grass=44,50,14               # a material it is painted with, and its
+    dirt=47,35,19                #   average colour there
+
+    [objects 00f_obj00.njp]      # one of the original's object banks
+    0=copper_tank                # pattern = prop
+    21-22=wall_x@-190,-117 wall_x@-43,-117
+    16-17=log!                   # ! mirrors a prop left to right
+    5=-                          # draws nothing
+
+A material is `period` x `period` tiles of a ground sheet, from frame
+`first` on, laid out on their diamond as the map draws them; they must
+repeat seamlessly every `period` tiles, as the sheets `tools/art/ground.py`
+makes do. The original's ground is painted on screen-aligned chips; each
+pixel (smoothed over a few pixels) is given the material whose colour is
+nearest, so the original's paths, shores and clearings keep their shape,
+and that material's texture is drawn there, tinted to the original's
+average colour. `none` paints black.
+
+Props are frames of the props sheet that carry a name (a seventh field on
+the `frame=` line; `build_pack.py` writes them). A prop is anchored at the
+foot of the original piece's picture (the middle of its bottom edge), moved
+by `@x,y` world units if given; a piece may be drawn as several props, so a
+long wall becomes two shorter ones. Our props carry their own shadows, so
+the original's shadow for a replaced piece is not drawn.
+
+`tools/content/skin_preview.py` checks the rules against the original:
+for each piece of a bank it draws the original, our props and the two laid
+over each other, with the foot marked.
+
+    python3 tools/content/skin_preview.py game 00f_obj00.njp /tmp/fences.png 13 14
+
 ## Rebuilding content/
 
 The art is rendered with Blender's Python module (`bpy`) and laid out

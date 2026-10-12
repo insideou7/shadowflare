@@ -1,0 +1,182 @@
+# How to draw the original game's maps with this pack's art, for players
+# who have the original: its maps, monsters and people, in our art.
+# See "Drawing the original game with this art" in docs/content.md.
+
+props=Map/props.sheet
+
+# Ground textures: a 4 x 4 block of tiles from a ground sheet.
+[material dirt]
+tiles=Map/ground.sheet,0
+[material grass]
+tiles=Map/ground.sheet,240
+[material rubble]
+tiles=Map/floor.sheet,0
+[material brick]
+tiles=Map/floor.sheet,240
+[material gravel]
+tiles=Map/cavefloor.sheet,0
+[material rock]
+tiles=Map/cavefloor.sheet,240
+[material coal]
+tiles=Map/cavefloor.sheet,256
+[material mine]
+tiles=Map/cavefloor.sheet,496
+[material grit]
+tiles=Map/fortfloor.sheet,0
+[material paving]
+tiles=Map/fortfloor.sheet,240
+[material soil]
+tiles=Map/wildsfloor.sheet,0
+[material heath]
+tiles=Map/wildsfloor.sheet,240
+[material sand]
+tiles=Map/wildsfloor.sheet,256
+[material lawn]
+tiles=Map/wildsfloor.sheet,496
+[material water]
+tiles=Map/wildsfloor.sheet,512
+[material moss]
+tiles=Map/deepfloor.sheet,0
+[material earth]
+tiles=Map/deepfloor.sheet,240
+[material stone]
+tiles=Map/castlefloor.sheet,0
+[material flagstones]
+tiles=Map/castlefloor.sheet,240
+
+# The original's ground banks: the materials each is painted with and
+# their average colour there (red, green, blue). Each pixel gets the
+# material whose colour is nearest, and our texture is tinted to that
+# colour.
+[ground 00f_ground.njp]
+grass=44,50,14
+dirt=47,35,19
+[ground 00d_ground.njp]
+brick=72,60,40
+[ground 00y_ground.njp]
+stone=57,56,59
+# The third area's banks are drawn in shades of one another, so they
+# share their materials: the colour decides, not the bank.
+[ground 3rdmap_00.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground 3rdmap_01.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground 3rdmap_02.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground 3rdmap_03.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground 3rdmap_04.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground 3rdmap_05.njp]
+heath=44,48,14
+lawn=23,48,3
+earth=66,48,29
+sand=98,74,45
+soil=32,22,17
+moss=26,17,16
+water=16,62,93
+[ground map01.njp]
+rock=68,57,45
+[ground map02.njp]
+rock=49,39,32
+[ground map03.njp]
+gravel=20,13,8
+[ground fort_map.njp]
+paving=84,78,64
+[ground coalminem.njp]
+mine=47,34,19
+[ground yd_map.njp]
+flagstones=57,56,59
+[ground yd_smallmap.njp]
+flagstones=59,58,62
+stone=27,26,29
+# Black, outside the walls.
+[ground coalminemb.njp]
+none=
+[ground map7848b.njp]
+none=
+[ground map_blk.njp]
+none=
+[ground map6448b.njp]
+none=
+
+# The original's props: pattern numbers and the props drawn instead,
+# anchored where the original piece stands, optionally moved by @x,y world
+# units. - draws nothing. Pieces not listed are drawn as in the original.
+# The first area: the village, the forest round it and the ruins.
+[objects 00f_obj00.njp]
+0=copper_tank
+1,4,7,10=pipe_stand_long
+2-3,5-6,8-9,11-12=pipe_stand
+13=fence_x@-80,-80
+14=fence_x@-185,-115 fence_x@-45,-115
+15=fence_x@-135,-98 fence_x@-62,-98
+16=fence_y@-80,-80
+17=fence_y@-118,-195 fence_y@-118,-42
+18=fence_y@-97,-130 fence_y@-97,-63
+19-20=ruin_rubble
+21-22=wall_x@-190,-117 wall_x@-43,-117
+23-24=wall_y@-117,-190 wall_y@-117,-43
+25-26=pillar_broken
+27-28=mossy_post
+29=engine
+[objects 00f_obj01.njp]
+0-14=stone_small
+15,18=log
+16-17=log!
+[objects 00f_obj02.njp]
+0=ruin_rubble
+1=tree1
+2=tree2
+4-5=pillar_broken
+6=pillar
+7=tree3
+8=tree1
+9=shrine
+[objects 00f_city00.njp]
+0=well
+1=hall
+2=cottage
+3-4=stall
+5=crate_yellow
+6=crate_red
+7=signpost
+8=oak
+9=cart
+[objects 00f_city01.njp]
+0=barrel
+1-2=sacks
+3-4=firewood
+# Dirt patches: our ground has its own.
+[objects 00f_rough.njp]
+0-12=-

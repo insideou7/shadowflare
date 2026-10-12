@@ -61,6 +61,15 @@ struct SpriteBank {
     // Bounds of a pattern, computed from its parts when the file leaves them unset.
     // Returns false for patterns with nothing to draw.
     bool bounds(const Pattern& pattern, int& x, int& y, int& w, int& h) const;
+
+    // A pattern composed into 0xAARRGGBB pixels, top row first, with its
+    // bounds. `opaque` keeps palette index 0 instead of treating it as
+    // transparent (ground chips). Empty when there is nothing to draw.
+    struct Picture {
+        int x = 0, y = 0, width = 0, height = 0;
+        std::vector<std::uint32_t> argb;
+    };
+    Picture render(int pattern, bool opaque) const;
 };
 
 }  // namespace sf

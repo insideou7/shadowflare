@@ -162,4 +162,42 @@ bool SpriteBank::bounds(const Pattern& pattern, int& x, int& y, int& w, int& h) 
     return true;
 }
 
+SpriteBank::Picture SpriteBank::render(int pattern, bool opaque) const {
+    Picture picture;
+    if (pattern < 0 || static_cast<std::size_t>(pattern) >= patterns.size()) return picture;
+    const Pattern& pat = patterns[pattern];
+    int x0, y0, w, h;
+    if (!bounds(pat, x0, y0, w, h)) return picture;
+    // Some shadow banks carry no palette; any non-zero index is then drawn black.
+    static const Palette kFallback{};
+    const Palette& palette = palettes.empty() ? kFallback
+                             : pat.palette >= 0 && static_cast<std::size_t>(pat.palette) < palettes.size()
+                                 ? palettes[pat.palette]
+                                 : palettes[0];
+    picture = {x0, y0, w, h, std::vector<std::uint32_t>(static_cast<std::size_t>(w) * h, 0)};
+    for (const auto& placed : pat.parts) {
+        if (placed.part < 0 || static_cast<std::size_t>(placed.part) >= parts.size()) continue;
+        const SpritePart& part = parts[placed.part];
+        for (int y = 0; y < part.height; ++y) {
+            const int ty = placed.y - y0 + y;
+            if (ty < 0 || ty >= h) continue;
+            for (int x = 0; x < part.width; ++x) {
+                const int tx = placed.x - x0 + x;
+                if (tx < 0 || tx >= w) continue;
+                if (part.bpp == 32) {
+                    const std::uint32_t c = part.argb[static_cast<std::size_t>(y) * part.width + x];
+                    if (c >> 24) picture.argb[static_cast<std::size_t>(ty) * w + tx] = c;
+                    continue;
+                }
+                const std::uint8_t index = part.pixels[static_cast<std::size_t>(y) * part.width + x];
+                if (index == 0 && !opaque) continue;
+                const Rgb c = palette[index];
+                picture.argb[static_cast<std::size_t>(ty) * w + tx] =
+                    0xff000000u | (static_cast<std::uint32_t>(c.r) << 16) | (c.g << 8) | c.b;
+            }
+        }
+    }
+    return picture;
+}
+
 }  // namespace sf

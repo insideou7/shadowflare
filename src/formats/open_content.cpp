@@ -1,6 +1,7 @@
 #include "formats/open_content.h"
 
 #include <algorithm>
+#include <cctype>
 #include <charconv>
 #include <cstdlib>
 #include <format>
@@ -127,9 +128,18 @@ Sheet parseSheet(std::span<const std::uint8_t> text) {
         if (key == "image") {
             sheet.image = value;
         } else if (key == "frame") {
-            const auto v = lines.ints(value, 6);
+            // x,y,width,height,anchorX,anchorY[,name]
+            auto fields = Lines::split(value, ',');
+            std::string name;
+            if (fields.size() == 7) {
+                name = fields.back();
+                fields.pop_back();
+            }
+            if (fields.size() != 6) lines.fail("expected 6 numbers and an optional name");
+            int v[6];
+            for (int i = 0; i < 6; ++i) v[i] = lines.toInt(fields[i]);
             if (v[2] <= 0 || v[3] <= 0 || v[2] > kMaxSize || v[3] > kMaxSize) lines.fail("bad frame size");
-            sheet.frames.push_back({v[0], v[1], v[2], v[3], v[4], v[5]});
+            sheet.frames.push_back({v[0], v[1], v[2], v[3], v[4], v[5], std::move(name)});
         } else {
             lines.fail(std::format("unknown key '{}'", key));
         }
@@ -162,6 +172,7 @@ SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image) {
         pattern.parts.push_back(placed);
         bank.parts.push_back(std::move(part));
         bank.patterns.push_back(std::move(pattern));
+        bank.names.push_back(f.name);
     }
     return bank;
 }
@@ -601,6 +612,117 @@ PackInfo parsePackInfo(std::span<const std::uint8_t> text) {
         }
     }
     return info;
+}
+
+namespace {
+
+std::string lowerCase(std::string_view s) {
+    std::string out(s);
+    for (char& c : out) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return out;
+}
+
+}  // namespace
+
+// [material <name>] tiles=<sheet>,<first>[,<period>] tile=<world units>
+// [ground <bank>] <material>=<r>,<g>,<b>
+// [objects <bank>] <patterns>=<prop>[!][@<dx>,<dy>] ... or -
+Skin parseSkin(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    Skin skin;
+    enum class Section { Top, Material, Ground, Objects } section = Section::Top;
+    std::string name;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[1].empty()) lines.fail("expected [material|ground|objects <name>]");
+            name = words[0] == "material" ? std::string(words[1]) : lowerCase(words[1]);
+            if (words[0] == "material") {
+                section = Section::Material;
+                skin.materials[name];
+            } else if (words[0] == "ground") {
+                section = Section::Ground;
+                skin.ground[name].clear();
+            } else if (words[0] == "objects") {
+                section = Section::Objects;
+                skin.objects[name];
+            } else {
+                lines.fail(std::format("unknown section '{}'", words[0]));
+            }
+            continue;
+        }
+        std::string_view key, value;
+        if (!keyValue(*line, key, value)) lines.fail("expected key=value");
+        switch (section) {
+        case Section::Top:
+            if (key != "props") lines.fail(std::format("unknown key '{}'", key));
+            skin.props = value;
+            break;
+        case Section::Material: {
+            auto& m = skin.materials[name];
+            if (key == "tiles") {
+                const auto fields = Lines::split(value, ',');
+                if (fields.size() < 2 || fields.size() > 3) lines.fail("expected tiles=<sheet>,<first>[,<period>]");
+                m.sheet = fields[0];
+                m.first = lines.toInt(fields[1]);
+                if (fields.size() == 3) m.period = lines.toInt(fields[2]);
+                if (m.first < 0 || m.period < 1 || m.period > 16) lines.fail("bad tiles");
+            } else if (key == "tile") {
+                m.tile = lines.toInt(value);
+                if (m.tile < 10 || m.tile > 10000) lines.fail("bad tile size");
+            } else {
+                lines.fail(std::format("unknown key '{}'", key));
+            }
+            break;
+        }
+        case Section::Ground: {
+            Skin::GroundMaterial m{std::string(key), {}};
+            if (!value.empty()) {
+                const auto v = lines.ints(value, 3);
+                for (int c : v) {
+                    if (c < 0 || c > 255) lines.fail("colour values go from 0 to 255");
+                }
+                m.colour = {static_cast<std::uint8_t>(v[0]), static_cast<std::uint8_t>(v[1]), static_cast<std::uint8_t>(v[2])};
+            }
+            skin.ground[name].push_back(std::move(m));
+            break;
+        }
+        case Section::Objects: {
+            std::vector<Skin::Piece> pieces;
+            if (value != "-") {
+                for (const auto& word : Lines::split(value, ' ')) {
+                    if (word.empty()) continue;
+                    Skin::Piece piece;
+                    const auto at = word.find('@');
+                    piece.prop = word.substr(0, at);
+                    if (piece.prop.ends_with('!')) {
+                        piece.mirror = true;
+                        piece.prop.pop_back();
+                    }
+                    if (at != std::string_view::npos) {
+                        const auto v = lines.ints(word.substr(at + 1), 2);
+                        piece.dx = v[0];
+                        piece.dy = v[1];
+                    }
+                    if (piece.prop.empty()) lines.fail("expected a prop name");
+                    pieces.push_back(std::move(piece));
+                }
+                if (pieces.empty()) lines.fail("expected props, or - for nothing");
+            }
+            // Patterns: numbers and ranges, e.g. 3,5-8.
+            auto& rules = skin.objects[name];
+            for (const auto& item : Lines::split(key, ',')) {
+                const auto dash = item.find('-', 1);
+                const int from = lines.toInt(item.substr(0, dash));
+                const int to = dash == std::string_view::npos ? from : lines.toInt(item.substr(dash + 1));
+                if (from < 0 || to < from || to - from > 1000) lines.fail("bad pattern range");
+                for (int p = from; p <= to; ++p) rules[p] = pieces;
+            }
+            break;
+        }
+        }
+    }
+    return skin;
 }
 
 }  // namespace sf::open

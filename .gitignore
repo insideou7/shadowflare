@@ -1,5 +1,5 @@
 # Original game files are copyrighted. Never commit them.
-/game/
+/game
 /Shadowflare/
 /data/
 *.exe
