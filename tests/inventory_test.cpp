@@ -208,6 +208,15 @@ void testSaveGame() {
     save.career->offered = sf::HeroClass::Wizard;
     save.career->countKill(8, false);
     save.store(inventory);
+    save.mp = 17;
+    save.spells.emplace();
+    save.spells->level[sf::kFireBall] = 3;
+    save.spells->uses[sf::kFireBall] = 2;
+    save.spells->level[sf::kEnergyShield] = 1;
+    save.spells->bar[2] = sf::kFireBall;
+    save.spells->selected = sf::kFireBall;
+    save.spellsOn[sf::kEnergyShield] = true;
+    save.originalMode = true;
 
     const auto loaded = sf::SaveGame::parse(save.write());
     check(loaded.map == "waterworks" && loaded.scenario == "Scenario/00000002", "map and scenario survive");
@@ -218,6 +227,14 @@ void testSaveGame() {
               loaded.career->kills == 1 && loaded.career->killsBy[sf::Career::kMagic] == 1,
           "the class, its history and the kills survive");
     check(!sf::SaveGame::parse("version=1\nmap=a\n").career, "older saves have no class");
+    check(loaded.mp == 17 && loaded.spells && loaded.spells->level[sf::kFireBall] == 3 && loaded.spells->uses[sf::kFireBall] == 2,
+          "MP and spell levels survive");
+    check(loaded.spells->bar[2] == sf::kFireBall && loaded.spells->bar[0] == -1 && loaded.spells->selected == sf::kFireBall,
+          "the spell bar and the chosen spell survive");
+    check(loaded.spellsOn[sf::kEnergyShield] && !loaded.spellsOn[sf::kFireBall] && loaded.originalMode,
+          "shields that are on and original mode survive");
+    const auto older = sf::SaveGame::parse("version=1\nmap=a\n");
+    check(!older.spells && !older.mp && !older.originalMode, "older saves have no magic");
 
     sf::ShopStock warehouse;
     warehouse.goods.push_back({{&table.items[0], 1}, 4, 6});

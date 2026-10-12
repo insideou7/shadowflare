@@ -14,6 +14,8 @@
 #include "game/character.h"
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
+#include "logic/magic.h"
+#include "logic/rules.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
 #include "logic/shop.h"
@@ -75,22 +77,35 @@ public:
     void setShowJudge(bool show) { showJudge_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
-    // Saves the game to a text file (F5) or loads it back (F9). False, with
+    // Saves the game to a text file (F10) or loads it back (F9). False, with
     // a message on screen, when that fails.
     // Starts the hero at a level, fully healed (for testing): a warrior from
     // level 5, as the original makes every hero.
     void setLevel(int level) {
         playerLevel_ = std::clamp(level, 1, levels_.maxLevel());
         career_ = Career::at(playerLevel_);
+        spells_ = SpellBook::replay(magic_, career_.history);
         playerHp_ = playerMaxHp();
+        playerMp_ = playerMaxMp();
     }
+
+    // Original mode plays by the original game's rules, bugs included
+    // (logic/rules.h). Off by default.
+    void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
+    bool originalMode() const { return rules_.originalMode(); }
+
+    // Chooses the spell on F1-F8 (slot 0-7).
+    void selectSpellSlot(int slot);
+    // Casts the chosen spell at a point given relative to the player on
+    // screen, as the right button does (for scripted tests).
+    void castBy(int slot, int screenDx, int screenDy);
 
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
 
     // The main menu. At the start it offers Continue, New Game and Quit;
     // Esc during play opens it with Resume, Save and Load as well.
-    enum class MenuItem { Resume, Continue, NewGame, Save, Load, Quit };
+    enum class MenuItem { Resume, Continue, NewGame, Save, Load, OriginalMode, Quit };
     void openMenu(bool atStart);
     bool menuOpen() const { return menuOpen_; }
 
@@ -205,9 +220,12 @@ private:
     // A blow from the player or from a monster: it may miss, otherwise it
     // does the original's damage.
     void strikeEnemy(Actor& enemy);
-    void strikePlayer(const Actor& enemy);
-    void hurtEnemy(Actor& enemy, int damage);
-    void hurtPlayer(int damage);
+    // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
+    void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
+    // `bySpell` counts the kill as a magic one for the class offer.
+    void hurtEnemy(Actor& enemy, int damage, bool bySpell = false);
+    // A blow or spell that got through, before the shields (0x443cb0).
+    void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
     void renderHealthBars(int camX, int camY);
     void renderMap();
@@ -233,11 +251,15 @@ private:
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
     HeroStats heroStats() const { return sf::heroStats(career_.history); }
-    int playerAttack() const;
-    int playerDefense() const;
-    int playerHit() const;
-    int playerEvasion() const;
-    int playerMaxHp() const { return heroStats()[HeroStats::kHp]; }
+    // Everything counted: equipment, element levels and Berserker.
+    HeroStats playerStats() const;
+    ElementLevels playerElements() const;
+    int playerAttack() const { return playerStats()[HeroStats::kAttack]; }
+    int playerDefense() const { return playerStats()[HeroStats::kDefense]; }
+    int playerHit() const { return playerStats()[HeroStats::kHit]; }
+    int playerEvasion() const { return playerStats()[HeroStats::kEvasion]; }
+    int playerMaxHp() const { return playerStats()[HeroStats::kHp]; }
+    int playerMaxMp() const { return playerStats()[HeroStats::kMp]; }
     void loadLevelCurve();
     void gainExperience(int amount);
     void useItem(int index);
@@ -255,6 +277,32 @@ private:
     void renderStatus();
     void changeCareer();
     void renderHud();
+
+    // Spells (spells.cpp).
+    struct Missile {
+        int spell = 0, level = 1;
+        int power = 0, hit = 0;
+        double x = 0, y = 0, dx = 0, dy = 0;  // world units, per tick
+        double travelled = 0;
+    };
+    // What is drawn for a spell, with no effect on the game.
+    struct SpellEffect {
+        enum class Kind { Burst, Heal, Spark } kind = Kind::Burst;
+        int element = 0;
+        double x = 0, y = 0, radius = 0;
+        int ticks = 0, length = 1;
+    };
+    void startCast(double worldX, double worldY);
+    void releaseSpell();
+    void tickSpells();
+    void spellHits(Actor& enemy, int spell, int level, int power, int hit);
+    void trainSpell(int spell);
+    bool spellOn(int spell) const { return spellOn_[static_cast<std::size_t>(spell)]; }
+    void setSpellOn(int spell, bool on) { spellOn_[static_cast<std::size_t>(spell)] = on; }
+    int spellPower(int spell, int level) const;
+    int spellHit(int spell, int level) const;
+    void renderSpells(int camX, int camY);
+    void renderSpellBar();
     void renderMenu();
     void menuEvent(const SDL_Event& event);
     int menuItemAt(int x, int y) const;
@@ -290,6 +338,17 @@ private:
     std::optional<std::size_t> objectTarget_;              // a map object likewise, in control_.placements
     std::vector<Label> labels_;
     int playerHp_ = 0;
+    int playerMp_ = 0;
+    MagicTables magic_ = MagicTables::standard();
+    SpellBook spells_;
+    std::array<bool, kSpellCount> spellOn_{};  // toggle spells that are on
+    int berserkerCarry_ = 0;
+    std::optional<int> casting_;               // the spell being cast
+    std::pair<double, double> castTarget_;     // where, in world units
+    bool castReleased_ = false;
+    std::vector<Missile> missiles_;
+    std::vector<SpellEffect> spellEffects_;
+    Rules rules_;
     bool mouseHeld_ = false;
     bool showJudge_ = false;
     bool autoFight_ = false;

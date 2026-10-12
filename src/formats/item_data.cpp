@@ -64,7 +64,8 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.heroLayer = in.i32();
             skipWords(in, 3 + 5);  // layer tint, projectile ways, orbit, 0x104, 0x108, pierce
             d.twoHandedFlag = in.i32() != 0;
-            skipWords(in, 8 + 39 * 3 + 8 * 3);  // elements, modifiers, elemental modifiers
+            for (auto& e : d.elements) e = in.i32();  // 0xc8
+            skipWords(in, 39 * 3 + 8 * 3);  // modifiers, elemental modifiers
             d.glowLayer = glow;
             break;
         case ItemDef::Class::Armour:
@@ -73,7 +74,9 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.itemLevel = in.i32();
             d.requiredLevel = in.i32();
             d.heroLayer = in.i32();
-            skipWords(in, 3 + 8 + 39 * 3 + 8 * 3);
+            skipWords(in, 3);  // layer tint
+            for (auto& e : d.elements) e = in.i32();  // 0xc8
+            skipWords(in, 39 * 3 + 8 * 3);
             d.glowLayer = glow;
             break;
         case ItemDef::Class::Accessory:

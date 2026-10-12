@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <span>
 #include <string>
@@ -25,23 +26,42 @@ struct ScenarioControl {
         std::int32_t direction = 0;  // 0 = south, counter-clockwise; 8 = none
         std::int32_t rect[4] = {};   // left, top, right, bottom around (x, y)
 
-        // Enemies only. Field meanings are inferred from how the values
-        // scale across all 18,754 enemy placements (weak early monsters
-        // up to late bosses), not yet confirmed in the executable.
+        // Enemies only, from the 0x13c-byte enemy block. The loader
+        // (0x428bc2-0x428f02) copies its words, out of order, into the
+        // monster from + 0xc4 on; the combat code reads them there (word 9
+        // at + 0xe8 is the defence 0x459690 hands the damage code, word 23
+        // at + 0xf8 the attack of 0x45a749, and so on).
         struct EnemyStats {
-            std::int32_t element = 0;  // 0 none, 1 water, 2 earth, 3 thunder, 5 fire? (bats)
-            std::int32_t hp = 0;
-            std::int32_t attack = 0;
-            std::int32_t defense = 0;
-            std::int32_t hit = 50;      // word 10; 50 for every monster in the original
-            std::int32_t evasion = 0;   // word 12
-            std::int32_t experience = 0;
-            std::int32_t level = 0;
+            // 0 fire, 1 water, 2 earth, 3 thunder, 4 holy, 5 dark, 6 gel,
+            // 7 metal (word 6); -1 = none, for open content monsters.
+            std::int32_t element = -1;
+            std::int32_t hp = 0;            // word 8
+            std::int32_t defense = 0;       // word 9
+            std::int32_t evasion = 0;       // word 10; against blows (0x45eb38)
+            std::int32_t magicDefense = 0;  // word 11
+            std::int32_t experience = 0;    // word 13
+            std::int32_t level = 0;         // word 14
+            // Its three attacks (Control.aid actions 2-4): power (words
+            // 23-25) and hit (words 29-31).
+            std::array<std::int32_t, 3> attacks{}, hits{50, 50, 50};
+            // Its three spells (actions 5-7): which (words 32-34, -1 = none),
+            // their power (words 35-37), the level whose Table.Tbd columns
+            // they use (words 38-40) and what they add to the spell's hit
+            // (words 41-43), as the cast code at 0x45b043 reads them.
+            std::array<std::int32_t, 3> spells{-1, -1, -1}, spellPower{}, spellLevel{1, 1, 1}, spellHit{};
+            std::int32_t magicEvasion = 0;  // word 12; what spells must beat (0x45eb2b)
+            // Word 7 (monster + 0xdc), meaning unknown; Counter Burst
+            // reflects half as much onto monsters where it is 100.
+            std::int32_t word7 = 0;
             std::int32_t goldChance = 0;  // percent; word 49, read by the exe at 0x45a030
             std::int32_t goldMin = 0, goldMax = 0;
             std::int32_t speed = 1000;    // per mille, scales the AI's movement speeds
             std::int32_t area[4] = {};    // where it wanders: left, top, right, bottom around (x, y)
             std::string ai;               // name of its list in Control.aid (Shift-JIS)
+
+            // The first attack, which the simple chase uses.
+            std::int32_t attack() const { return attacks[0]; }
+            std::int32_t hit() const { return hits[0]; }
         } stats;
 
         // Items lying on the map: which one, as an Item.Ibn (class, code).

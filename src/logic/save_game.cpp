@@ -1,5 +1,6 @@
 #include "logic/save_game.h"
 
+#include <algorithm>
 #include <charconv>
 #include <format>
 
@@ -51,6 +52,19 @@ std::string SaveGame::write() const {
         for (HeroClass c : career->history) out += static_cast<char>('0' + static_cast<int>(c));
         out += '\n';
     }
+    if (mp) out += std::format("mp={}\n", *mp);
+    if (spells) {
+        // spell=number,level,uses for each spell learned; bar= the spells
+        // on F1-F8 (-1 empty), then the selected one.
+        for (int s = 0; s < kSpellCount; ++s) {
+            const auto i = static_cast<std::size_t>(s);
+            if (spells->level[i] > 0) out += std::format("spell={},{},{},{}\n", s, spells->level[i], spells->uses[i], spellsOn[i] ? 1 : 0);
+        }
+        out += "bar=";
+        for (int b : spells->bar) out += std::format("{},", b);
+        out += std::format("{}\n", spells->selected);
+    }
+    if (originalMode) out += "original=1\n";
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
     for (const auto& e : storage) out += std::format("stored={},{},{},{},{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y);
@@ -91,6 +105,24 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.direction = static_cast<int>(v[2]);
         } else if (key == "hp") {
             save.hp = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "mp") {
+            save.mp = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "spell") {
+            const auto v = numbers(value, 4, lineNumber);
+            if (v[0] < 0 || v[0] >= kSpellCount) throw FormatError(std::format("save line {}: no spell {}", lineNumber, v[0]));
+            if (!save.spells) save.spells.emplace();
+            const auto i = static_cast<std::size_t>(v[0]);
+            save.spells->level[i] = static_cast<int>(std::clamp<long long>(v[1], 1, kMaxSpellLevel));
+            save.spells->uses[i] = static_cast<int>(std::max<long long>(v[2], 0));
+            save.spellsOn[i] = v[3] != 0;
+        } else if (key == "bar") {
+            const auto v = numbers(value, kSpellBarSize + 1, lineNumber);
+            if (!save.spells) save.spells.emplace();
+            auto spell = [&](long long n) { return n >= 0 && n < kSpellCount ? static_cast<int>(n) : -1; };
+            for (std::size_t b = 0; b < kSpellBarSize; ++b) save.spells->bar[b] = spell(v[b]);
+            save.spells->selected = spell(v[kSpellBarSize]);
+        } else if (key == "original") {
+            save.originalMode = numbers(value, 1, lineNumber)[0] != 0;
         } else if (key == "level") {
             save.level = static_cast<int>(numbers(value, 1, lineNumber)[0]);
         } else if (key == "career") {

@@ -150,11 +150,15 @@ void Game::runAiAction(Actor& enemy) {
                 break;
             }
             // Spells have no projectiles yet: they land halfway through,
-            // like blows, if the player is still in range.
+            // like blows, if the player is still in range. Attacks 2-4 and
+            // spells 5-7 each use their own slot of the monster's stats.
             if (!enemy.struck && c.frame() >= c.frameCount() / 2) {
                 enemy.struck = true;
                 const double reach = enemy.entry.cond[3] == 1 && enemy.entry.cond[5] > 0 ? enemy.entry.cond[5] + 60.0 : 100.0;
-                if (gapToPlayer(enemy) <= reach) strikePlayer(enemy);
+                const bool magic = enemy.action >= AiControl::kMagic;
+                if (gapToPlayer(enemy) <= reach) {
+                    strikePlayer(enemy, enemy.action - (magic ? AiControl::kMagic : AiControl::kAttack), magic);
+                }
             }
             if (c.finished()) {
                 c.play(chart::kIdle);

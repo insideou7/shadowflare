@@ -46,6 +46,11 @@ struct Options {
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
+    bool original = false;    // play by the original game's rules, bugs included
+    struct Cast {
+        int slot = 0, dx = 0, dy = 0;
+    };
+    std::optional<Cast> cast;  // cast the spell on F1-F8 at a point from the player
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -93,6 +98,15 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--save-flag" && i + 1 < argc) {
             int id = 0, value = 0;
             if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.saveFlags.emplace_back(id, value);
+        } else if (arg == "--original") {
+            options.original = true;
+        } else if (arg == "--cast" && i + 1 < argc) {
+            Options::Cast cast;
+            if (std::sscanf(argv[++i], "%d:%d,%d", &cast.slot, &cast.dx, &cast.dy) == 3) {
+                options.cast = cast;
+            } else {
+                sf::log::warn("--cast expects slot:x,y");
+            }
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -283,11 +297,12 @@ int main(int argc, char** argv) {
     }
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level);
+    if (options.original) app.game->setOriginalMode(true);
     // The main menu, unless this is a scripted run (tests, screenshots) or
     // the command line already says where to start.
     const bool scripted = options.noMenu || options.load || options.ticks >= 0 ||
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
-                          options.level > 0 || options.autoFight || options.talk >= 0;
+                          options.level > 0 || options.autoFight || options.talk >= 0 || options.cast;
     if (!scripted) app.game->openMenu(true);
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
@@ -295,6 +310,7 @@ int main(int argc, char** argv) {
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
     app.game->setAnswers(options.answers);
     if (options.talk >= 0) app.game->talkToId(options.talk);
+    if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

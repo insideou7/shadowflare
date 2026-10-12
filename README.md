@@ -33,18 +33,21 @@ pick an answer with the mouse or the arrow keys and Enter, and shops,
 healers and the class instructors work as their scripts say. The hero
 becomes a warrior at level 5 and is offered the hunter or wizard by how
 they kill monsters, as in the original; S opens the status window with its
-Change Career button. Sound and
-spells are not in yet. See [docs/formats.md](docs/formats.md)
+Change Career button. Heroes learn spells as they level up, as in the
+original (see [docs/magic.md](docs/magic.md)). Sound is not in yet. See [docs/formats.md](docs/formats.md)
 for what has been decoded so far.
 
 Controls: hold the left mouse button to walk towards the cursor (or to
 attack the monster under it), or use
 the arrow keys or WASD. N/P (or Page Down/Up) switch to the next/previous
-map, Home returns to the start point, J shows the walkability grid, Esc opens the menu (resume, save, load, new game, quit).
+map, Home returns to the start point, J shows the walkability grid, Esc opens the menu (resume, save, load, new game,
+original mode, quit). F1-F8 choose a spell from the bar at the bottom right
+and the right mouse button casts it at the cursor; casting a shield or
+Berserker again turns it off.
 Walk onto an item to pick it up. I opens the inventory: click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
-at the hero's feet. F5 saves the game and F9 loads it. The save is a small
+at the hero's feet. F10 saves the game and F9 loads it. The save is a small
 text file, `save.txt` in SDL's settings folder for the game (on Linux
 `~/.local/share/ShadowFlare/open/`, on Windows `%APPDATA%\ShadowFlare\open\`).
 
@@ -84,6 +87,10 @@ Options:
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
 - `--answers <a,b,...>` answer the next messages with these options (-1 = none)
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
+- `--original` play in original mode: the original game's rules, bugs included
+  (also in the menu; off by default)
+- `--cast <slot>:<x>,<y>` cast the spell on F1-F8 (slot 1-8) at a point given in
+  screen pixels from the player, e.g. `--level 3 --cast 1:120,0`
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 
 Run the unit tests with `ctest --test-dir build`.

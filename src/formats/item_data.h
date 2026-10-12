@@ -42,6 +42,10 @@ struct ItemDef {
     std::int32_t itemLevel = 0;    // how deep in the game it starts dropping
     std::int32_t requiredLevel = 0;
     std::array<std::int32_t, kStatCount> stats{};  // weapons and armour
+    // Weapons and armour: what wearing it adds to the hero's level in each
+    // element (fire, water, earth, thunder, holy, dark, gel, metal; see
+    // logic/magic.h).
+    std::array<std::int32_t, 8> elements{};
     // Layers of the hero's Animation00.Caf turned on while worn (weapons,
     // body armour, shields), -1 = none.
     std::int32_t heroLayer = -1;

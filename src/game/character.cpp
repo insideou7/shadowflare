@@ -52,9 +52,11 @@ void Character::play(int chart) {
     if (chart != chart_) restart(chart);
 }
 
-void Character::restart(int chart) {
+void Character::restart(int chart, double speed) {
     chart_ = chart;
     frame_ = 0;
+    speed_ = speed;
+    progress_ = 0;
 }
 
 bool Character::hasChart(int chart) const {
@@ -99,10 +101,12 @@ const AnimationSet::Direction* Character::currentDirection() const {
 void Character::tick() {
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return;
-    if (model_->animations.charts[chart_].status == 1) {
-        frame_ = (frame_ + 1) % dir->frameCount;
-    } else {
-        frame_ = std::min(frame_ + 1, dir->frameCount - 1);
+    for (progress_ += speed_; progress_ >= 1.0; progress_ -= 1.0) {
+        if (model_->animations.charts[chart_].status == 1) {
+            frame_ = (frame_ + 1) % dir->frameCount;
+        } else {
+            frame_ = std::min(frame_ + 1, dir->frameCount - 1);
+        }
     }
 }
 
