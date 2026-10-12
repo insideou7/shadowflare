@@ -57,7 +57,8 @@ def main():
     grown = Image.new("RGBA", (width, sheet.height + strip))
     grown.paste(sheet, (0, 0))
     x = 0
-    lines = [l for l in lines if not (l.startswith("frame=") and l.split(",")[-1] in names)]
+    added = {name for name, _, _, _ in pieces}
+    lines = [l for l in lines if not (l.startswith("frame=") and l.split(",")[-1] in added)]
     while lines and not lines[-1]:
         lines.pop()
     for name, im, ax, ay in pieces:
@@ -67,7 +68,7 @@ def main():
     grown.save(SHEET.parent / image_name)
     SHEET.write_text("\n".join(lines) + "\n")
     shrink(SHEET.parent / image_name)
-    print(f"added {', '.join(names)} to {SHEET}")
+    print(f"added {', '.join(added)} to {SHEET}" + (f", redrew {', '.join(redrawn)}" if redrawn else ""))
 
 
 if __name__ == "__main__":

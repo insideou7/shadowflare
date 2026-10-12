@@ -20,7 +20,7 @@ import bpy
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from dungeon import DARK, WALL_H, WALL_L, solid, turn  # noqa: E402
-from town import IRON, _mats, ball, box, cyl, mat, resize  # noqa: E402
+from town import IRON, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
 
 # Grey stone in blocks about 1.0 x 0.5 units, streaked with grime.
 # Weathered stone, its courses faint: pale grey patches through a dark
@@ -37,6 +37,7 @@ BRASS = dict(colour=(0.66, 0.56, 0.32), dark=(0.28, 0.22, 0.10), scale=18, rough
 # The round dais under the stairs: dark worn stone.
 DAIS = dict(colour=(0.30, 0.28, 0.24), dark=(0.05, 0.045, 0.035), scale=14, detail=16, bump=0.8, grime=0.5,
             band=(0.4, 0.7), spot=0.3, spot_colour=(0.12, 0.08, 0.05))
+SCONCE = dict(colour=(0.78, 0.74, 0.66), dark=(0.36, 0.33, 0.28), scale=14, rough=0.35, bump=0.3)
 SLATE = dict(colour=(0.58, 0.58, 0.60), dark=(0.24, 0.24, 0.26), scale=8, rough=0.5, bump=0.5)
 BRONZE = dict(colour=(0.40, 0.31, 0.20), dark=(0.10, 0.07, 0.04), scale=16, rough=0.35, bump=0.5,
               band=(0.30, 0.70), grime=0.4)
@@ -46,10 +47,30 @@ PIPECOPPER = dict(colour=(0.44, 0.26, 0.13), dark=(0.12, 0.06, 0.03), scale=20, 
 WALL_T = 0.8
 
 
+def void():
+    """Unlit black, for the faces the original blacks out."""
+    if "void" not in bpy.data.materials:
+        m = bpy.data.materials.new("void")
+        m.use_nodes = True
+        nodes = m.node_tree.nodes
+        nodes.clear()
+        emit = nodes.new("ShaderNodeEmission")
+        emit.inputs["Color"].default_value = (0, 0, 0, 1)
+        m.node_tree.links.new(emit.outputs[0], nodes.new("ShaderNodeOutputMaterial").inputs[0])
+    return bpy.data.materials["void"]
+
+
+def blackout(size, at):
+    """A black sheet over a face: the original draws the near side of the
+    fort's walls, the side the player never walks along, as plain black,
+    so only the tops show."""
+    box(size, at, void())
+
+
 def wall(along_y=False, kind=None, seed=1):
     """A wall of grey stone blocks between a plinth and a dark capping
-    course. kind: None, "torch" (an iron bracket on the face) or "blood"
-    (old stains)."""
+    course. kind: None, "torch" (an iron bracket on the face), "blood"
+    (old stains) or "black" (its face blacked out)."""
     stone = mat("bloody", BLOODY) if kind == "blood" else mat("stone", STONE)
     cap = mat("capstone", CAPSTONE)
     solid(box((WALL_L, WALL_T, WALL_H), (0, 0, WALL_H / 2), stone))
@@ -57,11 +78,14 @@ def wall(along_y=False, kind=None, seed=1):
     box((WALL_L + 0.1, WALL_T + 0.15, 0.35), (0, 0, 0.17), cap)
     face = -WALL_T / 2
     if kind == "torch":
-        iron = mat("iron", IRON)
-        x = random.Random(seed).uniform(-0.6, 0.6)
-        box((0.6, 0.35, 1.2), (x, face - 0.15, 3.1), iron)
-        box((0.2, 0.8, 0.2), (x, face - 0.5, 3.0), iron)
-        cyl(0.42, 0.5, (x, face - 0.95, 3.35), iron, r2=0.24, verts=10)
+        # A sconce: an iron plate and arm holding a pale metal cup.
+        iron, cup = mat("iron", IRON), mat("sconce", SCONCE)
+        x = random.Random(seed).uniform(-0.3, 0.3)
+        box((0.7, 0.2, 1.4), (x, face - 0.1, 3.2), iron)
+        box((0.22, 0.9, 0.22), (x, face - 0.55, 3.0), iron)
+        cyl(0.4, 0.55, (x, face - 1.0, 3.35), cup, r2=0.22, verts=12)
+    if kind == "black":
+        blackout((WALL_L + 0.12, 0.02, WALL_H + 0.25), (0, face - 0.12, (WALL_H + 0.25) / 2))
     if along_y:
         turn(math.pi / 2)
 
@@ -90,47 +114,69 @@ def door(along_y=False):
         turn(math.pi / 2)
 
 
-def pillar():
-    """A square stone pillar with a dark cap and base."""
+def pillar(black=""):
+    """A square stone pillar with a dark cap and base. black: which of
+    its faces are blacked out, "l" (the screen's left), "r" or "lr"."""
     stone, cap = mat("stone", STONE), mat("capstone", CAPSTONE)
     solid(box((2.0, 2.0, WALL_H + 1.0), (0, 0, (WALL_H + 1.0) / 2), stone))
     box((2.2, 2.2, 0.35), (0, 0, WALL_H + 1.1), cap)
     box((2.2, 2.2, 0.4), (0, 0, 0.2), cap)
+    h = WALL_H + 1.1 + 0.175
+    if "l" in black:
+        blackout((2.24, 0.02, h), (0, -1.12, h / 2))
+    if "r" in black:
+        blackout((0.02, 2.24, h), (1.12, 0, h / 2))
 
 
-def stairway():
-    """A flight of stone steps climbing between low side walls to a dark
-    doorway in the wall behind, on a round dais of dark carved stone."""
+def stairway(side=False):
+    """Stone steps climbing through a gateway in the wall into the dark,
+    on a half round dais of dark carved stone in front of it, with a low
+    wall along the left of the flight. side: only the low wall along the
+    right, which the original draws as a piece of its own."""
     stone, cap, hole = mat("stone", STONE), mat("capstone", CAPSTONE), mat("hole", DARK)
+    w, n, rise, run = 2.6, 8, 0.38, 0.5
+    y0 = -2.4  # front edge of the bottom step; the wall's face is at y = 0
+
+    def parapet(x):
+        # A low wall whose top climbs with the flight.
+        ya, yb, ha, hb = y0 - 0.15, 0.0, rise + 0.6, 6 * rise + 0.6
+        v = [(x + dx, y, z) for dx in (-0.3, 0.3) for y, z in ((ya, 0), (yb, 0), (yb, hb), (ya, ha))]
+        f = [(0, 1, 2, 3), (7, 6, 5, 4), (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0)]
+        mesh(v, f, stone, "parapet")
+        if x < 0:  # a post at the foot
+            solid(box((0.7, 0.7, 1.6), (x, y0 + 0.2, 0.8), stone))
+
+    if side:
+        parapet(w / 2 + 0.3)
+        return
     dais = mat("dais", DAIS)
-    w, n, rise, run = 2.6, 6, 0.42, 0.55
-    y0 = -1.1  # front edge of the bottom step
-    back = y0 + n * run  # where the flight meets the wall
-    # The wall behind, with a dark doorway at the top of the flight.
-    solid(box((w + 2.8, 0.8, WALL_H), (0, back + 0.4, WALL_H / 2), stone))
-    box((w + 2.9, 1.0, 0.3), (0, back + 0.4, WALL_H + 0.1), cap)
-    top = n * rise
-    box((w, 0.2, 2.6), (0, back - 0.02, top + 1.3), hole)
-    box((w + 0.6, 0.4, 0.4), (0, back - 0.1, top + 2.8), cap)
-    # The steps, each a block down to the floor; worn pale treads.
+    # The gateway: two jambs and a lintel, as thick as the fort's walls.
+    jamb = 1.0
+    for x in (-w / 2 - jamb / 2, w / 2 + jamb / 2):
+        solid(box((jamb, WALL_T, WALL_H), (x, WALL_T / 2, WALL_H / 2), stone))
+    gate = 3.8
+    solid(box((w, WALL_T, WALL_H - gate), (0, WALL_T / 2, (WALL_H + gate) / 2), stone))
+    box((w + 2 * jamb + 0.1, WALL_T + 0.2, 0.3), (0, WALL_T / 2, WALL_H + 0.1), cap)
+    # Darkness beyond the gateway, the flight climbing into it.
+    box((w, 2.0, gate), (0, 0.25 + 1.0, gate / 2), hole)
     for k in range(n):
         h = (k + 1) * rise
-        box((w, back - (y0 + k * run), h), (0, (y0 + k * run + back) / 2, h / 2), cap)
-    # Low side walls that step up with the flight.
-    for x in (-w / 2 - 0.35, w / 2 + 0.35):
-        for k in range(n):
-            h = (k + 1) * rise + 0.5
-            y = y0 + k * run - (0.2 if k == 0 else 0)
-            solid(box((0.7, back - y, h), (x, (y + back) / 2, h / 2), stone))
-    # The dais: a round slab, carved with rings and a curl in front.
-    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=3.3, depth=0.3, location=(0, y0 + 0.4, 0.15))
-    studio.assign(bpy.context.object, dais)
-    bpy.ops.mesh.primitive_torus_add(major_radius=3.15, minor_radius=0.12, location=(0, y0 + 0.4, 0.3))
-    rim = studio.assign(bpy.context.object, dais)
-    rim.scale = (1, 1, 0.6)
-    for r, cx in ((0.55, -0.7), (0.55, 0.7), (1.1, 0.0)):
-        bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.07, location=(cx, y0 - 1.3, 0.31))
-        studio.assign(bpy.context.object, cap).scale = (1, 0.6, 0.4)
+        y = y0 + k * run
+        box((w, 1.2 - y, h), (0, (y + 1.2) / 2, h / 2), cap)
+    parapet(-w / 2 - 0.3)
+    # The dais: a half round slab in front of the wall, carved with rings
+    # and a curl.
+    bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=3.4, depth=0.3, location=(0, 0, 0.15))
+    disc = studio.assign(bpy.context.object, dais)
+    cut = box((8.0, 4.0, 1.0), (0, 2.0, 0.2), cap)
+    boolean = disc.modifiers.new("cut", "BOOLEAN")
+    boolean.object, boolean.operation = cut, "DIFFERENCE"
+    bpy.context.view_layer.objects.active = disc
+    bpy.ops.object.modifier_apply(modifier="cut")
+    bpy.data.objects.remove(cut)
+    for r, cx, cy in ((0.45, -2.3, -1.2), (0.45, -2.0, -2.1), (0.8, -1.4, -2.5)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=r, minor_radius=0.07, location=(cx, cy, 0.31))
+        studio.assign(bpy.context.object, cap).scale = (1, 1, 0.4)
 
 
 def teleporter():
@@ -287,7 +333,13 @@ PROPS = {
     "fdoor_x": (door, 288),
     "fdoor_y": (lambda: door(along_y=True), 288),
     "fpillar": (pillar, 224),
+    "fpillar_black": (lambda: pillar("lr"), 224),
+    "fpillar_black_l": (lambda: pillar("l"), 224),
+    "fpillar_black_r": (lambda: pillar("r"), 224),
+    "fwall_black_x": (lambda: wall(kind="black"), 288),
+    "fwall_black_y": (lambda: wall(along_y=True, kind="black"), 288),
     "fstairs": (stairway, 320),
+    "fstairs_side": (lambda: stairway(side=True), 160),
     "teleporter": (teleporter, 160),
     "switch_up": (lambda: (switch(True), resize(1.6)), 96),
     "switch_down": (lambda: (switch(False), resize(1.6)), 96),
@@ -320,6 +372,8 @@ def main():
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
+        # The original's fort casts no shadows on the floor.
+        bpy.data.objects["shadow catcher"].hide_render = True
         studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3))
         ax, ay = studio.anchor(scene)
         if blend:
