@@ -24,7 +24,7 @@ from cave import ROCK, rough  # noqa: E402
 from dungeon import DARK, solid  # noqa: E402
 from fort import BLACKIRON, BRASS  # noqa: E402
 from props import WOOD, branch  # noqa: E402
-from town import COPPER, MOSSY, _mats, ball, box, cyl, mat, mesh, resize  # noqa: E402
+from town import COPPER, MOSSY, _mats, ball, box, cyl, mat  # noqa: E402
 
 BARK = dict(colour=(0.36, 0.26, 0.24), dark=(0.10, 0.07, 0.06), scale=14, bump=0.6)
 GREYBARK = dict(colour=(0.40, 0.36, 0.34), dark=(0.12, 0.10, 0.09), scale=14, bump=0.6)
@@ -531,66 +531,6 @@ def cliff(seed, kind="x"):
         o.location = Vector(at) + Vector((0, 0, 3.8))
 
 
-def cave_mouth():
-    """A cave dug into a hill: a broad hump of earth rising gently from one
-    end to a rounded top, dropping steeply at the other, with a small arched
-    opening in its face. The hill runs along Blender Y and its face, with the
-    opening, looks towards +X (the lower right of the screen; the skin
-    mirrors it as needed)."""
-    import math
-    rng = random.Random(3)
-    earth = mat("mound", dict(EARTH, colour=(0.36, 0.22, 0.06), dark=(0.012, 0.006, 0.002), scale=18, bump=1.4,
-                              band=(0.35, 0.62), grime=0.6, spot=0.22, spot_colour=(0.62, 0.46, 0.26)))
-    hole = bpy.data.materials.new("hole")  # unlit black, so no sky light greys it
-    hole.use_nodes = True
-    nodes = hole.node_tree.nodes
-    nodes.clear()
-    emit = nodes.new("ShaderNodeEmission")
-    emit.inputs["Color"].default_value = (0, 0, 0, 1)
-    hole.node_tree.links.new(emit.outputs[0], nodes.new("ShaderNodeOutputMaterial").inputs[0])
-
-    def step(e0, e1, v):
-        t = min(1.0, max(0.0, (v - e0) / (e1 - e0)))
-        return t * t * (3 - 2 * t)
-
-    face = 1.5  # where the hill's front face stands
-    bumps = [(rng.uniform(-3, face), rng.uniform(-4, 3), rng.uniform(0.6, 1.4), rng.uniform(-0.3, 0.3))
-             for _ in range(18)]
-
-    def height(x, y):
-        # Along the ridge: a long gentle rise, a rounded top, a steep drop.
-        along = step(-4.8, -0.8, y) * (1 - step(2.0, 3.2, y))
-        # Across: a slope at the back and a steep face at the front.
-        # The face is a bank, sheer where the opening is cut into it.
-        soft = 0.25 + 0.9 * step(0.6, 1.6, abs(y - 0.2))
-        across = step(-3.6, -0.6, x) * (1 - step(face - soft, face + 0.1, x))
-        h = 2.7 * along * across
-        for bx, by, r, a in bumps:
-            h += a * math.exp(-((x - bx) ** 2 + (y - by) ** 2) / (r * r)) * along * across
-        return max(0.0, h)
-
-    nx, ny = 64, 90
-    xs = [-4.0 + 6.0 * i / nx for i in range(nx + 1)]
-    ys = [-5.2 + 9.0 * j / ny for j in range(ny + 1)]
-    verts = [(x, y, height(x, y)) for x in xs for y in ys]
-    faces = [(i * (ny + 1) + j, (i + 1) * (ny + 1) + j, (i + 1) * (ny + 1) + j + 1, i * (ny + 1) + j + 1)
-             for i in range(nx) for j in range(ny)]
-    faces = [f for f in faces if max(verts[v][2] for v in f) > 0.02]  # no flat skirt
-    hill = studio.smooth(mesh(verts, faces, earth, "hill"))
-    studio.displace(hill, 0.25, 0.6, seed=5)
-    # The opening: a small arch of black on the face, round at the top.
-    w, h, y = 1.3, 1.8, 0.2
-    pts = [(face + 0.12, y - w / 2, -0.05), (face + 0.12, y + w / 2, -0.05)]
-    for k in range(13):
-        a = math.pi * k / 12
-        pts.append((face + 0.12, y + w / 2 * math.cos(a), h - w / 2 + w / 2 * math.sin(a)))
-    mesh(pts, [tuple(range(len(pts)))], hole, "opening")
-    # A few stones at its foot.
-    for k in range(5):
-        ball(rng.uniform(0.15, 0.3), (face + rng.uniform(0.2, 0.7), y + rng.uniform(-1.4, 1.4), 0.05), earth,
-             scale=(1.2, 1.0, 0.6))
-
-
 def paving(seed=1):
     """A patch of worn flagstones."""
     rng = random.Random(seed)
@@ -643,7 +583,6 @@ PROPS = {
     "cliff_y": (lambda: cliff(26, "y"), 256),
     "cliff_corner": (lambda: cliff(27, "corner"), 256),
     "paving": (paving, 128),
-    "cave_mouth": (lambda: (cave_mouth(), resize(1.15)), 384),
 }
 
 
@@ -652,9 +591,14 @@ def main():
     blend = "--blend" in args
     args = [a for a in args if a != "--blend"]
     out = Path(args[0])
-    names = args[1:] or list(PROPS)
+    names = args[1:] or [*PROPS, "cave_mouth"]
     out.mkdir(parents=True, exist_ok=True)
     listing = out / "wilds.txt"
+    if "cave_mouth" in names:
+        # The cave entrance is painted flat, not modelled: cave_mouth_2d.py.
+        import cave_mouth_2d
+        cave_mouth_2d.main_into(out)
+        names = [n for n in names if n != "cave_mouth"]
     anchors = dict(l.split(" ", 1) for l in listing.read_text().split("\n") if l) if listing.exists() else {}
     for name in names:
         build, size = PROPS[name]
