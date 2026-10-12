@@ -363,14 +363,17 @@ void Game::renderDialogue() {
     const auto& d = *dialogue_;
     const SDL_Rect box = dialogueBox();
     const SpriteBank* balloon = itemBank("System/Game/Pattern/Hukidasi");
-    SDL_Color ink = kWhite, lit = kGold;
+    SDL_Color ink = kWhite, lit = kGold, dim = kGrey;
     if (balloon && balloon->patterns.size() >= 5) {
         // The original's speech balloon: white with a black edge, its
         // corners are patterns 0-3 (top left, bottom left, top right,
         // bottom right) and the edges between them repeat their last
         // row or column; pattern 4 is the tail pointing at the speaker.
         ink = {0, 0, 0, 255};
-        lit = {200, 40, 40, 255};
+        // ShadowFlare.exe's option colours (0x457a40, drawn at 0x4572ef):
+        // the chosen one dark red, the others grey.
+        lit = {192, 0, 0, 255};
+        dim = {128, 128, 128, 255};
         const SpriteTexture* c[4];
         for (int k = 0; k < 4; ++k) c[k] = sprites_.get(*balloon, k, false);
         if (c[0] && c[1] && c[2] && c[3]) {
@@ -400,12 +403,12 @@ void Game::renderDialogue() {
     for (std::size_t i = 0; i < d.lines.size(); ++i) {
         uiText(box.x + 12, box.y + 9 + static_cast<int>(i) * kLineHeight, d.lines[i], ink);
     }
-    // The chosen option is lit up.
-    if (!d.options.empty()) {
-        const auto& o = d.options[static_cast<std::size_t>(d.choice)];
+    // Options over the text: the chosen one lit up, the others dimmed.
+    for (int i = 0; i < static_cast<int>(d.options.size()); ++i) {
+        const auto& o = d.options[static_cast<std::size_t>(i)];
         const std::string& l = d.lines[static_cast<std::size_t>(o.line)];
-        const SDL_Rect r = dialogueOptionRect(box, d.choice);
-        uiText(r.x + 3, r.y + 1, std::string_view(l).substr(o.from, o.to - o.from), lit);
+        const SDL_Rect r = dialogueOptionRect(box, i);
+        uiText(r.x + 3, r.y + 1, std::string_view(l).substr(o.from, o.to - o.from), i == d.choice ? lit : dim);
     }
 }
 
