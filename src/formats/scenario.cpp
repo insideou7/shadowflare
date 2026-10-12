@@ -38,7 +38,7 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
     if (in.i32() == 1) {  // a table of 4 + 3 * 2 bytes per entry, not decoded yet
         in.skip(10 * static_cast<std::size_t>(count(in)));
     }
-    in.skip(4);
+    p.light = in.i32();
     if (group == ScenarioControl::Group::Enemy) {
         // Offsets are in 32-bit words into the 0x13c-byte enemy block.
         const auto raw = in.bytes(extraSize);
@@ -82,6 +82,7 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
         BinaryReader block(raw);
         block.skip(4 * 5);
         p.companionSwitch = block.i32() == 1;
+        p.linkedEnemy = block.i32();
     } else {
         in.skip(extraSize);
     }
@@ -96,7 +97,8 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
     ScenarioControl s;
     in.skip(0x104);  // AI data path
     s.mapPath = fixedString(in, 0x104);
-    in.skip(12);
+    in.skip(8);
+    s.areaKind = in.i32();
     s.title = fixedString(in, 0x100);
     // Character types used by the scenario (objects, people, enemies),
     // presumably so they can be preloaded.
@@ -115,6 +117,12 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
         e.y = in.i32();
         e.direction = in.i32();
         s.entryPoints.push_back(e);
+    }
+    // Three words close the file (read at the end of 0x427b50): two flags (scenario + 0x2c
+    // and + 0x70, their use not traced) and the area's light.
+    if (in.remaining() >= 12) {
+        in.skip(8);
+        s.light = in.i32();
     }
     return s;
 }

@@ -23,12 +23,15 @@ bool Game::saveGame() {
     save.direction = player_->direction;
     save.hp = playerHp_;
     save.mp = playerMp_;
+    save.mines = mineCount_;
     save.spells = spells_;
     save.spellsOn = spellOn_;
     save.originalMode = originalMode();
     save.level = playerLevel_;
     save.experience = playerExperience_;
     save.career = career_;
+    save.sex = heroSex_;
+    save.name = heroName_;
     save.partner = partnerRecord_;
     save.partnerHp = !partner_ ? partnerHpCarried_ : partnerAlive() ? partner_->hp : 0;
     save.store(inventory_);
@@ -36,6 +39,7 @@ bool Game::saveGame() {
     for (const auto& [key, value] : flags_) {
         if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
     }
+    save.explored = explored_;
 
     std::ofstream out(saveFile_, std::ios::binary | std::ios::trunc);
     out << save.write();
@@ -77,10 +81,12 @@ bool Game::loadGame() {
 
     hand_.reset();
     flags_ = save.flags;
+    explored_ = save.explored;
     // Saves from before companions: Kerberos at level 1, at rest.
     partnerRecord_ = save.partner.value_or(PartnerRecord{});
     partner_.reset();
     partnerHpCarried_ = save.partnerHp;
+    setHero(save.sex, save.name);
     loadMap(index, save.scenario);
     if (!map_ || !player_) return false;
     player_->x = save.x;
@@ -103,6 +109,10 @@ bool Game::loadGame() {
     casting_.reset();
     clearSpells();
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
+    // Saves from before mines: a new hero's five, and any mines that went
+    // into the bag then.
+    mineCount_ = save.mines.value_or(mines::kStartCount);
+    if (!save.mines) mineCount_ += inventory_.takeAll(ItemDef::Class::Special, 1);
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", saveFile_, skipped);
     }

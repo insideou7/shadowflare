@@ -305,8 +305,18 @@ void testSaveGame() {
     save.spells->selected = sf::kFireBall;
     save.spellsOn[sf::kEnergyShield] = true;
     save.originalMode = true;
+    save.mines = 7;
+    save.sex = sf::HeroSex::Female;
+    save.name = "Ada, of the Hills";
 
+    save.explored["Scenario/10000"] = sf::ExploredMap(4, 2);
+    save.explored["Scenario/10000"].reveal(1, 0, 2, 2);
     const auto loaded = sf::SaveGame::parse(save.write());
+    check(loaded.explored.size() == 1 && loaded.explored.at("Scenario/10000").seenAt(2, 1) &&
+              !loaded.explored.at("Scenario/10000").seenAt(0, 1),
+          "the explored map survives");
+    check(loaded.mines == 7, "mines in hand survive");
+    check(loaded.sex == sf::HeroSex::Female && loaded.name == "Ada, of the Hills", "the heroine and her name survive");
     check(loaded.map == "waterworks" && loaded.scenario == "Scenario/00000002", "map and scenario survive");
     check(loaded.x == 1280 && loaded.y == 1472 && loaded.direction == 5, "position survives");
     check(loaded.hp == 92 && loaded.level == 3 && loaded.experience == 140 && loaded.gold == 120, "stats survive");
@@ -328,7 +338,9 @@ void testSaveGame() {
           "shields that are on and original mode survive");
     const auto older = sf::SaveGame::parse("version=1\nmap=a\n");
     check(!older.spells && !older.mp && !older.originalMode, "older saves have no magic");
+    check(!older.mines, "older saves have no mine count");
     check(!older.partner, "older saves have no companion");
+    check(older.sex == sf::HeroSex::Male && older.name.empty(), "older saves are the hero's");
 
     save.partner.emplace();
     save.partner->kind = 4;
@@ -581,7 +593,24 @@ void testModifiers() {
 
 }  // namespace
 
+// Saves from before mines kept picked-up mines in the bag; loading takes
+// them out to the mine count.
+void testTakeAll() {
+    auto mine = def(Class::Special, -1, 1, 1);
+    mine.code = 1;
+    auto gold = def(Class::Special, -1, 1, 1);
+    gold.code = 2;
+    sf::Inventory inventory;
+    inventory.add({&mine, 1});
+    inventory.add({&gold, 1});
+    inventory.add({&mine, 1});
+    check(mine.isMine() && !gold.isMine(), "special 1 is a mine");
+    check(inventory.takeAll(Class::Special, 1) == 2 && inventory.bag().size() == 1, "takeAll takes every mine");
+    check(inventory.takeAll(Class::Special, 1) == 0, "and then there are none");
+}
+
 int main() {
+    testTakeAll();
     testBagPlacement();
     testBagClicks();
     testEquip();

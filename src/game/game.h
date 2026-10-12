@@ -14,9 +14,12 @@
 
 #include "game/character.h"
 #include "logic/ai_select.h"
+#include "logic/explored_map.h"
+#include "logic/lighting.h"
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
+#include "logic/mines.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
 #include "logic/progression.h"
@@ -27,6 +30,7 @@
 #include "formats/open_content.h"
 #include "formats/ai_control.h"
 #include "formats/item_data.h"
+#include "formats/missions.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "game/map.h"
@@ -36,6 +40,16 @@ namespace sf {
 
 class FileSystem;
 class Skin;
+
+// The original's Shift-JIS text as the font draws it (talk.cpp): the
+// English release only uses a few double-byte characters.
+std::string toAscii(const std::string& text);
+
+// An SDL texture the game owns.
+struct TextureFree {
+    void operator()(SDL_Texture* t) const { SDL_DestroyTexture(t); }
+};
+using TexturePtr = std::unique_ptr<SDL_Texture, TextureFree>;
 
 // The original runs at 640x480; we render to that and let SDL scale it.
 inline constexpr int kScreenWidth = 640;
@@ -121,6 +135,9 @@ public:
     // (for scripted tests).
     void orderPartnerBy(const std::string& kind, int dx, int dy);
 
+    // Lays a mine where the player stands, as B does (for scripted tests).
+    void layMineHere() { layMine(); }
+
     // Shows the status window (toggled with S).
     void setStatusOpen(bool open) { showStatus_ = open; }
 
@@ -128,6 +145,16 @@ public:
     enum class MenuItem { Continue, NewGame, Options, Quit };
     void openMenu();
     bool menuOpen() const { return menuOpen_; }
+
+    // The Create New Character screen that New Game opens (new_character.cpp):
+    // the hero or the heroine, a name, then the game mode.
+    void openNewCharacter();
+    bool newCharacterOpen() const { return newCharacter_.has_value(); }
+    // Makes the hero who they are: their sex and name (for scripted runs,
+    // and what the Create New Character screen settles on).
+    void setHero(HeroSex sex, std::string name);
+    HeroSex heroSex() const { return heroSex_; }
+    const std::string& heroName() const { return heroName_; }
 
     // The Settings Menu, as the original's (Esc in the game); from the
     // title menu it is Options, without the save and exit rows.
@@ -143,6 +170,11 @@ public:
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
     // Sets a SAVE story flag, for testing scripts part way through the story.
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
+    // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
+    void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
+    // Opens the mission list (Q), with one mission's description showing
+    // when `shown` is not -1 (for testing).
+    void openMissions(int shown = -1);
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
     // a message on screen, when that fails.
@@ -265,6 +297,7 @@ private:
     void renderHealthBars(int camX, int camY);
     void renderMap();
     void renderChips(int camX, int camY);
+    void drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha);
     void renderIsoGround(int camX, int camY);
     void renderJudge(int camX, int camY);
     void renderPlaceholder(double interpolation);
@@ -288,7 +321,7 @@ private:
     void updateEquipment();
     // The hero's stats with what they wear added, as the original sums them
     // (0x44ea60).
-    HeroStats heroStats() const { return sf::heroStats(career_.history); }
+    HeroStats heroStats() const { return sf::heroStats(career_.history, heroSex_); }
     // Everything counted: equipment, element levels and Berserker.
     HeroStats playerStats() const;
     ElementLevels playerElements() const;
@@ -349,6 +382,10 @@ private:
         int hitOption = -1;        // played on whoever it hurts
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
+        // A picture of the OPTION folder's Pattern bank instead of its
+        // animation (the mine on the ground), -1 = the animation.
+        int pattern = -1;
+        double height = 0;  // above the ground, as the original's objects (+0x124)
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -386,6 +423,30 @@ private:
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
 
+    // Land mines (mines.cpp): B or the MINE button lays one where the hero
+    // stands; a controller, as the original's (0x42bd40), arms it, sets it
+    // off and plays the blast.
+    struct Mine {
+        double x = 0, y = 0;
+        int tick = 0;        // the original's ticks since it was laid, then since the blast
+        int effect = 0;      // the mine on the ground; 0 once it has gone off
+        bool blasted = false;
+        int level = 1;       // the hero's when it was laid, for its power
+        int ring = 0;        // how far out the last smoke ring was
+        std::array<int, 4> pieces{}, fires{};
+        int lift = 0;        // the pieces' upward speed
+        bool done = false;
+    };
+    void layMine();
+    void stepMine(Mine& mine);
+    void mineBlast(Mine& mine);
+    int mostMines() const;
+    int minePower(int level) const;
+    // Picking up a mine adds it to the count when there is room (0x44a0e2).
+    bool pickUpMine();
+    bool mineButtonClick(int x, int y);
+    void renderMineButton();
+
     // The hero's companion (partner.cpp).
     struct Partner {
         explicit Partner(Character c) : character(std::move(c)) {}
@@ -401,13 +462,14 @@ private:
 
         // The hero's orders, Tab and a click (partner.cpp): where it jumps
         // or dashes to, and what it jumps on or fetches.
-        enum class Order { None, Fetch, Jump, Dash } order = Order::None;
+        enum class Order { None, Fetch, Jump, Dash, Explode } order = Order::None;
         double orderX = 0, orderY = 0;
         std::optional<std::size_t> orderActor{};   // a monster to land on, in actors_
         std::optional<std::size_t> orderObject{};  // a switch to land on, in control_.placements
         int orderCooldown = 0;  // ticks until it takes a new order on open ground (+0x210)
         int skillTick = 0;      // ticks into the jump or dash (+0x158)
         bool landed = false;    // the jump has come down
+        bool explosion = false; // the jump is the hero's Explosion spell (state 10)
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
         int restDirection = 0;  // its facing before a jump
@@ -434,6 +496,9 @@ private:
     void tickPartnerDash();
     bool tickPartnerFetch(double toHero);
     void partnerLands(double left, double top, double right, double bottom, bool dash);
+    void partnerExplodes();
+    void orderPartnerExplosion(double x, double y);
+    std::vector<std::size_t> monstersIn(double left, double top, double right, double bottom) const;
     bool partnerCanStand(double x, double y) const;
     void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1);
     void renderPartnerGauge();
@@ -445,6 +510,73 @@ private:
     bool menuItemEnabled(MenuItem item) const;
     void chooseMenuItem(MenuItem item);
     void newGame();
+
+    // The Create New Character screen (new_character.cpp), as ShadowFlare.exe
+    // runs it (0x423ca0 and the mode window 0x424d80).
+    struct NewCharacter {
+        enum class Step { Choose, Name, Mode, Starting, Leaving };
+        Step step = Step::Choose;
+        int hover = 0;          // Choose: 1 the hero, 0 the heroine; Mode: 0 online, 1 single, 2 back
+        HeroSex chosen = HeroSex::Male;
+        int fade = 0;           // ticks into the fade of the figure not chosen (0 = none)
+        int slideBack = 0;      // ticks into the chosen figure sliding back after Back
+        int ticks = 0;          // ticks into Starting or Leaving
+        std::string name;
+        bool mouseMoved = true;  // the mouse, not the keys, sets the hover
+    };
+    void tickNewCharacter();
+    void newCharacterEvent(const SDL_Event& event);
+    void renderNewCharacter();
+    void newCharacterClick(int x, int y);
+    void newCharacterKey(SDL_Keycode key);
+    void newCharacterHover(int x, int y);
+    void newCharacterPattern(int pattern, int alpha = 255, int dx = 0);
+
+    // Missions (missions.cpp): the mission list (Q), the newest mission
+    // named along the bottom of the screen, and the area's name by the
+    // compass at the top left when the player arrives.
+    void loadMissions();
+    int missionState(int mission) const;  // its QUEST flag: 0 not given, 1 taken, 2 cleared
+    bool anyMissionTaken() const;
+    void showMissionName(int mission);
+    void showAreaName(std::string name);
+    void toggleMissions();
+    void closeMissions();
+    bool missionsClick(int x, int y, bool right);
+    bool missionHudClick(int x, int y);
+    void tickMissions();
+    void renderMissions();
+    void renderMissionHud();
+    void renderCompass();
+    const CharacterModel* compassModel();
+
+    // Darkness in dungeons (darkness.cpp), as ShadowFlare.exe draws it in
+    // its frame code (0x41e4f0): the screen is lit by an ellipse round the
+    // hero and by the lights some characters carry, dimmed by the area's
+    // light level. Display Darkness off, or a fully lit area, skips it.
+    bool darknessShown() const;
+    void renderDarkness(int camX, int camY);
+    const LightMap* darkPart(int part);  // Dark.njp's parts, or ours
+
+    // The map (N), as the original's window (0x40d4d0): the area at a
+    // tenth of its size in the left half of the screen, only what the hero
+    // has seen, with them blinking in the middle (area_map.cpp).
+    void toggleAreaMap();
+    void closeAreaMap() { mapOpen_ = false; }
+    bool areaMapClick(int x, int y, bool right);
+    bool areaMapKey(SDL_Keycode key);
+    void tickAreaMap();
+    void renderAreaMap();
+    // Where the hero is, in the map's pixels (a tenth of the screen's,
+    // from the ground's top left corner).
+    std::pair<int, int> mapPosition(double worldX, double worldY) const;
+    std::string exploredKey() const;  // the area the map remembers: its scenario, else the map
+    ExploredMap& explored();
+    // The area drawn small: the original's Scenario.Njp when the map is the
+    // original's own art, else ours, drawn from the map itself.
+    void drawAreaMapPicture(int left, int top);
+    void buildAreaMapPicture();
+    void renderScenery(int camX, int camY);  // ground and objects, no one on them
 
     // The Settings Menu and Help window (options.cpp).
     enum class OptionRow {
@@ -501,7 +633,10 @@ private:
     ScriptFlags flags_;
     std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
 
-    std::optional<CharacterModel> playerModel_;
+    std::array<std::optional<CharacterModel>, 2> playerModels_;  // by HeroSex
+    HeroSex heroSex_ = HeroSex::Male;
+    std::string heroName_;
+    std::optional<NewCharacter> newCharacter_;
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_
@@ -523,6 +658,9 @@ private:
     std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
     int nextEffectId_ = 1;
     double originalTicks_ = 0;  // carried between engine ticks
+    std::vector<Mine> mines_;
+    int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
+    int mineWait_ = 0;                    // ticks before another can be laid
     Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;
@@ -557,6 +695,29 @@ private:
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
+
+    Missions missions_;
+    bool missionsOpen_ = false;
+    int missionPage_ = 0;      // the list's two pages of 24 (0xa910)
+    int missionShown_ = -1;    // the mission whose description is open (0xa97c)
+    int missionBanner_ = -1;   // DRAWQUESTNAME's mission (0xa908)
+    double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
+    std::string areaName_;
+    double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
+
+    std::map<std::string, ExploredMap> explored_;  // by exploredKey()
+    bool mapOpen_ = false;      // the map window (0xa070)
+    int mapScrollX_ = 0, mapScrollY_ = 0;  // the arrow keys' scroll (0xa998, 0xa99c)
+    double mapTicks_ = 0;       // original ticks the map has been open, for its pulse and blink
+    // Our drawing of the area at a tenth of its size, made when the map
+    // first opens on it.
+    TexturePtr mapPicture_;
+    std::string mapPictureFor_;
+    int mapPictureW_ = 0, mapPictureH_ = 0;
+    std::optional<SpriteBank> scenarioPicture_;  // Scenario.Njp
+    std::string scenarioPictureFor_;
+    std::array<std::optional<LightMap>, 7> darkParts_;
+    TexturePtr darkTexture_;
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

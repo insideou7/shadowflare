@@ -15,18 +15,34 @@ struct Rules {
     // The partner's status window prints its defence on the "M Evasion
     // Rate" line (0x4319de, 0x450ace).
     bool partnerStatusShowsMagicEvasion = true;
+    // The companion's Explosion (the hero's spell 20) reads its stun from
+    // the hero's level in spell 21, Elemental Strike (0x461c40 asks
+    // 0x451e60 for 0x15), rather than Explosion's own level.
+    bool explosionUsesItsOwnLevel = true;
     // A drop list rolled more than once forgets which qualities the last
     // roll allowed: the original never clears them (0x417550), so a roll
     // allowing magic items lets every later roll of that monster give one.
     bool dropQualityPerRoll = true;
+    // SETQUESTFLAG clears a mission only once in a game session (0x433f29
+    // keeps a second array at 0x48cebc that is never saved). The first
+    // clear is spent even on a mission not yet taken, so a mission whose
+    // clearing script runs before it is given stays taken for good once
+    // it is given, until the game is loaded again. Ours clears a taken
+    // mission every time.
+    bool missionsClearOnlyWhenTaken = true;
 
-    bool originalMode() const { return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !dropQualityPerRoll; }
+    bool originalMode() const {
+        return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
+               !dropQualityPerRoll && !missionsClearOnlyWhenTaken;
+    }
     static Rules ours() { return {}; }
     static Rules original() {
         Rules r;
         r.shieldsCostTheirOwnMp = false;
         r.partnerStatusShowsMagicEvasion = false;
+        r.explosionUsesItsOwnLevel = false;
         r.dropQualityPerRoll = false;
+        r.missionsClearOnlyWhenTaken = false;
         return r;
     }
 };

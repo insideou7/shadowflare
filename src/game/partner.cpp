@@ -2,7 +2,8 @@
 // 0x45f670, following 0x4622b0, fighting 0x462610). It follows the hero;
 // when ACTIVE it bites monsters near them and can be hurt, and when
 // INACTIVE it just follows and heals. Tab and a click order it to jump
-// (0x460420), dash (0x460a00) or fetch an item (0x4624e0).
+// (0x460420), dash (0x460a00) or fetch an item (0x4624e0); the hero's
+// Explosion spell sends it to blow up (0x43fcc0, 0x461c40).
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -44,6 +45,12 @@ constexpr int kDashStartSpeed = 30, kDashSpeedUp = 8;
 constexpr double kDashBoxScale = 1.9;
 constexpr int kDashStunChance = 100, kDashStunLength = 10;
 constexpr int kStunCap = 15;  // ticks, unless the blow or the monster says otherwise
+// Explosion (0x461c40): what is in a square 320 each way around where it
+// lands is caught; the blow's power is 1, so it is the stun that counts.
+constexpr double kExplosionReach = 320;
+constexpr int kExplosionPower = 1;
+constexpr int kExplosionSpray = 10000000;  // Character/OPTION
+constexpr int kStunTables = 70;  // Table.Tbd 70-78: a spell's stun on a monster of each element (0x4174b0)
 
 // r is the enemy's box around (ex, ey).
 template <class Rect>
@@ -200,7 +207,7 @@ void Game::tickPartner() {
     }
 
     // Then the hero's order, if there is one.
-    if (p.order == Partner::Order::Jump) {
+    if (p.order == Partner::Order::Jump || p.order == Partner::Order::Explode) {
         startPartnerJump();
         return;
     }
@@ -406,7 +413,7 @@ std::string Game::partnerStatusText(int kind, bool withItems) const {
 // pattern 30 is its frame, 29 the bar and 31 / 32 the ACTIVE / INACTIVE
 // label. Without the original's pictures, plain shapes stand in.
 void Game::renderPartnerGauge() {
-    if (!partner_ || menuOpen_) return;
+    if (!partner_ || menuOpen_ || missionsOpen_) return;
     const int hp = partner_->hp, max = std::max(1, partner_->stats.maxHp);
     const bool blink = hp * 100 < max * 30 && (ticks_ / 5) % 2 == 0;
     const SpriteBank* bar = itemBank("System/Game/Pattern/Bar");
@@ -538,6 +545,16 @@ void Game::orderPartnerBy(const std::string& kind, int dx, int dy) {
             const auto& a = actors_[i];
             if (a.hostile() && a.alive() && std::hypot(a.character.x - p.orderX, a.character.y - p.orderY) < 200) p.orderActor = i;
         }
+    } else if (kind == "explode") {
+        // As the Explosion spell cast at that point, or at the monster
+        // aimed at.
+        for (const auto& a : actors_) {
+            if (a.hostile() && a.alive() && std::hypot(a.character.x - p.orderX, a.character.y - p.orderY) < 200) {
+                p.orderX = a.character.x;
+                p.orderY = a.character.y;
+            }
+        }
+        orderPartnerExplosion(p.orderX, p.orderY);
     } else if (kind == "dash") {
         p.order = Partner::Order::Dash;
     } else if (kind == "fetch") {
@@ -552,13 +569,14 @@ void Game::orderPartnerBy(const std::string& kind, int dx, int dy) {
             }
         }
     } else {
-        log::warn("--companion expects jump:dx,dy, dash:dx,dy or fetch");
+        log::warn("--companion expects jump:dx,dy, dash:dx,dy, explode:dx,dy or fetch");
     }
 }
 
 void Game::startPartnerJump() {
     Partner& p = *partner_;
     Character& c = p.character;
+    p.explosion = p.order == Partner::Order::Explode;
     p.order = Partner::Order::None;
     p.state = Partner::State::Jump;
     p.target.reset();
@@ -598,8 +616,12 @@ void Game::tickPartnerJump() {
     }
     if (!p.struck && c.frame() >= c.frameCount() / 2) {
         p.struck = true;
-        const double half = p.stats.jumpArea / 2.0;
-        partnerLands(c.x - half, c.y - half, c.x + half, c.y + half, false);
+        if (p.explosion) {
+            partnerExplodes();
+        } else {
+            const double half = p.stats.jumpArea / 2.0;
+            partnerLands(c.x - half, c.y - half, c.x + half, c.y + half, false);
+        }
     }
     if (!c.finished()) {
         c.tick();
@@ -641,28 +663,52 @@ void Game::tickPartnerDash() {
     }
 }
 
-// A jump's landing or a dash's bite: every living monster whose box
-// meets the square is bitten, with the partner's hit against its
-// evasion, and may be stunned; switches in it are pressed. A dash holds
-// for a moment after it bites.
+// The living monsters whose boxes meet the square, then those linked to
+// objects in it (0x460420 hands a blow on such an object to its monster).
+std::vector<std::size_t> Game::monstersIn(double left, double top, double right, double bottom) const {
+    std::vector<std::size_t> found;
+    auto meets = [&](double x, double y, const std::int32_t (&r)[4]) {
+        return x + r[2] >= left && x + r[0] <= right && y + r[3] >= top && y + r[1] <= bottom;
+    };
+    for (std::size_t i = 0; i < actors_.size(); ++i) {
+        const Actor& a = actors_[i];
+        if (a.hostile() && a.alive() && a.active && meets(a.character.x, a.character.y, a.placement.rect)) found.push_back(i);
+    }
+    for (const auto& o : control_.placements) {
+        if (o.group != ScenarioControl::Group::Object || o.linkedEnemy < 0 || !meets(o.x, o.y, o.rect)) continue;
+        for (std::size_t i = 0; i < actors_.size(); ++i) {
+            const Actor& a = actors_[i];
+            if (a.placement.group == ScenarioControl::Group::Enemy && a.placement.id == o.linkedEnemy && a.hostile() &&
+                a.alive() && a.active) {
+                found.push_back(i);
+            }
+        }
+    }
+    return found;
+}
+
+// A jump's landing or a dash's bite: every monster in the square is
+// tried, with the partner's hit against its evasion, and may be stunned;
+// switches in it are pressed. Only the dash does damage: the jump's blow
+// has no power (0x460420), the dash's is the partner's attack (0x460a00).
+// A dash holds for a moment after it bites.
 void Game::partnerLands(double left, double top, double right, double bottom, bool dash) {
     Partner& p = *partner_;
     const PartnerStats& st = p.stats;
     bool bit = false;
-    for (auto& enemy : actors_) {
-        if (!enemy.hostile() || !enemy.alive() || !enemy.active) continue;
-        const auto& r = enemy.placement.rect;
-        const double ex = enemy.character.x, ey = enemy.character.y;
-        if (ex + r[2] < left || ex + r[0] > right || ey + r[3] < top || ey + r[1] > bottom) continue;
+    for (std::size_t i : monstersIn(left, top, right, bottom)) {
+        Actor& enemy = actors_[i];
+        if (!enemy.alive()) continue;
         const auto& s = enemy.placement.stats;
         if (random_.next(100) >= hitChance(st.hit, s.evasion)) continue;
         bit = true;
-        const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
-        log::info("The companion's {} hits {} for {}", dash ? "dash" : "jump", enemy.gameId(), damage);
-        hurtEnemy(enemy, damage, false, true);
         if (dash) {
+            const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
+            log::info("The companion's dash hits {} for {}", enemy.gameId(), damage);
+            hurtEnemy(enemy, damage, false, true);
             stunEnemy(enemy, kDashStunChance, kDashStunLength, false, st.element);
         } else {
+            log::info("The companion's jump hits {}", enemy.gameId());
             stunEnemy(enemy, st.jumpStunChance, st.jumpStunLength, st.jumpStunUncapped, st.element);
         }
     }
@@ -673,6 +719,53 @@ void Game::partnerLands(double left, double top, double right, double bottom, bo
         runEvent(ScenarioScript::kOnTalk, ScenarioControl::idBase(o.group) + o.id);
     }
     if (dash && bit) p.hitPause = kDashHitPause;
+}
+
+// The hero's Explosion spell: once it is cast the companion jumps to the
+// point (0x43fcc0), if it is up, free of its last order and not already
+// jumping or dashing, and the spot is open ground.
+void Game::orderPartnerExplosion(double x, double y) {
+    if (!partner_) return;
+    Partner& p = *partner_;
+    using State = Partner::State;
+    if (p.state == State::Dead || p.state == State::Jump || p.state == State::Dash || p.orderCooldown > 0) return;
+    if (!partnerCanStand(x, y)) return;
+    p.order = Partner::Order::Explode;
+    p.orderX = x;
+    p.orderY = y;
+    p.orderActor.reset();
+    p.orderObject.reset();
+}
+
+// Where it lands it blows up (0x461c40): every monster in reach it hits
+// (its hit against their evasion) takes the spell's blow, power 1, and is
+// stunned as tables 70-78 say for a monster of its element at the spell's
+// level. Each one hit trains the spell.
+void Game::partnerExplodes() {
+    Partner& p = *partner_;
+    const Character& c = p.character;
+    const int ofSpell = rules_.explosionUsesItsOwnLevel ? kExplosion : kElementalStrike;
+    const int level = std::max(1, spells_.castLevel(ofSpell));
+    const int element = magic_.spell(kExplosion).element;
+    log::info("The companion explodes at {:.0f},{:.0f} (level {})", c.x, c.y, level);
+    // Its controller (21031, 0x42f890) plays the fire spray, both charts.
+    spawnEffect(kExplosionSpray, c.x, c.y);
+    spawnEffect(kExplosionSpray, c.x, c.y, 1);
+    for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
+        Actor& enemy = actors_[i];
+        if (!enemy.alive()) continue;
+        const auto& s = enemy.placement.stats;
+        if (random_.next(100) >= hitChance(p.stats.hit, s.evasion)) continue;
+        trainSpell(kExplosion);
+        const int damage = spellDamage(kExplosionPower, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
+        log::info("The companion's explosion hits {} for {}", enemy.gameId(), damage);
+        hurtEnemy(enemy, damage, true);
+        const int table = kStunTables + (s.element >= 0 && s.element < 8 ? s.element : 8);
+        const auto* t = tables_.find(table);
+        const int col = (level - 1) * 3;
+        if (!t || t->rows <= kExplosion || t->cols < col + 3) continue;
+        stunEnemy(enemy, t->value(kExplosion, col), t->value(kExplosion, col + 1), t->value(kExplosion, col + 2) != 0, element);
+    }
 }
 
 // How a blow stuns a monster (0x459690): `chance` less its resistance in

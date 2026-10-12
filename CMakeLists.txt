@@ -22,6 +22,7 @@ add_library(sf_formats STATIC
     src/formats/item_data.cpp
     src/formats/open_content.cpp
     src/formats/ground_skin.cpp
+    src/formats/missions.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -43,8 +44,11 @@ add_library(sf_logic STATIC
     src/logic/save_game.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
+    src/logic/mines.cpp
     src/logic/settings.cpp
     src/logic/partner.cpp
+    src/logic/lighting.cpp
+    src/logic/explored_map.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -62,11 +66,16 @@ add_executable(shadowflare
     src/game/items.cpp
     src/game/saving.cpp
     src/game/title.cpp
+    src/game/new_character.cpp
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
+    src/game/missions.cpp
+    src/game/darkness.cpp
+    src/game/area_map.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

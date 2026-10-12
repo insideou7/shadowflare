@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The interface pictures for the open content pack.
 
-    python3 tools/art/ui.py <content pack folder>
+    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map]
 
 Draws, in the style of the original but from scratch:
 
@@ -22,6 +22,17 @@ Draws, in the style of the original but from scratch:
 - the font: 6 x 12 cells by byte value on a 16 x 16 grid, white so the
   engine can colour it, with lowercase drawn as small capitals as the
   original's are. System/Common/Pattern/Font00.
+- the mission list: a 640 x 415 window with a deep maroon field, the page
+  buttons I and II (unlit and lit), the closed and open locks of taken and
+  cleared missions and the box a mission's description opens in, where
+  the engine puts them (src/game/missions.cpp, after ShadowFlare.exe's).
+  System/Game/Pattern/Missions.
+- the compass the area's name is shown beside on arrival: a bronze rose
+  in a ring, seen at a slant, shrinking over eight frames as the
+  original's does. Player/Common/compasses (.anim and .sheet).
+- the area map's window: the same stone and iron with a hole the map shows
+  through, a gem by the area's name, the hero's arrow and a PLAYER label
+  (src/game/area_map.cpp). System/Game/Pattern/Map.
 
 The panels are built as height maps and shaded with a light from the top
 left, so frames stand out and recesses sink in, and reduced to 256
@@ -56,6 +67,13 @@ HOLLOW = np.array([24, 20, 24])
 MAROON = np.array([34, 14, 16])
 
 yy, xx = np.mgrid[0:H, 0:W].astype(float)
+
+
+def canvas(w, h):
+    """Sets the size the panel helpers draw at (320 x 416 by default)."""
+    global W, H, yy, xx
+    W, H = w, h
+    yy, xx = np.mgrid[0:H, 0:W].astype(float)
 
 
 def box(x0, y0, x1, y1, bevel):
@@ -376,6 +394,258 @@ SMALL = {
 }
 
 
+# The mission list, as laid out in src/game/missions.cpp.
+MISSION_FIELD = (32, 40, 608, 380)  # x0, y0, x1, y1 of the field the rows sit on
+PAGE_BUTTONS = ((276, 10), (344, 10))
+DESCRIPTION = (172, 76, 296, 260)  # x, y, w, h
+PLUM = np.array([34, 10, 48])
+
+
+def numeral(img, x0, y0, strokes, colour):
+    """Roman numeral strokes (I, II) 2 pixels wide with serifs."""
+    for k in range(strokes):
+        x = x0 + k * 5
+        for y in range(y0, y0 + 11):
+            for dx in (0, 1):
+                img.putpixel((x + dx, y), colour)
+        for dx in (-1, 2):
+            img.putpixel((x + dx, y0), colour)
+            img.putpixel((x + dx, y0 + 10), colour)
+
+
+def page_button(lit, strokes):
+    canvas(20, 23)
+    p = Panel(20 + strokes + 2 * lit)
+    p.colour[:] = (BRONZE * (0.55 if lit else 0.4))
+    p.height[:] = 0
+    p.sunken(3, 3, 17, 20, depth=2, rim=False, floor=STONE * (0.75 if lit else 0.5))
+    img = p.image()
+    ink = (236, 214, 150, 255) if lit else (150, 128, 84, 255)
+    numeral(img, 10 - 2 - (strokes - 1) * 2 - (0 if strokes == 1 else 1), 6, strokes, ink)
+    return img
+
+
+def lock(open_):
+    """A padlock 13 x 18 (closed) or 18 x 18 (open, its shackle swung up and
+    out to the right), bronze with a dark keyhole."""
+    w = 18 if open_ else 13
+    img = Image.new("RGBA", (w, 18), (0, 0, 0, 0))
+    body = (1, 8, 12, 17)
+    for y in range(body[1], body[3] + 1):
+        for x in range(body[0], body[2] + 1):
+            edge = x in (body[0], body[2]) or y in (body[1], body[3])
+            shade = 1.0 - 0.35 * (y - body[1]) / 9 - (0.25 if x > 8 else 0)
+            c = (BRONZE * shade * (0.6 if edge else 1)).astype(int)
+            img.putpixel((x, y), (*c, 255))
+    for x, y in ((6, 11), (6, 12), (6, 13), (5, 11), (7, 11)):
+        img.putpixel((x, y), (20, 14, 10, 255))
+    # The shackle: a 2-pixel arch, set in the body or lifted out of it.
+    cx, top, half = (6.5, 1, 4) if not open_ else (11.5, 0, 4)
+    for a in np.linspace(0, np.pi, 40):
+        for r in (half - 0.5, half + 0.5):
+            x, y = cx - r * np.cos(a), top + half - r * np.sin(a)
+            img.putpixel((int(round(x)), int(round(y))), (120, 112, 104, 255))
+    legs = [(cx - half, top + half, 8), (cx + half, top + half, 8)] if not open_ else [(cx + half, top + half, 6)]
+    for lx, y0, y1 in legs:
+        for y in range(int(y0), y1):
+            for dx in (-0.5, 0.5):
+                img.putpixel((int(round(lx + dx)), y), (120, 112, 104, 255))
+    return img
+
+
+def description_box():
+    x, y, w, h = DESCRIPTION
+    canvas(w, h)
+    p = Panel(30)
+    p.sunken(8, 8, w - 8, h - 8, depth=3, rim=True, floor=PLUM)
+    return p.image()
+
+
+def missions(out):
+    canvas(640, 415)
+    p = Panel(9)
+    x0, y0, x1, y1 = MISSION_FIELD
+    p.sunken(x0, y0, x1, y1, depth=4, floor=MAROON * 1.15)
+    # The page buttons sit in a carved plate either side of a boss.
+    p.sunken(262, 6, 378, 37, depth=1.5, rim=True, floor=STONE * 0.7)
+    p.boss((W // 2, 21), 9, 5)
+    p.boss((W // 2, 21), 4, -2)
+    # A bronze rule along the field's top and bottom with studs.
+    for y in (y0 - 9, y1 + 8):
+        p.bronze((np.abs(yy - y) < 0.8) & inside(x0 + 20, 0, x1 - 20, H), 1.5)
+        for x in range(x0 + 40, x1 - 30, 64):
+            p.boss((x, y), 2.2, 2)
+    window = p.image()
+    parts = [window]
+    parts += [page_button(False, 1), page_button(False, 2), page_button(True, 1), page_button(True, 2)]
+    parts += [lock(False), lock(True), description_box()]
+    canvas(320, 416)
+    # One sheet: the window on top, the small parts in a row under it.
+    sheet = Image.new("RGBA", (640, 415 + 260), (0, 0, 0, 0))
+    sheet.paste(window, (0, 0))
+    frames = [(0, 0, 640, 415, 0, 0)]
+    x = 0
+    anchors = [(-PAGE_BUTTONS[0][0], -PAGE_BUTTONS[0][1]), (-PAGE_BUTTONS[1][0], -PAGE_BUTTONS[1][1])] * 2
+    anchors += [(-5, -3), (-5, -3), (-DESCRIPTION[0], -DESCRIPTION[1])]
+    for img, (ox, oy) in zip(parts[1:], anchors):
+        sheet.paste(img, (x, 415))
+        frames.append((x, 415, img.width, img.height, ox, oy))
+        x += img.width + 2
+    write_sheet(out / "System/Game/Pattern", "Missions", sheet, frames,
+                "The mission list: window, page I and II unlit, then lit, closed lock, open lock, description box.")
+
+
+def compasses(out):
+    """A bronze compass rose in a ring, flattened to the ground's slant,
+    drawn large once and shrunk for each of the eight frames: from 170 x
+    124 to 100 x 73 about the same centre (52, 37) on the screen."""
+    S = 4 * 180  # drawn four times over and shrunk, for smooth edges
+    y, x = (np.mgrid[0:S, 0:S].astype(float) - S / 2) / (S / 2)
+    r, a = np.hypot(x, y), np.arctan2(y, x)
+    rgb = np.zeros((S, S, 3))
+    alpha = np.zeros((S, S))
+    # The ring: bronze, with a darker groove and eight studs.
+    ring = (r > 0.80) & (r < 0.97)
+    groove = np.abs(r - 0.885) < 0.012
+    rgb[ring] = BRONZE * (0.8 + 0.25 * np.cos(a[ring] + 2.4))[:, None]
+    rgb[groove] = BRONZE * 0.45
+    alpha[ring] = 1
+    for k in range(8):
+        ang = k * np.pi / 4 + np.pi / 8
+        d = np.hypot(x - 0.885 * np.cos(ang), y - 0.885 * np.sin(ang))
+        stud = d < 0.045
+        rgb[stud] = BRONZE * (1.2 - 6 * d[stud])[:, None]
+    # Inside the ring: dark stone, faintly blue, so the rose stands out.
+    disc = r <= 0.80
+    rgb[disc] = np.array([30, 34, 44]) * (1.0 - 0.3 * r[disc])[:, None]
+    alpha[disc] = 0.85
+    # The rose: four long points and four short ones, each lit on one side.
+    for k in range(8):
+        ang = k * np.pi / 4 - np.pi / 2
+        length = 0.78 if k % 2 == 0 else 0.48
+        width = 0.13 if k % 2 == 0 else 0.10
+        along = x * np.cos(ang) + y * np.sin(ang)
+        across = -x * np.sin(ang) + y * np.cos(ang)
+        point = (along > 0) & (np.abs(across) < width * (1 - along / length))
+        lit = across > 0
+        colour = np.where(lit[..., None], BRONZE * 1.15, BRONZE * 0.6)
+        if k == 0:  # north is pale silver
+            colour = np.where(lit[..., None], np.array([230, 226, 214]), np.array([140, 138, 132]))
+        rgb = np.where(point[..., None], colour, rgb)
+        alpha = np.where(point, 1, alpha)
+    hub = r < 0.06
+    rgb[hub] = BRONZE * 1.3
+    rgba = np.concatenate([np.clip(rgb, 0, 255), alpha[..., None] * 255], axis=2).astype(np.uint8)
+    rose = Image.fromarray(rgba, "RGBA")
+
+    sizes = [(170, 124), (165, 118), (154, 111), (142, 102), (130, 94), (118, 86), (106, 76), (100, 73)]
+    sheet = Image.new("RGBA", (sum(w + 2 for w, _ in sizes), 124), (0, 0, 0, 0))
+    frames, sx = [], 0
+    for w, h in sizes:
+        sheet.paste(rose.resize((w, h), Image.LANCZOS), (sx, 0))
+        frames.append((sx, 0, w, h, w // 2 - 52, h // 2 - 37))
+        sx += w + 2
+    folder = out / "Player/Common"
+    write_sheet(folder, "compasses", sheet, frames, "The compass beside the area's name, frame by frame as it shrinks.")
+    with open(folder / "compasses.anim", "w", newline="\n") as f:
+        f.write(HEADER)
+        f.write("sheet=compasses.sheet\n\n[chart 0 once]\n8=" + ",".join(str(i) for i in range(len(sizes))) + "\n")
+
+
+MAP_HOLE = (32, 40, 292, 376)  # x0, y0, x1, y1: where the map shows through, inside its clip
+MAP_GEM = (36, 44, 28, 23)  # x, y, w, h, where area_map.cpp puts the gem
+
+
+def map_gem():
+    """A cut blue stone in a bronze collet, 28 x 23, white so the engine can
+    dim it as it pulses."""
+    w, h = MAP_GEM[2], MAP_GEM[3]
+    y, x = np.mgrid[0:h, 0:w].astype(float)
+    nx, ny = (x + 0.5 - w / 2) / (w / 2), (y + 0.5 - h / 2) / (h / 2)
+    r = np.hypot(nx, ny)
+    rgb = np.zeros((h, w, 3))
+    alpha = np.zeros((h, w))
+    collet = (r <= 1.0) & (r > 0.78)
+    rgb[collet] = BRONZE * (0.85 - 0.3 * ny[collet])[:, None]
+    alpha[collet] = 1
+    # The stone: eight facets round a flat table, lit from the top left.
+    stone = r <= 0.78
+    facet = np.floor((np.arctan2(ny, nx) + np.pi) / (np.pi / 4)) % 8
+    shade = np.where(r < 0.35, 1.15, 0.65 + 0.12 * ((facet + 3) % 8) / 2)
+    base = np.array([96, 150, 220])
+    rgb[stone] = (base * shade[..., None])[stone]
+    alpha[stone] = 1
+    glint = np.hypot(nx + 0.3, ny + 0.35) < 0.14
+    rgb[glint] = (240, 248, 255)
+    rgba = np.concatenate([np.clip(rgb, 0, 255), alpha[..., None] * 255], axis=2).astype(np.uint8)
+    return Image.fromarray(rgba, "RGBA")
+
+
+def map_arrow():
+    """The hero's mark: a small blue arrow head pointing down, 7 x 8."""
+    rows = ["#######", "#######", ".#####.", ".#####.", "..###..", "..###..", "...#...", "...#..."]
+    img = Image.new("RGBA", (7, 8), (0, 0, 0, 0))
+    for yy_, row in enumerate(rows):
+        for xx_, bit in enumerate(row):
+            if bit == "#":
+                edge = xx_ == 0 or xx_ == 6 or row[max(0, xx_ - 1)] == "." or row[min(6, xx_ + 1)] == "."
+                img.putpixel((xx_, yy_), (40, 70, 170, 255) if edge else (90, 140, 240, 255))
+    return img
+
+
+def map_label():
+    """PLAYER in the small capitals, blue with a dark outline."""
+    text = "PLAYER"
+    img = Image.new("RGBA", (len(text) * 6 + 1, 10), (0, 0, 0, 0))
+    ink = []
+    for i, ch in enumerate(text):
+        for y, row in enumerate(CAPS[ch]):
+            for x, bit in enumerate(row):
+                if bit == "#":
+                    ink.append((1 + i * 6 + x, 1 + y))
+    for x, y in ink:
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            img.putpixel((x + dx, y + dy), (10, 14, 40, 255))
+    for x, y in ink:
+        img.putpixel((x, y), (110, 160, 255, 255))
+    return img
+
+
+def area_map(out):
+    """The area map's window: 320 x 415, the panel's stone and iron with a
+    hole the map shows through, a bronze rim round it, studs down its sides
+    and a socket for the gem by the area's name; then the gem, the hero's
+    arrow and the PLAYER label (src/game/area_map.cpp)."""
+    canvas(320, 415)
+    p = Panel(11)
+    x0, y0, x1, y1 = MAP_HOLE
+    lip = inside(x0 - 3, y0 - 3, x1 + 3, y1 + 3) & ~inside(x0, y0, x1, y1)
+    p.bronze(lip, 2.0)
+    for y in list(range(y0 + 30, y0 + 120, 22)) + list(range(y1 - 110, y1 - 20, 22)):
+        p.boss((x0 - 12, y), 2.5, 3)
+        p.boss((x1 + 12, y), 2.5, 3)
+    for x in range(x0 + 30, x1 - 20, 40):
+        p.boss((x, y0 - 16), 2.2, 2)
+    frame = p.image()
+    hole = np.asarray(frame).copy()
+    hole[y0:y1, x0:x1, 3] = 0
+    frame = Image.fromarray(hole, "RGBA")
+    canvas(320, 416)
+
+    parts = [map_gem(), map_arrow(), map_label()]
+    sheet = Image.new("RGBA", (320, 415 + 26), (0, 0, 0, 0))
+    sheet.paste(frame, (0, 0))
+    frames = [(0, 0, 320, 415, 0, 0)]
+    anchors = [(-MAP_GEM[0], -MAP_GEM[1]), (3, 8), (parts[2].width // 2, 18)]
+    x = 0
+    for img, (ax, ay) in zip(parts, anchors):
+        sheet.paste(img, (x, 415))
+        frames.append((x, 415, img.width, img.height, ax, ay))
+        x += img.width + 2
+    write_sheet(out / "System/Game/Pattern", "Map", sheet, frames,
+                "The area map: window, gem, the hero's arrow, the PLAYER label.")
+
+
 def font(out):
     sheet = Image.new("RGBA", (16 * 6, 16 * 12), (0, 0, 0, 0))
     for table, top in ((CAPS, 1), (SMALL, 3)):
@@ -392,16 +662,20 @@ def font(out):
 
 def main():
     out = Path(sys.argv[1])
-    inventory(out)
-    shop(out)
-    balloon(out)
-    font(out)
+    only = set(sys.argv[2:])  # the names below, to redraw just those
+    sheets = {"inventory": inventory, "shop": shop, "balloon": balloon, "font": font,
+              "missions": missions, "compasses": compasses, "map": area_map}
+    for name, draw in sheets.items():
+        if not only or name in only:
+            draw(out)
     # The panels to 256 colours, as the rest of the pack; the balloon and
     # the font have only a few already.
-    for name in ("Inventory", "Shop"):
-        shrink.shrink(out / "System/Game/Pattern" / f"{name}.png")
-    print("wrote the inventory, the shop window, the speech balloon and the font")
-
+    for name, png in (("inventory", "Inventory"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map")):
+        if not only or name in only:
+            shrink.shrink(out / "System/Game/Pattern" / f"{png}.png")
+    if not only or "compasses" in only:
+        shrink.shrink(out / "Player/Common/compasses.png")
+    print("wrote " + ", ".join(n for n in sheets if not only or n in only))
 
 if __name__ == "__main__":
     main()

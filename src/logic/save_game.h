@@ -2,11 +2,13 @@
 
 #include <array>
 #include <cstdint>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "logic/explored_map.h"
 #include "logic/inventory.h"
 #include "logic/magic.h"
 #include "logic/partner.h"
@@ -44,7 +46,10 @@ struct SaveGame {
     int level = 1;
     std::int64_t experience = 0;
     std::optional<Career> career;
+    HeroSex sex = HeroSex::Male;  // saves from before the heroine: the hero
+    std::string name;
     int gold = 0;
+    std::optional<int> mines;  // mines in hand; none in saves from before mines
     std::vector<BagEntry> bag;
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
@@ -55,6 +60,10 @@ struct SaveGame {
     bool originalMode = false;
     std::optional<PartnerRecord> partner;  // none in saves from before companions
     int partnerHp = 0;                     // 0 = full (or down, with reviveTicks)
+    // What the map shows of each area seen, by scenario folder (or map name
+    // for a map without one). The original keeps these in its own files
+    // (Save\M<scenario><slot>.msk); ours go in the save.
+    std::map<std::string, ExploredMap> explored;
 
     std::string write() const;
     // Throws FormatError on a malformed file.

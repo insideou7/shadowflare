@@ -16,11 +16,17 @@ original format.
 | `Map/Ground`, `Object`, `Pattern`     | `Map/<name>.txt` + `.sheet` + `.png`     |
 | `Character/.../Animation.caf/.njp`    | `Character/.../Animation.anim` + `.sheet`|
 | `Player/Male/Animation00.caf/.njp`    | `Player/Male/Animation00.anim` + `.sheet`|
+| `Player/Female/Animation00.caf/.njp`  | `Player/Female/Animation00.anim` + `.sheet`|
+| `System/Select/Pattern/Select.njp`    | `System/Select/Pattern/Select.sheet`     |
 | `Scenario/<n>/Scenario.Mct` + `.Scs`  | `Scenario/<n>/scenario.txt`              |
 | `System/Game/Parameter/Control.aid`   | `ai.txt`                                 |
 | `System/Game/Parameter/Item.Ibn`      | `items.txt`                              |
 | `System/Game/Pattern/Item%04d.njp`    | `System/Game/Pattern/Item%04d.sheet`     |
 | `Character/ITEM/%08d/Pattern.njp`     | `Character/ITEM/%08d/Pattern.sheet`      |
+| `Table.Tbd` tables 41 and 700 on      | `missions.txt`                           |
+| `System/Game/Pattern/Status.njp` (mission list parts) | `System/Game/Pattern/Missions.sheet` |
+| `Player/Common/compasses.Caf/.Njp`    | `Player/Common/compasses.anim` + `.sheet`|
+| `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -144,6 +150,21 @@ number is the folder name.
 `person` takes an optional fifth field, a name that `script.txt` calls
 them by.
 
+Dark places say how light they are and where their lights are:
+
+    light=1000               # 2000 lit (the default), 1000 dark
+    lamp=9845,14332,1        # x, y, size 0 (smallest) to 5
+    enemy=1,500,600,4,30,4,480,goblin
+    glow=1                   # the line before carries a light of size 1
+
+With Display Darkness on, everything outside the light round the hero,
+the lamps and anything that glows goes dark. The light's sizes are the
+original's (90 x 60 to 280 x 200 pixels); without its `Dark.njp` the
+engine draws its own soft ellipses of those sizes. The area map (N) is
+drawn from the map itself, a tenth of its size, inside the window in
+`System/Game/Pattern/Map.sheet` (frames: the window, its gem, the hero's
+arrow, the PLAYER label).
+
 ### Scenario/\<number\>/script.txt
 
 What the people of a scenario say and do, in the original's script
@@ -181,6 +202,22 @@ sentence to run, and a person's or object's name for their id. As in the
 original, `IF` runs its sentence and then carries on, and closing any of
 a person's message boxes runs their talk-end sentences, so a script keeps
 the question it asked in a flag.
+
+### missions.txt
+
+    [mission 0]              # the number SETQUESTFLAG and DRAWQUESTNAME take
+    title=Drive off the beast on the north-east road.
+    text=Something has been hunting along the road
+    text=                    # an empty line
+    text=Find it and drive it off.
+
+The title is what the mission list and the bottom of the screen show; each
+`text=` line is a line of the description the list opens, up to about 45
+characters so it fits the box. The list has room for 48 missions.
+
+An open pack's area names come from each scenario's `title=`, shown by the
+compass as the player arrives; a script can still name an area with
+`SETCOMPASSES msg:<id>`, as the original's do.
 
 ### shops.txt
 
@@ -254,7 +291,8 @@ What monsters leave behind, standing in for the original's drop tables
 A pick is a class (or `any` for weapon, armour or accessory), a code (or
 `any`, chosen by `weight` among the items of that class), and optionally
 the lowest and highest item level. Only normal items are picked with
-`any`. Gold comes before the items, 100 units below the monster; the
+`any`. A mine (`special,1`) goes to the hero's mines, not the bag (see
+[mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 
 ## Drawing the original game with this art
@@ -334,7 +372,9 @@ Each follows the original map's routes, not its exact layout: which
 blocks of tiles can be walked through, where the exits and entries are,
 which monsters and townspeople stand where, and where the buildings and
 other landmarks stand. The walls, paths and forest edges are our own, and
-the monsters' stats are the demo's. The maps exactly as the original has
+the monsters' stats are the demo's. The dungeons are as dark as the
+original's, with lamps where its torches stand and glows on the monsters
+that carry one. The maps exactly as the original has
 them are what a player with the original game sees (see above).
 
 `tools/content/first_area.py` writes them from the player's own copy:
@@ -354,12 +394,12 @@ with Pillow and numpy:
 `build_pack.py` lays out the maps and writes the text files;
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. The item pictures
-and the interface (inventory panel, shop window, speech balloon and
+and the interface (inventory panel, shop window, speech balloon, area map window and
 font) are kept in content/ and rebuilt on their own:
 
     python tools/art/items.py render /tmp/items     # a Python with bpy
     python3 tools/art/items.py pack /tmp/items content
-    python3 tools/art/ui.py content
+    python3 tools/art/ui.py content          # or just some: ui.py content map
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.
@@ -373,7 +413,9 @@ rebuilding everything: render them, then
 
 `tools/content/import_flare.py` builds a pack from
 [Flare: Empyrean Campaign](https://github.com/flareteam/flare-game)'s
-CC-BY-SA 3.0 art, which was the demo content before our own art:
+CC-BY-SA 3.0 art, which was the demo content before our own art. A pack
+built this way stays under CC-BY-SA 3.0 and must not be committed to
+content/, which is MIT:
 
     git clone https://github.com/flareteam/flare-game /tmp/flare-game
     python3 tools/content/import_flare.py /tmp/flare-game /tmp/flare-pack

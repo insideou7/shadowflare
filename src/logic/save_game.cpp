@@ -89,6 +89,8 @@ Item toItem(const ItemDef* def, const SaveGame::ItemRef& r) {
 std::string SaveGame::write() const {
     std::string out = std::format("# ShadowFlare saved game\nversion={}\nmap={}\nscenario={}\n", kVersion, map, scenario);
     out += std::format("at={},{},{}\nhp={}\nlevel={}\nexperience={}\ngold={}\n", x, y, direction, hp, level, experience, gold);
+    // hero=sex (1 the hero, 0 the heroine),name
+    out += std::format("hero={},{}\n", static_cast<int>(sex), name);
     if (career) {
         // career=class,offered,kills,kills by weapon type x 9; classes= the
         // class at each level-up, one digit each.
@@ -99,6 +101,7 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     if (mp) out += std::format("mp={}\n", *mp);
+    if (mines) out += std::format("mines={}\n", *mines);
     if (spells) {
         // spell=number,level,uses for each spell learned; bar= the spells
         // on F1-F8 (-1 empty), then the selected one.
@@ -122,6 +125,8 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
+    // seen=area,width,height, then the runs of unseen and seen map cells.
+    for (const auto& [area, map] : explored) out += std::format("seen={},{}\n", area, map.encode());
     // Items: class,code,count[,x,y], then wear,unidentified and the rolled
     // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
@@ -195,6 +200,11 @@ SaveGame SaveGame::parse(std::string_view text) {
                 p.experience[i] = static_cast<int>(std::max(0LL, v[5 + 2 * i]));
             }
             save.partner = p;
+        } else if (key == "hero") {
+            const auto comma = value.find(',');
+            const auto v = numbers(value.substr(0, comma), 1, lineNumber);
+            save.sex = v[0] == 0 ? HeroSex::Female : HeroSex::Male;
+            save.name = comma == std::string_view::npos ? std::string() : std::string(value.substr(comma + 1));
         } else if (key == "original") {
             save.originalMode = numbers(value, 1, lineNumber)[0] != 0;
         } else if (key == "level") {
@@ -214,6 +224,12 @@ SaveGame SaveGame::parse(std::string_view text) {
             save.experience = numbers(value, 1, lineNumber)[0];
         } else if (key == "gold") {
             save.gold = static_cast<int>(numbers(value, 1, lineNumber)[0]);
+        } else if (key == "mines") {
+            save.mines = static_cast<int>(std::max(0LL, numbers(value, 1, lineNumber)[0]));
+        } else if (key == "seen") {
+            const auto comma = value.find(',');
+            if (comma == std::string_view::npos) throw FormatError(std::format("save line {}: expected an area name", lineNumber));
+            save.explored[std::string(value.substr(0, comma))] = ExploredMap::decode(value.substr(comma + 1));
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);

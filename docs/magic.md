@@ -162,7 +162,8 @@ Ours rather than the original's, until they are read from the exe:
   they stand, but the original's effect heights are not used for it.
 - A shield or Berserker turning on plays 11000100 (which effect the
   original plays is not known), and a faint ring shows while it is on.
-- Transport, Moon, Medusa, Identify and Explosion are not in yet.
+- Transport, Moon, Medusa and Identify are not in yet. Explosion sends
+  the companion to blow up where it is cast ([partners.md](partners.md)).
 - Monster spells land halfway through their animation, like blows.
 - Chant speed and equipment that adds spell levels or saves MP are not
   read from items yet.
@@ -177,6 +178,7 @@ with none of our fixes; it is off by default. Each fix is a switch in
 |---|---|---|
 | `shieldsCostTheirOwnMp` | Magic Shield and Counter Burst cost their own MP | they cost the chosen spell's MP |
 | `partnerStatusShowsMagicEvasion` | the partner's status sheet shows its magic evasion | it shows its defence there ([partners.md](partners.md)) |
+| `explosionUsesItsOwnLevel` | the companion's Explosion stuns at Explosion's level | at Elemental Strike's level ([partners.md](partners.md)) |
 
 Data the engine used to misread, such as the monster stat words, is
 corrected in both modes.

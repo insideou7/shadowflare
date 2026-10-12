@@ -1,7 +1,7 @@
 // The Settings Menu (Esc in the game, Options on the title menu) and the
 // Help window (H), laid out after the original's: each row names a setting
 // with its choices to the right, the chosen one bright. Rows the engine
-// cannot do yet (no darkness, sound, missions or map) are shown dimmed.
+// cannot do yet (no sound) are shown dimmed.
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -57,12 +57,11 @@ std::vector<Game::OptionRow> Game::optionRows() const {
 bool Game::optionEnabled(OptionRow row) const {
     switch (row) {
         // Not in the engine yet.
-        case OptionRow::Darkness:
         case OptionRow::SaveImage:
         case OptionRow::EffectVolume:
-        case OptionRow::MusicVolume:
+        case OptionRow::MusicVolume: return false;
         case OptionRow::MissionList:
-        case OptionRow::Map: return false;
+        case OptionRow::Map: return map_ && player_;
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
@@ -199,6 +198,14 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::Help:
             closeOptions();
             helpOpen_ = true;
+            break;
+        case OptionRow::MissionList:
+            closeOptions();
+            if (!missionsOpen_) toggleMissions();
+            break;
+        case OptionRow::Map:
+            closeOptions();
+            if (!mapOpen_) toggleAreaMap();
             break;
         case OptionRow::SaveAndTitle:
             if (saveGame()) {
@@ -364,7 +371,7 @@ void Game::renderHelp() {
         {"F1-F8", "SPELL ON RIGHT BUTTON", true},
         {"F9", "ATTACK ON RIGHT BUTTON", true},
         {"1-8", "USE BELT POCKET ITEM", true},
-        {"B", "LAY A MINE", false},
+        {"B", "LAY A MINE", true},
         {"P", "INCREASED-POWER MODE", false},
         {"CTRL", "RUN WHILE HELD", true},
         {"SHIFT", "STOP; ATTACK IN PLACE", true},
@@ -375,8 +382,8 @@ void Game::renderHelp() {
         {"I", "ITEMS WINDOW", true},
         {"X", "SPECIAL ITEMS WINDOW", false},
         {"M", "MAGIC WINDOW", false},
-        {"Q", "MISSION LIST", false},
-        {"N", "MAP", false},
+        {"Q", "MISSION LIST", true},
+        {"N", "MAP; ARROWS SCROLL IT, ENTER CENTERS IT", true},
         {"R", "SWITCH WALK/RUN", true},
         {"H", "HELP", true},
         {"PRINT SCREEN", "SCREEN SHOT", true},

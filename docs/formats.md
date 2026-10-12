@@ -193,18 +193,22 @@ Townspeople have three charts: idle, walk and one more.
 
 Each scenario folder (`Scenario.Mct`, `.Scs` script, `.Njp` portraits) is
 one place at one point in the story. Several can share a map. Read by
-ShadowFlare.exe at 0x427b50. All 209 files parse with 12 bytes left over.
+ShadowFlare.exe at 0x427b50. All 209 files parse to their last byte.
 
 ```
 char magic[16]          "MCED DATA v0000\x1a"
 char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
 char mapPath[0x104]     e.g. Map\c02_00.map
-i32  unknown[3]
+i32  unknown[2]
+i32  areaKind          0 town, 1 field, 2 caravan, 3 boss room, 4 ruins/tower/fort,
+                        5 cave, 6 shrine (scenario + 0x6c)
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"
 3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
 4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
 i32  n; EntryPoint[n]   where the party appears: i32 id, x, y, direction
-12 more bytes, unknown
+i32  flags[2]           scenario + 0x2c and + 0x70, use not traced
+i32  light              how light the area is: 2000 lit (towns, fields), 1000
+                        dark beyond the lights, 1200-1600 dim (see Darkness)
 ```
 
 Record (same layout in every group; only the trailing block size differs):
@@ -223,7 +227,7 @@ i32  rect[4]            left, top, right, bottom around (x, y)
 i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
 i32  n; i32 unknown[n]
 i32  hasTable; if 1: i32 m; i32 a[m]; i16 b[m], c[m], d[m]
-i32  unknown
+i32  light              the light it carries, Dark.njp part light + 1; -1 none
 u8   extra[0x34 | 0x2c | 0x13c | 0x10]   per group: objects, people, enemies, items
 ```
 
@@ -497,9 +501,12 @@ descriptions. The numeric tables found so far:
 - 900-907: the hero's stats, 13 rows by one column per level in a class
   (level-up function 0x412fb0, which reads table
   `901 + 2 * map[class] - [character+0x28]`). 900/901 hold the starting
-  stats in column 0 and four classless levels (900 looks like the male
-  hero: more health and attack); 902/903 the warrior, 904/905 the
-  wizard, 906/907 the hunter. Each level-up first stores the class held
+  stats in column 0 and four classless levels, 900 for the hero and 901
+  for the heroine (the table is `0x385 - [character+0x28]` and the sex
+  byte is 1 for the hero, see A new game); 902/903 the warrior, 904/905
+  the wizard (905, the witch, keeps 15 health a level to level 25 and 50
+  magic to level 21), 906/907 the hunter. The odd tables are otherwise
+  the same as the even ones. Each level-up first stores the class held
   in a byte per level (+0xec + level) and then counts that class's bytes:
   the n-th level gained in a class reads column n - 1. A new hero's byte 0
   is the mercenary (16), so mercenary levels read 900 from column 1. The
@@ -629,8 +636,34 @@ accessories are not drawn.
 
 ## A new game (ShadowFlare.exe 0x440f70)
 
-The title screen's New Game makes an empty hero (0x421a00) and 0x440f70
-fills it in:
+The title screen's New Game opens the Create New Character screen
+(0x421a00 sets it up, 0x423ca0 runs it each frame), drawn from
+`System/Select/Pattern/Select.njp`, whose patterns carry their screen
+positions:
+
+| Patterns | What |
+| --- | --- |
+| 41, 36 | the background and the title, CREATE NEW CHARACTER |
+| 0/1, 2/3, 4/5 | EXIT, BACK and OK, dim/lit (lit under the pointer) |
+| 7/8, 9/10 | the hero and the heroine, dim/lit; 11 and 12 their shades, drawn at half strength |
+| 34/35 | NAME, dim while choosing, lit while typing |
+| 38; 22/23, 24/25, 20/21 | the game-mode window: ONLINE MODE, SINGLE MODE, BACK |
+| 37, 6/13, 14-19, 26-33, 39, 40, 42-65 | the Load Game screen's (LOAD DATA, DELETE, YES/NO, slot numbers) |
+
+Clicking a figure (hero x 168-302, heroine 390-489, y 107-378; the arrow
+keys and Enter too) sets the new hero's sex byte (+0x18 of the record that
+becomes player +0x28): 1 for the hero, 0 for the heroine. Over 20 frames
+the other figure fades out and the chosen one slides 97 pixels to the
+middle, and an edit box opens at (190, 407) for the name (the manual: under
+20 characters), drawn at (194, 411) in white over a black shadow. OK (or
+Enter) with a name sets the job to 16, mercenary, and opens the mode
+window; Enter with no name, or BACK, slides the figure back. In the mode
+window SINGLE MODE fades out over 14 frames into the game; BACK returns to
+the name. GETPLAYERSEX (0x433b1f) reads the sex byte; the player's
+animation is `Player\Male` or `Player\Female` by it (0x412806).
+
+0x440f70 then fills in the hero, starting stats from table `0x385 - sex`
+(900 for the hero, 901 for the heroine) and:
 
 - saved scenario and entry (+0x15a4, +0x15a8) both 0, so every new game
   begins in scenario 0, Remote Town (`Map\f00_01`), at entry point 0, just
@@ -648,8 +681,88 @@ Syria the healer (12000002) gives the first mission, `SETQUESTFLAG 0 1 0`
 (the goblins north-east of town). `SETQUESTFLAG quest state` (0x433f29)
 sets QUEST[quest]; state 2 clears a mission only when it is 1, taken.
 
+## Missions and the compass
+
+The game object at 0x482df4 keeps the mission states at +0xa0c4 (a
+pointer, with the count at +0xa0c0; `DAT_0048ceb8`), saved with the game.
+`SETQUESTFLAG quest state flag` stores any state but 2 as it is and plays
+sound 0x41; state 2 first checks a second array at 0x48cebc: only if that
+mission was never cleared before does it mark it cleared there and, when
+the state is 1, set it to 2 and play sound 0x42. The second array is not
+saved, and it is marked even when the mission was not taken, so the first
+clear can be spent before the mission is given. The third operand only
+matters in network play (it tells the other players). Our engine clears a
+taken mission every time; original mode keeps the original's way
+(`Rules::missionsClearOnlyWhenTaken`).
+
+Titles are Table.Tbd table 41, row = mission; descriptions are table
+700 + mission, one line per row.
+
+The mission list (flag 0x48ce54, drawn by 0x40cea0 on layer 14) fills the
+screen above the bottom bar with Status.njp pattern 10. The page buttons
+are patterns 110 and 111, lit 112 and 113, at (276, 10) and (344, 10);
+the page is +0xa910. Page p shows missions 24p to 24p + 23: mission m in
+column (m / 12) % 2, row m % 12, with pattern 25 (a closed lock, mission
+taken, title in grey 224) or 26 (open, cleared, grey 128) at
+(52 + 294 col, 48 + 27 row) and its title 27 right and 6 down, with a
+black shadow a pixel down and right. A click on a row's 294 x 27 strip
+opens its description (+0xa97c, -1 none): pattern 59 tinted (800, 1000,
+1200) under the frame 58, the title as `[%s]` at (190, 96) in (224, 192,
+0) and the lines from (190, 120), 16 apart. A click above y = 413 closes
+the description. Q (0x4429b0), the Settings Menu row and a click on the
+lock or the mission's name toggle the list; opening it closes the other
+windows (0x4170f0) and the description.
+
+The bottom line (0x4050f0): `DRAWQUESTNAME quest` (0x433868) sets the
+mission +0xa908 and a timer +0xa90c of 600 frames; while it runs the
+title shows as `[%s]` in grey 224 with its right end at x = 612 (588
+when the class-change icon blinks at 616), y = 368. While any mission is
+taken, StatusIcon.njp pattern 0 (a lock) sits at (616, 360). Both hide
+while a window covers the right half of the screen.
+
+`SETCOMPASSES msg` (0x43389b), for the player's own party only, copies the
+message to +0xa804 and zeroes the counter +0xa800. 0x412220 then draws
+`Player/Common/Compasses.Caf` (animation block 501) chart 0, direction 8,
+at the top left of the screen, one frame a tick (eight) and then the last;
+from tick frames + 150 it fades over 30 ticks, and at frames + 180 the
+counter goes back to -1. The name is at (108, 32) in grey 224 with a black
+shadow. While the chat line is open (0x48ce5c) the compass stays, at its
+last frame.
+
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
+
+## Darkness and the area map
+
+**Darkness** (frame code 0x41e4f0). With Display Darkness on (option
+0x48d538), the view not split and the area's light (+0xa9f8, from the
+Mct's last word) not 2000, the frame copies `System/Game/Pattern/Dark.njp`
+part 0 (8-bit, 640 x 420, an ellipse brightest at the middle) into a light
+buffer, adds part 3 (160 x 110) at each player and part light + 1 at each
+character whose Mct light word is not -1, skipping dead monsters. The add
+is RKC_DIB::TransferToDIBEx mode 4, a saturating add (its table at
+HISPEEDMODE + 0xfa300 is min(255, a + b)). The buffer gets a grey palette
+from the light L: value i becomes i + i (L - 1000) / 1000 up to 1000 and
+i + (255 - i) (L - 1000) / 1000 above, and is drawn on layer 0x12 in mode
+0x1009, which multiplies the top 420 rows of the screen. Dark.njp's parts
+1-6 are 90 x 60, 120 x 80, 160 x 110, 200 x 130, 240 x 160 and 280 x 200.
+
+**The area map** (0x40d4d0, open while +0xa070 is set). N (0x4429b0) or
+the Settings Menu's MAP row (0x4103c0) toggle it; opening it closes the
+other left-hand windows, the mission list among them. It clips to (32, 40)
+- (319, 375), fills it black and draws the scenario's own
+`Scenario.Njp` pattern 0, the whole area at a tenth of its size, with the
+hero at (160, 210) less the scroll; the arrow keys scroll it 16 across and
+10 down, Enter centers it again. Over it goes the explored mask in mode
+0x1024, so unseen cells stay black. The mask (0x417f30) is one byte per
+cell of the map picture, saved as `Save\M<scenario><slot>.msk`; while
+the hero's screen position changes, 0x418370 marks the 68 x 46 cells
+from ((x - 340) / 10, (y - 230) / 10), about a screen. The hero is
+`MapIcon.njp` pattern 0 (an arrow) and 1 (PLAYER), shown 15 frames of
+every 20. The frame is `Status.njp` pattern 0x47 (320 x 415) and its gem
+pattern 0x76, pulsing over 60 frames; the area's name (the compass's,
++0xa804) sits at (72, 50) on a half-dark box. Clicks left of x = 320 and
+above y = 412 go to the map, and a right click there closes it.
 
 ## Not decoded yet
 

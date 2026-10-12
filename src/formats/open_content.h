@@ -11,6 +11,7 @@
 #include "formats/animation.h"
 #include "formats/item_data.h"
 #include "formats/map_layers.h"
+#include "formats/missions.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "formats/sprite_bank.h"
@@ -93,6 +94,10 @@ ShopLists parseShops(std::span<const std::uint8_t> text);
 // drops.txt: what monsters leave behind, by the drop list number in their
 // enemy= line, standing in for Table.Tbd tables 30 and 31.
 DropTables parseDrops(std::span<const std::uint8_t> text);
+
+// missions.txt: each mission's title and description, standing in for
+// Table.Tbd table 41 and tables 700 on.
+Missions parseMissions(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);

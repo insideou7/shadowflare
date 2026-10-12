@@ -59,8 +59,9 @@ void Game::chooseMenuItem(MenuItem item) {
             if (loadGame()) menuOpen_ = false;
             break;
         case MenuItem::NewGame:
-            newGame();
+            // The Create New Character screen first, as in the original.
             menuOpen_ = false;
+            openNewCharacter();
             break;
         case MenuItem::Options: openOptions(false); break;
         case MenuItem::Quit: quit_ = true; break;
@@ -71,6 +72,8 @@ void Game::newGame() {
     hand_.reset();
     inventory_.clear();
     flags_.clear();
+    explored_.clear();
+    mapOpen_ = false;
     playerLevel_ = 1;
     career_ = {};
     showStatus_ = false;

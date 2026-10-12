@@ -1,14 +1,18 @@
 // Unit tests for the game rules that need neither SDL nor game data.
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "logic/explored_map.h"
+#include "logic/lighting.h"
 #include "formats/table_data.h"
 #include "logic/magic.h"
+#include "logic/mines.h"
 #include "logic/movement.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
@@ -89,6 +93,38 @@ void testScriptQuestFlags() {
     check(flags[{S::kQuest, 0}] == 1, "SETQUESTFLAG 1 takes the mission");
     sf::ScriptRunner(script, flags).run(0);
     check(flags[{S::kQuest, 0}] == 2, "SETQUESTFLAG 2 clears a taken mission");
+
+    // Original mode: the first clear is spent even on a mission not taken,
+    // so the mission stays taken once it is given (0x48cebc).
+    sf::ScriptFlags original;
+    auto run = [&](int sentence) {
+        sf::ScriptRunner runner(script, original);
+        runner.setRules(sf::Rules::original());
+        runner.run(sentence);
+    };
+    run(0);
+    run(1);
+    run(0);
+    check(original[{S::kQuest, 0}] == 1, "original mode: a mission cleared before it was taken stays taken");
+    check(original[{sf::kQuestClearedType, 0}] == 1, "original mode remembers the clear");
+}
+
+void testScriptMissionNames() {
+    // DRAWQUESTNAME names a mission; SETCOMPASSES names the area from a message.
+    using S = sf::ScenarioScript;
+    struct Host : sf::ScriptHost {
+        int quest = -1;
+        std::string area;
+        void showQuestName(int q) override { quest = q; }
+        void showAreaName(const std::string& name) override { area = name; }
+    } host;
+    S script;
+    script.messages[1000059] = "Remote Town\n";
+    script.sentences = {{Cmd{S::kSetCompasses, {{S::kMessage, 1000059}}}, Cmd{S::kDrawQuestName, {constant(3)}}}};
+    sf::ScriptFlags flags;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(host.area == "Remote Town\n", "SETCOMPASSES passes its message on");
+    check(host.quest == 3, "DRAWQUESTNAME passes its mission on");
 }
 
 sf::AiControl::Entry entry(int action, int priority, int weight, int minGap = -2, int maxGap = -2) {
@@ -213,6 +249,19 @@ void testLevels() {
     check(sf::heroStats(16)[S::kAttack] == 26 + 90 + 7, "a warrior's attack: 9 for 10 levels, then 7");
     check(sf::heroStats(10, sf::HeroClass::Wizard)[S::kMagicAttack] == 18 + 60, "a wizard's magic");
     check(sf::heroStats(9, sf::HeroClass::Hunter)[S::kAttackSpeed] == 102, "a hunter's speed every second level");
+    // The heroine: table 901, then 903/905/907.
+    using C = sf::HeroClass;
+    constexpr auto F = sf::HeroSex::Female;
+    const auto her = sf::heroStats(1, C::Warrior, F);
+    check(her[S::kHp] == 140 && her[S::kMp] == 160 && her[S::kAttack] == 8 && her[S::kDefense] == 12,
+          "the heroine starts with table 901's stats");
+    const auto herFive = sf::heroStats(5, C::Mercenary, F);
+    check(herFive[S::kHp] == 300 && herFive[S::kAttack] == 20 && herFive[S::kDefense] == 32, "her classless levels");
+    check(sf::heroStats(27, C::Wizard)[S::kMp] == 1230 && sf::heroStats(27, C::Wizard, F)[S::kMp] == 1250,
+          "a witch gains 50 magic a level for one level longer than a wizard");
+    check(sf::heroStats(20, C::Warrior, F)[S::kHp] - sf::heroStats(20, C::Warrior)[S::kHp] == -10,
+          "a heroine warrior grows as the hero does");
+    check(sf::className(C::Wizard, F) == "Witch" && sf::className(C::Wizard) == "Wizard", "a wizard heroine is a witch");
 
     check(sf::hitChance(140, 0) == 98 && sf::hitChance(50, 60) == 20 && sf::hitChance(70, 20) == 50,
           "hit chance is hit minus evasion, from 20 to 98");
@@ -490,6 +539,26 @@ void testCareer() {
     check(sf::Career::at(9, C::Hunter).current == C::Hunter && sf::Career::at(4).current == C::Mercenary, "Career::at");
 }
 
+void testMines() {
+    auto t = sf::MagicTables::standard();
+    // Table 23: 40 at level 1, ten more a level to 280 at 25, then steps
+    // of 15, 20 and 30 to 2000 at 100.
+    check(sf::mines::power(t, 1, 0) == 40 && sf::mines::power(t, 25, 0) == 280 && sf::mines::power(t, 26, 0) == 295 &&
+              sf::mines::power(t, 70, 0) == 1100 && sf::mines::power(t, 100, 0) == 2000,
+          "mine power follows table 23");
+    check(sf::mines::power(t, 3, 15) == 75 && sf::mines::power(t, 1, -100) == 1, "Mine Effect adds to it, at least 1");
+    check(sf::mines::power(t, 0, 0) == 40 && sf::mines::power(t, 150, 0) == 2000, "levels outside the table use its ends");
+    check(sf::mines::most(0) == 10 && sf::mines::most(3) == 13, "ten mines, more with Mine Count");
+    // No element levels behind the blast: power x 90-110% - defence.
+    check(sf::mines::damage(t, 100, 3, 20, 0) == 70 && sf::mines::damage(t, 100, -1, 20, 2) == 90, "blast damage");
+    check(sf::mines::damage(t, 40, 0, 500, 1) == 1, "a blast does at least 1");
+    // From the player's Table.Tbd when it has table 23.
+    sf::GameTables tables;
+    tables.tables[23] = {2, 1, {11, 22}, {}};
+    t = sf::MagicTables::fromTables(tables);
+    check(sf::mines::power(t, 2, 0) == 22 && sf::mines::power(t, 3, 0) == 60, "table 23 is read from Table.Tbd");
+}
+
 void testMagic() {
     const auto t = sf::MagicTables::standard();
     using L = sf::ElementLevels;
@@ -545,6 +614,42 @@ void testMagic() {
 
     check(sf::Rules::ours().shieldsCostTheirOwnMp && !sf::Rules::ours().originalMode(), "our fixes are on by default");
     check(!sf::Rules::original().shieldsCostTheirOwnMp && sf::Rules::original().originalMode(), "original mode turns them off");
+    check(sf::Rules::ours().explosionUsesItsOwnLevel && !sf::Rules::original().explosionUsesItsOwnLevel,
+          "Explosion's level is a switchable fix");
+}
+
+void testLighting() {
+    const auto dark = sf::lighting::levels(1000);
+    check(dark[0] == 0 && dark[128] == 128 && dark[255] == 255, "light 1000 keeps the light as it is");
+    const auto darker = sf::lighting::levels(500);
+    check(darker[200] == 100 && darker[255] == 128, "below 1000 the light is scaled down");
+    const auto lit = sf::lighting::levels(1500);
+    check(lit[0] == 127 && lit[255] == 255, "above 1000 it is lifted towards white");
+
+    sf::LightMap screen{4, 3, std::vector<std::uint8_t>(12, 200)};
+    const sf::LightMap lamp{2, 2, {100, 0, 30, 60}};
+    sf::lighting::add(screen, lamp, 0, 0);  // its middle at (0, 0): only its bottom right lands
+    check(screen.at(0, 0) == 255 && screen.at(1, 0) == 200 && screen.at(0, 1) == 200, "lights add, saturating, clipped to the screen");
+    const auto e = sf::lighting::ellipse(160, 110);
+    check(e.at(80, 55) >= 250 && e.at(0, 0) == 0 && e.at(80, 0) < 10, "our light is brightest in the middle");
+}
+
+void testExploredMap() {
+    sf::ExploredMap m(10, 5);
+    m.reveal(-2, 3, 5, 9);
+    check(m.seenAt(0, 3) && m.seenAt(2, 4) && !m.seenAt(3, 4) && !m.seenAt(0, 2), "reveal marks the block on the map");
+    check(!m.seenAt(-1, 3) && !m.seenAt(0, 5), "off the map is never seen");
+    check(m.encode() == "10,5,30,3,7,3,7", "the mask is written as runs");
+    const auto back = sf::ExploredMap::decode(m.encode());
+    check(back.width == 10 && back.height == 5 && back.seen == m.seen, "the mask survives a write and a read");
+    check(sf::ExploredMap::decode(sf::ExploredMap(3, 2).encode()).seen == std::vector<std::uint8_t>(6, 0), "an unseen map");
+    bool threw = false;
+    try {
+        sf::ExploredMap::decode("2,2,5");
+    } catch (const std::exception&) {
+        threw = true;
+    }
+    check(threw, "runs longer than the map are rejected");
 }
 
 void testSettings() {
@@ -574,8 +679,11 @@ void testSettings() {
 }
 
 int main() {
+    testLighting();
+    testExploredMap();
     testSettings();
     testMagic();
+    testMines();
     testScriptTalkAndShop();
     testShopStock();
     testScriptStorageAndLabels();
@@ -587,6 +695,7 @@ int main() {
     testScriptFlagsAndOperators();
     testScriptStopsAtChange();
     testScriptQuestFlags();
+    testScriptMissionNames();
     testAiDistanceCondition();
     testAiPriorityAndWeights();
     testAiHealthCondition();

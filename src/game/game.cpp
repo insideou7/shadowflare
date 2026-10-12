@@ -62,8 +62,15 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
             if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
     }
-    if (skin_) playerModel_ = skin_->character("Player/Male/Animation00");
-    if (!playerModel_) playerModel_ = CharacterModel::load(*data_, "Player/Male/Animation00");
+    // Both of the player's figures (0x412806 picks by the hero's sex); a
+    // pack without a heroine draws her as the hero.
+    for (const HeroSex sex : {HeroSex::Male, HeroSex::Female}) {
+        const std::string stem = sex == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
+        auto& model = playerModels_[static_cast<int>(sex)];
+        if (skin_) model = skin_->character(stem);
+        const bool there = data_->exists(stem + ".anim") || data_->exists(stem + ".caf");
+        if (!model && (sex == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
+    }
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
             ai_ = AiControl::parse(*raw);
@@ -75,8 +82,9 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     }
     loadItems();
     loadLevelCurve();
+    loadMissions();
     indexScenarios();
-    if (playerModel_) player_.emplace(&*playerModel_);
+    if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
     giveStartingKit();
     updateEquipment();
     if (mapNames_.empty()) {
@@ -146,6 +154,9 @@ void Game::loadScenario(const std::string& dir) {
     talkTarget_.reset();
     objectTarget_.reset();
     labels_.clear();
+    // The original's scenario scripts name their area with SETCOMPASSES;
+    // an open content pack's scenario names it with its title.
+    if (!dir.empty() && data_->read(dir + "/scenario.txt") && !control_.title.empty()) showAreaName(control_.title);
     if (!script_) return;
     for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
     startScripts_ = true;
@@ -346,6 +357,10 @@ void Game::handleEvent(const SDL_Event& event) {
         optionsEvent(event);
         return;
     }
+    if (newCharacter_) {
+        newCharacterEvent(event);
+        return;
+    }
     if (menuOpen_) {
         menuEvent(event);
         return;
@@ -354,6 +369,8 @@ void Game::handleEvent(const SDL_Event& event) {
         dialogueEvent(event);
         return;
     }
+    // The open map takes the arrow keys and Enter, held keys repeating.
+    if (event.type == SDL_KEYDOWN && mapOpen_ && areaMapKey(event.key.keysym.sym)) return;
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
         case SDL_KEYDOWN:
@@ -364,6 +381,10 @@ void Game::handleEvent(const SDL_Event& event) {
                     // none is open.
                     if (helpOpen_) {
                         helpOpen_ = false;
+                    } else if (missionsOpen_) {
+                        closeMissions();
+                    } else if (mapOpen_) {
+                        closeAreaMap();
                     } else if (openShop_) {
                         if (!hand_) closeShop();
                     } else if (showInventory_) {
@@ -384,9 +405,16 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
                 case SDLK_s:
-                    if (!openShop_) showStatus_ = !showStatus_;
+                    if (!openShop_) {
+                        showStatus_ = !showStatus_;
+                        if (showStatus_) {
+                            closeMissions();
+                            closeAreaMap();
+                        }
+                    }
                     break;
                 case SDLK_i:
+                    closeMissions();
                     if (openShop_) {
                         closeShop();
                     } else if (showInventory_) {
@@ -418,7 +446,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     useBelt(key % Inventory::kBeltWidth, key / Inventory::kBeltWidth);
                     break;
                 }
-                case SDLK_b: notYet("Mines"); break;
+                case SDLK_b: layMine(); break;
                 case SDLK_p: notYet("Increased-power mode"); break;
                 case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
                 case SDLK_SPACE:
@@ -431,8 +459,8 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_x: notYet("The special items window"); break;
                 case SDLK_m: notYet("The magic window"); break;
-                case SDLK_q: notYet("The mission list"); break;
-                case SDLK_n: notYet("The map"); break;
+                case SDLK_q: toggleMissions(); break;
+                case SDLK_n: toggleAreaMap(); break;
                 case SDLK_HOME:
                     if (map_) placePlayer();
                     break;
@@ -446,11 +474,15 @@ void Game::handleEvent(const SDL_Event& event) {
                 helpOpen_ = false;
                 break;
             }
+            if (missionsClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && missionHudClick(event.button.x, event.button.y)) break;
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (statusClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && partnerGaugeClick(event.button.x, event.button.y)) break;
             if (beltClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            if (areaMapClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
                 partnerOrder(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) {
@@ -533,7 +565,9 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 
 void Game::tick() {
     ++ticks_;
-    if (!map_ || menuOpen_ || optionsOpen_) return;  // the world waits while a menu is open
+    if (newCharacter_) tickNewCharacter();
+    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
+    tickMissions();
     if (startScripts_) {
         startScripts_ = false;
         runEvent(ScenarioScript::kOnStart);
@@ -580,6 +614,7 @@ void Game::tick() {
         changeScenario(number, entry);
     }
     updateCamera();
+    tickAreaMap();
 }
 
 // Runs the script of each trigger area the player has just stepped into.
@@ -769,10 +804,12 @@ void Game::tickPlayer() {
     // mouse only, and its letter keys open windows).
     const Uint8* keys = SDL_GetKeyboardState(nullptr);
     double kx = 0, ky = 0;
-    if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
-    if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
-    if (keys[SDL_SCANCODE_UP]) ky -= 1;
-    if (keys[SDL_SCANCODE_DOWN]) ky += 1;
+    if (!mapOpen_) {  // the open map scrolls with them instead
+        if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
+        if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
+        if (keys[SDL_SCANCODE_UP]) ky -= 1;
+        if (keys[SDL_SCANCODE_DOWN]) ky += 1;
+    }
 
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
@@ -1016,6 +1053,8 @@ void Game::render(double interpolation) {
     }
     if (optionsOpen_) {
         renderOptions();
+    } else if (newCharacter_) {
+        renderNewCharacter();
     } else if (menuOpen_) {
         renderMenu();
     }
@@ -1087,27 +1126,7 @@ void Game::renderMap() {
                     ++it;
                 }
             }
-            if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
-                if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
-                continue;
-            }
-            if (map_->isShadowBank(o.bank) != shadows) continue;
-            const SpriteBank* bank = map_->bank(o.bank);
-            if (!bank) continue;
-            int sx, sy;
-            worldToScreen(o.x, o.y, sx, sy);
-            sx -= camX;
-            sy -= camY;
-            if (sx < -1024 || sy < -1024 || sx > kScreenWidth + 1024 || sy > kScreenHeight + 1024) continue;
-            const SpriteTexture* sprite = sprites_.get(*bank, o.pattern, false);
-            if (!sprite) continue;
-            SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-            if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) continue;
-            if (shadows) {
-                SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-                SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
-            }
-            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            drawObject(o, shadows, camX, camY, shadowAlpha);
         }
         for (const Drawable& d : pending) draw(d);
     }
@@ -1115,19 +1134,66 @@ void Game::renderMap() {
     // walls; where nothing covers them it lands on itself and changes nothing.
     if (player_ && settings_.seeThroughPlayer) player_->draw(renderer_, sprites_, camX, camY, shadowAlpha, 96);
     renderSpells(camX, camY);
+    if (darknessShown()) renderDarkness(camX, camY);
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    renderCompass();
     renderShop();
     renderStatus();
     renderInventory();
+    renderMissions();
+    renderAreaMap();
     renderHud();
+    renderMissionHud();
     renderPartnerGauge();
     renderDialogue();
     renderHelp();
 }
 
 // The original's ground: pre-drawn chips on a screen-aligned grid.
+// One map object, in the shadow pass (its shadow, if it is one) or the
+// other (its picture, or the skin's in its place).
+void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha) {
+    if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
+        if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
+        return;
+    }
+    if (map_->isShadowBank(o.bank) != shadows) return;
+    const SpriteBank* bank = map_->bank(o.bank);
+    if (!bank) return;
+    int sx, sy;
+    worldToScreen(o.x, o.y, sx, sy);
+    sx -= camX;
+    sy -= camY;
+    if (sx < -1024 || sy < -1024 || sx > kScreenWidth + 1024 || sy > kScreenHeight + 1024) return;
+    const SpriteTexture* sprite = sprites_.get(*bank, o.pattern, false);
+    if (!sprite) return;
+    SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) return;
+    if (shadows) {
+        SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
+        SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
+    }
+    SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+}
+
+// The map's ground and objects with no one on them, for the map window.
+void Game::renderScenery(int camX, int camY) {
+    const auto& g = map_->ground();
+    if (g.isoTile > 0) {
+        renderIsoGround(camX, camY);
+    } else if (skin_) {
+        skin_->renderGround(camX, camY);
+    } else {
+        renderChips(camX, camY);
+    }
+    const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
+    for (const bool shadows : {true, false}) {
+        for (std::size_t i : drawOrder_) drawObject(map_->objects().objects[i], shadows, camX, camY, shadowAlpha);
+    }
+}
+
 void Game::renderChips(int camX, int camY) {
     const auto& g = map_->ground();
     const int x0 = std::max(0, camX / g.chipWidth - 1);

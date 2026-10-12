@@ -86,6 +86,9 @@ MagicTables MagicTables::fromTables(const GameTables& tables) {
             if (r < 4 && c == 0) t.classWeights[static_cast<std::size_t>(cls)][static_cast<std::size_t>(r)] = v;
         });
     }
+    grid(23, [&](int r, int c, int v) {
+        if (r < static_cast<int>(t.minePower.size()) && c == 0) t.minePower[static_cast<std::size_t>(r)] = v;
+    });
     grid(7, [&](int r, int c, int v) {
         if (r < 21 && c == 0) t.elementAttack[static_cast<std::size_t>(r)] = v;
     });

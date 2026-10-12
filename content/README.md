@@ -5,7 +5,7 @@ seven areas (a village meadow, the old waterworks under it, caves and a
 coal mine, a fort, the wilds, the deep caverns and a castle), the
 original's first area laid out on its routes with our own walls and
 paths (Remote Town, Cold Svalt Town and the fields, forests and dungeons
-round them), the player with his equipment, 24 kinds of monster, the
+round them), the hero and the heroine with their equipment, the Create New Character screen (`System/Select`, drawn by `tools/art/select_screen.py` with figures from `tools/art/portraits.py`), 24 kinds of monster, the
 townspeople, items, the inventory panel, the shop window, the speech
 balloon, the font and the spell effects (`Character/OPTION`, painted by
 `tools/art/effects.py`). The formats are described in
@@ -18,9 +18,7 @@ from scratch, with no original pictures traced or reused. Monster stats
 and behaviour (`ai.txt`) and the item definitions (`items.txt`) are our
 own too.
 
-## Licence
+## License
 
-Everything in this folder is licensed under the Creative Commons
-Attribution-ShareAlike 3.0 licence ([LICENSE-CC-BY-SA-3.0.txt](LICENSE-CC-BY-SA-3.0.txt)),
-separately from the engine's code, which is MIT. Credit it as "ShadowFlare
-open content, by the contributors to insideou7/shadowflare".
+Everything in this folder is under the MIT license, the same as the
+engine's code; see [LICENSE](../LICENSE) at the top of the repository.

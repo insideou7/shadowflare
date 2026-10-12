@@ -452,6 +452,32 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             s.script.sentences.push_back({change});
             s.script.triggers.push_back({0, ScenarioScript::kOnJudge, ScenarioControl::idBase(Group::Object) + area.id, sentence});
             c.placements.push_back(std::move(area));
+        } else if (key == "light") {
+            // light=level: how light the area is, 2000 fully lit (the
+            // default), 1000 dark beyond the hero's own light.
+            c.light = lines.ints(value, 1)[0];
+        } else if (key == "lamp") {
+            // lamp=x,y,size: a light in the dark at a world position, size
+            // 0 (the smallest) to 5, as the original's lit objects carry.
+            const auto v = lines.ints(value, 3);
+            if (v[2] < 0 || v[2] > 5) lines.fail("lamp size must be 0 to 5");
+            ScenarioControl::Placement lamp;
+            lamp.group = Group::Object;
+            lamp.id = nextId[0]++;
+            lamp.x = v[0];
+            lamp.y = v[1];
+            lamp.direction = 8;
+            lamp.light = v[2];
+            c.placements.push_back(std::move(lamp));
+        } else if (key == "glow") {
+            // glow=size: the enemy or person on the line before carries a
+            // light of that size (0-5) with them, as some of the original's do.
+            const int size = lines.ints(value, 1)[0];
+            if (size < 0 || size > 5) lines.fail("glow size must be 0 to 5");
+            if (c.placements.empty() || (c.placements.back().group != Group::Enemy && c.placements.back().group != Group::Person)) {
+                lines.fail("glow must follow an enemy or person line");
+            }
+            c.placements.back().light = size;
         } else {
             lines.fail(std::format("unknown key '{}'", key));
         }
@@ -638,6 +664,37 @@ ShopLists parseShops(std::span<const std::uint8_t> text) {
         list->push_back({cls->second, lines.toInt(f[1]), f.size() == 3 ? lines.toInt(f[2]) : 1});
     }
     return lists;
+}
+
+// [mission <number>] sections; see docs/content.md.
+Missions parseMissions(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    Missions missions;
+    Missions::Mission* mission = nullptr;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "mission") lines.fail("expected [mission <number>]");
+            const int number = lines.toInt(words[1]);
+            if (number < 0 || number > 999) lines.fail("mission numbers go from 0 to 999");
+            if (number < missions.count() && !missions.list[static_cast<std::size_t>(number)].title.empty()) {
+                lines.fail("mission defined twice");
+            }
+            if (number >= missions.count()) missions.list.resize(static_cast<std::size_t>(number) + 1);
+            mission = &missions.list[static_cast<std::size_t>(number)];
+            continue;
+        }
+        std::string_view key, value;
+        if (!mission || !keyValue(*line, key, value)) lines.fail("expected [mission <number>] then key=value lines");
+        if (key == "title") {
+            mission->title = value;
+        } else if (key == "text") {
+            mission->lines.emplace_back(value);
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    return missions;
 }
 
 // [drops <list>] sections; see docs/content.md.

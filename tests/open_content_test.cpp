@@ -163,6 +163,17 @@ void testScenario() {
     check(l.size() == 2 && l[0].stats.dropList == 2 && l[0].stats.goldChance == 10 && l[0].stats.goldMax == 8, "enemy loot fields");
     check(l.size() == 2 && l[1].group == sf::ScenarioControl::Group::Item && l[1].itemClass == 3 && l[1].x == 700,
           "scenario item");
+
+    const auto dark = sf::open::parseScenario(bytes("light=1000\nenemy=1,5,6,0,30,4,480,goblin\nglow=1\nlamp=700,800,3\n"));
+    const auto& d = dark.control;
+    check(d.light == 1000 && d.placements.size() == 2, "dark scenario");
+    check(d.placements[0].light == 1, "a glowing enemy");
+    check(d.placements[1].group == sf::ScenarioControl::Group::Object && d.placements[1].light == 3 && d.placements[1].x == 700 &&
+              d.placements[1].y == 800,
+          "a lamp");
+    check(sf::open::parseScenario(bytes("map=a\n")).control.light == sf::ScenarioControl::kLit, "scenarios are lit by default");
+    expectRejected("lamp size", "lamp=1,2,6\n", [](auto& d) { sf::open::parseScenario(d); });
+    expectRejected("glow alone", "glow=1\n", [](auto& d) { sf::open::parseScenario(d); });
 }
 
 void testScript() {
@@ -216,6 +227,13 @@ void testScript() {
               shops.at(2)[1].count == 6 && shops.at(2)[0].code == 7,
           "shop lists");
     expectRejected("sell outside a shop", "sell=weapon,0\n", [](auto& d) { sf::open::parseShops(d); });
+
+    const auto missions = sf::open::parseMissions(bytes("[mission 2]\ntitle=Find the well.\ntext=It is dry.\ntext=\ntext=Go.\n"));
+    check(missions.count() == 3 && missions.find(2) && missions.find(2)->title == "Find the well." &&
+              missions.find(2)->lines.size() == 3 && missions.find(2)->lines[1].empty() && missions.find(0)->title.empty(),
+          "missions");
+    expectRejected("title outside a mission", "title=x\n", [](auto& d) { sf::open::parseMissions(d); });
+    expectRejected("mission twice", "[mission 1]\ntitle=a\n[mission 1]\ntitle=b\n", [](auto& d) { sf::open::parseMissions(d); });
 
     const auto drops = sf::open::parseDrops(
         bytes("[drops 2]\nrolls=2\nchance=15\ngold=10,4,12\npick=consumable,0\npick=any,any,1,3\npick=nothing\n"));
