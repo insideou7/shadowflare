@@ -11,6 +11,11 @@ waterworks under it, the caves and coal mine below that, the fort above
 the mine, the open country beyond the fort and the deep caverns under it)
 and writes the
 pack's text files. Needs Pillow and numpy.
+
+The game's own content/ is this pack, shrunk to 256-colour pictures:
+
+    python3 tools/art/build_pack.py <rendered art folder> content
+    python3 tools/art/shrink.py content
 """
 
 import random
@@ -114,7 +119,7 @@ def meadow(rng, size):
 
 def main():
     art, out = Path(sys.argv[1]), Path(sys.argv[2])
-    for sub in ("Map", "Scenario", "Character", "Player"):
+    for sub in ("Map", "Scenario", "Character/ENEMY", "Character/PEOPLE", "Player"):
         shutil.rmtree(out / sub, ignore_errors=True)
     out.mkdir(parents=True, exist_ok=True)
     rng = random.Random(7)
@@ -135,9 +140,10 @@ def main():
     # Items: their definitions, inventory and ground pictures and the
     # inventory panel, all our own renders kept in content/ (tools/art/items.py).
     content = HERE.parent.parent / "content"
-    shutil.copy(content / "items.txt", out / "items.txt")
-    for folder in ("System/Game/Pattern", "Character/ITEM/00000007"):
-        shutil.copytree(content / folder, out / folder, dirs_exist_ok=True)
+    if out.resolve() != content.resolve():
+        shutil.copy(content / "items.txt", out / "items.txt")
+        for folder in ("System/Game/Pattern", "Character/ITEM/00000007"):
+            shutil.copytree(content / folder, out / folder, dirs_exist_ok=True)
 
     # Bank 0: ground tiles. Bank 1: props.
     size = 40
@@ -293,7 +299,7 @@ def main():
     (out / "Scenario" / "00000001").mkdir(parents=True, exist_ok=True)
     (out / "Scenario" / "00000001" / "scenario.txt").write_text("\n".join(lines) + "\n")
     shutil.copy(HERE.parent / "content" / "ai.txt", out / "ai.txt")
-    (out / "content.txt").write_text("# Art made for this project: see tools/art.\nname=ShadowFlare-style test\n"
+    (out / "content.txt").write_text("# Art made for this project: see tools/art.\nname=ShadowFlare open content\n"
                                      "start=meadow\nprojection=15,10\n")
     print(f"meadow: {len(objects)} objects")
 

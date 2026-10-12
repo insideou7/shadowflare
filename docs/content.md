@@ -2,9 +2,9 @@
 
 The engine can run on open replacement content instead of the original
 game's files. A content pack is a folder with a `content.txt` at its root;
-`content/` in this repository is one, built from
-[Flare: Empyrean Campaign](https://github.com/flareteam/flare-game)
-(CC-BY-SA 3.0) by `tools/content/import_flare.py`.
+`content/` in this repository is one: our own ShadowFlare-style art,
+made from scratch in Blender by the scripts in `tools/art/` (see
+"Rebuilding content/" below).
 
 The pack uses the same folder layout as the original game, so the same
 game code runs on either; only the file formats differ. Each reader in
@@ -33,13 +33,13 @@ Sections start with a `[name]` line.
 
 ### content.txt
 
-    name=Flare demo
-    start=goblin_camp        # map to open first
-    projection=20,10         # screen pixels per 100 world units, x and y
+    name=ShadowFlare open content
+    start=meadow             # map to open first
+    projection=15,10         # screen pixels per 100 world units, x and y
 
-The original game uses a 15/10 projection (a 3:2 diamond). Flare's art is
-drawn for 2:1, so the pack uses 20/10, which makes a 480-unit tile 192x96
-pixels on screen.
+The original game uses a 15/10 projection (a 3:2 diamond), and so does
+our art. A pack drawn for another angle can set its own; the Flare
+importer (below) uses 20/10, for Flare's 2:1 art.
 
 ### .sheet: sprite sheets
 
@@ -166,20 +166,38 @@ either. Every key but the section line may be left out. When the folder
 of a `ground` picture holds `Animation.anim`, the number is a chart of it
 instead, as with the original's animated item folders.
 
-## Rebuilding content/ from Flare
+## Rebuilding content/
 
-    git clone https://github.com/flareteam/flare-game /tmp/flare-game
-    python3 tools/content/import_flare.py /tmp/flare-game content
+The art is rendered with Blender's Python module (`bpy`) and laid out
+with Pillow and numpy:
 
-Needs Pillow. Which maps, monsters and player layers to import, and the
-monsters' stats and loot and the items lying on each map, are set at the
-top of the script. The item pictures and the inventory panel are our
-own Blender renders:
+    python tools/art/creatures.py hero /tmp/art/hero        # and every other
+    python tools/art/props.py /tmp/art/props                # script in tools/art
+    python3 tools/art/build_pack.py /tmp/art content
+    python3 tools/art/shrink.py content
+
+`build_pack.py` lays out the maps and writes the text files;
+`shrink.py` turns the renders into 256-colour pictures, as the original's
+are, which keeps content/ about a tenth of the size. The item pictures
+and the inventory panel are kept in content/ and rebuilt on their own:
 
     python tools/art/items.py render /tmp/items     # a Python with bpy
     python3 tools/art/items.py pack /tmp/items content
     python3 tools/art/ui.py content
 
-Their order is the ITEMS list in items.py; `content/items.txt` is written by hand. Flare's maps are made
-with [Tiled](https://www.mapeditor.org/), so new maps can be drawn there,
-saved in Flare's format and imported the same way.
+Their order is the ITEMS list in items.py; `content/items.txt` is
+written by hand.
+
+## Importing Flare
+
+`tools/content/import_flare.py` builds a pack from
+[Flare: Empyrean Campaign](https://github.com/flareteam/flare-game)'s
+CC-BY-SA 3.0 art, which was the demo content before our own art:
+
+    git clone https://github.com/flareteam/flare-game /tmp/flare-game
+    python3 tools/content/import_flare.py /tmp/flare-game /tmp/flare-pack
+
+Which maps, monsters and player layers to import are set at the top of
+the script. Flare's maps are made with [Tiled](https://www.mapeditor.org/),
+so new maps can be drawn there, saved in Flare's format and imported the
+same way.
