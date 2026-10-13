@@ -800,6 +800,7 @@ void testMagic() {
           "Explosion's level is a switchable fix");
     check(sf::Rules::ours().healthBarsOverMonsters && !sf::Rules::original().healthBarsOverMonsters,
           "health bars over monsters are ours alone");
+    check(sf::Rules::ours().zoomOut && !sf::Rules::original().zoomOut, "original mode keeps the world at full size");
 }
 
 void testPowerMode() {
@@ -863,6 +864,7 @@ void testSettings() {
     check(!defaults.fullScreen && defaults.seeThroughPlayer && defaults.clickSize == 2 && !defaults.originalMode,
           "settings default to a window, see-through player, NORM click range and our rules");
     check(!defaults.ourArt, "the original game is drawn with its own art by default");
+    check(defaults.zoom == 100, "the world is drawn at full size by default");
     check(defaults.clickPriority[0] == sf::Settings::kEnemy, "enemies come first by default");
 
     sf::Settings s;
@@ -873,16 +875,18 @@ void testSettings() {
     s.musicVolume = 3;
     s.originalMode = true;
     s.ourArt = true;
+    s.zoom = 70;
     s.putFirst(sf::Settings::kPerson);
     check(s.clickPriority[0] == sf::Settings::kPerson && s.rank(sf::Settings::kEnemy) == 1, "putFirst moves a target to the front");
     const auto back = sf::Settings::parse(s.write());
     check(back.fullScreen && !back.seeThroughShadows && !back.clickRange && back.clickSize == 4 && back.musicVolume == 3 &&
-              back.originalMode && back.ourArt && back.clickPriority == s.clickPriority,
+              back.originalMode && back.ourArt && back.zoom == 70 && back.clickPriority == s.clickPriority,
           "settings survive a write and a parse");
     check(back.clickReach() < defaults.clickReach(), "click range off reaches less than NORM");
 
-    const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\n");
-    check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume,
+    const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\nzoom=10\n");
+    check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume &&
+              bad.zoom == sf::Settings::kMinZoom,
           "bad settings are clamped or ignored");
 }
 

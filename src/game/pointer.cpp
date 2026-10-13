@@ -97,7 +97,7 @@ void Game::followPointerTarget() {
     auto consider = [&](double x, double y, int lift) {
         int sx, sy;
         worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
-        const float px = static_cast<float>(sx - cameraX_), py = static_cast<float>(sy - cameraY_ - lift);
+        const auto [px, py] = onScreen(sx, sy - lift);
         if (px < 0 || py < 0 || px >= kScreenWidth || py >= kPanelTop) return;
         const double d = std::hypot(x - player_->x, y - player_->y);
         if (d < best) {
@@ -168,7 +168,7 @@ void Game::renderClickSquare() {
 // The name of what the pointer is on (0x40ee70), centred 24 pixels over
 // the height its placement gives. A monster's box shows its health and
 // its element's orb sits in a wide space before the name.
-void Game::renderHoverName(int camX, int camY) {
+void Game::renderHoverName() {
     if (!hoverOn_ || hover_.kind < 0) return;
     std::string name;
     SDL_Color color = rgb(0xe0e0e0);
@@ -219,8 +219,9 @@ void Game::renderHoverName(int camX, int camY) {
 
     int sx, sy;
     worldToScreen(static_cast<int>(wx), static_cast<int>(wy), sx, sy);
-    const int x = sx - camX + 2;
-    const int y = sy - camY - height - kLabelLift;
+    const SDL_FPoint at = onScreen(sx, sy - height);
+    const int x = static_cast<int>(at.x) + 2;
+    const int y = static_cast<int>(at.y) - kLabelLift;
     const int element = monster ? monster->placement.stats.element : -1;
     const bool orb = element >= 0 && element < 8;
     // The orb's space is a full-width blank, two characters wide.

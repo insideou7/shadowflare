@@ -63,6 +63,15 @@ between the original's art and ours (with the original files only, see
 keys walk; Page Up / Page Down switch maps, Home goes back to the start
 point and J shows the walkability grid (for testing).
 
+Also ours: the scroll wheel zooms the world, 10% a notch, from 100% (the
+original's 640 x 480 view) out to 50%, which shows twice as much of the
+map each way; scrolling towards you zooms out and away zooms back in. The
+panel, the windows, the pointer and the names over characters keep their
+size. Darkness shrinks with the world, so zooming out does not let you
+see further in the dark. The zoom is kept in `options.txt` (`zoom=`).
+Original mode keeps the world at 100% and the wheel does nothing. The
+original has nothing on the wheel, and no window here uses it.
+
 Changed from before: F9 used to load (now F11), N and P used to switch
 maps (now Page Down / Page Up only), and WASD no longer walks (S is the
 status window).

@@ -135,6 +135,7 @@ void Game::buildAreaMapPicture() {
         return;
     }
     SDL_Texture* previous = SDL_GetRenderTarget(renderer_);
+    fullSize_ = true;  // a screen at a time, at full size
     std::vector<std::uint32_t> small(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
     std::vector<std::uint32_t> pixels(static_cast<std::size_t>(kScreenWidth) * kScreenHeight);
     constexpr int kCellsX = kScreenWidth / kMapScale, kCellsY = kScreenHeight / kMapScale;
@@ -164,6 +165,7 @@ void Game::buildAreaMapPicture() {
         }
     }
     SDL_SetRenderTarget(renderer_, previous);
+    fullSize_ = false;
     mapPicture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, w, h));
     if (!mapPicture_) return;
     SDL_UpdateTexture(mapPicture_.get(), nullptr, small.data(), w * 4);

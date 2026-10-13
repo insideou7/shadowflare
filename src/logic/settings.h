@@ -19,6 +19,10 @@ struct Settings {
     // Volumes run from 0 (silent) to kMaxVolume. The original stores
     // DirectSound attenuation, -10000 to 0 hundredths of a decibel.
     static constexpr int kMaxVolume = 10;
+    // Ours: how big the world is drawn, in percent. Each notch of the
+    // scroll wheel moves it kZoomStep, from 100 (the original's view)
+    // out to kMinZoom.
+    static constexpr int kMinZoom = 50, kMaxZoom = 100, kZoomStep = 10;
 
     bool fullScreen = false;          // Screen Mode at Start: FULL, else WINDOW
     bool seeThroughPlayer = true;     // Semi-transparent Player: seen through walls
@@ -36,6 +40,8 @@ struct Settings {
     // Ours: with the original game's files, draw its maps and characters
     // with the open content's art (F12 swaps while playing).
     bool ourArt = false;
+    // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
+    int zoom = kMaxZoom;
 
     // Half the side of the square a click reaches, in screen pixels.
     int clickReach() const;

@@ -34,10 +34,13 @@ struct Rules {
     // shows a monster's health only in its name under the pointer
     // (0x40ee70).
     bool healthBarsOverMonsters = true;
+    // The scroll wheel zooms the world out, to half size (Settings::zoom).
+    // The original always shows it at 640 x 480.
+    bool zoomOut = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
-               !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters;
+               !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -48,6 +51,7 @@ struct Rules {
         r.dropQualityPerRoll = false;
         r.missionsClearOnlyWhenTaken = false;
         r.healthBarsOverMonsters = false;
+        r.zoomOut = false;
         return r;
     }
 };

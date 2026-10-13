@@ -85,8 +85,12 @@ void Game::saveThumbnail(const std::string& path) {
                                             kScreenWidth, kScreenHeight);
     if (!target) return;
     SDL_Texture* was = SDL_GetRenderTarget(renderer_);
+    // The world alone, without the panel or any window, at full size
+    // whatever the zoom.
+    const double cameraX = cameraX_, cameraY = cameraY_;
+    fullSize_ = true;
+    updateCamera();
     if (SDL_SetRenderTarget(renderer_, target) == 0) {
-        // The world alone, without the panel or any window.
         worldOnly_ = true;
         renderMap();
         worldOnly_ = false;
@@ -105,6 +109,9 @@ void Game::saveThumbnail(const std::string& path) {
             SDL_FreeSurface(s);
         }
     }
+    fullSize_ = false;
+    cameraX_ = cameraX;
+    cameraY_ = cameraY;
     SDL_SetRenderTarget(renderer_, was);
     SDL_DestroyTexture(target);
 }

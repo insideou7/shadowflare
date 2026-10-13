@@ -321,7 +321,7 @@ private:
         int ticks = 0;  // left to show
     };
     void showLabel(const ScriptHost::Label& label);
-    void renderLabels(int camX, int camY);
+    void renderLabels();
     // Where a character or a map object is, in world units.
     std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
     const ScenarioControl::Placement* placementById(std::int32_t id) const;
@@ -350,6 +350,23 @@ private:
     std::array<std::optional<CharacterModel>, 2>& playerModels();
     void placePlayer();
     void updateCamera();
+    // The world's zoom (Settings::zoom, the scroll wheel): 1 draws it as
+    // the original does, 0.5 at half size, showing twice as much of the
+    // map each way. The panel, the windows and the pointer keep their size.
+    // Original mode keeps it at 1, as do the save's picture and the area
+    // map's (fullSize_).
+    double zoom() const;
+    void zoomBy(int notches);
+    // How much of the map the screen shows at that zoom, in map pixels.
+    int viewWidth() const;
+    int viewHeight() const;
+    // The map pixel (as worldToScreen gives it) under a point on the
+    // screen, and where a map pixel is on the screen.
+    double pixelX(double screenX) const { return cameraX_ + screenX / zoom(); }
+    double pixelY(double screenY) const { return cameraY_ + screenY / zoom(); }
+    SDL_FPoint onScreen(double px, double py) const;
+    // worldTexture_, made the size of the view; null if it cannot be.
+    SDL_Texture* worldTexture();
     bool tryMove(Character& who, double dx, double dy);
     void tickPlayer();
     void swing();
@@ -373,7 +390,7 @@ private:
     // docs/traps.md).
     void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr, bool flinch = true);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
-    void renderHealthBars(int camX, int camY);
+    void renderHealthBars();
     void renderMap();
     void renderChips(int camX, int camY);
     void drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -1125,7 +1142,7 @@ private:
     // The gate's end in this area, if it has one here.
     std::optional<std::pair<double, double>> transportGateHere() const;
     std::vector<Effect> transportGateParts() const;  // its pieces and animation, to draw
-    void renderTransportGateName(int camX, int camY);
+    void renderTransportGateName();
 
     // The pointer, its Click Range square and the name of what it is on
     // (pointer.cpp).
@@ -1135,7 +1152,7 @@ private:
     void updateHover();
     const Actor* hoveredActor() const;
     void renderClickSquare();
-    void renderHoverName(int camX, int camY);
+    void renderHoverName();
     void renderPointer();
     void nameOpenEnemy(Actor& actor);
     std::optional<SDL_FPoint> forcedPointer_;
@@ -1163,6 +1180,12 @@ private:
     std::string scenarioPictureFor_;
     std::array<std::optional<LightMap>, 7> darkParts_;
     TexturePtr darkTexture_;
+    int darkTextureW_ = 0, darkTextureH_ = 0;
+    // Zoomed out, the world is drawn at full size to this, then shrunk
+    // onto the screen.
+    TexturePtr worldTexture_;
+    int worldTextureW_ = 0, worldTextureH_ = 0;
+    bool fullSize_ = false;
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

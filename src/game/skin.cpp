@@ -204,7 +204,10 @@ SDL_Texture* Skin::groundChunk(int cx, int cy) {
 void Skin::renderGround(int camX, int camY) {
     if (!map_) return;
     const auto& g = map_->ground();
-    const int right = std::min(camX + 640, g.width * g.chipWidth), bottom = std::min(camY + 480, g.height * g.chipHeight);
+    // As much as the target shows: more than the screen when zoomed out.
+    SDL_Rect view;
+    SDL_RenderGetViewport(renderer_, &view);
+    const int right = std::min(camX + view.w, g.width * g.chipWidth), bottom = std::min(camY + view.h, g.height * g.chipHeight);
     const int cx0 = std::max(0, camX) / kChunkWidth, cy0 = std::max(0, camY) / kChunkHeight;
     for (int cy = cy0; cy * kChunkHeight < bottom; ++cy) {
         for (int cx = cx0; cx * kChunkWidth < right; ++cx) {
@@ -285,6 +288,8 @@ SDL_Texture* Skin::propTexture(const std::string& prop, int& frame) {
 }
 
 void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY) {
+    SDL_Rect view;
+    SDL_RenderGetViewport(renderer_, &view);
     for (const auto& piece : pieces) {
         int frame;
         SDL_Texture* texture = propTexture(piece.prop, frame);
@@ -295,7 +300,7 @@ void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX,
         worldToScreen(piece.dx, piece.dy, dx, dy);
         // Mirrored, the anchor stays put and the picture turns about it.
         SDL_Rect dst{footX + dx + (piece.mirror ? -x - w : x) - camX, footY + dy + y - camY, w, h};
-        if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= 640 || dst.y >= 480) continue;
+        if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= view.w || dst.y >= view.h) continue;
         SDL_RenderCopyEx(renderer_, texture, nullptr, &dst, 0, nullptr, piece.mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
     }
 }

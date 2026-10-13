@@ -410,8 +410,8 @@ void Game::placePlayerAt(double screenX, double screenY) {
         updateCamera();
         log::info("Player starts at world ({:.0f}, {:.0f})", wx, wy);
     } else {
-        cameraX_ = cx - kScreenWidth / 2.0;
-        cameraY_ = cy - kScreenHeight / 2.0;
+        cameraX_ = cx - viewWidth() / 2.0;
+        cameraY_ = cy - viewHeight() / 2.0;
     }
 }
 
@@ -452,10 +452,54 @@ void Game::updateCamera() {
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
     const bool left = showStatus_ || magicOpen_ || warpOpen_ || mapOpen_ || openShop_.has_value();
     const bool right = showInventory_;
-    double centre = kScreenWidth / 2.0;
-    if (!missionsOpen_ && left != right) centre = right ? kScreenWidth / 4.0 : kScreenWidth * 3 / 4.0;
+    const double w = viewWidth();
+    double centre = w / 2.0;
+    if (!missionsOpen_ && left != right) centre = right ? w / 4.0 : w * 3 / 4.0;
     cameraX_ = sx - centre;
-    cameraY_ = sy - kScreenHeight / 2.0;
+    cameraY_ = sy - viewHeight() / 2.0;
+}
+
+double Game::zoom() const {
+    if (fullSize_ || !rules_.zoomOut) return 1.0;
+    return std::clamp(settings_.zoom, Settings::kMinZoom, Settings::kMaxZoom) / 100.0;
+}
+
+int Game::viewWidth() const { return static_cast<int>(std::ceil(kScreenWidth / zoom())); }
+int Game::viewHeight() const { return static_cast<int>(std::ceil(kScreenHeight / zoom())); }
+
+SDL_FPoint Game::onScreen(double px, double py) const {
+    const double z = zoom();
+    return {static_cast<float>((px - std::floor(cameraX_)) * z), static_cast<float>((py - std::floor(cameraY_)) * z)};
+}
+
+SDL_Texture* Game::worldTexture() {
+    const int w = viewWidth(), h = viewHeight();
+    if (!worldTexture_ || worldTextureW_ != w || worldTextureH_ != h) {
+        worldTexture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, w, h));
+        if (!worldTexture_) {
+            log::warn("Zoomed view: {}", SDL_GetError());
+            return nullptr;
+        }
+        // Shrunk smoothly, not by dropping pixels.
+        SDL_SetTextureScaleMode(worldTexture_.get(), SDL_ScaleModeLinear);
+        worldTextureW_ = w;
+        worldTextureH_ = h;
+    }
+    return worldTexture_.get();
+}
+
+// Each notch of the scroll wheel zooms a step, about the middle of the
+// view (the hero, when there is one).
+void Game::zoomBy(int notches) {
+    if (!rules_.zoomOut || notches == 0) return;
+    const int was = settings_.zoom;
+    const double middleX = cameraX_ + viewWidth() / 2.0, middleY = cameraY_ + viewHeight() / 2.0;
+    settings_.zoom = std::clamp(was + notches * Settings::kZoomStep, Settings::kMinZoom, Settings::kMaxZoom);
+    if (settings_.zoom == was) return;
+    cameraX_ = middleX - viewWidth() / 2.0;
+    cameraY_ = middleY - viewHeight() / 2.0;
+    updateCamera();
+    saveSettings();
 }
 
 // The keys follow the manual's Shortcut Keys page (see docs/controls.md).
@@ -485,6 +529,16 @@ void Game::handleEvent(const SDL_Event& event) {
     if (event.type == SDL_KEYDOWN && mapOpen_ && areaMapKey(event.key.keysym.sym)) return;
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
+        case SDL_MOUSEWHEEL: {
+            // Away from the player zooms in, towards them out (ours; the
+            // original has nothing on the wheel).
+            const int notches = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
+            if (map_ && rules_.zoomOut && notches != 0) {
+                zoomBy(notches);
+                showMessage(std::format("Zoom {}%", settings_.zoom));
+            }
+            break;
+        }
         case SDL_KEYDOWN:
             if (event.key.repeat) break;
             switch (event.key.keysym.sym) {
@@ -631,7 +685,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 if (spells_.knows(spells_.selected)) {
                     // The right button casts the chosen spell at the cursor.
                     double wx, wy;
-                    screenToWorld(cameraX_ + event.button.x, cameraY_ + event.button.y, wx, wy);
+                    screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
                     startCast(wx, wy);
                 } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
                            target.kind == Settings::kEnemy) {
@@ -860,7 +914,8 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
         if (!a.hostile() || !a.alive() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
+        const SDL_FPoint at = onScreen(sx, sy - 40);
+        const double dx = at.x - screenX, dy = at.y - screenY;
         const double d = std::hypot(dx, dy);
         if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
@@ -960,7 +1015,7 @@ void Game::tickPlayer() {
             if (identifying_) return;  // no fighting while Identify waits
             if (target.kind == Settings::kEnemy) attackTarget_ = target.index;
             double wx, wy;
-            screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
+            screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
             player_->faceTowards(wx - player_->x, wy - player_->y);
             if (bowInHand()) {
                 shoot(attackTarget_, std::atan2(wy - player_->y, wx - player_->x));
@@ -977,7 +1032,7 @@ void Game::tickPlayer() {
             walkTarget_.emplace(groundItems_[target.index].x, groundItems_[target.index].y);
         } else {
             double wx, wy;
-            screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
+            screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
             walkTarget_.emplace(wx, wy);
         }
     }
@@ -1336,7 +1391,7 @@ void Game::render(double interpolation) {
     // screenshot; the frame (0x41e4f0) saves that before it draws the
     // pointer's square and the pointer (0x416bb0, 0x4087b0).
     const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !loadData_ && !menuOpen_;
-    if (hovering) renderHoverName(static_cast<int>(std::floor(cameraX_)), static_cast<int>(std::floor(cameraY_)));
+    if (hovering) renderHoverName();
     if (screenshotPending_) takeScreenshot();
     if (hovering) renderClickSquare();
     renderPointer();
@@ -1346,6 +1401,16 @@ void Game::render(double interpolation) {
 void Game::renderMap() {
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     SDL_RenderClear(renderer_);
+    // Zoomed out, the world is drawn as at full size to a picture of all
+    // the screen shows, then shrunk onto it; the names, bars, rain, panel
+    // and windows go over that at their own size.
+    SDL_Texture* screen = SDL_GetRenderTarget(renderer_);
+    SDL_Texture* world = zoom() < 1 ? worldTexture() : nullptr;
+    if (world) {
+        SDL_SetRenderTarget(renderer_, world);
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderClear(renderer_);
+    }
 
     const int camX = static_cast<int>(std::floor(cameraX_));
     const int camY = static_cast<int>(std::floor(cameraY_));
@@ -1375,7 +1440,7 @@ void Game::renderMap() {
         if (!actor.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(actor.character.x), static_cast<int>(actor.character.y), sx, sy);
-        if (sx - camX < -256 || sy - camY < -256 || sx - camX > kScreenWidth + 256 || sy - camY > kScreenHeight + 256) continue;
+        if (sx - camX < -256 || sy - camY < -256 || sx - camX > viewWidth() + 256 || sy - camY > viewHeight() + 256) continue;
         characters.push_back(&actor.character);
     }
     // Spell effects are sorted in with them by where they stand, as the
@@ -1448,10 +1513,16 @@ void Game::renderMap() {
     renderSpells(camX, camY);
     if (darknessShown()) renderDarkness(camX, camY);
     if (showJudge_) renderJudge(camX, camY);
-    renderHealthBars(camX, camY);
-    renderLabels(camX, camY);
+    if (world) {
+        SDL_SetRenderTarget(renderer_, screen);
+        const double z = zoom();
+        const SDL_FRect dst{0, 0, static_cast<float>(worldTextureW_ * z), static_cast<float>(worldTextureH_ * z)};
+        SDL_RenderCopyF(renderer_, world, nullptr, &dst);
+    }
+    renderHealthBars();
+    renderLabels();
     renderRain();
-    renderTransportGateName(camX, camY);
+    renderTransportGateName();
     if (worldOnly_) return;  // a save's picture
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).
@@ -1488,11 +1559,11 @@ void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int 
     worldToScreen(o.x, o.y, sx, sy);
     sx -= camX;
     sy -= camY;
-    if (sx < -1024 || sy < -1024 || sx > kScreenWidth + 1024 || sy > kScreenHeight + 1024) return;
+    if (sx < -1024 || sy < -1024 || sx > viewWidth() + 1024 || sy > viewHeight() + 1024) return;
     const SpriteTexture* sprite = sprites_.get(*bank, o.pattern, false);
     if (!sprite) return;
     SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) return;
+    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= viewWidth() || dst.y >= viewHeight()) return;
     if (shadows) {
         SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
         SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
@@ -1520,8 +1591,8 @@ void Game::renderChips(int camX, int camY) {
     const auto& g = map_->ground();
     const int x0 = std::max(0, camX / g.chipWidth - 1);
     const int y0 = std::max(0, camY / g.chipHeight - 1);
-    const int x1 = std::min(g.width, (camX + kScreenWidth) / g.chipWidth + 2);
-    const int y1 = std::min(g.height, (camY + kScreenHeight) / g.chipHeight + 2);
+    const int x1 = std::min(g.width, (camX + viewWidth()) / g.chipWidth + 2);
+    const int y1 = std::min(g.height, (camY + viewHeight()) / g.chipHeight + 2);
     for (int cy = y0; cy < y1; ++cy) {
         for (int cx = x0; cx < x1; ++cx) {
             const auto& cell = g.at(cx, cy);
@@ -1541,7 +1612,8 @@ void Game::renderIsoGround(int camX, int camY) {
     const auto& g = map_->ground();
     // Tiles touching the view, with a margin for sprites that stick out.
     int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
-    for (const auto& [px, py] : {std::pair{0, 0}, {kScreenWidth, 0}, {0, kScreenHeight}, {kScreenWidth, kScreenHeight}}) {
+    const int w = viewWidth(), h = viewHeight();
+    for (const auto& [px, py] : {std::pair{0, 0}, {w, 0}, {0, h}, {w, h}}) {
         double wx, wy;
         screenToWorld(camX + px, camY + py, wx, wy);
         minX = std::min(minX, static_cast<int>(std::floor(wx / g.isoTile)));
@@ -1570,7 +1642,7 @@ void Game::renderIsoGround(int camX, int camY) {
 }
 
 // A bar over each wounded monster; the hero's are on the panel (panel.cpp).
-void Game::renderHealthBars(int camX, int camY) {
+void Game::renderHealthBars() {
     if (!rules_.healthBarsOverMonsters) return;
     // The one under the pointer shows its health in its name instead.
     const Actor* named = hoverOn_ ? hoveredActor() : nullptr;
@@ -1578,7 +1650,8 @@ void Game::renderHealthBars(int camX, int camY) {
         if (!a.hostile() || !a.alive() || !a.active || a.hp == a.maxHp || &a == named) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        SDL_Rect back{sx - camX - 20, sy - camY - 100, 40, 5};
+        const SDL_FPoint at = onScreen(sx, sy - 100);
+        SDL_Rect back{static_cast<int>(at.x) - 20, static_cast<int>(at.y), 40, 5};
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderFillRect(renderer_, &back);
         SDL_Rect fill{back.x + 1, back.y + 1, static_cast<int>(38 * std::clamp(static_cast<double>(a.hp) / a.maxHp, 0.0, 1.0)), 3};
@@ -1593,7 +1666,8 @@ void Game::renderJudge(int camX, int camY) {
     const auto& g = map_->ground();
     // Judge cells touching the view: invert the view corners.
     int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
-    for (const auto& [px, py] : {std::pair{0, 0}, {kScreenWidth, 0}, {0, kScreenHeight}, {kScreenWidth, kScreenHeight}}) {
+    const int w = viewWidth(), h = viewHeight();
+    for (const auto& [px, py] : {std::pair{0, 0}, {w, 0}, {0, h}, {w, h}}) {
         double wx, wy;
         screenToWorld(camX + px, camY + py, wx, wy);
         minX = std::min(minX, static_cast<int>(std::floor(wx / g.magX)));
