@@ -328,7 +328,9 @@ the last carries on to level 35.
 
 A companion's pictures are `Character/PARTNER/<folder>/Animation.anim`,
 with charts 0 idle, 1 walk, 2 run, 3 hit, 4 death, 5 bite, 6 jump up
-and 7 jump down; the death and jump charts have only direction 8. The
+and 7 jump down; the death and jump charts have only direction 8. Layer 2
+of the run chart, if there is one, is the dash's speed streak (an additive
+`*` line), shown only while a dash is flat out. The
 pack's four dogs share folder 0, a grey dog recoloured by each one's
 tint, and the small dog has folder 1, both drawn by `tools/art/creatures.py`
 (`dog`, `smalldog`). Townspeople of kind 1000000 + folder stand in for

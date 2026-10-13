@@ -173,18 +173,26 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         const SpriteBank& bank = item.shadow ? model_->shadow : model_->body;
         const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false, grey && !item.shadow);
         if (!sprite) continue;
+        const bool additive = !item.shadow && (item.cell->status & AnimationSet::kAdditiveStatus);
+        const int trans = std::clamp(static_cast<int>(item.cell->trans), 0, 1000);
         // Textures are shared: set their colour for this draw and put it
         // back after.
         if (item.shadow) {
             SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
             SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha * tint.a / 255));
+        } else if (additive) {
+            // Glows and streaks add light at their own opacity, untinted
+            // (the partner's coat colour is set on its body layer only).
+            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
         } else {
             SDL_SetTextureColorMod(sprite->texture, tint.r, tint.g, tint.b);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(alpha * tint.a / 255));
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
         }
         SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
         SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
-        if (!item.shadow && glow > 0) {
+        if (additive) SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+        if (!item.shadow && !additive && glow > 0) {
             // A second copy added on top brightens it.
             SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(std::min(1000, glow) * 255 / 1000 * alpha / 255 * tint.a / 255));
