@@ -1009,6 +1009,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
         enemy.hp = 0;
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
+        log::info("Monster {} defeated", enemy.gameId());
         dropLoot(enemy);
         // The original counts how the hero kills monsters, to offer a class
         // (0x4134a0), and every kill trains the companion (0x413640).
