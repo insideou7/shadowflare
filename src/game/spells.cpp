@@ -9,6 +9,7 @@
 #include <cmath>
 #include <format>
 #include <numbers>
+#include <tuple>
 
 #include "core/log.h"
 #include "game/game.h"
@@ -556,9 +557,16 @@ void Game::stepCast(SpellCast& c) {
 
 // One of the original's ticks of an effect: follow, home in, fly, hurt.
 void Game::stepEffect(Effect& e) {
+    if (e.trap) {
+        stepTrap(e);
+        return;
+    }
     if (e.followsPlayer && player_) {
         e.x = player_->x;
         e.y = player_->y;
+    }
+    if (e.follows >= 0) {
+        if (const auto at = characterAt(e.follows)) std::tie(e.x, e.y) = *at;
     }
     if (e.turn > 0) {
         // Home in on the nearest monster.
@@ -661,7 +669,7 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
     const auto& chart = charts[static_cast<std::size_t>(e.chart)];
     // Its own direction if it has one, else the undirected one (8), else 0.
     const AnimationSet::Direction* dir = nullptr;
-    const int facing = e.directional ? facingOf(std::cos(e.angle), std::sin(e.angle)) : 8;
+    const int facing = e.facing >= 0 ? e.facing : e.directional ? facingOf(std::cos(e.angle), std::sin(e.angle)) : 8;
     for (int d : {facing, 8, 0}) {
         if (static_cast<std::size_t>(d) < chart.directions.size() && chart.directions[static_cast<std::size_t>(d)].frameCount > 0) {
             dir = &chart.directions[static_cast<std::size_t>(d)];

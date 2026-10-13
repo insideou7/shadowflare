@@ -116,6 +116,7 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
     partner_.reset();
     clearSpells();
+    objectOpacity_.clear();
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -378,6 +379,7 @@ void Game::handleEvent(const SDL_Event& event) {
         menuEvent(event);
         return;
     }
+    if (visual_ && visualEvent(event)) return;
     if (dialogue_ && event.type != SDL_QUIT) {
         dialogueEvent(event);
         return;
@@ -608,7 +610,13 @@ void Game::tick() {
         closeDialogue(answer);
     }
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
-    runEvent(ScenarioScript::kEveryTick);
+    tickVisual();
+    tickRain();
+    // Event 5 runs every one of the original's ticks, 30 a second, so
+    // traps fire and script counters count at its pace.
+    for (everyTickCarry_ += 30.0 / kTicksPerSecond; everyTickCarry_ >= 1.0 && !pendingScenario_; everyTickCarry_ -= 1.0) {
+        runEvent(ScenarioScript::kEveryTick);
+    }
     for (auto& actor : actors_) {
         // Scripts show and hide characters through their NET flag, by
         // SETACTIVE or by setting it themselves.
@@ -1036,7 +1044,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
 }
 
 // What happens to a blow or spell that got through (0x443cb0).
-void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
+void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     // Shields charge MP each time they work. The original charges the
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
@@ -1088,14 +1096,17 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
     }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.
-    if (!casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+    if (flinch && !casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
         player_->restart(chart::kPlayerHit);
         walkTarget_.reset();
     }
 }
 
 void Game::render(double interpolation) {
-    if (map_) {
+    if (visual_ && !menuOpen_ && !optionsOpen_) {
+        // A story picture covers the game while it shows (0x417bd0).
+        renderVisual();
+    } else if (map_) {
         renderMap();
     } else {
         renderPlaceholder(interpolation);
@@ -1188,6 +1199,7 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    renderRain();
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).
     renderPanel();

@@ -110,6 +110,45 @@ public:
     virtual void giveItem(int /*cls*/, int /*code*/) {}
     // GETEXPERIENCE: `percent` of the experience the hero's level needs.
     virtual void giveExperiencePercent(int /*percent*/) {}
+    // Traps and map effects (docs/traps.md). CREATEOPTIONANGLE fires a
+    // trap's arrow or fire jet; the runner has already moved its start
+    // `distance` out along its angle (0x4140a0).
+    struct TrapFire {
+        int kind = 0;        // 0 arrow, 2 fire jet, 1 and 3 others (see trapShot)
+        int x = 0, y = 0;
+        double angle = 0;    // radians, world y up
+        int speed = 0;       // world units an original tick
+        int power = 0;
+        bool fixedDamage = false;  // the power is the damage, defense or not
+        int height = 0;
+        int direction = -1;  // -1: from the angle
+    };
+    virtual void fireTrap(const TrapFire&) {}
+    // CREATEEFFECT number x y height direction: an effect where it stands;
+    // CREATEEFFECTCHAR number character: one that stays on a character
+    // (0-3 the players).
+    virtual void createEffect(int /*number*/, int /*x*/, int /*y*/, int /*height*/, int /*direction*/) {}
+    virtual void createEffectOn(int /*number*/, std::int32_t /*character*/) {}
+    // GETNEARPLAYERPOS: the living player nearest `character` whose judge
+    // rectangle is min..max from its own (-1 for no limit); false for none.
+    virtual bool nearestPlayer(std::int32_t /*character*/, int /*min*/, int /*max*/, int& /*player*/, int& /*x*/, int& /*y*/) const { return false; }
+    // CALCMYPLAYERDIST: the gap between the hero and `character`, -1 for no
+    // such character.
+    virtual int playerDistance(std::int32_t /*character*/) const { return -1; }
+    // RESSURECT enemy x y direction: a dead enemy back at full health there.
+    virtual void resurrect(std::int32_t /*enemy*/, int /*x*/, int /*y*/, int /*direction*/) {}
+    // SETCHARTRANS and GETCHARTRANS: a scenario object's opacity (+0xf4,
+    // 0-1000); objects only, empty for anything else.
+    virtual void setObjectOpacity(std::int32_t /*object*/, int /*opacity*/) {}
+    virtual std::optional<int> objectOpacity(std::int32_t /*object*/) const { return std::nullopt; }
+    // STARTVISUAL n: a story picture over the screen (0 the loading one).
+    virtual void startVisual(int /*picture*/) {}
+    // SETTINGRAIN r g b count: `count` more raindrops of that colour.
+    virtual void rain(int /*r*/, int /*g*/, int /*b*/, int /*count*/) {}
+    // MEMORIZEMAGIC spell and CHECKMEMORIZEDMAGIC spell var: a spell the
+    // hero is taught, and whether they know it.
+    virtual void memorizeSpell(int /*spell*/) {}
+    virtual bool knowsSpell(int /*spell*/) const { return false; }
     // A command the engine does not carry out yet ran (sound aside), so a
     // playthrough can list what a scenario still lacks.
     virtual void skippedCommand(std::int32_t /*opcode*/) {}

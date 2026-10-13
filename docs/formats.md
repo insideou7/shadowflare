@@ -329,28 +329,31 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 1 | `SETFLAG var value` | 27 | `MESSAGEBOX char dx dy msg r g b time` | 53 | `GETTOTALGOLD var` |
 | 2 | `TALK msg answer mode default speaker height` | 28 | `ROUTIN` | 54 | `PAYGOLD amount` |
 | 3 | `TALKPARTNERSTATUS kind answer` | 29 | `ROUTINNET` | 55 | `CHECKUNOPINIONITEM var` |
-| 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE` | 56 | `ABSOLUTEOBJECTFLAG` |
+| 4 | `IDENTIFY` | 30 | `CREATEOPTIONANGLE x y kind angle speed power height distance dir fixed ...` | 56 | `ABSOLUTEOBJECTFLAG` |
 | 5 | `TRADE shop` | 31 | `CHECKENEMYLIVE` | 57 | `GETPLAYERSEX var` |
 | 6 | `INITTRADE shop list` | 32 | `CHECKENEMYDEAD` | 58 | `CHECKITEMEXIST` |
-| 7 | `HEALLIFE` | 33 | `GETNEARPLAYERPOS` | 59 | `DELETEITEM` |
+| 7 | `HEALLIFE` | 33 | `GETNEARPLAYERPOS char min max player x y` | 59 | `DELETEITEM` |
 | 8 | `HEALMENTAL` | 34 | `CALCMYPLAYERDIST char var` | 60 | `SETUNLOCKSW` |
-| 9 | `REPAIR slot` | 35 | `CALCANGLE` | 61 | `GETPLAYERLEVEL var` |
-| 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT` | 62 | `SETQUESTFLAG` |
+| 9 | `REPAIR slot` | 35 | `CALCANGLE dx dy var` | 61 | `GETPLAYERLEVEL var` |
+| 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT effect x y height dir` | 62 | `SETQUESTFLAG` |
 | 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE life max` |
-| 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL` |
-| 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN` |
-| 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR` | 66 | `GETMYPLAYERNO` |
-| 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC` |
+| 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL picture` |
+| 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN r g b count` |
+| 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR effect char` | 66 | `GETMYPLAYERNO var` |
+| 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC spell` |
 | 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
-| 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC` |
+| 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC spell var` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
 | 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER kind` | 71 | `GETCLASS var` |
-| 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS` | 72 | `CHANGECOLOR` |
-| 25 | `RESSURECT` | 47 | `GETCHARTRANS` | 73 | `STARTCARDGAME` |
+| 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS object opacity` | 72 | `CHANGECOLOR` |
+| 25 | `RESSURECT enemy x y dir` | 47 | `GETCHARTRANS object var` | 73 | `STARTCARDGAME` |
 | | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT` |
 | | | 49 | `SETCOMPASSES msg` | 75 | `SETITEMDIRECT` |
 | | | 50 | `GETENTRYPOINT var` | | |
 | | | 51 | `SETMSGDEFINE v0 ... v19` | | |
+
+Traps, effects, rain, story pictures and taught spells (30, 33-36, 40,
+46, 47, 64-67, 69) are described in [traps.md](traps.md).
 
 `MESSAGEBOX` floats a message at (dx, dy) screen pixels from a character
 or map object, such as an area's name over its warp gate (Remote Town runs

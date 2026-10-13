@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
@@ -22,6 +23,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "logic/traps.h"
 #include "formats/item_data.h"
 
 namespace {
@@ -765,6 +767,95 @@ void testSettings() {
           "bad settings are clamped or ignored");
 }
 
+void testTrapGeometry() {
+    check(sf::calcAngleDegrees(10, 0) == 0 && sf::calcAngleDegrees(0, -10) == 90 && sf::calcAngleDegrees(0, 10) == -90,
+          "CALCANGLE turns world y up");
+    check(sf::calcAngleDegrees(-10, 1) == -174, "CALCANGLE cuts towards zero");
+    constexpr double deg = 0.01745328888888889;
+    check(sf::directionOfAngle(0) == 1 && sf::directionOfAngle(45 * deg) == 2 && sf::directionOfAngle(90 * deg) == 3 &&
+              sf::directionOfAngle(180 * deg) == 5 && sf::directionOfAngle(270 * deg) == 7 && sf::directionOfAngle(-90 * deg) == 7,
+          "angles face the exe's eight directions");
+    check(sf::directionOfAngle(300 * deg) == 0 && sf::directionOfAngle(350 * deg) == 1, "0 lies between 7 and 1");
+    const sf::JudgeRect r = sf::kHeroJudge;
+    check(sf::rectGap(0, 0, r, 100, 100, r) == 0, "overlapping rectangles have no gap");
+    check(sf::rectGap(0, 0, r, 200, 0, r) == 40, "side by side: the nearest edges less one");
+    check(sf::rectGap(0, 0, r, 300, 300, r) == static_cast<int>(std::hypot(141.0, 141.0)) - 1, "apart both ways: the corners");
+}
+
+void testTrapShots() {
+    const auto arrow = sf::trapShot(0, -1, 3.141592);
+    check(arrow && arrow->direction == 5 && arrow->diesOnHit && arrow->diesOnWall && !arrow->hitsAll && arrow->box.left == -30,
+          "an arrow faces where it flies and stops at the first hit");
+    const auto jet = sf::trapShot(2, 3, 0);
+    check(jet && jet->hitsAll && jet->lastsItsAnimation && jet->hitFrom == 5 && jet->hitTo == 30 && jet->box.top == -360,
+          "a fire jet burns its whole length from tick 5 to 30");
+    check(sf::trapShot(1, 4, 0)->direction == 8 && !sf::trapShot(5, 0, 0), "kind 1 has no facing; kinds 4-7 are not fired");
+    check(sf::scriptEffectOption(21003) == 11000009 && sf::scriptEffectOption(22000) == 12000000 && sf::scriptEffectOption(1) == 0,
+          "effect numbers name OPTION folders");
+    check(sf::trapHitOption(0, 1) == 11000021 && sf::trapHitOption(2, 3) == 11000009, "the sparks of a trap's hit");
+}
+
+struct TrapHost : sf::ScriptHost {
+    std::vector<TrapFire> fired;
+    std::vector<std::vector<int>> effects;
+    std::vector<int> learned, pictures;
+    std::map<int, int> opacity{{10010000, 1000}};
+    void fireTrap(const TrapFire& f) override { fired.push_back(f); }
+    void createEffect(int n, int x, int y, int h, int d) override { effects.push_back({n, x, y, h, d}); }
+    void createEffectOn(int n, std::int32_t c) override { effects.push_back({n, c}); }
+    bool nearestPlayer(std::int32_t c, int, int, int& p, int& x, int& y) const override {
+        if (c != 12000000) return false;
+        p = 0, x = 500, y = 600;
+        return true;
+    }
+    int playerDistance(std::int32_t c) const override { return c == 12000000 ? 220 : -1; }
+    void setObjectOpacity(std::int32_t o, int v) override { opacity[o] = v; }
+    std::optional<int> objectOpacity(std::int32_t o) const override {
+        const auto found = opacity.find(o);
+        return found == opacity.end() ? std::nullopt : std::optional(found->second);
+    }
+    void startVisual(int n) override { pictures.push_back(n); }
+    void memorizeSpell(int n) override { learned.push_back(n); }
+    bool knowsSpell(int n) const override { return std::ranges::find(learned, n) != learned.end(); }
+};
+
+void testScriptTrapsAndEffects() {
+    using S = sf::ScenarioScript;
+    S script;
+    const Op t1{S::kTemp, 1}, t2{S::kTemp, 2}, t3{S::kTemp, 3}, t4{S::kTemp, 4}, t5{S::kTemp, 5}, t6{S::kTemp, 6},
+        t7{S::kTemp, 7}, t8{S::kTemp, 8}, t9{S::kTemp, 9}, t10{S::kTemp, 10};
+    script.sentences = {{{S::kCreateOptionAngle, {constant(1000), constant(2000), constant(0), constant(90), constant(40),
+                                                  constant(25), constant(50), constant(100), constant(-1), constant(1)}},
+                         {S::kCreateEffect, {constant(21003), constant(5), constant(6), constant(7), constant(-1)}},
+                         {S::kCreateEffectChar, {constant(21000), constant(0)}},
+                         {S::kGetNearPlayerPos, {constant(12000000), constant(-1), constant(-1), t1, t2, t3}},
+                         {S::kGetNearPlayerPos, {constant(12000001), constant(-1), constant(-1), t4, t5, t6}},
+                         {S::kCalcMyPlayerDist, {constant(12000000), t7}},
+                         {S::kCalcAngle, {constant(0), constant(-5), t8}},
+                         {S::kSetCharTrans, {constant(10010000), constant(400)}},
+                         {S::kGetCharTrans, {constant(10010000), t9}},
+                         {S::kStartVisual, {constant(3)}},
+                         {S::kCheckMemorizedMagic, {constant(17), t10}},
+                         {S::kMemorizeMagic, {constant(17)}},
+                         {S::kCheckMemorizedMagic, {constant(17), {S::kTemp, 11}}}}};
+    sf::ScriptFlags flags;
+    flags[{S::kTemp, 5}] = 77;
+    TrapHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    // The exe's degree is a shade short, so 100 out at 90 degrees cuts to 99.
+    check(host.fired.size() == 1 && host.fired[0].x == 1000 && host.fired[0].y == 1901 && host.fired[0].fixedDamage &&
+              host.fired[0].power == 25 && host.fired[0].direction == -1,
+          "CREATEOPTIONANGLE starts its distance out along the angle");
+    check(host.effects.size() == 2 && host.effects[0] == std::vector{21003, 5, 6, 7, 8} && host.effects[1] == std::vector{21000, 0},
+          "CREATEEFFECT (no direction is 8) and CREATEEFFECTCHAR");
+    check(flags[{S::kTemp, 1}] == 0 && flags[{S::kTemp, 2}] == 500 && flags[{S::kTemp, 3}] == 600, "GETNEARPLAYERPOS finds the player");
+    check(flags[{S::kTemp, 4}] == -1 && flags[{S::kTemp, 5}] == 77, "GETNEARPLAYERPOS gives -1 and leaves x and y with none");
+    check(flags[{S::kTemp, 7}] == 220 && flags[{S::kTemp, 8}] == 90, "CALCMYPLAYERDIST and CALCANGLE");
+    check(flags[{S::kTemp, 9}] == 400, "SETCHARTRANS and GETCHARTRANS");
+    check(host.pictures == std::vector{3}, "STARTVISUAL shows a story picture");
+    check(flags[{S::kTemp, 10}] == 0 && flags[{S::kTemp, 11}] == 1, "MEMORIZEMAGIC teaches a spell CHECKMEMORIZEDMAGIC sees");
+}
+
 int main() {
     testLighting();
     testExploredMap();
@@ -792,6 +883,9 @@ int main() {
     testAiSameSeedSameChoices();
     testMovement();
     testLevels();
+    testTrapGeometry();
+    testTrapShots();
+    testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

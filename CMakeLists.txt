@@ -35,6 +35,7 @@ target_link_libraries(sf_formats PRIVATE sf_stb)
 # Game rules that need no window: scripts, AI choice, movement.
 add_library(sf_logic STATIC
     src/logic/script_runner.cpp
+    src/logic/traps.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
@@ -70,6 +71,7 @@ add_executable(shadowflare
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/traps.cpp
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp

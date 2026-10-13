@@ -1,13 +1,19 @@
 #include "logic/script_runner.h"
 
 #include <cctype>
+#include <cmath>
 #include <cstdio>
+
+#include "logic/traps.h"
 
 namespace sf {
 
 namespace {
 
 using S = ScenarioScript;
+
+// The exe's degrees-to-radians factor (0x4751b0).
+constexpr double kRadiansPerDegree = 0.01745328888888889;
 
 // Operand types that hold a value the script can change.
 // 10 is WARP (the warp gates found) and 13 EXSTRG (a word list on the
@@ -33,6 +39,10 @@ bool ScriptRunner::implemented(std::int32_t opcode) {
         case S::kRoutine: case S::kCheckEnemyLive: case S::kCheckEnemyDead: case S::kCheckItemExist:
         case S::kDeleteItem: case S::kGetPlayerLife: case S::kGetPlayerMental: case S::kGetExperience:
         case S::kSetItemDirect:
+        case S::kCreateOptionAngle: case S::kCreateEffect: case S::kCreateEffectChar: case S::kGetNearPlayerPos:
+        case S::kCalcMyPlayerDist: case S::kCalcAngle: case S::kResurrect: case S::kSetCharTrans:
+        case S::kGetCharTrans: case S::kStartVisual: case S::kSettingRain: case S::kGetMyPlayerNo:
+        case S::kMemorizeMagic: case S::kCheckMemorizedMagic:
         // Network play only: single play never reaches them.
         case S::kRoutineNet:
             return true;
@@ -207,6 +217,14 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 }
                 break;
             }
+            case S::kCalcAngle:
+                // dx dy var, in whole degrees (0x432831).
+                if (ops.size() >= 3) store(ops[2], calcAngleDegrees(value(ops[0]), value(ops[1])));
+                break;
+            case S::kGetMyPlayerNo:
+                // Single play: the hero is player 0.
+                if (!ops.empty()) store(ops[0], 0);
+                break;
             default: break;
         }
         if (!host_) continue;
@@ -279,6 +297,69 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kGetExperience: host_->giveExperiencePercent(arg(0)); break;
             case S::kSetItemDirect:
                 if (ops.size() >= 2) host_->giveItem(arg(0), arg(1));
+                break;
+            case S::kCreateOptionAngle: {
+                // x y kind angle speed power height distance direction fixed
+                // and four words for the stun (0x43309b).
+                if (ops.size() < 10) break;
+                ScriptHost::TrapFire f;
+                f.kind = arg(2);
+                f.angle = arg(3) * kRadiansPerDegree;
+                f.speed = arg(4);
+                f.power = arg(5);
+                f.height = arg(6);
+                // It starts `distance` out along its angle, each axis cut to
+                // a whole number (0x4140a0).
+                const int distance = arg(7);
+                f.x = arg(0) + static_cast<int>(std::cos(f.angle) * distance);
+                f.y = arg(1) - static_cast<int>(std::sin(f.angle) * distance);
+                f.direction = arg(8);
+                f.fixedDamage = arg(9) != 0;
+                host_->fireTrap(f);
+                break;
+            }
+            case S::kCreateEffect:
+                // number x y height direction (-1: none) and two unused words.
+                if (ops.size() >= 5) host_->createEffect(arg(0), arg(1), arg(2), arg(3), arg(4) < 0 ? 8 : arg(4));
+                break;
+            case S::kCreateEffectChar:
+                if (ops.size() >= 2) host_->createEffectOn(arg(0), arg(1));
+                break;
+            case S::kGetNearPlayerPos: {
+                // character min max player x y: player -1 when none is in
+                // range, leaving x and y alone (0x43288d).
+                if (ops.size() < 6) break;
+                int player = -1, x = 0, y = 0;
+                if (host_->nearestPlayer(arg(0), arg(1), arg(2), player, x, y)) {
+                    store(ops[3], player);
+                    store(ops[4], x);
+                    store(ops[5], y);
+                } else {
+                    store(ops[3], -1);
+                }
+                break;
+            }
+            case S::kCalcMyPlayerDist:
+                if (ops.size() >= 2) store(ops[1], host_->playerDistance(arg(0)));
+                break;
+            case S::kResurrect:
+                if (ops.size() >= 4) host_->resurrect(arg(0), arg(1), arg(2), arg(3));
+                break;
+            case S::kSetCharTrans:
+                if (ops.size() >= 2) host_->setObjectOpacity(arg(0), arg(1));
+                break;
+            case S::kGetCharTrans:
+                if (ops.size() >= 2) {
+                    if (const auto opacity = host_->objectOpacity(arg(0))) store(ops[1], *opacity);
+                }
+                break;
+            case S::kStartVisual: host_->startVisual(arg(0)); break;
+            case S::kSettingRain:
+                if (ops.size() >= 4) host_->rain(arg(0), arg(1), arg(2), arg(3));
+                break;
+            case S::kMemorizeMagic: host_->memorizeSpell(arg(0)); break;
+            case S::kCheckMemorizedMagic:
+                if (ops.size() >= 2) store(ops[1], host_->knowsSpell(arg(0)) ? 1 : 0);
                 break;
             case S::kDrawQuestName: host_->showQuestName(arg(0)); break;
             case S::kSetCompasses:

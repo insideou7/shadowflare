@@ -27,6 +27,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "logic/traps.h"
 #include "formats/table_data.h"
 #include "formats/open_content.h"
 #include "formats/ai_control.h"
@@ -267,6 +268,7 @@ private:
     void renderLabels(int camX, int camY);
     // Where a character or a map object is, in world units.
     std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
+    const ScenarioControl::Placement* placementById(std::int32_t id) const;
     // A map object with a talk script (the warehouse) under the mouse,
     // as an index into control_.placements.
     std::optional<std::size_t> objectAt(float screenX, float screenY) const;
@@ -309,7 +311,9 @@ private:
     // byPartner: the companion's bite, which the class kill counts skip.
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
-    void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr);
+    // `flinch`: whether it plays the hero's hit pose (traps do not, see
+    // docs/traps.md).
+    void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr, bool flinch = true);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
     void renderHealthBars(int camX, int camY);
     void renderMap();
@@ -403,6 +407,17 @@ private:
         // animation (the mine on the ground), -1 = the animation.
         int pattern = -1;
         double height = 0;  // above the ground, as the original's objects (+0x124)
+        int facing = -1;    // a fixed direction 0-8 to draw it in; -1: see `directional`
+        std::int32_t follows = -1;  // a character it stays on (CREATEEFFECTCHAR), 0-3 the players
+        // A trap's shot (CREATEOPTIONANGLE), which hurts the hero and the
+        // companion instead of monsters (traps.cpp).
+        struct Trap {
+            TrapShot shot;
+            int kind = 0;
+            int power = 0;
+            bool fixedDamage = false;
+        };
+        std::optional<Trap> trap;
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -456,6 +471,46 @@ private:
     int spellHit(int spell, int level) const;
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
+
+    // Traps, effects, rain and story pictures that scenario scripts start
+    // (traps.cpp, docs/traps.md).
+    void fireTrap(const ScriptHost::TrapFire& fire);
+    void stepTrap(Effect& e);
+    void trapHitsPlayer(const Effect& e);
+    void trapHitsPartner(const Effect& e);
+    void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
+    int directionFrames(int option, int direction);
+    std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
+    void resurrect(std::int32_t enemy, int x, int y, int direction);
+    struct RainDrop {
+        int age = 0;
+        int x = 0, y = 0;  // screen pixels it starts from
+        double angle = 0;  // radians, screen y up
+        int speed = 0;     // hundredths of a pixel an original tick
+        int length = 0;
+        int brightness = 0;  // per mille
+        Uint8 r = 0, g = 0, b = 0;
+    };
+    std::vector<RainDrop> rain_;
+    double rainCarry_ = 0;
+    void addRain(int r, int g, int b, int count);
+    void tickRain();
+    void renderRain();
+    // STARTVISUAL's picture: pages of System/Common/Pattern/Visual<n>.njp
+    // (Waiting.njp for 0), each fading in over 120 original ticks and
+    // shown for 300 before a click or key turns to the next (0x417bd0).
+    struct Visual {
+        int picture = 0;
+        int page = 0;
+        double ticks = 0;  // original ticks the page has shown
+    };
+    std::optional<Visual> visual_;
+    void startVisual(int picture);
+    void tickVisual();
+    bool visualEvent(const SDL_Event& event);
+    void renderVisual();
+    std::map<std::int32_t, int> objectOpacity_;  // SETCHARTRANS, by object id
+    double everyTickCarry_ = 0;  // event 5 runs once an original tick
 
     // Land mines (mines.cpp): B or the MINE button lays one where the hero
     // stands; a controller, as the original's (0x42bd40), arms it, sets it
