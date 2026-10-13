@@ -5,7 +5,11 @@
 
 Draws, from scratch, the animations the engine plays for spells: fire,
 ice, lightning, earth and light, as Character/OPTION/<number>/Animation
-(.anim, .sheet and .png). The numbers are the original's, so the engine
+(.anim, .sheet and .png). Also the shots of traps (OPTION 0-3: a burning
+arrow, a stone, a jet of scalding vapor, a gilded bolt), the effects
+scenario scripts start (11000005-08, 10000020) and the sparks of a trap's
+arrow striking the hero (11000020-22) and the blood a trap's blow may
+splash (11000024-25). The numbers are the original's, so the engine
 finds our art where it would find ShadowFlare's own, and each effect has
 the original's frame count, directions, size, anchor and blending, so it
 plays for as long and sits in the same place. The pictures themselves are
@@ -1170,6 +1174,369 @@ def mine_piece(e, seed, loop=True):
     e.chart(loop, {8: [(False, 0, frames, None)]})
 
 
+# --- traps (Character/OPTION 0-3, see docs/traps.md) and script effects ----
+
+def solid_rgba(draw_fn, w, h, scale=4):
+    """A small solid picture drawn `scale` times larger and shrunk, so its
+    edges are smooth; draw_fn(draw, s) draws with coordinates times s."""
+    big = Image.new("RGBA", (w * scale, h * scale))
+    draw_fn(ImageDraw.Draw(big), scale)
+    small = big.resize((w, h), Image.LANCZOS)
+    arr = np.asarray(small).copy()
+    arr[..., 3] = np.where(arr[..., 3] > 110, 255, 0)  # hard edges, as the original's sprites
+    return Image.fromarray(arr, "RGBA")
+
+
+# Trap 0: a burning arrow, centered on the anchor with its head forward,
+# wrapped in flame and trailing smoke and embers.
+def trap_arrow(e):
+    n = 13
+    shafts, flames, embers = {}, {}, {}
+    for d, (dx, dy) in enumerate(DIRS):
+        def shaft(dr, s, dx=dx, dy=dy):
+            c = 30 * s
+            tail = (c - dx * 10 * s, c - dy * 10 * s)
+            head = (c + dx * 10 * s, c + dy * 10 * s)
+            dr.line([tail, head], fill=(96, 64, 36, 255), width=int(2 * s))
+            nx, ny = -dy, dx  # an iron point and two scraps of fletching
+            tip = (c + dx * 13 * s, c + dy * 13 * s)
+            dr.polygon([tip, (head[0] + nx * 2 * s, head[1] + ny * 2 * s),
+                        (head[0] - nx * 2 * s, head[1] - ny * 2 * s)], fill=(70, 70, 76, 255))
+            for side in (1, -1):
+                dr.line([tail, (tail[0] - dx * 3 * s + nx * side * 2 * s, tail[1] - dy * 3 * s + ny * side * 2 * s)],
+                        fill=(150, 140, 120, 255), width=int(1.2 * s))
+        im = solid_rgba(shaft, 60, 60)
+        sh = e.frame(im, 30, 30)
+        shafts[d] = [sh] * n
+        fl, em = [], []
+        for f in range(n):
+            rng = np.random.default_rng(300 + d * 31 + f)
+            cv = Canvas(90, 90, 45, 45)
+            along = cv.x * dx + cv.y * dy - 6          # 0 near the head, negative behind
+            across = cv.x * -dy + cv.y * dx
+            body = np.exp(-(np.clip(-along, 0, None) / (19 + 2 * math.sin(f * 1.7))) ** 2
+                          - (np.clip(along, 0, None) / 5) ** 2) \
+                * np.exp(-(across / (5.2 + 0.06 * np.clip(-along, 0, None))) ** 2)
+            tex = noise(cv.w, cv.h, 3, 3000 + d * 20 + f, 2)
+            v = np.clip(body * (0.55 + 0.8 * tex) - 0.08, 0, 1)
+            cv.c += heat(v * 1.75) * np.clip(v * 2.5, 0, 1)[..., None]
+            # A cold blue fringe round the flame, broken into flecks.
+            fringe = np.exp(-(np.clip(-along, 0, None) / 20) ** 2 - (np.clip(along, 0, None) / 7) ** 2) \
+                * np.exp(-(across / 9) ** 2) * np.clip(1 - v * 3, 0, 1)
+            cv.add(np.clip(fringe * (noise(cv.w, cv.h, 1.5, 3500 + f, 1) * 2.2 - 0.9), 0, 1), (70, 120, 200), 0.9)
+            cv.blob(-dx * 2, -dy * 2, 5, 5, (255, 240, 200), 0.9)
+            fl.append(e.light(cv))
+            cv = Canvas(90, 90, 45, 45)
+            for i in range(22):  # flecks of blue smoke and red embers left behind
+                u = ((i * 0.37 + f / n) % 1.0)
+                back = 6 + 30 * u
+                side = rng.normal(0, 3 + 6 * u)
+                x = -dx * back - dy * side + rng.normal(0, 1.5)
+                y = -dy * back + dx * side - u * 6
+                col = (60, 110, 190) if i % 3 else (230, 80, 30)
+                cv.blob(x, y, 1.8, 1.3, col, 0.8 * (1 - u * 0.6))
+            em.append(e.light(cv))
+        flames[d], embers[d] = fl, em
+    e.chart(True, {d: [(False, 3, shafts[d], None), (True, 1, flames[d], [900] * n), (True, 0, embers[d], None)]
+                   for d in range(8)})
+
+
+# Trap 1: a stone the size of a fist, tumbling as it flies.
+def trap_stone(e):
+    rng = np.random.default_rng(11)
+    pts = [(math.cos(a) * r, math.sin(a) * r) for a, r in
+           sorted((rng.uniform(0, 2 * math.pi), rng.uniform(3.0, 3.9)) for _ in range(7))]
+    frames = []
+    for k in range(8):
+        a = k / 8 * 2 * math.pi
+
+        def draw(dr, s, a=a):
+            rot = [(4 * s + (x * math.cos(a) - y * math.sin(a)) * s, 4 * s + (x * math.sin(a) + y * math.cos(a)) * s)
+                   for x, y in pts]
+            dr.polygon(rot, fill=(40, 34, 30, 255))
+            inner = [(4 * s + (px - 4 * s) * 0.66 - 0.4 * s, 4 * s + (py - 4 * s) * 0.66 - 0.5 * s) for px, py in rot]
+            shade = int(140 + 30 * math.cos(a))
+            dr.polygon(inner, fill=(shade, shade - 8, shade - 26, 255))
+            # A mossy flank and a pale chip that turn round with the stone.
+            mx, my = math.cos(a + 2.2) * 1.4 * s, math.sin(a + 2.2) * 1.4 * s
+            dr.ellipse([4 * s + mx - 0.9 * s, 4 * s + my - 0.9 * s, 4 * s + mx + 0.9 * s, 4 * s + my + 0.9 * s],
+                       fill=(92, 96, 70, 255))
+            hx, hy = math.cos(a) * 1.0 * s, math.sin(a) * 1.0 * s - 0.6 * s
+            dr.ellipse([4 * s + hx - 0.7 * s, 4 * s + hy - 0.7 * s, 4 * s + hx + 0.7 * s, 4 * s + hy + 0.7 * s],
+                       fill=(222, 212, 186, 255))
+        frames.append(e.frame(solid_rgba(draw, 8, 8), 4, 4))
+    # Each turn of the stone is held for five ticks, as the original's.
+    e.chart(True, {8: [(False, 0, [frames[i // 5] for i in range(40)], None)]})
+
+
+# Where the gas of a jet runs, by direction: from (x0, y0) by the trap to
+# (x1, y1), taken from the reach of the original's jets.
+JET_AXES = {1: (2, 2, 78, 52), 3: (16, -12, 64, -96), 5: (-16, -12, -64, -96), 7: (-2, 2, -78, 52)}
+
+
+def plume(cv, x0, y0, x1, y1, w0, w1, seed, colour, k=1.0, start=0.0, end=1.0, fluff=0.9, thin=0.0):
+    """A billowing tongue of gas from (x0, y0) towards (x1, y1), `w0` wide
+    at the root swelling to `w1` and rounded off at the far end; only
+    `start`..`end` of it shows. `fluff` is how ragged its edges are and
+    `thin` how far it has broken up into wisps."""
+    dx, dy = x1 - x0, y1 - y0
+    ll = max(math.hypot(dx, dy), 1e-6)
+    ux, uy = dx / ll, dy / ll
+    along = (cv.x - x0) * ux + (cv.y - y0) * uy
+    t = along / ll
+    across = (cv.x - x0) * -uy + (cv.y - y0) * ux
+    w = w0 + (w1 - w0) * np.sin(np.clip(t / 0.75, 0, 1) * math.pi / 2)
+    # Round caps: past either end the gas falls off as far as it is wide.
+    lo, hi = start * ll, end * ll
+    cap = np.where(along < lo, (lo - along) / np.maximum(w, 1), 0) \
+        + np.where(along > hi, (along - hi) / np.maximum(w, 1), 0)
+    core = np.exp(-(across / np.maximum(w, 0.5)) ** 2 - cap ** 2 * 1.5)
+    n = noise(cv.w, cv.h, 7, seed, 3)
+    f = np.clip((core + fluff * 0.6 * (n - 0.5) - 0.3) * 1.8, 0, 1)
+    wisps = noise(cv.w, cv.h, 5, seed + 1, 2)
+    f = np.clip(f * (0.8 + 0.4 * wisps) - thin * (1.3 - wisps), 0, 1)
+    cv.add(f, colour, k)
+
+
+# Trap 2: a jet of scalding vapor blasting out of the trap along one of the
+# four diagonals, swelling into a cloud that drifts and thins away.
+def trap_jet(e):
+    n = 40
+    dirs = {}
+    for d, (x0, y0, x1, y1) in JET_AXES.items():
+        frames = []
+        for f in range(n):
+            cv = Canvas(240, 240, 120, 130)
+            grow = ease(min(1, (f + 1) / 14))
+            gone = max(0.0, (f - 15) / 24)        # the root runs dry after 15 ticks
+            reach = 0.45 + 0.55 * grow + 0.12 * gone
+            ex, ey = x0 + (x1 - x0) * reach, y0 + (y1 - y0) * reach
+            k = 1.0 if f < 24 else 1.0 - 0.6 * ((f - 24) / 15) ** 1.3
+            plume(cv, x0, y0, ex, ey, 2 + 2 * grow + 14 * gone, 6 + 10 * grow + 10 * gone, 4000 + d * 50 + f // 2,
+                  (232, 232, 235), k * 1.15, start=min(0.4, gone * 0.6), end=0.92, fluff=0.5 + 0.5 * min(1, f / 18),
+                  thin=0.7 * gone ** 1.5)
+            frames.append(e.light(cv))
+        dirs[d] = frames
+    e.chart(False, {d: [(True, 0, fr, None)] for d, fr in dirs.items()})
+
+
+# Trap 3: a gilded bolt, its point on the anchor.
+def trap_bolt(e):
+    dirs = {}
+    for d, (dx, dy) in enumerate(DIRS):
+        def draw(dr, s, dx=dx, dy=dy):
+            c = 30 * s
+            for layer in (0, 1):  # the body, then a pale gleam along it
+                for i in range(97):  # stamped from the dull tail to the bright point
+                    u = i / 96
+                    r = (0.6 + 1.5 * math.sin(min(1, u * 1.1) * math.pi * 0.62)) * s
+                    x, y = c - dx * 24 * (1 - u) * s, c - dy * 24 * (1 - u) * s
+                    if layer:
+                        r *= 0.4
+                        x, y = x - 0.5 * s * (dy or 0.7), y - 0.5 * s * (-dx if dy else 0.7)
+                        col = (255, int(225 + 25 * u), int(140 + 90 * u), 255)
+                    else:
+                        col = (int(110 + 145 * u), int(55 + 160 * u), int(15 + 60 * u ** 2), 255)
+                    dr.ellipse([x - r, y - r, x + r, y + r], fill=col)
+        dirs[d] = [e.frame(solid_rgba(draw, 60, 60), 30, 30)]
+    e.chart(True, {d: [(False, 0, fr, None)] for d, fr in dirs.items()})
+
+
+def glint(cv, x, y, size, colour, k=1.0, tall=2.0):
+    """A twinkle: a bright point with a cross of thin rays, the upright ray
+    `tall` times the longer."""
+    px, py = cv.x - x, cv.y - y
+    r2 = px * px + py * py
+    near = r2 < (size * tall * 3) ** 2
+    f = np.zeros_like(px)
+    f[near] = (np.exp(-r2[near] / (size * 0.55) ** 2) + 0.35 * np.exp(-r2[near] / (size * 1.4) ** 2)
+               + 0.8 * np.exp(-(py[near] / 0.6) ** 2 - np.abs(px[near]) / size)
+               + 0.8 * np.exp(-(px[near] / 0.6) ** 2 - np.abs(py[near]) / (size * tall)))
+    cv.add(f, colour, k)
+
+
+# A rose star flaring out of nothing and closing again, with a thin halo;
+# it waits ten ticks between flares, as the original's does.
+def star_flare(e):
+    frames = [None] * 10
+    sizes = [2, 9, 30, 56, 70, 72, 68, 70, 56, 35]
+    for i, r in enumerate(sizes):
+        cv = Canvas(200, 200, 100, 100)
+        g = r / 72
+        rot = 0.25 * i
+        for j in range(8):  # rays, long and short by turns
+            a = rot + j * math.pi / 4
+            ln = r * (0.6 if j % 2 == 0 else 0.35)
+            cv.streak(0, 0, math.cos(a) * ln, math.sin(a) * ln, 0.8 + 0.8 * g, (255, 150, 170), 0.35, taper=True)
+        cv.blob(0, 0, 4 + 16 * g, 4 + 16 * g, (255, 120, 120), 0.7)
+        cv.blob(0, 0, 2 + 9 * g, 2 + 9 * g, (255, 235, 230), 1.3, sharp=1.5)
+        cv.blob(0, 0, r * 0.8 + 2, r * 0.8 + 2, (110, 70, 80), 0.3, sharp=1.2)
+        if i >= 2:
+            cv.ring(0, 0, 4 + 20 * g, 4 + 20 * g, 0.07, (200, 170, 230) if i > 6 else (255, 170, 190), 0.4)
+        frames.append(e.light(cv))
+    frames.append(None)
+    e.chart(True, {8: [(True, 0, frames, None)]})
+
+
+# Blue force drawn inwards: a ball of needles shrinking to a white knot.
+def blue_implode(e):
+    rng = np.random.default_rng(66)
+    needles = [(rng.uniform(0, 2 * math.pi), rng.uniform(0.45, 1.0), rng.uniform(0.3, 1.0)) for _ in range(150)]
+    frames = []
+    for f in range(19):
+        t = f / 18
+        cv = Canvas(140, 140, 70, 70)
+        r = 58 - 43 * t
+        heat_ = min(1.0, 0.25 + f / 7)
+        for a, rr, b in needles:
+            o = r * rr
+            i_ = o * (0.1 + 0.3 * (1 - t))
+            cv.streak(math.cos(a) * o, math.sin(a) * o, math.cos(a) * i_, math.sin(a) * i_, 1.6,
+                      (60, 110, 255), 0.35 * b * (0.6 + heat_), taper=True)
+        smoke(cv, 0, 0, r * 0.8, r * 0.8, 6700 + f // 2, (40, 70, 200), 0.6, bits=0.3)
+        core = r * (0.15 + 0.45 * min(1, f / 7))
+        cv.blob(0, 0, core, core, (90, 140, 255), 1.4 * heat_, sharp=1.6)
+        fade = 1 - 0.6 * max(0, t - 0.75) / 0.25
+        cv.blob(0, 0, core * 0.75, core * 0.75, (230, 240, 255), 1.6 * heat_ * fade, sharp=2)
+        if f >= 15:
+            cv.c *= np.clip(noise(cv.w, cv.h, 3, 6600 + f, 2) * 2.4 - (f - 14) * 0.25, 0, 1)[..., None]
+        frames.append(e.light(cv))
+    e.chart(False, {8: [(True, 0, frames + [None, None], None)]})
+
+
+# A short puff of vapor along one diagonal, fading as it spreads.
+STEAM_AXES = {1: (2, 2, 60, 46), 3: (16, -12, 62, -74), 5: (-16, -12, -62, -72), 7: (-2, 2, -56, 48)}
+
+
+def steam_puff(e):
+    dirs = {}
+    for d, (x0, y0, x1, y1) in STEAM_AXES.items():
+        frames = [None]
+        for f in range(1, 11):
+            g = ease(min(1, f / 7))
+            cv = Canvas(160, 160, 80, 80)
+            reach = 0.3 + 0.7 * g
+            plume(cv, x0, y0, x0 + (x1 - x0) * reach, y0 + (y1 - y0) * reach, 1.5 + 2 * g, 3 + 7 * g,
+                  7700 + d * 20 + f // 2, (215, 215, 220), 0.45 + 0.4 * g, start=0.1 * g, end=0.9, fluff=0.4 + 0.6 * g)
+            frames.append(e.light(cv))
+        dirs[d] = frames
+    trans = [1000, 900, 800, 700, 600, 500, 400, 300, 200, 100, 50]
+    e.chart(True, {d: [(True, 0, fr, trans)] for d, fr in dirs.items()})
+
+
+def glitter(e, n, seed, colour, count, spread, rise, centre, trans, tall=2.5, size=5.0):
+    """Twinkles that burst from a knot round `centre` and drift apart."""
+    rng = np.random.default_rng(seed)
+    motes = [(rng.normal(0, 1), rng.normal(0, 1), rng.uniform(0.5, 1.2), rng.uniform(0, 6.3)) for _ in range(count)]
+    frames = []
+    cx, cy = centre
+    for f in range(n):
+        t = f / (n - 1)
+        cv = Canvas(260, 300, 130, 230)
+        open_ = 0.6 + 0.4 * ease(min(1, t * 1.3))
+        cv.blob(cx, cy, spread[0] * 0.6, spread[1] * 0.6, colour, 0.25 * max(0, 1 - t * 2.5))
+        for mx, my, s, ph in motes:
+            x = cx + mx * spread[0] * open_
+            y = cy + my * spread[1] * open_ - rise * t * s
+            tw = 0.6 + 0.4 * math.sin(f * 1.3 + ph)
+            glint(cv, x, y, size * s * (1.2 - 0.4 * t), colour, tw * (1.1 - 0.5 * t), tall)
+            cv.blob(x, y, size * s * 0.35, size * s * 0.35, (255, 255, 255), 0.9 * tw * (1 - t))
+        frames.append(e.light(cv))
+    e.chart(False, {8: [(True, 0, frames, trans)]})
+
+
+# A blow to the hero from a trap's arrow: golden chips knocked off in two
+# or four fans, crumbling as they fly; drawn solid, as the original's.
+def arrow_spark(e, seed, centre, axis, spread, lobes=2, reach=40):
+    rng = np.random.default_rng(seed)
+    chips = []
+    for _ in range(26):
+        a = axis + rng.integers(lobes) * 2 * math.pi / lobes + rng.normal(0, spread)
+        chips.append((a, rng.uniform(0.3, 1.0) * reach, rng.uniform(2.0, 4.5), rng.uniform(-0.6, 0.6),
+                      rng.uniform(0.1, 1.0)))
+    dust = [(rng.normal(0, 1), rng.normal(0, 1)) for _ in range(40)]
+    frames = []
+    for f in range(11):
+        t = f / 10
+        im = Image.new("RGBA", (110, 90))
+        dr = ImageDraw.Draw(im)
+        ax, ay = 55, 75
+        cx, cy = ax + centre[0], ay + centre[1]
+        crumble = max(0.0, (t - 0.35) / 0.65)
+        col = (int(255 - 70 * t), int(214 - 110 * t), int(70 - 50 * t), 255)
+        for i, (a, r, s, tw, life) in enumerate(chips):
+            if crumble > life:
+                continue
+            d = r * (0.08 + 0.92 * ease(min(1, t * 1.4)))
+            x, y = cx + math.cos(a) * d, cy + math.sin(a) * d * 0.8 + 8 * t * t
+            ln = s * (1.6 - crumble) * min(1.0, 0.35 + t * 4)
+            if ln < 0.8:
+                if 0 <= x < 110 and 0 <= y < 90:
+                    im.putpixel((int(x), int(y)), col)
+                continue
+            b = a + tw
+            px, py = -math.sin(b) * ln * 0.45, math.cos(b) * ln * 0.45
+            fx, fy = math.cos(b) * ln, math.sin(b) * ln
+            shade = col if i % 3 else (min(255, col[0] + 20), min(255, col[1] + 30), col[2] + 40, 255)
+            dr.polygon([(x - fx, y - fy), (x + px, y + py), (x + fx, y + fy), (x - px, y - py)], fill=shade)
+        for mx, my in dust:  # grit left as the chips break up
+            if crumble > 0 and rng.random() < 0.8 - crumble * 0.5:
+                d = 30 * (0.3 + t)
+                x, y = cx + mx * d * 0.6, cy + my * d * 0.4 + 6 * t
+                if 0 <= x < 110 and 0 <= y < 90:
+                    im.putpixel((int(x), int(y)), (200, 130, 30, 255))
+        frames.append(e.frame(im, ax, ay))
+    e.chart(False, {8: [(False, 0, frames, None)]})
+
+
+# A trap's blow drawing blood (11000024, 11000025): drops thrown out from
+# chest height in the direction it faces, falling and splashing into
+# streaks on the ground, where they stay to the last frame. Solid.
+def smear(dr, x, y, ux, uy, length, width):
+    """A teardrop of blood, its round head at (x, y) and its tail trailing
+    back along -(ux, uy); a dark rim round a deep red body."""
+    px, py = -uy, ux
+    for grow, col in ((1.0, (54, 0, 0, 255)), (0.0, (124, 4, 2, 255))):
+        w = width + grow
+        tail = (x - ux * (length + grow), y - uy * (length + grow))
+        dr.polygon([tail, (x + px * w, y + py * w), (x + ux * w, y + uy * w), (x - px * w, y - py * w)], fill=col)
+    dr.point((x + ux * width * 0.3 - px * width * 0.4, y + uy * width * 0.3 - py * width * 0.4), fill=(190, 40, 30, 255))
+
+
+def blood_splash(e, seed, n, count, reach, size):
+    dirs = {}
+    for d, (dx, dy) in enumerate(DIRS):
+        rng = np.random.default_rng(seed + d)
+        drops = []
+        for _ in range(count):
+            a = math.atan2(dy, dx) + rng.normal(0, 0.55)
+            drops.append((math.cos(a), math.sin(a), rng.uniform(0.25, 1.0) * reach, rng.uniform(-4, 10),
+                          rng.uniform(0.5, 1.0) * size, rng.uniform(0.6, 1.0)))
+        frames = []
+        for f in range(n):
+            t = min(1.0, (f + 1) / (n - 3))
+            im = Image.new("RGBA", (220, 180))
+            dr = ImageDraw.Draw(im)
+            ax, ay = 110, 110
+            for ux, uy, r, up, sz, speed in drops:
+                u = min(1.0, t / speed)
+                gx, gy = ux * r * (0.12 + 0.88 * u), uy * r * (0.12 + 0.88 * u) * GROUND  # over the ground
+                h = 34 + up * u - (34 + up) * u * u            # height, falling to the ground
+                x, y = ax + gx, ay + gy - h
+                if u < 1.0:  # in flight: a drop drawn out along its path
+                    vx, vy = ux * r, uy * r * GROUND - (up - 2 * (34 + up) * u)
+                    ln = max(1e-6, math.hypot(vx, vy))
+                    k = sz * (0.7 + 0.3 * u)
+                    smear(dr, x, y, vx / ln, vy / ln, k * 3.2, k * 0.75)
+                else:  # landed: a splat smeared on along its way, and a few specks
+                    ln = max(1e-6, math.hypot(ux, uy * GROUND))
+                    smear(dr, x, y, ux / ln, uy * GROUND / ln, sz * 3.8, sz * 0.8)
+                    smear(dr, x + ux * sz * 3, y + uy * sz * 2, ux / ln, uy * GROUND / ln, sz * 1.6, sz * 0.45)
+            frames.append(e.frame(im, ax, ay))
+        dirs[d] = frames
+    e.chart(False, {d: [(False, 0, fr, None)] for d, fr in dirs.items()})
+
+
 EFFECTS = {
     10000000: fire_spray,
     10000001: gold_burst,
@@ -1216,6 +1583,26 @@ EFFECTS = {
     1006: lambda e: mine_piece(e, 2),
     1007: lambda e: mine_piece(e, 3),
     1008: lambda e: mine_piece(e, 4, loop=False),
+    # Trap shots (CREATEOPTIONANGLE kinds 0-3).
+    0: trap_arrow,
+    1: trap_stone,
+    2: trap_jet,
+    3: trap_bolt,
+    # Script effects (CREATEEFFECT 20007-20010 and 20018).
+    11000005: star_flare,
+    11000006: blue_implode,
+    11000007: steam_puff,
+    11000008: lambda e: glitter(e, 18, 88, (255, 110, 190), 60, (22, 26), 100, (0, -48),
+                                [1000] * 9 + [900, 800, 700, 600, 500, 400, 300, 200, 100]),
+    10000020: lambda e: glitter(e, 16, 20, (60, 140, 255), 18, (26, 16), 25, (8, -25),
+                                [1000] * 10 + [900, 750, 600, 450, 300, 150], tall=2.5, size=6.5),
+    # The sparks of a trap's arrow striking the hero.
+    11000020: lambda e: arrow_spark(e, 120, (-10, -28), -0.7, 0.3, 4, 36),
+    11000021: lambda e: arrow_spark(e, 121, (0, -30), -0.4, 0.4, 2, 46),
+    11000022: lambda e: arrow_spark(e, 122, (-2, -31), -1.4, 0.2, 4, 32),
+    # The blood a trap's blow may splash on whoever it hits.
+    11000024: lambda e: blood_splash(e, 240, 14, 12, 50, 2.6),
+    11000025: lambda e: blood_splash(e, 250, 15, 20, 72, 3.4),
 }
 
 
