@@ -5,9 +5,10 @@
 
 Draws, from scratch, the animations the engine plays for spells: fire,
 ice, lightning, earth and light, as Character/OPTION/<number>/Animation
-(.anim, .sheet and .png). Also the shots of traps (OPTION 0-3: a burning
-arrow, a stone, a jet of scalding vapor, a gilded bolt), the effects
-scenario scripts start (11000005-08, 10000020) and the sparks of a trap's
+(.anim, .sheet and .png). Also the shots of traps (OPTION 0-3: an
+arrow that can burn or freeze, a stone, a jet of scalding vapor, a gilded
+bolt), the hunter's volley (9000, 11000004), the effects scenario scripts
+start (11000005-08, 10000020) and the sparks of a trap's
 arrow striking the hero (11000020-22) and the blood a trap's blow may
 splash (11000024-25). The numbers are the original's, so the engine
 finds our art where it would find ShadowFlare's own, and each effect has
@@ -1187,30 +1188,44 @@ def solid_rgba(draw_fn, w, h, scale=4):
     return Image.fromarray(arr, "RGBA")
 
 
-# Trap 0: a burning arrow, centered on the anchor with its head forward,
-# wrapped in flame and trailing smoke and embers.
+def arrow_shaft(dx, dy):
+    """An arrow's solid shaft 26 long, centered on (30, 30) with its point
+    along (dx, dy): an iron head and two scraps of fletching."""
+    def shaft(dr, s):
+        c = 30 * s
+        tail = (c - dx * 10 * s, c - dy * 10 * s)
+        head = (c + dx * 10 * s, c + dy * 10 * s)
+        dr.line([tail, head], fill=(96, 64, 36, 255), width=int(2 * s))
+        nx, ny = -dy, dx
+        tip = (c + dx * 13 * s, c + dy * 13 * s)
+        dr.polygon([tip, (head[0] + nx * 2 * s, head[1] + ny * 2 * s),
+                    (head[0] - nx * 2 * s, head[1] - ny * 2 * s)], fill=(70, 70, 76, 255))
+        for side in (1, -1):
+            dr.line([tail, (tail[0] - dx * 3 * s + nx * side * 2 * s, tail[1] - dy * 3 * s + ny * side * 2 * s)],
+                    fill=(150, 140, 120, 255), width=int(1.2 * s))
+    return solid_rgba(shaft, 60, 60)
+
+
+# Shot 0: the arrow of traps and bowguns, centered on the anchor with its
+# head forward. Its layers are the original's: 0 the shaft, 1 the air it
+# cuts (the original's shadow; we have none), 2 a wrap of flame with
+# embers and smoke behind (shown for fire arrows) and 3 a haze of frost
+# with ice glinting along the shaft (shown for ice arrows). The engine
+# hides the layers a shot does not use.
 def trap_arrow(e):
     n = 13
-    shafts, flames, embers = {}, {}, {}
+    shafts, air, flames, frost = {}, {}, {}, {}
     for d, (dx, dy) in enumerate(DIRS):
-        def shaft(dr, s, dx=dx, dy=dy):
-            c = 30 * s
-            tail = (c - dx * 10 * s, c - dy * 10 * s)
-            head = (c + dx * 10 * s, c + dy * 10 * s)
-            dr.line([tail, head], fill=(96, 64, 36, 255), width=int(2 * s))
-            nx, ny = -dy, dx  # an iron point and two scraps of fletching
-            tip = (c + dx * 13 * s, c + dy * 13 * s)
-            dr.polygon([tip, (head[0] + nx * 2 * s, head[1] + ny * 2 * s),
-                        (head[0] - nx * 2 * s, head[1] - ny * 2 * s)], fill=(70, 70, 76, 255))
-            for side in (1, -1):
-                dr.line([tail, (tail[0] - dx * 3 * s + nx * side * 2 * s, tail[1] - dy * 3 * s + ny * side * 2 * s)],
-                        fill=(150, 140, 120, 255), width=int(1.2 * s))
-        im = solid_rgba(shaft, 60, 60)
-        sh = e.frame(im, 30, 30)
+        sh = e.frame(arrow_shaft(dx, dy), 30, 30)
         shafts[d] = [sh] * n
-        fl, em = [], []
+        ai, fl, fr = [], [], []
         for f in range(n):
             rng = np.random.default_rng(300 + d * 31 + f)
+            # A faint pale wake behind the fletching.
+            cv = Canvas(90, 90, 45, 45)
+            w = 0.8 + 0.2 * math.sin(f * 1.9)
+            cv.streak(-dx * 12, -dy * 12, -dx * 34, -dy * 34, 1.6, (150, 160, 170), 0.35 * w, taper=True)
+            ai.append(e.light(cv))
             cv = Canvas(90, 90, 45, 45)
             along = cv.x * dx + cv.y * dy - 6          # 0 near the head, negative behind
             across = cv.x * -dy + cv.y * dx
@@ -1220,24 +1235,38 @@ def trap_arrow(e):
             tex = noise(cv.w, cv.h, 3, 3000 + d * 20 + f, 2)
             v = np.clip(body * (0.55 + 0.8 * tex) - 0.08, 0, 1)
             cv.c += heat(v * 1.75) * np.clip(v * 2.5, 0, 1)[..., None]
-            # A cold blue fringe round the flame, broken into flecks.
-            fringe = np.exp(-(np.clip(-along, 0, None) / 20) ** 2 - (np.clip(along, 0, None) / 7) ** 2) \
-                * np.exp(-(across / 9) ** 2) * np.clip(1 - v * 3, 0, 1)
-            cv.add(np.clip(fringe * (noise(cv.w, cv.h, 1.5, 3500 + f, 1) * 2.2 - 0.9), 0, 1), (70, 120, 200), 0.9)
             cv.blob(-dx * 2, -dy * 2, 5, 5, (255, 240, 200), 0.9)
-            fl.append(e.light(cv))
-            cv = Canvas(90, 90, 45, 45)
-            for i in range(22):  # flecks of blue smoke and red embers left behind
+            for i in range(22):  # flecks of smoke and red embers left behind
                 u = ((i * 0.37 + f / n) % 1.0)
                 back = 6 + 30 * u
                 side = rng.normal(0, 3 + 6 * u)
                 x = -dx * back - dy * side + rng.normal(0, 1.5)
                 y = -dy * back + dx * side - u * 6
-                col = (60, 110, 190) if i % 3 else (230, 80, 30)
+                col = (90, 80, 70) if i % 3 else (230, 80, 30)
                 cv.blob(x, y, 1.8, 1.3, col, 0.8 * (1 - u * 0.6))
-            em.append(e.light(cv))
-        flames[d], embers[d] = fl, em
-    e.chart(True, {d: [(False, 3, shafts[d], None), (True, 1, flames[d], [900] * n), (True, 0, embers[d], None)]
+            fl.append(e.light(cv))
+            # Frost: a cold haze round the head, rime glinting along the
+            # shaft and flakes of snow peeling off and drifting up.
+            cv = Canvas(90, 90, 45, 45)
+            haze = np.exp(-(np.clip(-along, 0, None) / 16) ** 2 - (np.clip(along, 0, None) / 6) ** 2) \
+                * np.exp(-(across / 7) ** 2)
+            ntex = noise(cv.w, cv.h, 2, 3600 + d * 20 + f, 2)
+            cv.add(np.clip(haze * (0.4 + 0.9 * ntex) - 0.1, 0, 1), (90, 160, 255), 1.1)
+            cv.blob(dx * 4, dy * 4, 4, 4, (210, 235, 255), 0.8)
+            for i in range(3):
+                b = (i * 7 + f * 3) % 18
+                glint(cv, -dx * b + dx * 4, -dy * b + dy * 4, 1.4, (200, 230, 255), 0.6 + 0.4 * math.sin(f + i * 2.1), 1.0)
+            for i in range(14):
+                u = ((i * 0.29 + f / n) % 1.0)
+                back = 4 + 26 * u
+                side = rng.normal(0, 2 + 5 * u)
+                x = -dx * back - dy * side
+                y = -dy * back + dx * side - u * 12
+                cv.blob(x, y, 1.1, 1.1, (170, 210, 255), 0.9 * (1 - u))
+            fr.append(e.light(cv))
+        air[d], flames[d], frost[d] = ai, fl, fr
+    e.chart(True, {d: [(False, 3, shafts[d], None), (True, 2, air[d], None),
+                       (True, 1, flames[d], [900] * n), (True, 0, frost[d], None)]
                    for d in range(8)})
 
 
@@ -1652,6 +1681,80 @@ def freeze_hold(e, seed):
     e.chart(True, {8: [(True, 0, frames, None)]})
 
 
+# The hunter's volley (missile 9000): an arrow dropping out of the sky,
+# point down to the lower left, with a long trail of pale light behind it
+# up to the right. The trail flickers; the arrow stays solid.
+def falling_arrow(e):
+    n = 15
+    ux, uy = -0.42, 0.91  # the way it falls on screen
+    arrow = e.frame(solid_rgba(lambda dr, s: [
+        dr.line([(10 * s - ux * 9 * s, 10 * s - uy * 9 * s), (10 * s + ux * 7 * s, 10 * s + uy * 7 * s)],
+                fill=(104, 72, 40, 255), width=int(1.6 * s)),
+        dr.polygon([(10 * s + ux * 10 * s, 10 * s + uy * 10 * s),
+                    (10 * s + ux * 6 * s - uy * 1.8 * s, 10 * s + uy * 6 * s + ux * 1.8 * s),
+                    (10 * s + ux * 6 * s + uy * 1.8 * s, 10 * s + uy * 6 * s - ux * 1.8 * s)], fill=(196, 200, 210, 255)),
+        dr.line([(10 * s - ux * 9 * s, 10 * s - uy * 9 * s),
+                 (10 * s - ux * 11 * s + uy * 2 * s, 10 * s - uy * 11 * s - ux * 2 * s)], fill=(236, 230, 210, 255),
+                width=int(1.2 * s)),
+        dr.line([(10 * s - ux * 9 * s, 10 * s - uy * 9 * s),
+                 (10 * s - ux * 11 * s - uy * 2 * s, 10 * s - uy * 11 * s + ux * 2 * s)], fill=(236, 230, 210, 255),
+                width=int(1.2 * s))], 20, 20), 10, 10)
+    glows, trans = [], []
+    for f in range(n):
+        rng = np.random.default_rng(9000 + f)
+        cv = Canvas(70, 110, 14, 96)
+        # A tapering beam back along the fall, brightest at the arrow.
+        cv.streak(-ux * 8, -uy * 8, -ux * 95, -uy * 95, 5, (170, 200, 255), 0.5, taper=True)
+        cv.streak(-ux * 4, -uy * 4, -ux * 70, -uy * 70, 2.2, (255, 250, 230), 0.9, taper=True)
+        tex = noise(cv.w, cv.h, 2, 9100 + f, 2)
+        cv.c *= np.clip(0.55 + 0.8 * tex, 0, 1.3)[..., None]
+        for _ in range(9):  # motes shed by the trail
+            b = rng.uniform(10, 90)
+            side = rng.normal(0, 4)
+            glint(cv, -ux * b - uy * side, -uy * b + ux * side, rng.uniform(0.6, 1.3), (220, 235, 255), 0.7, 1.0)
+        glows.append(e.light(cv))
+        trans.append((400, 500, 600)[f % 3])
+    e.chart(False, {8: [(True, 0, glows, trans), (False, 1, [arrow] * n, None)]})
+
+
+# The blow of the hunter's volley (11000004): a cyan comet curls in over
+# the target, bursts into a ring of amber light that spins open, and
+# leaves a spray of icy glints. Drawn on black and added, flickering on
+# alternate early frames as the original's does.
+def volley_hit(e):
+    n = 20
+    frames, trans = [], []
+    for f in range(n):
+        t = f / (n - 1)
+        cv = Canvas(100, 100, 50, 50)
+        if f < 8:  # the comet circling in
+            r = 30 * (1 - f / 8) + 6
+            for step in range(12):
+                a = f * 0.9 - step * 0.22
+                fade = (1 - step / 12) ** 1.4
+                px, py = math.cos(a) * r, math.sin(a) * r * 0.6 - 12
+                qx, qy = math.cos(a - 0.22) * (r + 2), math.sin(a - 0.22) * (r + 2) * 0.6 - 12
+                cv.streak(px, py, qx, qy, 1.4 + 2.4 * fade, (60, 200, 255), 1.1 * fade)
+        if 4 <= f < 16:  # the amber ring spinning open
+            u = (f - 4) / 11
+            rr = 8 + 34 * ease(u)
+            k = (1 - u) ** 0.8
+            cv.ring(0, -4, rr, rr * 0.62, 0.22, (255, 170, 40), 2.0 * k, arc=(f * 0.8, 4.4))
+            cv.ring(0, -4, rr * 0.7, rr * 0.44, 0.3, (255, 90, 20), 1.3 * k, arc=(f * 0.8 + 3.0, 3.6))
+            cv.blob(0, -4, 10 * (1 - u) + 2, 7 * (1 - u) + 2, (255, 230, 150), 1.0 * k)
+        if f >= 9:  # icy glints flung out
+            u = (f - 9) / 10
+            rng = np.random.default_rng(4004)
+            for _ in range(12):
+                a = rng.uniform(0, 2 * math.pi)
+                d = rng.uniform(14, 40) * (0.3 + 0.7 * ease(u))
+                glint(cv, math.cos(a) * d, math.sin(a) * d * 0.62 - 6, 1.6 * (1 - 0.5 * u), (170, 210, 255),
+                      1.0 - u, 1.4)
+        frames.append(e.light(cv))
+        trans.append(400 if f < 8 and f % 2 else 1000)
+    e.chart(False, {8: [(True, 0, frames, trans)]})
+
+
 EFFECTS = {
     10000000: fire_spray,
     10000001: gold_burst,
@@ -1703,6 +1806,9 @@ EFFECTS = {
     1: trap_stone,
     2: trap_jet,
     3: trap_bolt,
+    # The hunter's volley: the falling arrow and its blow.
+    9000: falling_arrow,
+    11000004: volley_hit,
     # Script effects (CREATEEFFECT 20007-20010 and 20018).
     11000005: star_flare,
     11000006: blue_implode,

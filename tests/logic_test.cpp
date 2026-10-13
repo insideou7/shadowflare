@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "logic/archery.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "formats/table_data.h"
@@ -885,6 +886,42 @@ void testTrapGeometry() {
     check(sf::rectGap(0, 0, r, 300, 300, r) == static_cast<int>(std::hypot(141.0, 141.0)) - 1, "apart both ways: the corners");
 }
 
+void testArchery() {
+    using sf::HeroClass;
+    check(sf::bowAttackPercent(HeroClass::Hunter, {}) == 100, "a hunter shoots with the whole attack");
+    check(sf::bowAttackPercent(HeroClass::Warrior, {HeroClass::Mercenary, HeroClass::Warrior}) == 40, "no hunter levels: 40%");
+    std::vector<HeroClass> once(4, HeroClass::Mercenary);
+    once.push_back(HeroClass::Hunter);
+    once.push_back(HeroClass::Hunter);
+    once.push_back(HeroClass::Warrior);
+    check(sf::hunterLevels(once) == 2 && sf::bowAttackPercent(HeroClass::Warrior, once) == 43, "two hunter levels: 40 + 100/30");
+    check(sf::bowAttackPercent(HeroClass::Wizard, std::vector<HeroClass>(40, HeroClass::Hunter)) == 90, "at most 90%");
+
+    constexpr double deg = 3.141592653589793 / 180;
+    const auto one = sf::bowVolley(1, 0, 90 * deg);
+    check(one.option == 0 && one.arrows.size() == 1 && one.arrows[0].facing == 3 && !one.flame && !one.frost,
+          "a plain bowgun looses one arrow facing its way");
+    const auto stones = sf::bowVolley(0, 3, 0);
+    check(stones.option == 1 && stones.arrows.size() == 3 && stones.arrows[1].facing == 8 &&
+              std::abs(stones.arrows[2].angle - 15 * deg) < 1e-9,
+          "a triple sling throws three stones 15 degrees apart");
+    const auto fire = sf::bowVolley(2, 7, 0);
+    check(fire.flame && !fire.frost && fire.arrows.size() == 7 && std::abs(fire.arrows[6].angle - 0.41887902047863906) < 1e-12,
+          "seven fire arrows 8 degrees apart, 24 at the edge");
+    check(sf::bowVolley(3, 5, 0).frost && sf::bowVolley(3, 5, 0).arrows.size() == 5, "ice bowguns light the frost layer");
+    // Odd spreads keep the centre's facing; the second of two faces itself.
+    const auto fan = sf::bowVolley(1, 3, 22 * deg);
+    check(fan.arrows[2].facing == 1 && sf::directionOfAngle(fan.arrows[2].angle) == 2, "a fan keeps the centre's direction");
+    const auto two = sf::bowVolley(1, 1, 20 * deg);
+    check(two.arrows.size() == 2 && two.arrows[0].facing == 1 && two.arrows[1].facing == 2, "two arrows: the second faces itself");
+
+    check(sf::bowHitOption(0, 3) == 11000009 && sf::bowHitOption(1, 2) == 11000022, "the sparks of stones and arrows");
+    const auto start = sf::fallingArrow(0), mid = sf::fallingArrow(5), land = sf::fallingArrow(10);
+    check(start.dx == 1001 && start.dy == -999 && start.height == 4000, "the volley's arrow starts high up and to the right");
+    check(mid.dx == 501 && mid.dy == -499 && mid.height == 2000 && land.dx == 1 && land.dy == 1 && land.height == 0,
+          "it falls onto its target over ten ticks");
+}
+
 void testTrapShots() {
     const auto arrow = sf::trapShot(0, -1, 3.141592);
     check(arrow && arrow->direction == 5 && arrow->diesOnHit && arrow->diesOnWall && !arrow->hitsAll && arrow->box.left == -30,
@@ -1067,6 +1104,7 @@ int main() {
     testLevels();
     testTrapGeometry();
     testTrapShots();
+    testArchery();
     testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

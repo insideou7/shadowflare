@@ -924,8 +924,9 @@ class goes at (22, 42) and the hero's name at (92, 42). The element
 levels are bars, patterns 0x24 (level -10 or less) to 0x38 (+10 or more)
 at their own position, each row 16 pixels below the last; pattern 0x39
 marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
-330 - y x 48 / 20000), fading in and out over 50 frames. Not done yet: a
-bowgun's attack shown scaled for anyone but a hunter, and Max at level 100.
+330 - y x 48 / 20000), fading in and out over 50 frames. A bowgun's
+attack is shown scaled for anyone but a hunter (see
+[archery.md](archery.md)). Not done yet: Max at level 100.
 
 The open pack draws its own status window in the same layout
 (content/System/Game/Pattern/StatusWindow.sheet, from tools/art/magic.py):

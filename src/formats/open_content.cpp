@@ -868,6 +868,15 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item->twoHandedFlag = lines.toInt(value) != 0;
         } else if (key == "effect") {
             numbers(value, item->effect);
+        } else if (key == "shot") {
+            // kind, spread, speed, then optionally turn and pierce
+            const auto v = lines.ints(value);
+            if (v.size() < 3 || v.size() > 5) lines.fail("shot= takes 3 to 5 numbers");
+            item->shotKind = v[0];
+            item->shotSpread = v[1];
+            item->shotSpeed = v[2];
+            item->shotTurn = v.size() > 3 ? v[3] : 0;
+            item->shotPierces = v.size() > 4 && v[4] != 0;
         } else {
             lines.fail(std::format("unknown key '{}'", key));
         }

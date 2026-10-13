@@ -63,6 +63,9 @@ void Game::fireTrap(const ScriptHost::TrapFire& f) {
     e.speed = f.speed;
     e.life = shot->lastsItsAnimation ? directionFrames(shot->option, shot->direction) : -1;
     e.trap = Effect::Trap{*shot, f.kind, f.power, f.fixedDamage, f.stun};
+    // Kind 0 is the plain arrow: its flame and frost layers are turned off
+    // once it is made (0x42a300), as for a bowgun's.
+    if (f.kind == 0) e.hiddenLayers = 1u << 2 | 1u << 3;
 }
 
 // One of the original's ticks of a trap's shot (0x45e1e0): it hurts where
@@ -89,29 +92,10 @@ void Game::stepTrap(Effect& e) {
             if (shot.diesOnHit) e.dead = true;
         }
     }
-    // Shots that stop at walls (0x45e1e0 by way of 0x4145b0 and
-    // 0x414990): one whose box already meets a wall is spent; otherwise
-    // it moves on and is spent where its path first meets one.
-    const bool walls = shot.diesOnWall && map_;
-    const auto blocked = [&](double x, double y) {
-        return shotMeetsWall(map_->ground(), static_cast<int>(x), static_cast<int>(y), shot.box) || boxMeetsObject(x, y, shot.box);
-    };
-    if (walls && blocked(e.x, e.y)) e.dead = true;
-    if (e.speed > 0) {
-        const double dx = std::cos(e.angle) * e.speed, dy = std::sin(e.angle) * e.speed;
-        // Steps no longer than a quarter of a judge cell, so a thin wall is
-        // not jumped.
-        const int steps = walls ? std::max(1, static_cast<int>(std::ceil(e.speed / 40.0))) : 1;
-        for (int i = 1; i <= steps; ++i) {
-            const double nx = e.x + dx / steps, ny = e.y + dy / steps;
-            if (walls && !e.dead && blocked(nx, ny)) {
-                e.dead = true;
-                break;
-            }
-            e.x = nx;
-            e.y = ny;
-        }
-    }
+    // Shots that stop at walls: one whose box already meets a wall is
+    // spent; otherwise it moves on and is spent where its path first meets
+    // one.
+    moveShot(e, shot.box, shot.diesOnWall);
     ++e.age;
     if (e.life >= 0 && e.age >= e.life) e.dead = true;
 }

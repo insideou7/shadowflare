@@ -6,6 +6,7 @@
 
 #include "core/log.h"
 #include "game/game.h"
+#include "logic/archery.h"
 #include "logic/magic.h"
 #include "render/tiny_font.h"
 
@@ -118,10 +119,15 @@ void Game::renderStatus() {
         int x, y, value, base;
     };
     auto stat = [&](HeroStats::Stat s, int x, int y) { return Number{x, y, stats[s], own[s]}; };
+    // With a bowgun, anyone but a hunter is shown the part of the attack
+    // its shots carry, always in the raised tone (0x405750).
+    const int bowPercent = bowInHand() ? bowAttackPercent(career_.current, career_.history) : 100;
+    Number attack = stat(HeroStats::kAttack, 198, 113);
+    if (bowPercent != 100) attack = {198, 113, stats[HeroStats::kAttack] * bowPercent / 100, -1};
     const Number numbers[] = {
         {303, 41, playerLevel_, playerLevel_}, {303, 65, static_cast<int>(playerExperience_), static_cast<int>(playerExperience_)},
         stat(HeroStats::kHp, 124, 89),          {81, 89, playerHp_, playerHp_ - stats[HeroStats::kHp] + own[HeroStats::kHp]},
-        stat(HeroStats::kStrength, 95, 113),    stat(HeroStats::kAttack, 198, 113),
+        stat(HeroStats::kStrength, 95, 113),    attack,
         stat(HeroStats::kDefense, 303, 113),    stat(HeroStats::kHit, 150, 137),
         stat(HeroStats::kEvasion, 303, 137),    stat(HeroStats::kWalkSpeed, 150, 161),
         stat(HeroStats::kAttackSpeed, 303, 161), stat(HeroStats::kMp, 124, 192),
@@ -135,7 +141,7 @@ void Game::renderStatus() {
             drawText(renderer_, field.box.x + 3, field.box.y + 3, field.label, kWhite, 1);
         }
     }
-    for (const auto& n : numbers) windowNumber(n.x, n.y, n.value, toneOf(n.value, n.base));
+    for (const auto& n : numbers) windowNumber(n.x, n.y, n.value, n.base < 0 ? kRaised : toneOf(n.value, n.base));
     // The slashes of HP and MP; the current HP and MP take the tone of the most.
     windowText(83, 91, "/", kPlainText);
     windowText(83, 194, "/", kPlainText);
@@ -176,6 +182,16 @@ void Game::renderStatus() {
         const std::string text = std::format("CHANGE CAREER: {}", className(career_.offered, heroSex_));
         drawText(renderer_, kChangeButton.x + (kChangeButton.w - textWidth(text, 1)) / 2, kChangeButton.y + 6, text,
                  hover ? kGold : kWhite, 1);
+    }
+
+    // Over the scaled attack the original says by how much it is cut, in a
+    // box under the pointer with a white edge (0x405750).
+    if (bowPercent != 100 && mx > 101 && mx < 202 && my > 109 && my < 130) {
+        const std::string text = std::format("Revision of Attack (Not for Hunters):-{}%", 100 - bowPercent);
+        const int w = uiTextWidth(text) + 8, h = 18;
+        const int x = std::clamp(mx - w / 2, 1, kScreenWidth - w), y = std::clamp(my + 8, 1, kScreenHeight - h);
+        frame(renderer_, {x - 1, y - 1, w + 1, h + 1}, {0, 0, 0, 255}, {255, 255, 255, 255});
+        uiText(x + 4, y + 3, text, kWhite);
     }
 }
 

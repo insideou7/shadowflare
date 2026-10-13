@@ -100,6 +100,7 @@ Options:
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
+- `--class <warrior|hunter|wizard>` the class `--level` gives the hero from level 5 on
 - `--hurt <percent>` drop the hero's HP to that share four seconds in, and
   `--experience <percent>` start with the EXP gauge that full (screenshots of the panel)
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)

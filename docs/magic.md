@@ -179,8 +179,9 @@ Berserker goes off, and for 900 frames (30 seconds) the hero
 - glows: Player/Common/Powerup, one 30-frame chart added to what is
   behind, a frame each tick at the hero's feet (0x4448b0).
 
-The charge is not saved. Not in yet: the sound every 15 frames, and the
-hunter's 1-in-3 special attack (0x438a90).
+The charge is not saved. Not in yet: the sound every 15 frames. The
+hunter's 1-in-3 volley with a bowgun (0x438a90) is in
+[archery.md](archery.md).
 
 ## The magic window (0x407a60, 0x447790)
 
@@ -261,8 +262,6 @@ Ours rather than the original's, until they are read from the exe:
   rect).
 - The mouse pointer is the system's: Identify's pointer is not shown.
 - Monster spells land halfway through their animation, like blows.
-- The hunter's special attack in power mode needs bows' arrows, which are
-  not in yet.
 
 ## Original mode
 

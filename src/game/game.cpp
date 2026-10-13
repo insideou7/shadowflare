@@ -797,6 +797,7 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 void Game::swing() {
     player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
     blowLanded_ = false;
+    bowShot_.reset();
 }
 
 void Game::tickPlayer() {
@@ -816,7 +817,17 @@ void Game::tickPlayer() {
         player_->play(chart::kIdle);
     }
     if (current == chart::kPlayerHit && !player_->finished()) return;
-    if (current == chart::kPlayerPunch) {
+    if (bowShot_ && (current == chart::kPlayerPunch || current == chart::kPlayerShoot)) {
+        // A bowgun shoots on its chart's shooting frame (once, as a fast
+        // pull can step past it).
+        if (!blowLanded_ && player_->frame() >= strikeFrame(current, current == chart::kPlayerShoot ? 3 : 4)) {
+            blowLanded_ = true;
+            loose();
+        }
+        if (!player_->finished()) return;
+        bowShot_.reset();
+        player_->play(chart::kIdle);
+    } else if (current == chart::kPlayerPunch) {
         // The blow lands halfway through the swing (once, as a fast swing
         // can step past the frame).
         if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
@@ -849,7 +860,11 @@ void Game::tickPlayer() {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
             player_->faceTowards(wx - player_->x, wy - player_->y);
-            swing();
+            if (bowInHand()) {
+                shoot(attackTarget_, std::atan2(wy - player_->y, wx - player_->x));
+            } else {
+                swing();
+            }
             return;
         }
         if (target.kind == Settings::kEnemy && !identifying_) {
@@ -945,6 +960,13 @@ void Game::tickPlayer() {
         const Character& enemy = actors_[*attackTarget_].character;
         dx = enemy.x - player_->x;
         dy = enemy.y - player_->y;
+        // A bowgun shoots from wherever the hero stands (0x449240).
+        if (bowInHand()) {
+            player_->faceTowards(dx, dy);
+            shoot(attackTarget_, std::atan2(dy, dx));
+            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            return;
+        }
         if (std::hypot(dx, dy) <= kMeleeRange) {
             player_->faceTowards(dx, dy);
             swing();

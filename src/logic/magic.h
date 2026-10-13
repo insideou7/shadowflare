@@ -250,6 +250,9 @@ double walkSpeedFactor(int walkSpeed, bool powerMode = false);
 // picks a step (0x450c60) of the swing's scale (0x437fe0); step 9 in power
 // mode. A new hero's 100 is step 5, a factor of 1.
 double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = false);
+// The hunter's volley in power mode plays the same chart on a faster scale
+// (0x438a90), up to 3 at the top step against the swing's 2.
+double volleySpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = true);
 
 // HP or MP recovered every third frame (0x44f2f0): maximum x rate / 10000,
 // with the fraction carried over in `carry` (in hundredths of a point).

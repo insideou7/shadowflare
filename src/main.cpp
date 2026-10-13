@@ -55,6 +55,7 @@ struct Options {
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
+    sf::HeroClass heroClass = sf::HeroClass::Warrior;  // the class --level gives from level 5
     int hpPercent = -1, experiencePercent = -1;  // --hurt, --experience: for screenshots of the panel
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
     bool ourArt = false;  // draw the original game with content/'s art
@@ -126,6 +127,13 @@ Options parseArgs(int argc, char** argv) {
             options.experiencePercent = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--level" && i + 1 < argc) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--class" && i + 1 < argc) {
+            // The class --level makes the hero from level 5 on.
+            const std::string cls = argv[++i];
+            if (cls == "hunter") options.heroClass = sf::HeroClass::Hunter;
+            else if (cls == "wizard" || cls == "witch") options.heroClass = sf::HeroClass::Wizard;
+            else if (cls == "warrior") options.heroClass = sf::HeroClass::Warrior;
+            else sf::log::warn("--class expects warrior, hunter or wizard");
         } else if (arg == "--skin" && i + 1 < argc) {
             options.skin = argv[++i];
         } else if (arg == "--our-art") {
@@ -502,7 +510,7 @@ int main(int argc, char** argv) {
         }
     }
     if (options.load) app.game->loadGame();
-    if (options.level > 0) app.game->setLevel(options.level);
+    if (options.level > 0) app.game->setLevel(options.level, options.heroClass);
     if (options.original) app.game->setOriginalMode(true);
     if (options.hpPercent >= 0) app.game->hurtLater(options.hpPercent);
     if (options.experiencePercent >= 0) app.game->setExperiencePercent(options.experiencePercent);

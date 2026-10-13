@@ -118,10 +118,10 @@ public:
     std::uint64_t tickCount() const { return ticks_; }
 
     // Starts the hero at a level, fully healed (for testing): a warrior from
-    // level 5, as the original makes every hero.
-    void setLevel(int level) {
+    // level 5, as the original makes every hero, or `cls` from then on.
+    void setLevel(int level, HeroClass cls = HeroClass::Warrior) {
         playerLevel_ = std::clamp(level, 1, levels_.maxLevel());
-        career_ = Career::at(playerLevel_);
+        career_ = Career::at(playerLevel_, cls);
         spells_ = SpellBook::replay(magic_, career_.history);
         playerHp_ = playerMaxHp();
         playerMp_ = playerMaxMp();
@@ -457,6 +457,25 @@ private:
             ScriptHost::TrapFire::Stun stun;
         };
         std::optional<Trap> trap;
+        // One of the hero's bowgun shots, or an arrow of the hunter's
+        // volley falling on its target (archery.cpp).
+        struct Shot {
+            int power = 0, hit = 0;  // the attack and hit rate it carries
+            int hitOption = -1;      // the spark on what it strikes
+            int box = 30;            // half the side of the square it strikes in
+            bool pierces = false;    // flies on, striking each monster once
+            // The volley's falling arrow: the actor it falls on and where
+            // it last saw it, the ticks still to wait before it shows, and
+            // the tick of its fall.
+            int target = -1;
+            double targetX = 0, targetY = 0;
+            int wait = 0, fall = -1;
+        };
+        std::optional<Shot> shot;
+        // Layers of its animation that are not drawn (an arrow's flame and
+        // frost, which the original turns off unless the bowgun is a fire or
+        // ice one; 0x42a300).
+        unsigned hiddenLayers = 0;
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -556,6 +575,21 @@ private:
     int spellHit(int spell, int level) const;
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
+
+    // Bowguns (archery.cpp, docs/archery.md).
+    bool bowInHand() const;
+    // A pull of the bowgun's trigger at a monster (an actors_ index) or,
+    // with none, along `angle` (radians, world y down).
+    void shoot(std::optional<std::size_t> target, double angle);
+    void loose();  // the shot leaves the bow, at the animation's shooting frame
+    void stepShot(Effect& e);
+    bool shotStrikes(Effect& e, Actor& enemy);
+    // Moves a shot along its angle, spent where its box meets a wall or an
+    // object in the way (0x45e1e0 by way of 0x4145b0 and 0x414990).
+    void moveShot(Effect& e, const JudgeRect& box, bool walls);
+    // The frame of a hero chart that shoots or strikes (cell status 0x40),
+    // or `fallback` when the chart has none.
+    int strikeFrame(int chart, int fallback) const;
 
     // Traps, effects, rain and story pictures that scenario scripts start
     // (traps.cpp, docs/traps.md).
@@ -889,7 +923,16 @@ private:
     std::array<bool, kSpellCount> spellOn_{};  // toggle spells that are on
     PowerMode power_;
     double powerAuraTicks_ = 0;
-    bool blowLanded_ = false;  // the hero's current swing has struck  // original ticks into the glow (+0x1558)
+    bool blowLanded_ = false;  // the hero's current swing has struck
+    // The bowgun attack under way: what it was aimed at, and whether it is
+    // the hunter's volley in power mode (0x438a90).
+    struct BowShot {
+        std::optional<std::size_t> target;
+        double angle = 0;  // radians, world y down
+        bool volley = false;
+        std::vector<std::size_t> volleyTargets;
+    };
+    std::optional<BowShot> bowShot_;  // original ticks into the glow (+0x1558)
     bool magicOpen_ = false;
     int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
     int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)
