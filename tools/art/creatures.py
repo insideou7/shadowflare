@@ -8,7 +8,9 @@ barbarian, lizard, scorpion, bigscorpion, fire, raptor, dog, smalldog or person<
 PEOPLE table).
 
 (run with a Python that has the `bpy` module). Characters are built from
-simple shapes hung on joints and posed in code, then rendered from the
+simple shapes hung on joints and posed in code (the hero and the goblin are
+MakeHuman bodies driven by the same joints: see mpfb_body.py, which needs
+$MPFB_SRC), then rendered from the
 eight directions the engine uses for every frame of every animation.
 Writes <animation>_<direction>_<frame>.png and frames.txt (anchor point and
 the animation list).
@@ -31,8 +33,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from town import mesh  # noqa: E402
 
-SIZE = {"golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
-HEIGHT = {"goblin": 3.8, "hero": 3.5, "heroine": 3.5, "fly": 2.4, "ghoul": 3.4, "shaman": 4.6, "golem": 9.5, "spider": 2.4,
+SIZE = {"hero": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
+HEIGHT = {"goblin": 3.8, "hero": 4.0, "heroine": 3.5, "fly": 2.4, "ghoul": 3.4, "shaman": 4.6, "golem": 9.5, "spider": 2.4,
           "bigspider": 3.6, "ogre": 4.8, "demon": 6.0, "dragon": 9.0}  # for framing
 
 # Frames (one per game tick, 20 a second) and whether each animation loops.
@@ -130,59 +132,125 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
         rig.attach(shape(end, end_size, end_mat), joint, (end_size[0] * 0.4 if end == "box" else 0, 0, -length))
 
 
-def build_goblin():
-    """A squat, barrel-bodied goblin: yellow-green skin, a crest of grey
-    spikes, a strap across the chest and a big two-handed axe."""
-    skin = studio.material("skin", (0.62, 0.70, 0.27), (0.42, 0.50, 0.16), scale=4, bump=0.15)
-    cloth = studio.material("cloth", (0.16, 0.14, 0.12), (0.06, 0.05, 0.05), scale=20, bump=0.3)
-    strap = studio.material("strap", (0.62, 0.32, 0.16), (0.30, 0.13, 0.06), scale=25)
-    iron = studio.material("iron", (0.72, 0.72, 0.74), (0.30, 0.30, 0.33), scale=30, rough=0.35, bump=0.3)
-    wood = studio.material("handle", (0.66, 0.36, 0.16), (0.32, 0.16, 0.07), scale=25)
-    rig = Rig(lean=0.2)
-    rig.joint("hips", "root", (0, 0, 0.74))
-    rig.joint("spine", "hips", (0, 0, 0.05))
-    rig.joint("head", "spine", (0.20, 0, 0.96))
-    rig.joint("arm_l", "spine", (0.05, 0.44, 0.70))
-    rig.joint("arm_r", "spine", (0.05, -0.44, 0.70))
-    rig.joint("leg_l", "hips", (0, 0.17, 0))
-    rig.joint("leg_r", "hips", (0, -0.17, 0))
-    # A big round barrel of a body, hunched shoulders, dark shorts with a studded belt.
-    rig.attach(shape("ball", (0.42, 0.39, 0.52), skin), "spine", (0.02, 0, 0.42))
-    rig.attach(shape("ball", (0.30, 0.50, 0.22), skin), "spine", (-0.02, 0, 0.72))
-    rig.attach(shape("cylinder", (0.34, 0.34, 0.16), cloth), "hips", (0, 0, 0.0))
-    for k in range(8):
-        a = 2 * math.pi * k / 8
-        rig.attach(shape("cone", (0.04, 0.04, 0.06), iron, rotation=(0, math.radians(90), a)), "hips",
-                   (0.35 * math.cos(a), 0.35 * math.sin(a), 0.08))
-    # A strap from the left shoulder across to the right hip.
-    rig.attach(shape("cylinder", (0.45, 0.45, 0.045), strap, rotation=(math.radians(38), 0, 0)), "spine", (0.02, 0, 0.42))
-    # A small head sunk into the shoulders, with a crest of grey spikes.
-    rig.attach(shape("ball", (0.25, 0.23, 0.24), skin), "head", (0.04, 0, 0.10))
-    rig.attach(shape("ball", (0.07, 0.07, 0.06), skin), "head", (0.28, 0, 0.06))
-    for k in range(6):
-        t = k / 5 - 0.5
-        rig.attach(shape("cone", (0.06, 0.035, 0.16), iron, rotation=(0, math.radians(-30 + 60 * t - 20), 0)), "head",
-                   (0.05 - 0.4 * t, 0, 0.32 - abs(t) * 0.15))
-    for side in (1, -1):
-        rig.attach(shape("cone", (0.05, 0.08, 0.16), skin, rotation=(math.radians(-80 * side), 0, 0)), "head",
-                   (0.0, 0.27 * side, 0.14))
-    limb(rig, "arm_l", 0.70, 0.12, skin, "ball", skin, (0.13, 0.13, 0.13))
-    limb(rig, "arm_r", 0.70, 0.12, skin, "ball", skin, (0.13, 0.13, 0.13))
-    limb(rig, "leg_l", 0.70, 0.13, skin, "box", skin, (0.20, 0.11, 0.06))
-    limb(rig, "leg_r", 0.70, 0.13, skin, "box", skin, (0.20, 0.11, 0.06))
-    for side in ("leg_l", "leg_r"):
-        rig.attach(shape("ball", (0.11, 0.11, 0.08), iron), side, (0.06, 0, -0.38))
-    # A long-handled axe with a broad double head.
-    rig.joint("weapon", "arm_r", (0, 0, -0.70))
-    rig.attach(shape("cylinder", (0.045, 0.045, 0.75), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.35, 0, 0))
-    for side in (1, -1):
-        rig.attach(shape("box", (0.13, 0.03, 0.26), iron), "weapon", (0.98, 0, 0.20 * side))
-    rig.attach(shape("cone", (0.04, 0.04, 0.10), iron, rotation=(0, math.radians(90), 0)), "weapon", (1.16, 0, 0))
-    rig.joints["root"].scale = (1.6, 1.6, 1.6)
-    return rig
+# The original's player stands about 15% taller on screen than our first
+# hero did (measured over the eight directions of its stance and walk).
+SCALE_MH = 1.15
 
 
 def build_hero():
+    """The hero on a MakeHuman body (mpfb_body.py): a muscular man,
+    bare-chested, in dark trousers, a belt and boots, with short brown hair.
+    Its joints are the ones every rig has, so the pose code and equipment
+    work as before."""
+    import mpfb_body
+    skin = studio.material("skin", (0.86, 0.72, 0.58), (0.72, 0.56, 0.44), scale=30, bump=0.05)
+    hair = studio.material("hair", (0.16, 0.11, 0.07), (0.06, 0.04, 0.03), scale=60, bump=0.5, stretch=(1, 1, 4))
+    trousers = studio.material("trousers", (0.13, 0.13, 0.14), (0.04, 0.04, 0.05), scale=18, bump=0.3)
+    leather = studio.material("leather", (0.30, 0.20, 0.13), (0.12, 0.08, 0.05), scale=25, rough=0.6)
+    height = 3.2 * SCALE_MH
+    body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.5, muscle=1.0, weight=0.7, height=0.6,
+                                                   proportions=0.8, caucasian=1.0, african=0.0, asian=0.0))
+    mpfb_body.bake_rest(body, armature)
+    arms = ("upperarm", "lowerarm", "hand", "thumb", "index", "middle", "ring", "pinky")
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        if not any(b.startswith(arms) for b in bones):
+            if z < 0.20:
+                return leather  # boots
+            if z < 0.555:
+                return trousers
+            if z < 0.585:
+                return leather  # belt
+        if all(b == "head" for b in bones) and (z > 0.955 or (z > 0.90 and normal.y > 0.35)):
+            return hair
+        return skin
+
+    mpfb_body.paint(body, pick)
+    rig = Rig()
+    mpfb_body.bind(rig, body, armature, 1.22 * SCALE_MH)
+    # Boots over the feet, so no toes show.
+    mpfb_body.shell(body, lambda centre, part, normal: (leather, 0.035) if centre.z / height < 0.20 else None,
+                    "boots")
+    rig.kind = "hero"
+    rig.body = body
+    rig.height = height
+    return rig
+
+
+def build_goblin():
+    """The goblin on a MakeHuman body (mpfb_body.py): short, lean and
+    knotted with muscle, green-skinned with big pointed ears and a jutting
+    jaw, in a spiked dark leather vest, an iron cap with a crest of spikes,
+    bracers and a loincloth, swinging a spiked club. It fights crouched,
+    like the hero, so it uses the hero's poses."""
+    import mpfb_body
+    skin = studio.material("goblin skin", (0.46, 0.60, 0.22), (0.24, 0.34, 0.10), scale=30, bump=0.15)
+    vest = studio.material("vest", (0.20, 0.18, 0.17), (0.06, 0.05, 0.05), scale=25, rough=0.6, bump=0.4)
+    cloth = studio.material("loincloth", (0.16, 0.13, 0.11), (0.05, 0.04, 0.03), scale=18, bump=0.3)
+    iron = studio.material("iron", (0.66, 0.66, 0.68), (0.24, 0.24, 0.27), scale=30, rough=0.35, bump=0.3, grime=0.4)
+    wood = studio.material("club", (0.50, 0.28, 0.12), (0.22, 0.11, 0.04), scale=10, stretch=(12, 1, 1))
+    height = 3.1
+    ears = []
+    for side in ("l", "r"):
+        ears += [(f"ears/{side}-ear-shape-pointed.target.gz", 1.0), (f"ears/{side}-ear-scale-incr.target.gz", 1.6),
+                 (f"ears/{side}-ear-wing-incr.target.gz", 1.0), (f"ears/{side}-ear-rot-backward.target.gz", 0.8),
+                 (f"ears/{side}-ear-trans-up.target.gz", 0.6)]
+    body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.4, muscle=1.0, weight=0.55, height=0.0,
+                                                   proportions=0.1, caucasian=1.0, african=0.0, asian=0.0),
+                                     ears + [("chin/chin-prognathism-incr.target.gz", 1.0),
+                                             ("chin/chin-width-incr.target.gz", 0.6),
+                                             ("nose/nose-scale-vert-incr.target.gz", 0.8),
+                                             ("nose/nose-point-down.target.gz", 0.6),
+                                             ("eyebrows/eyebrows-angle-down.target.gz", 1.0),
+                                             ("head/head-scale-horiz-incr.target.gz", 0.4)])
+    mpfb_body.bake_rest(body, armature, arm_out=0.25, elbow_forward=0.25)
+    mpfb_body.paint(body, lambda centre, bones, normal: skin)
+    rig = Rig()
+    scale = 1.4
+    mpfb_body.bind(rig, body, armature, scale)
+    rig.kind = "hero"
+    rig.height = height
+
+    def pick(centre, part, normal):
+        z = centre.z / height
+        if part == "torso":
+            return (vest, 0.08) if z >= 0.555 else (cloth, 0.07)
+        if part == "thigh" and z > 0.42:
+            return cloth, 0.06
+        if part == "forearm":
+            return iron, 0.04
+        if part == "head" and (z > 0.935 or (z > 0.89 and normal.y > 0.2)):
+            return iron, 0.035
+        return None
+
+    mpfb_body.shell(body, pick, "goblin gear")
+    # Spikes up the back of the vest and a crest along the cap.
+    neck = rig.joints["head"].matrix_world.translation.z
+    top = (height - neck) / scale
+    for k in range(4):
+        rig.attach(shape("cone", (0.06, 0.06, 0.18), iron, rotation=(0, math.radians(-110), 0)), "spine",
+                   (-0.26, (k % 2 - 0.5) * 0.26, 0.28 + 0.10 * k))
+    for k in range(5):
+        t = k / 4 - 0.5
+        rig.attach(shape("cone", (0.035, 0.03, 0.10), iron, rotation=(0, math.radians(-25 + 70 * t), 0)), "head",
+                   (0.02 - 0.22 * t, 0, top - 0.02 - abs(t) * 0.10))
+    # A club with an iron-studded head, held like the hero's sword.
+    g = grip(rig, 0)
+    hang(shape("cylinder", (0.06, 0.06, 0.50), wood, rotation=(0, math.radians(90), 0)), g, (0.32, 0, 0))
+    hang(shape("ball", (0.26, 0.21, 0.21), wood), g, (0.98, 0, 0))
+    hang(shape("cylinder", (0.22, 0.22, 0.04), iron, rotation=(0, math.radians(90), 0)), g, (0.80, 0, 0))
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        hang(shape("cone", (0.04, 0.04, 0.12), iron, rotation=(a, 0, 0)), g,
+             (0.92 + 0.12 * (k % 2), -0.24 * math.sin(a), 0.24 * math.cos(a)))
+    hang(shape("cone", (0.04, 0.04, 0.12), iron, rotation=(0, math.radians(90), 0)), g, (1.30, 0, 0))
+    return rig
+
+
+def build_hero_shapes():
+    """The first hero, made of simple shapes. The item pictures
+    (items.py) are still drawn on it."""
     skin = studio.material("skin", (0.80, 0.60, 0.45), (0.50, 0.33, 0.22), scale=12, bump=0.1)
     hair = studio.material("hair", (0.22, 0.14, 0.08), scale=40, bump=0.5)
     tunic = studio.material("tunic", (0.30, 0.36, 0.48), (0.12, 0.14, 0.20), scale=18, bump=0.3)
@@ -339,10 +407,34 @@ def hang(obj, parent, offset):
     return obj
 
 
+def body_armour(rig, parts):
+    """Armour cut from a MakeHuman body (mpfb_body.shell): parts maps a
+    body part (or "belt", "hips" for the band below it) to (material,
+    thickness in Blender units)."""
+    import mpfb_body
+    h = rig.height
+
+    def pick(centre, part, normal):
+        z = centre.z / h
+        if part == "torso" and z < 0.585:
+            part = "belt" if z >= 0.555 else "hips"
+        return parts.get(part)
+
+    mpfb_body.shell(rig.body, pick, "armour")
+
+
 def gear_cloth(rig):
     """Cloth Armour: a quilted grey jacket with leather shoulders and belt,
     long sleeves, green trousers and tall boots."""
     m = gear_material
+    if hasattr(rig, "body"):
+        body_armour(rig, {"torso": (m("quilt"), 0.05), "upperarm": (m("quilt"), 0.045),
+                          "forearm": (m("cloth"), 0.04), "belt": (m("leather"), 0.07),
+                          "hips": (m("green"), 0.04), "thigh": (m("green"), 0.04),
+                          "shin": (m("dark"), 0.05), "foot": (m("dark"), 0.05)})
+        for side in ("arm_l", "arm_r"):
+            rig.attach(shape("ball", (0.15, 0.15, 0.10), m("leather")), side, (0, 0, 0.0))
+        return
     rig.attach(shape("ball", (0.31, 0.50, 0.38), m("quilt")), "spine", (0, 0, 0.62))
     rig.attach(shape("cylinder", (0.26, 0.33, 0.31), m("quilt")), "spine", (0, 0, 0.26))
     rig.attach(shape("flare", (0.37, 0.39, 0.18), m("cloth")), "hips", (0, 0, -0.14))
@@ -363,6 +455,16 @@ def gear_plate(rig):
     """Plate Mail: a steel cuirass and big pauldrons over mail, vambraces,
     tassets, knee cops, greaves and sabatons."""
     m = gear_material
+    if hasattr(rig, "body"):
+        body_armour(rig, {"torso": (m("plate"), 0.07), "neck": (m("chain"), 0.04),
+                          "upperarm": (m("chain"), 0.045), "forearm": (m("plate"), 0.06),
+                          "hand": (m("dark"), 0.025), "belt": (m("dark"), 0.08), "hips": (m("plate"), 0.08),
+                          "thigh": (m("chain"), 0.05), "shin": (m("plate"), 0.06), "foot": (m("plate"), 0.05)})
+        for side in ("arm_l", "arm_r"):
+            rig.attach(shape("ball", (0.17, 0.18, 0.13), m("plate")), side, (0, 0, 0.02))
+        for side in ("leg_l", "leg_r"):
+            rig.attach(shape("ball", (0.12, 0.12, 0.10), m("plate")), side, (0.08, 0, rig.rest[side.replace("leg", "knee")].z))
+        return
     rig.attach(shape("ball", (0.32, 0.51, 0.39), m("plate")), "spine", (0, 0, 0.62))
     rig.attach(shape("ball", (0.16, 0.30, 0.24), m("plate")), "spine", (0.17, 0, 0.60))
     rig.attach(shape("cylinder", (0.26, 0.33, 0.31), m("chain")), "spine", (0, 0, 0.26))
