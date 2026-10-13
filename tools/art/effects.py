@@ -265,14 +265,6 @@ class Effect:
         self.number = number
         self.frames = []  # (RGBA image, anchor x, anchor y)
         self.charts = []  # [(loop, {direction: [(additive, priority, [frame or None, ...], [trans])]})]
-        self.patterns = []  # still pictures for the folder's Pattern bank: (RGBA image, anchor x, anchor y)
-
-    def pattern(self, image, ax, ay):
-        """Adds a picture to the folder's Pattern bank (Pattern.png/.sheet)."""
-        bbox = image.getbbox()
-        if bbox is not None:
-            image, ax, ay = image.crop(bbox), ax - bbox[0], ay - bbox[1]
-        self.patterns.append((image, ax, ay))
 
     def frame(self, image, ax, ay):
         """Adds a frame cropped to what is drawn; returns its number."""
@@ -294,31 +286,25 @@ class Effect:
     def chart(self, loop, directions):
         self.charts.append((loop, directions))
 
-    @staticmethod
-    def write_sheet(folder, stem, frames):
-        """Packs frames in rows no wider than 1024 into <stem>.png and .sheet."""
+    def write(self, folder):
+        folder.mkdir(parents=True, exist_ok=True)
+        # Pack frames in rows no wider than 1024.
         x = y = row = 0
         places = []
-        for im, _, _ in frames:
+        for im, _, _ in self.frames:
             if x + im.width > 1024:
                 x, y, row = 0, y + row + 1, 0
             places.append((x, y))
             x += im.width + 1
             row = max(row, im.height)
         sheet = Image.new("RGBA", (1024 if y else max(x, 1), y + row + 1))
-        for (im, _, _), (px, py) in zip(frames, places):
+        for (im, _, _), (px, py) in zip(self.frames, places):
             sheet.paste(im, (px, py))
-        save_png(sheet, folder / f"{stem}.png")
-        lines = [HEADER, f"image={stem}.png\n"]
-        for (im, ax, ay), (px, py) in zip(frames, places):
+        save_png(sheet, folder / "Animation.png")
+        lines = [HEADER, "image=Animation.png\n"]
+        for (im, ax, ay), (px, py) in zip(self.frames, places):
             lines.append(f"frame={px},{py},{im.width},{im.height},{ax},{ay}\n")
-        (folder / f"{stem}.sheet").write_text("".join(lines))
-
-    def write(self, folder):
-        folder.mkdir(parents=True, exist_ok=True)
-        self.write_sheet(folder, "Animation", self.frames)
-        if self.patterns:
-            self.write_sheet(folder, "Pattern", self.patterns)
+        (folder / "Animation.sheet").write_text("".join(lines))
         lines = [HEADER, "sheet=Animation.sheet\n"]
         for c, (loop, directions) in enumerate(self.charts):
             lines.append(f"\n[chart {c} {'loop' if loop else 'once'}]\n")
@@ -1184,109 +1170,7 @@ def mine_piece(e, seed, loop=True):
     e.chart(loop, {8: [(False, 0, frames, None)]})
 
 
-# --- Transport, Moon, Medusa and the stuns ---------------------------------
-
-def gate_piece(size, draw_fn, scale=3):
-    """A piece of the Transport gate drawn flat on the ground: `draw_fn`
-    gets an ImageDraw on a big canvas and a function mapping ground
-    coordinates (x, y, round the middle) to it; shrunk for smooth edges."""
-    w, h = size
-    im = Image.new("RGBA", (w * scale, h * scale))
-    dr = ImageDraw.Draw(im)
-
-    def at(x, y):
-        return ((w / 2 + x) * scale, (h / 2 + y * GROUND) * scale)
-    draw_fn(dr, at, scale)
-    return im.resize((w, h), Image.LANCZOS), w // 2, h // 2
-
-
-GATE_LINE = (70, 150, 235, 255)
-GATE_DARK = (12, 36, 80, 255)
-GATE_FILL = (25, 70, 140, 255)
-
-
-def gate_ring(dr, at, scale, r, width, colour):
-    pts = [at(math.cos(a / 64 * 2 * math.pi) * r, math.sin(a / 64 * 2 * math.pi) * r) for a in range(65)]
-    dr.line(pts, fill=GATE_DARK, width=int((width + 2) * scale))
-    dr.line(pts, fill=colour, width=int(width * scale))
-
-
-# Transport: the gate is four pieces laid on the ground one after another,
-# from the outside in (Character/OPTION/10000020/Pattern), and a glitter of
-# blue light that plays over it now and then once it stands.
-def transport_gate(e):
-    def arrows(dr, at, scale):
-        # Four arrowheads pointing out along the ground's axes.
-        for k in range(4):
-            a = k * math.pi / 2 + math.pi / 4
-            ca, sa = math.cos(a), math.sin(a)
-            nx, ny = -sa, ca
-            tip = (ca * 74, sa * 74)
-            back = (ca * 46, sa * 46)
-            wing = [(back[0] + nx * 13, back[1] + ny * 13), tip, (back[0] - nx * 13, back[1] - ny * 13),
-                    (ca * 54, sa * 54)]
-            dr.polygon([at(*p) for p in wing], fill=GATE_FILL, outline=GATE_DARK)
-            dr.line([at(*p) for p in wing + wing[:1]], fill=GATE_LINE, width=int(1.5 * scale))
-            dot = at(ca * 38, sa * 38)
-            r = 3 * scale
-            dr.ellipse([dot[0] - r, dot[1] - r, dot[0] + r, dot[1] + r], fill=GATE_LINE, outline=GATE_DARK)
-
-    def runes(dr, at, scale):
-        gate_ring(dr, at, scale, 42, 1.5, GATE_LINE)
-        gate_ring(dr, at, scale, 34, 1.0, GATE_LINE)
-        rng = np.random.default_rng(20)
-        for k in range(12):  # little marks between the two rings
-            a = k / 12 * 2 * math.pi
-            r0, r1 = 35.5, 40.5
-            kind = rng.integers(3)
-            c, s_ = math.cos(a), math.sin(a)
-            if kind == 0:
-                dr.line([at(c * r0, s_ * r0), at(c * r1, s_ * r1)], fill=GATE_LINE, width=int(1.2 * scale))
-            elif kind == 1:
-                m = at(c * 38, s_ * 38)
-                dr.ellipse([m[0] - 1.6 * scale, m[1] - 1.2 * scale, m[0] + 1.6 * scale, m[1] + 1.2 * scale], fill=GATE_LINE)
-            else:
-                b = a + 0.12
-                dr.line([at(c * r0, s_ * r0), at(math.cos(b) * r1, math.sin(b) * r1)], fill=GATE_LINE, width=int(1.2 * scale))
-
-    def star(dr, at, scale):
-        for turn in (0, math.pi / 3):
-            pts = [at(math.cos(turn + k * 2 * math.pi / 3) * 30, math.sin(turn + k * 2 * math.pi / 3) * 30) for k in range(3)]
-            dr.polygon(pts, outline=GATE_DARK)
-            dr.line(pts + pts[:1], fill=GATE_LINE, width=int(1.6 * scale))
-
-    def heart(dr, at, scale):
-        pts = [at(math.cos(a / 48 * 2 * math.pi) * 18, math.sin(a / 48 * 2 * math.pi) * 18) for a in range(48)]
-        dr.polygon(pts, fill=GATE_FILL, outline=GATE_DARK)
-        gate_ring(dr, at, scale, 18, 2.0, GATE_LINE)
-        gate_ring(dr, at, scale, 10, 1.2, (120, 190, 255, 255))
-        m = at(0, 0)
-        r = 2.5 * scale
-        dr.ellipse([m[0] - r, m[1] - r * GROUND, m[0] + r, m[1] + r * GROUND], fill=(170, 220, 255, 255))
-
-    for size, fn in (((156, 112), arrows), ((96, 68), runes), ((70, 50), star), ((44, 32), heart)):
-        e.pattern(*gate_piece(size, fn))
-    # The glitter: blue motes swirling up off the rings and fading.
-    rng = np.random.default_rng(2020)
-    motes = [(rng.uniform(0, 2 * math.pi), rng.uniform(4, 60), rng.uniform(0.7, 1.6), rng.uniform(0, 0.35)) for _ in range(30)]
-    frames = []
-    for f in range(16):
-        t = f / 15
-        cv = Canvas(170, 150, 85, 100)
-        for a, r, sz, start in motes:
-            u = (t - start) / (1 - start) if t >= start else -1
-            if u < 0:
-                continue
-            ang = a + u * 1.2
-            x, y = math.cos(ang) * r * (1 + 0.4 * u), math.sin(ang) * r * GROUND - 18 - 26 * ease(u)
-            k = math.sin(math.pi * min(1, u * 1.3)) if u < 0.77 else (1 - u) / 0.23
-            cv.blob(x, y, 2.2 * sz, 2.2 * sz, (215, 240, 255), 1.4 * k)
-            cv.blob(x, y, 9 * sz, 8 * sz, (20, 90, 230), 0.8 * k)
-            cv.streak(x - 9 * sz, y, x + 9 * sz, y, 0.7, (130, 200, 255), 0.7 * k)
-            cv.streak(x, y - 11 * sz, x, y + 11 * sz, 0.7, (130, 200, 255), 0.7 * k)
-        frames.append(e.light(cv))
-    e.chart(False, {8: [(True, 0, frames, None)]})
-
+# --- Moon, Medusa and the stuns ---------------------------------------------
 
 # Medusa: a pale violet eye of light, held up off the ground, trailing
 # two twisting wisps of grey-violet smoke.
@@ -1403,15 +1287,6 @@ def freeze_hold(e, seed):
 
 EFFECTS = {
     10000000: fire_spray,
-    10000020: transport_gate,
-    10000070: medusa_missile,
-    11000028: freeze_start,
-    11000029: lambda e: freeze_hold(e, 29),
-    11000030: lambda e: freeze_hold(e, 30),
-    11000031: lambda e: freeze_hold(e, 31),
-    11000032: lambda e: freeze_hold(e, 32),
-    11000040: moon_glow,
-    11000050: stone_hit,
     10000001: gold_burst,
     10000002: fire_ring,
     10000010: fire_ball,
@@ -1456,6 +1331,14 @@ EFFECTS = {
     1006: lambda e: mine_piece(e, 2),
     1007: lambda e: mine_piece(e, 3),
     1008: lambda e: mine_piece(e, 4, loop=False),
+    10000070: medusa_missile,
+    11000028: freeze_start,
+    11000029: lambda e: freeze_hold(e, 29),
+    11000030: lambda e: freeze_hold(e, 30),
+    11000031: lambda e: freeze_hold(e, 31),
+    11000032: lambda e: freeze_hold(e, 32),
+    11000040: moon_glow,
+    11000050: stone_hit,
 }
 
 
