@@ -52,7 +52,10 @@ def main(root):
         # The originals: kind,x,y,direction,hp,attack,radius,ai (kept in a
         # comment so the script can be run again).
         base = {}
+        extra = {}  # magic defence and element (enemy_elements.py), kept
         for i in enemies:
+            full = lines[i].split("#")[0].strip()[len("enemy="):].split(",")
+            extra[i] = full[16:18]
             m = re.search(r"# base (\d+),(\d+)", lines[i])
             f = fields[i]
             base[i] = (int(m.group(1)), int(m.group(2))) if m else (int(f[4]), int(f[5]))
@@ -73,7 +76,7 @@ def main(root):
             new_hp = max(1, round(hp * (player_attack - defense) / (20 + 2 * (level - 1))))
             exp = max(1, round(experience * hp / total_hp))
             f = fields[i]
-            out = f[:4] + [str(new_hp), str(new_attack), f[6], f[7], str(level), "0", "0", "0", str(exp), str(defense), "50", "0"]
+            out = f[:4] + [str(new_hp), str(new_attack), f[6], f[7], str(level), "0", "0", "0", str(exp), str(defense), "50", "0"] + extra[i]
             lines[i] = "enemy=" + ",".join(out) + f"  # base {hp},{attack}"
         path.write_text("\n".join(lines) + "\n")
         print(directory, f"level {level}: hero attack {player_attack}, defence {player_defense}, {len(enemies)} monsters, {experience} experience")

@@ -244,9 +244,12 @@ void Game::renderHoverName(int camX, int camY) {
     const int textX = x - half + (orb ? 2 * kCharWidth : 0);
     windowText(textX, y, name, color);
     if (orb) {
-        // StatusIcon.njp patterns 3-10, or a plain dot.
+        // StatusIcon.njp patterns 3-10, the open pack's Elements sheet, or
+        // a plain dot.
         const SpriteBank* icons = itemBank("System/Game/Pattern/StatusIcon");
         const SpriteTexture* icon = icons && icons->patterns.size() > 10 ? sprites_.get(*icons, element + 3, false) : nullptr;
+        const SpriteBank* ours = icon ? nullptr : itemBank("System/Game/Pattern/Elements");
+        if (ours && static_cast<int>(ours->patterns.size()) > element) icon = sprites_.get(*ours, element, false);
         // Centred in the box's first 16 pixels, before the name.
         const int w = icon ? icon->width : 12, h = icon ? icon->height : 11;
         const int ix = left + (16 - w) / 2, iy = y - 2 + (16 - h + 1) / 2;
