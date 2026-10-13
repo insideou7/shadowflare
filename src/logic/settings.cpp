@@ -35,6 +35,11 @@ int Settings::rank(int target) const {
     return static_cast<int>(std::ranges::find(clickPriority, target) - clickPriority.begin());
 }
 
+int Settings::clampXpRate(int percent) {
+    const int steps = (std::clamp(percent, kXpRateMin, kXpRateMax) - kXpRateMin + kXpRateStep / 2) / kXpRateStep;
+    return kXpRateMin + steps * kXpRateStep;
+}
+
 std::string Settings::write() const {
     std::string out = "# ShadowFlare open edition options\n";
     out += std::format("fullscreen={}\n", fullScreen ? 1 : 0);
@@ -53,6 +58,7 @@ std::string Settings::write() const {
     out += std::format("music_volume={}\n", musicVolume);
     out += std::format("original={}\n", originalMode ? 1 : 0);
     out += std::format("our_art={}\n", ourArt ? 1 : 0);
+    out += std::format("xp_rate={}.{}\n", xpRate / 100, xpRate % 100 / 10);
     out += std::format("zoom={}\n", zoom);
     return out;
 }
@@ -88,6 +94,13 @@ Settings Settings::parse(std::string_view text) {
                 }
             }
             if (ok && count == order.size()) s.clickPriority = order;
+            continue;
+        }
+        if (key == "xp_rate") {
+            // Written as a multiplier with one decimal place, such as 1.5.
+            double rate = 0;
+            const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), rate);
+            if (error == std::errc{} && end == value.data() + value.size()) s.xpRate = clampXpRate(static_cast<int>(rate * 100 + 0.5));
             continue;
         }
         int v = 0;

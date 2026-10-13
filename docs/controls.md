@@ -129,6 +129,20 @@ change it, Enter steps through it or does it.
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |
 
+### Cheats tab
+
+Ours, not the original's. Tab (or Page Up/Page Down, or a click on the tab
+names at the top) switches between the settings and the cheats. Original
+mode turns every cheat off and dims its row.
+
+| Row | What it does here |
+|---|---|
+| Experience Rate | multiplies the hero's experience from kills and quest rewards: 0.5x to 5.0x in steps of 0.5x, 1.0x by default. Saved as `xp_rate` in `options.txt`. Levels still come one at a time, as in the original, so a big kill near a level's end does not carry over into the next. |
+
+To add a cheat: give it an `OptionRow` on the Cheats tab in
+`src/game/options.cpp`, a field in `Settings` (`src/logic/settings.h`), and
+make it do nothing in original mode.
+
 The options are kept in `options.txt` next to the saves in SDL's settings
 folder. Runs with test flags (`--ticks`, `--walk`, `--no-menu` and so on)
 ignore it unless given `--options-file <path>`.

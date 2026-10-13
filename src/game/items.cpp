@@ -391,6 +391,10 @@ void Game::loadLevelCurve() {
 
 void Game::gainExperience(int amount) {
     if (playerLevel_ >= levels_.maxLevel()) return;
+    // The Cheats tab's experience rate; original mode plays at 1.0x.
+    if (const int rate = xpRate(); rate != Settings::kXpRateNormal && amount > 0) {
+        amount = std::max(1, static_cast<int>(static_cast<std::int64_t>(amount) * rate / 100));
+    }
     playerExperience_ += amount;
     if (playerExperience_ < levels_.need(playerLevel_)) return;
     // As in the original: one level at a time, counting again from 0.
