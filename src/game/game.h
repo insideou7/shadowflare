@@ -234,10 +234,22 @@ public:
     void chooseWarpGate(int row);
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
-    // a message on screen, when that fails.
+    // a message on screen, when that fails. Each hero has their own file, as
+    // in the original (Save\0000.Ssv to 0005.Ssv): with a save folder, six
+    // of them, save1.txt to save6.txt, each with a picture of where it was
+    // saved (save1.bmp...); a new hero takes the first free one when first
+    // saved. setSaveFile instead names one file for everything.
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
+    void setSaveFolder(std::string folder);
     bool saveGame();
+    // The current hero's save, or with none chosen yet the newest one.
     bool loadGame();
+
+    // The Load Data screen that Continue opens (load_data.cpp), as
+    // ShadowFlare.exe runs it (0x422e30): the six saves, a picture of the
+    // chosen one, Delete, Back and OK, then the game mode.
+    void openLoadData();
+    bool loadDataOpen() const { return loadData_.has_value(); }
 
 private:
     // People and monsters placed by the map's scenario file.
@@ -819,7 +831,49 @@ private:
     void newCharacterClick(int x, int y);
     void newCharacterKey(SDL_Keycode key);
     void newCharacterHover(int x, int y);
-    void newCharacterPattern(int pattern, int alpha = 255, int dx = 0);
+    void newCharacterPattern(int pattern, int alpha = 255, int dx = 0, int dy = 0, int brightness = 255);
+
+    // The Load Data screen (load_data.cpp).
+    static constexpr int kSaveSlots = 6;
+    struct LoadData {
+        enum class Step { Choose, Delete, Mode, Starting, Leaving, Exiting };
+        struct Slot {
+            int number = 0;  // 0-5, the file save<number + 1>.txt
+            std::string file;
+            bool damaged = false;
+            int level = 1, hp = 0, mp = 0;
+            std::int64_t experience = 0;
+            HeroSex sex = HeroSex::Male;
+            HeroClass job = HeroClass::Mercenary;
+            std::string name;
+            std::shared_ptr<SDL_Texture> picture;  // save<n>.bmp, if there is one
+        };
+        Step step = Step::Choose;
+        std::vector<Slot> slots;  // the saves there are, in file order, packed as the exe lists them
+        int chosen = 0;           // into slots
+        int appear = 0;           // ticks since the boxes began to show, one after another
+        int ticks = 0;            // fading in, or out (Starting, Leaving, Exiting)
+        int hover = 0;            // Delete: 1 yes, 2 no; Mode: 1 single, 2 back
+        int clickTicks = 0;       // a second click this soon, in the same place, is a double click
+        int clickX = -1, clickY = -1;
+    };
+    void readSaveSlots();
+    void tickLoadData();
+    void loadDataEvent(const SDL_Event& event);
+    void loadDataKey(SDL_Keycode key);
+    void loadDataClick(int x, int y);
+    void loadDataHover(int x, int y);
+    void renderLoadData();
+    void renderSaveSlot(const LoadData::Slot* slot, int index, int x, int y, int alpha, int brightness, int plate);
+
+    // The six save files (saving.cpp).
+    std::string slotFile(int number) const;
+    std::vector<int> savedSlots() const;  // the slot numbers in use
+    std::optional<int> freeSlot() const;
+    void adoptOldSave();                  // a save.txt from before slots takes the first free slot
+    std::string saveFolder() const;
+    bool loadGameFrom(const std::string& path);
+    void saveThumbnail(const std::string& path);
 
     // Missions (missions.cpp): the mission list (Q), the newest mission
     // named along the bottom of the screen, and the area's name by the
@@ -947,6 +1001,7 @@ private:
     HeroSex heroSex_ = HeroSex::Male;
     std::string heroName_;
     std::optional<NewCharacter> newCharacter_;
+    std::optional<LoadData> loadData_;
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
     std::optional<std::size_t> attackTarget_;              // index into actors_
@@ -1015,7 +1070,9 @@ private:
     // (player + 0x1624).
     bool identifying_ = false;
     int playerLevel_ = 1;
-    std::string saveFile_ = "save.txt";
+    std::string saveFile_ = "save.txt";  // the current hero's; empty until a new hero is first saved
+    std::string saveFolder_;              // where the six save slots are, if there are slots
+    bool worldOnly_ = false;              // renderMap leaves out the panel and windows
     std::int64_t playerExperience_ = 0;
     LevelCurve levels_;
     GameTables tables_;  // Table.Tbd; empty with open content

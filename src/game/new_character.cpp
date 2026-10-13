@@ -55,6 +55,8 @@ constexpr Fallback kFallback[] = {
     {kModeBack, "BACK", 290, 279}, {kOnline, "ONLINE MODE", 230, 208}, {kSingle, "SINGLE MODE", 232, 242},
     {kName, "NAME", 100, 411}, {kTitle, "CREATE NEW CHARACTER", 52, 24},
     {kHero, "HERO", 210, 230}, {kHeroine, "HEROINE", 410, 230},
+    // The Load Data screen's (load_data.cpp).
+    {6, "DELETE", 70, 451}, {14, "YES", 254, 276}, {16, "NO", 356, 276}, {37, "LOAD DATA", 52, 24},
 };
 
 int litOf(int pattern) {
@@ -68,6 +70,9 @@ int litOf(int pattern) {
         case kOnlineLit: return kOnline;
         case kSingleLit: return kSingle;
         case kNameLit: return kName;
+        case 13: return 6;   // Load Data's Delete
+        case 15: return 14;  // and its Yes
+        case 17: return 16;  // and No
         default: return -1;
     }
 }
@@ -238,13 +243,16 @@ void Game::newCharacterEvent(const SDL_Event& event) {
 
 // One of Select's patterns where it belongs on the screen, `dx` to the
 // side; without the art, the words it holds.
-void Game::newCharacterPattern(int pattern, int alpha, int dx) {
+void Game::newCharacterPattern(int pattern, int alpha, int dx, int dy, int brightness) {
     const SpriteBank* bank = itemBank("System/Select/Pattern/Select");
     if (const SpriteTexture* t = bank ? sprites_.get(*bank, pattern, pattern == kBackground) : nullptr) {
-        const SDL_Rect dst{t->originX + dx, t->originY, t->width, t->height};
+        const SDL_Rect dst{t->originX + dx, t->originY + dy, t->width, t->height};
+        const auto b = static_cast<Uint8>(std::clamp(brightness, 0, 255));
         SDL_SetTextureAlphaMod(t->texture, static_cast<Uint8>(std::clamp(alpha, 0, 255)));
+        SDL_SetTextureColorMod(t->texture, b, b, b);
         SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
         SDL_SetTextureAlphaMod(t->texture, 255);
+        SDL_SetTextureColorMod(t->texture, 255, 255, 255);
         return;
     }
     if (bank) return;
@@ -267,7 +275,7 @@ void Game::newCharacterPattern(int pattern, int alpha, int dx) {
         if (f.pattern != base) continue;
         const Uint8 a = static_cast<Uint8>(std::clamp(alpha, 0, 255));
         const SDL_Color c = lit >= 0 ? SDL_Color{255, 230, 150, a} : SDL_Color{170, 150, 110, a};
-        drawText(renderer_, f.x + dx, f.y, f.text, c);
+        drawText(renderer_, f.x + dx, f.y + dy, f.text, c);
     }
 }
 

@@ -120,7 +120,7 @@ change it, Enter steps through it or does it.
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |
 
-The options are kept in `options.txt` next to `save.txt` in SDL's settings
+The options are kept in `options.txt` next to the saves in SDL's settings
 folder. Runs with test flags (`--ticks`, `--walk`, `--no-menu` and so on)
 ignore it unless given `--options-file <path>`.
 

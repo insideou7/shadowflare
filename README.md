@@ -58,9 +58,13 @@ mode, help, and save and return to title or save and exit.
 Walk onto an item to pick it up. In the inventory, click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
-at the hero's feet. F10 saves the game and F11 loads it. The save is a small
-text file, `save.txt` in SDL's settings folder for the game (on Linux
-`~/.local/share/ShadowFlare/open/`, on Windows `%APPDATA%\ShadowFlare\open\`).
+at the hero's feet. F10 saves the game and F11 loads it. As in the original,
+each hero has their own save, up to six: `save1.txt` to `save6.txt` (small
+text files, each with a `.bmp` picture of where it was saved) in SDL's
+settings folder for the game (on Linux `~/.local/share/ShadowFlare/open/`, on
+Windows `%APPDATA%\ShadowFlare\open\`). Continue on the title opens the Load
+Data screen, which lists them and can delete one. A `save.txt` from an older
+version moves into the first free slot.
 
 ## Building
 
@@ -100,7 +104,9 @@ Options:
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
 - `--status` start with the status window open
-- `--save-file <path>` save to and load from this file instead
+- `--save-file <path>` save to and load from this one file instead of the six slots
+- `--save-folder <dir>` keep the six save slots in this folder; `--load-data`
+  start on the Load Data screen
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
 - `--class <warrior|hunter|wizard>` the class `--level` gives the hero from level 5 on

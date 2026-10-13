@@ -443,7 +443,7 @@ void Game::renderHelp() {
 void Game::takeScreenshot() {
     screenshotPending_ = false;
     std::error_code ec;
-    const auto dir = std::filesystem::path(saveFile_).parent_path() / "ScreenShot";
+    const auto dir = std::filesystem::path(saveFolder()) / "ScreenShot";
     std::filesystem::create_directories(dir, ec);
     std::filesystem::path path;
     for (int n = 0; n < 10000; ++n) {

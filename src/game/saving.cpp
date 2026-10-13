@@ -1,5 +1,7 @@
-// Saving and loading the game (F10 and F9).
+// Saving and loading the game (F10 and F11), in six save slots.
 #include <algorithm>
+#include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -9,9 +11,115 @@
 #include "logic/save_game.h"
 
 namespace sf {
+namespace {
+
+// The picture kept with each save, shown on the Load Data screen: 391 x 114
+// pixels of the game, as the exe writes Save\%04d.Bmp (0x44e830). Which
+// part of the screen it takes is inferred from the original's own saves:
+// the hero stands in the middle, their feet two thirds of the way down.
+constexpr int kPictureWidth = 391;
+constexpr int kPictureHeight = 114;
+constexpr int kPictureFeet = 80;
+
+std::filesystem::path pictureOf(const std::string& saveFile) {
+    return std::filesystem::path(saveFile).replace_extension(".bmp");
+}
+
+}  // namespace
+
+void Game::setSaveFolder(std::string folder) {
+    saveFolder_ = std::move(folder);
+    saveFile_.clear();
+}
+
+std::string Game::saveFolder() const {
+    if (!saveFolder_.empty()) return saveFolder_;
+    return std::filesystem::path(saveFile_).parent_path().string();
+}
+
+std::string Game::slotFile(int number) const {
+    return (std::filesystem::path(saveFolder_) / ("save" + std::to_string(number + 1) + ".txt")).string();
+}
+
+std::vector<int> Game::savedSlots() const {
+    std::vector<int> used;
+    if (saveFolder_.empty()) return used;
+    std::error_code ec;
+    for (int n = 0; n < kSaveSlots; ++n) {
+        if (std::filesystem::exists(slotFile(n), ec)) used.push_back(n);
+    }
+    return used;
+}
+
+// A new hero takes the first number not in use (0x4021b0); with all six in
+// use there is no New Game.
+std::optional<int> Game::freeSlot() const {
+    if (saveFolder_.empty()) return std::nullopt;
+    std::error_code ec;
+    for (int n = 0; n < kSaveSlots; ++n) {
+        if (!std::filesystem::exists(slotFile(n), ec)) return n;
+    }
+    return std::nullopt;
+}
+
+// Before there were slots the one save was save.txt in the same folder; it
+// moves into the first free slot so it can still be loaded.
+void Game::adoptOldSave() {
+    if (saveFolder_.empty()) return;
+    std::error_code ec;
+    const auto old = std::filesystem::path(saveFolder_) / "save.txt";
+    if (!std::filesystem::exists(old, ec)) return;
+    const auto slot = freeSlot();
+    if (!slot) return;
+    std::filesystem::rename(old, slotFile(*slot), ec);
+    if (ec) {
+        log::warn("Could not move {} into a save slot: {}", old.string(), ec.message());
+    } else {
+        log::info("Moved the old save {} to {}", old.string(), slotFile(*slot));
+    }
+}
+
+void Game::saveThumbnail(const std::string& path) {
+    if (!map_ || !player_) return;
+    SDL_Texture* target = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
+                                            kScreenWidth, kScreenHeight);
+    if (!target) return;
+    SDL_Texture* was = SDL_GetRenderTarget(renderer_);
+    if (SDL_SetRenderTarget(renderer_, target) == 0) {
+        // The world alone, without the panel or any window.
+        worldOnly_ = true;
+        renderMap();
+        worldOnly_ = false;
+        int sx, sy;
+        worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
+        sx -= static_cast<int>(std::floor(cameraX_));
+        sy -= static_cast<int>(std::floor(cameraY_));
+        const SDL_Rect area{std::clamp(sx - kPictureWidth / 2, 0, kScreenWidth - kPictureWidth),
+                            std::clamp(sy - kPictureFeet, 0, kScreenHeight - kPictureHeight), kPictureWidth,
+                            kPictureHeight};
+        if (SDL_Surface* s = SDL_CreateRGBSurfaceWithFormat(0, kPictureWidth, kPictureHeight, 24, SDL_PIXELFORMAT_RGB24)) {
+            if (SDL_RenderReadPixels(renderer_, &area, SDL_PIXELFORMAT_RGB24, s->pixels, s->pitch) != 0 ||
+                SDL_SaveBMP(s, path.c_str()) != 0) {
+                log::warn("Could not keep a picture with the save: {}", SDL_GetError());
+            }
+            SDL_FreeSurface(s);
+        }
+    }
+    SDL_SetRenderTarget(renderer_, was);
+    SDL_DestroyTexture(target);
+}
 
 bool Game::saveGame() {
     if (!map_ || !player_ || mapNames_.empty()) return false;
+    if (saveFile_.empty()) {
+        const auto slot = freeSlot();
+        if (!slot) {
+            log::warn("All six save slots in {} are in use", saveFolder_);
+            showMessage("All six save slots are in use");
+            return false;
+        }
+        saveFile_ = slotFile(*slot);
+    }
     // An item held in the panel goes back in the bag, or is lost with it.
     if (hand_ && inventory_.add(*hand_)) hand_.reset();
 
@@ -49,13 +157,36 @@ bool Game::saveGame() {
         showMessage("Could not save");
         return false;
     }
+    out.close();
     log::info("Saved the game to {}", saveFile_);
+    saveThumbnail(pictureOf(saveFile_).string());
     showMessage("Game saved");
     return true;
 }
 
 bool Game::loadGame() {
-    std::ifstream in(saveFile_, std::ios::binary);
+    if (saveFile_.empty()) {
+        // No hero chosen yet: the save written last.
+        adoptOldSave();
+        std::error_code ec;
+        std::filesystem::file_time_type newest{};
+        for (const int n : savedSlots()) {
+            const auto when = std::filesystem::last_write_time(slotFile(n), ec);
+            if (saveFile_.empty() || when > newest) {
+                saveFile_ = slotFile(n);
+                newest = when;
+            }
+        }
+        if (saveFile_.empty()) {
+            showMessage("No saved game");
+            return false;
+        }
+    }
+    return loadGameFrom(saveFile_);
+}
+
+bool Game::loadGameFrom(const std::string& path) {
+    std::ifstream in(path, std::ios::binary);
     if (!in) {
         showMessage("No saved game");
         return false;
@@ -66,7 +197,7 @@ bool Game::loadGame() {
     try {
         save = SaveGame::parse(text.str());
     } catch (const FormatError& e) {
-        log::warn("{}: {}", saveFile_, e.what());
+        log::warn("{}: {}", path, e.what());
         showMessage("The saved game is damaged");
         return false;
     }
@@ -75,7 +206,7 @@ bool Game::loadGame() {
         if (mapNames_[i] == save.map) index = i;
     }
     if (index == mapNames_.size()) {
-        log::warn("{}: map {} is not in this game's data", saveFile_, save.map);
+        log::warn("{}: map {} is not in this game's data", path, save.map);
         showMessage("The saved game is for other data");
         return false;
     }
@@ -114,13 +245,13 @@ bool Game::loadGame() {
     casting_.reset();
     clearSpells();
     transportGate_.reset();  // the gate is not saved
-    if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
+    if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", path, skipped);
     // Saves from before mines: a new hero's five, and any mines that went
     // into the bag then.
     mineCount_ = save.mines.value_or(mines::kStartCount);
     if (!save.mines) mineCount_ += inventory_.takeAll(ItemDef::Class::Special, 1);
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
-        log::warn("{}: {} stored items are unknown", saveFile_, skipped);
+        log::warn("{}: {} stored items are unknown", path, skipped);
     }
     updateEquipment();
     // The companion came before the hero's things, which can raise its health.
@@ -129,7 +260,8 @@ bool Game::loadGame() {
     playerMp_ = std::clamp(save.mp.value_or(playerMaxMp()), 0, playerMaxMp());
     checkTriggers(false);  // loading inside an exit does not take it
     updateCamera();
-    log::info("Loaded the game from {}", saveFile_);
+    saveFile_ = path;  // saving goes back to the same slot
+    log::info("Loaded the game from {}", path);
     showMessage("Game loaded");
     return true;
 }
