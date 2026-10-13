@@ -133,9 +133,12 @@ did nothing for the hero, and the partner must be up and hurt; otherwise
 the meat is kept (0x44a240). Items the hero wears with modifiers 30-38
 add to the partner's stats (see formats.md).
 
-## Not in yet
+## Open content
 
-Open content has no partner tables, so open-pack heroes play alone.
+An open pack's `partners.txt` stands in for the tables (see content.md).
+The pack's Remote Town has the kennel's dogs and the small dog, and Cold
+Svalt Town its dog, with the original's menus in our own words; the
+sixth kind has no pictures yet and is offered nowhere.
 
 ## Code
 
