@@ -3,8 +3,8 @@
 Replacement content that lets the engine run without the original game:
 seven areas (a village meadow, the old waterworks under it, caves and a
 coal mine, a fort, the wilds, the deep caverns and a castle), the
-original's first area laid out on its routes with our own walls and
-paths (Remote Town, Cold Svalt Town and the fields, forests and dungeons
+original's first area, walked on like the original's with our own walls
+and trees (Remote Town, Cold Svalt Town and the fields, forests and dungeons
 round them), the hero and the heroine with their equipment, the Create New Character screen (`System/Select`, drawn by `tools/art/select_screen.py` with figures from `tools/art/portraits.py`), 24 kinds of monster, the
 townspeople, items, the game panel along the bottom of the screen (`tools/art/panel.py`) and the magic bar's icons (`tools/art/magic_icons.py`), the inventory panel, the shop window, the GATE window (`tools/art/warp.py`), the speech
 balloon, the font and the spell effects (`Character/OPTION`, painted by
