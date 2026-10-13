@@ -29,6 +29,7 @@ original format.
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
+| `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -476,6 +477,8 @@ font) are kept in content/ and rebuilt on their own:
     python3 tools/art/panel.py content    # the game panel along the bottom
     python3 tools/art/magic_icons.py content    # the magic/attack bar's icons
     python3 tools/art/warp.py content    # the GATE window (after ui.py: it uses the font)
+    python3 tools/art/story.py content    # the story pages STARTVISUAL shows
+    python3 tools/art/effects.py content    # spell, trap and script effects (or some: effects.py content 0 2)
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.

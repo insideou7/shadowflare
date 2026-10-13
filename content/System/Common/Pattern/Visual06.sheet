@@ -1,0 +1,4 @@
+# Drawn by tools/art/story.py (our own art, see content/README.md).
+# A story page per frame, 640 x 480, shown by STARTVISUAL.
+image=Visual06.png
+frame=0,0,640,480,0,0

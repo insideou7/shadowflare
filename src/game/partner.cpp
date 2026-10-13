@@ -202,6 +202,14 @@ void Game::tickPartner() {
         }
         p.state = State::Idle;
     }
+    if (p.state == State::Hit && p.stun) {
+        if (tickStun(c, *p.stun)) {
+            c.tick();
+            return;
+        }
+        p.stun.reset();
+        p.state = State::Idle;
+    }
     if (p.state == State::Hit) {
         if (!c.finished()) {
             c.tick();
@@ -349,6 +357,7 @@ void Game::hurtPartner(int damage) {
     if (!partnerAlive()) return;
     Partner& p = *partner_;
     p.hp -= damage;
+    p.stun.reset();
     if (p.hp <= 0) {
         p.hp = 0;
         p.state = Partner::State::Dead;
@@ -772,6 +781,8 @@ void Game::partnerExplodes() {
     // Its controller (21031, 0x42f890) plays the fire spray, both charts.
     spawnEffect(kExplosionSpray, c.x, c.y);
     spawnEffect(kExplosionSpray, c.x, c.y, 1);
+    playSound(0x1d, c.x, c.y);
+    playSound(0x17, c.x, c.y);
     for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
         Actor& enemy = actors_[i];
         if (!enemy.alive()) continue;

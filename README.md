@@ -84,6 +84,7 @@ Options:
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk, original data only), ACTIVE
 - `--show-judge` start with the walkability grid shown

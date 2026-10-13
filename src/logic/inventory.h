@@ -193,6 +193,10 @@ public:
     // count them: broken weapons and armour don't count, nor a shield
     // hidden by a two-handed weapon.
     int modifier(ItemDef::Modifier which) const;
+    // One modifier of the armour and accessories worn, as a blow on the
+    // hero counts them (0x450d90): broken items count, the weapon and a
+    // shield hidden by a two-handed weapon do not.
+    int guardModifier(ItemDef::Modifier which) const;
     // One modifier of everything worn, broken items included; a shield
     // hidden by a two-handed weapon does not count. The gold drop adds
     // Amount of Gold this way (0x44f8b0), the MP cost Mental Cost

@@ -65,6 +65,8 @@ void Game::stepMine(Mine& mine) {
             // Armed: its picture changes at tick 40 and monsters set it
             // off from its 45th tick on.
             if (mine.tick == mines::kArmedPictureAt) e->pattern = 1;
+            // It beeps every 20 ticks once armed (0x42bd40).
+            if (mine.tick >= 40 && mine.tick % 20 == 0) playSound(0x36, mine.x, mine.y);
             if (e->age >= mines::kArmedAt &&
                 !monstersIn(mine.x - mines::kTriggerHalf, mine.y - mines::kTriggerHalf, mine.x + mines::kTriggerHalf,
                             mine.y + mines::kTriggerHalf)
@@ -120,10 +122,12 @@ void Game::mineBlast(Mine& mine) {
     mine.effect = 0;
     mine.tick = 0;  // the next tick is the blast's first
     spawnEffect(mines::kBlastOption, mine.x, mine.y);
+    playSound(0x1d, mine.x, mine.y);
     const auto struck = monstersIn(mine.x - mines::kBlastHalf, mine.y - mines::kBlastHalf, mine.x + mines::kBlastHalf,
                                    mine.y + mines::kBlastHalf);
     const int power = minePower(mine.level);
     std::vector<std::size_t> done;
+    bool sounded = false;
     for (std::size_t i : struck) {
         if (std::ranges::find(done, i) != done.end()) continue;
         done.push_back(i);
@@ -132,6 +136,8 @@ void Game::mineBlast(Mine& mine) {
         spawnEffect(mines::kHitOptions[static_cast<std::size_t>(random_.next(4))], enemy.character.x,
                     enemy.character.y);
         if (random_.next(100) >= hitChance(mines::kBlastHit, s.evasion)) continue;
+        if (!sounded) playSound(6, mine.x, mine.y);  // the blast's hit sound, once
+        sounded = true;
         const int damage = mines::damage(magic_, power, s.element, s.defense, random_.next(3));
         log::info("A mine hits for {}", damage);
         hurtEnemy(enemy, damage);
@@ -151,7 +157,10 @@ bool Game::mineButtonClick(int x, int y) {
         y >= kMineButton.y + kMineButton.h) {
         return false;
     }
+    const std::size_t before = mines_.size();
     layMine();
+    // The button clicks when it lays one; the B key is silent (0x445bd0).
+    if (mines_.size() > before) playSound(0x3a);
     return true;
 }
 

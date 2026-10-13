@@ -114,6 +114,19 @@ bool Game::objectInTheWay(double fromX, double fromY, double toX, double toY) co
     return false;
 }
 
+bool Game::boxMeetsObject(double x, double y, const JudgeRect& box) const {
+    for (const auto& o : sceneObjects_) {
+        const auto& p = placementOf(o);
+        if (p.rect[0] == p.rect[2] || p.rect[1] == p.rect[3]) continue;
+        if (!objectState(o, kBlocks)) continue;
+        if (x + box.left <= p.x + p.rect[2] && p.x + p.rect[0] <= x + box.right && y + box.top <= p.y + p.rect[3] &&
+            p.y + p.rect[1] <= y + box.bottom) {
+            return true;
+        }
+    }
+    return false;
+}
+
 MapObject Game::objectFootprint(const SceneObject& o) const {
     const auto& p = placementOf(o);
     MapObject m;

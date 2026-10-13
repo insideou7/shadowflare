@@ -83,6 +83,7 @@ void Game::openTransportGate() {
     if (!clear(gate.x, gate.y, kStandRect)) return;
     gate.wait = {1 + random_.next(90), 1 + random_.next(90)};
     transportGate_ = gate;
+    playSound(0x4f, gate.x, gate.y);  // as it is made (0x4201b0)
     log::info("Transport gate at {:.0f},{:.0f} to scenario {}", gate.x, gate.y, gate.town);
     trainSpell(kTransport);
 }
@@ -113,7 +114,13 @@ void Game::tickTransportGate() {
             auto& frame = g.frame[static_cast<std::size_t>(end)];
             if (wait > 0) {
                 --wait;
-            } else if (++frame >= effectLength(kGateOption)) {
+                continue;
+            }
+            // Each time its animation starts again.
+            if (frame == 0) {
+                if (const auto at = transportGateHere()) playSound(0x33, at->first, at->second);
+            }
+            if (++frame >= effectLength(kGateOption)) {
                 frame = 0;
                 wait = 30 + random_.next(60);
             }

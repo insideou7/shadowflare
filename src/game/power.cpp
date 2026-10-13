@@ -32,7 +32,10 @@ bool Game::startPower() {
 bool Game::powerButtonClick(int x, int y) {
     if (!player_ || menuOpen_ || !inside(kButton, x, y)) return false;
     // Only a click while it blinks does anything; otherwise the panel has it.
-    return startPower();
+    // The button clicks; the P key is silent (0x445bd0).
+    if (!startPower()) return false;
+    playSound(0x3a);
+    return true;
 }
 
 // While the mode is ready the button flickers: lit at full brightness for

@@ -19,6 +19,7 @@
 #include "formats/scenario_script.h"
 #include "formats/sprite_bank.h"
 #include "formats/table_data.h"
+#include "formats/voice_bank.h"
 
 namespace {
 
@@ -576,7 +577,65 @@ void testItemSubstitutionTable() {
 
 }  // namespace
 
+// A .Voc bank: version 3, one more copy of each voice, a 16-bit stereo
+// sound, an 8-bit one and another name for the first.
+void testVoiceBank() {
+    std::vector<std::uint8_t> d;
+    auto put32 = [&](std::uint32_t v) {
+        for (int i = 0; i < 4; ++i) d.push_back(static_cast<std::uint8_t>(v >> (8 * i)));
+    };
+    auto put16 = [&](std::uint16_t v) {
+        d.push_back(static_cast<std::uint8_t>(v));
+        d.push_back(static_cast<std::uint8_t>(v >> 8));
+    };
+    auto name = [&](const std::string& n) {
+        std::string padded = n;
+        padded.resize(0x100, '\0');
+        d.insert(d.end(), padded.begin(), padded.end());
+    };
+    auto sound = [&](const std::string& n, int channels, int rate, int bits, std::vector<std::uint8_t> pcm) {
+        put32(0);
+        name(n);
+        name("C:\\voice\\" + n + ".wav");
+        put16(1);
+        put16(static_cast<std::uint16_t>(channels));
+        put32(static_cast<std::uint32_t>(rate));
+        put32(static_cast<std::uint32_t>(rate * channels * bits / 8));
+        put16(static_cast<std::uint16_t>(channels * bits / 8));
+        put16(static_cast<std::uint16_t>(bits));
+        put16(0);
+        put32(static_cast<std::uint32_t>(pcm.size()));
+        d.insert(d.end(), pcm.begin(), pcm.end());
+    };
+    const std::string magic = "VoiceData  V003";
+    d.insert(d.end(), magic.begin(), magic.end());
+    d.push_back(0);
+    put32(3);
+    put32(1);
+    sound("0000", 2, 22050, 16, {1, 0, 2, 0, 3, 0, 4, 0});
+    sound("0001", 1, 12000, 8, {128, 129, 130});
+    put32(1);
+    name("0002");
+    name("0000");
+    const auto bank = sf::VoiceBank::parse(d);
+    check(bank.version == 3 && bank.copies == 1 && bank.voices.size() == 3, "voice bank header");
+    check(bank.voices[0].channels == 2 && bank.voices[0].bits == 16 && bank.voices[0].sampleRate == 22050 &&
+              bank.voices[0].frames() == 2,
+          "16-bit stereo voice");
+    check(bank.voices[1].sampleRate == 12000 && bank.voices[1].frames() == 3 && bank.voices[1].pcm[2] == 130, "8-bit mono voice");
+    check(bank.voices[2].sameAs == 0 && bank.voices[2].pcm.empty(), "another name for a voice");
+    d.pop_back();
+    bool threw = false;
+    try {
+        sf::VoiceBank::parse(d);
+    } catch (const sf::FormatError&) {
+        threw = true;
+    }
+    check(threw, "a cut-off voice bank is refused");
+}
+
 int main() {
+    testVoiceBank();
     testLzLiterals();
     testLzBackReference();
     testLzZeroFill();

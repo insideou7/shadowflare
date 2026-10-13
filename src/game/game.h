@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "audio/mixer.h"
 #include "game/character.h"
 #include "logic/ai_select.h"
 #include "logic/explored_map.h"
@@ -27,6 +28,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "logic/traps.h"
 #include "formats/table_data.h"
 #include "formats/open_content.h"
 #include "formats/ai_control.h"
@@ -83,6 +85,9 @@ public:
     void handleEvent(const SDL_Event& event);
     void tick();
     void render(double interpolation);
+    // The sounds and music playing, for the main loop to send to the
+    // sound device.
+    Mixer& mixer() { return mixer_; }
 
     bool wantsQuit() const { return quit_; }
 
@@ -285,6 +290,7 @@ private:
     void renderLabels(int camX, int camY);
     // Where a character or a map object is, in world units.
     std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
+    const ScenarioControl::Placement* placementById(std::int32_t id) const;
     // A map object with a talk script (the warehouse) under the mouse,
     // as an index into control_.placements.
     std::optional<std::size_t> objectAt(float screenX, float screenY) const;
@@ -327,7 +333,9 @@ private:
     // byPartner: the companion's bite, which the class kill counts skip.
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
-    void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr);
+    // `flinch`: whether it plays the hero's hit pose (traps do not, see
+    // docs/traps.md).
+    void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr, bool flinch = true);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
     void renderHealthBars(int camX, int camY);
     void renderMap();
@@ -409,7 +417,7 @@ private:
     // per engine tick.
     struct Effect {
         int id = 0;
-        int option = 0, chart = 0;
+        int option = -1, chart = 0;  // Character/OPTION folder, -1 for none
         double x = 0, y = 0;
         int age = 0, life = 0;  // life -1: until it hits something or a wall
         double speed = 0, angle = 0;  // world units a tick; radians, in world space
@@ -427,6 +435,9 @@ private:
         bool diesOnHit = false;
         bool diesOnWall = false;
         int hitOption = -1;        // played on whoever it hurts
+        // The Voice00.Voc sound where it is when a hit lands (struct words
+        // 0x76 and 0x77), at most once a tick; -1 for none.
+        int hitSound = -1;
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
         // A picture of the OPTION folder's Pattern bank instead of its
@@ -434,6 +445,18 @@ private:
         int pattern = -1;
         int light = 1000;   // how bright a Pattern picture is drawn, 0-1000
         double height = 0;  // above the ground, as the original's objects (+0x124)
+        int facing = -1;    // a fixed direction 0-8 to draw it in; -1: see `directional`
+        std::int32_t follows = -1;  // a character it stays on (CREATEEFFECTCHAR), 0-3 the players
+        // A trap's shot (CREATEOPTIONANGLE), which hurts the hero and the
+        // companion instead of monsters (traps.cpp).
+        struct Trap {
+            TrapShot shot;
+            int kind = 0;
+            int power = 0;
+            bool fixedDamage = false;
+            ScriptHost::TrapFire::Stun stun;
+        };
+        std::optional<Trap> trap;
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -454,7 +477,8 @@ private:
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
-    void spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
+    // Whether the spell beat the monster's magic evasion.
+    bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
     void showSpellHit(int spell, double x, double y);
     const CharacterModel* effectModel(int option);
     int effectLength(int option, int chart = 0);
@@ -511,6 +535,9 @@ private:
     // object that stands in the way (0x414990); starting inside one does
     // not trap anyone.
     bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
+    // Whether a box at a spot meets an object that stands in the way, as a
+    // shot's does (0x45e1e0: status bit 0, which is that state).
+    bool boxMeetsObject(double x, double y, const JudgeRect& box) const;
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -529,6 +556,78 @@ private:
     int spellHit(int spell, int level) const;
     void renderEffect(const Effect& effect, int camX, int camY);
     void renderSpells(int camX, int camY);
+
+    // Traps, effects, rain and story pictures that scenario scripts start
+    // (traps.cpp, docs/traps.md).
+    void fireTrap(const ScriptHost::TrapFire& fire);
+    void stepTrap(Effect& e);
+    void trapHitsPlayer(const Effect& e);
+    void trapHitsPartner(const Effect& e);
+    // A stun from a trap's blow (0x443cb0, 0x45f9f0): held in the hit pose
+    // for `total` original ticks, pushed away from the blow unless steady.
+    struct Stun {
+        int total = 1, tick = 0;
+        double angle = 0;  // radians, world y up, from the blow to the one hit
+        bool pushed = false;
+        double carry = 0;  // original ticks still to run
+    };
+    std::optional<Stun> trapStun(const Effect& e, double x, double y, int chanceResist, int lengthResist, bool gearSteady, int damage,
+                                 int maxHp);
+    bool tickStun(Character& who, Stun& stun);
+    void trapSplash(const Effect& e, double x, double y, bool onHero);
+    std::optional<Stun> heroStun_;
+    void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
+    int directionFrames(int option, int direction);
+    std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
+    void resurrect(std::int32_t enemy, int x, int y, int direction);
+    struct RainDrop {
+        int age = 0;
+        int x = 0, y = 0;  // screen pixels it starts from
+        double angle = 0;  // radians, screen y up
+        int speed = 0;     // hundredths of a pixel an original tick
+        int length = 0;
+        int brightness = 0;  // per mille
+        Uint8 r = 0, g = 0, b = 0;
+    };
+    std::vector<RainDrop> rain_;
+    double rainCarry_ = 0;
+    void addRain(int r, int g, int b, int count);
+    void tickRain();
+    void renderRain();
+    // STARTVISUAL's picture: pages of System/Common/Pattern/Visual<n>.njp
+    // (Waiting.njp for 0), each fading in over 120 original ticks and
+    // shown for 300 before a click or key turns to the next (0x417bd0).
+    struct Visual {
+        int picture = 0;
+        int page = 0;
+        double ticks = 0;  // original ticks the page has shown
+    };
+    std::optional<Visual> visual_;
+    void startVisual(int picture);
+    void tickVisual();
+    bool visualEvent(const SDL_Event& event);
+    void renderVisual();
+
+    // Sound (sound.cpp): Voice00.Voc's effects in bank 0 and one piece of
+    // music in bank 500, as the original keeps them.
+    Mixer mixer_;
+    void loadSounds();
+    // A sound effect where something happens (0x417260): only heard
+    // within 3000 units of the hero unless `everywhere`.
+    void playSound(int voice, double x, double y, bool everywhere = false);
+    // A sound heard wherever the hero is (the menus' clicks).
+    void playSound(int voice);
+    // The area's music, BGM<areaKind>.Voc, on a scenario change (0x4275e0).
+    void startAreaMusic(int areaKind);
+    // Plays the music: the title's on the title screens, otherwise the
+    // area's, started again from the top after each scenario change
+    // (0x4275a0).
+    void tickMusic();
+    void loadMusic(const std::string& path);
+    std::string musicFile_;   // what bank 500 holds
+    int areaMusic_ = -1;      // the area's BGM number, -1 for none
+    int musicTicks_ = 0;      // ticks since the area's music started
+    double everyTickCarry_ = 0;  // event 5 runs once an original tick
 
     // Land mines (mines.cpp): B or the MINE button lays one where the hero
     // stands; a controller, as the original's (0x42bd40), arms it, sets it
@@ -580,6 +679,7 @@ private:
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
         int restDirection = 0;  // its facing before a jump
+        std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
     void spawnPartner();
     void changePartner(int kind);
