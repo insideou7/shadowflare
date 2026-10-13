@@ -16,7 +16,8 @@ const SDL_Color kDisabled{70, 70, 70, 255};
 
 constexpr int kItemScale = 3;
 constexpr int kItemGap = 28;
-constexpr int kFirstItemY = 230;
+// Below the name on the title picture, where the original has its menu.
+constexpr int kFirstItemY = 300;
 
 const char* label(Game::MenuItem item) {
     switch (item) {
@@ -167,16 +168,26 @@ void Game::menuEvent(const SDL_Event& event) {
 }
 
 void Game::renderMenu() {
-    // The world stays behind the menu, darkened.
-    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
-    SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 170);
-    SDL_Rect all{0, 0, kScreenWidth, kScreenHeight};
-    SDL_RenderFillRect(renderer_, &all);
-
-    const char* title = "SHADOWFLARE";
-    drawText(renderer_, (kScreenWidth - textWidth(title, 6)) / 2, 110, title, kTitleColor, 6);
-    const char* subtitle = "OPEN EDITION";
-    drawText(renderer_, (kScreenWidth - textWidth(subtitle, 2)) / 2, 160, subtitle, kOther, 2);
+    // The title picture, pattern 0 of System/Title/Pattern/Title: the
+    // whole screen, with the name on it. The original's has gaps where its
+    // smoke shows through (Smoke00-09, not drawn yet), so black first.
+    const SpriteBank* bank = itemBank("System/Title/Pattern/Title");
+    if (const SpriteTexture* t = bank ? sprites_.get(*bank, 0, false) : nullptr) {
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+        SDL_RenderClear(renderer_);
+        const SDL_Rect dst{t->originX, t->originY, t->width, t->height};
+        SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+    } else {
+        // Without one the world stays behind the menu, darkened.
+        SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 170);
+        SDL_Rect all{0, 0, kScreenWidth, kScreenHeight};
+        SDL_RenderFillRect(renderer_, &all);
+        const char* title = "SHADOWFLARE";
+        drawText(renderer_, (kScreenWidth - textWidth(title, 6)) / 2, 110, title, kTitleColor, 6);
+        const char* subtitle = "OPEN EDITION";
+        drawText(renderer_, (kScreenWidth - textWidth(subtitle, 2)) / 2, 160, subtitle, kOther, 2);
+    }
 
     for (std::size_t i = 0; i < menuItems_.size(); ++i) {
         const auto item = menuItems_[i];
