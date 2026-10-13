@@ -54,6 +54,11 @@
   figure img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
   figcaption { padding: 8px 12px; color: var(--muted); font-size: .95rem; }
   .wide { grid-column: 1 / -1; }
+  .compare { display: grid; gap: 16px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; }
+  .pair a { position: relative; }
+  .pair span { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 4px; background: rgba(0,0,0,.7); color: var(--gold); font-size: .85rem; }
+  @media (max-width: 600px) { .pair { grid-template-columns: 1fr; } }
   pre { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; overflow-x: auto; font-size: .9rem; }
   code { font-family: Consolas, Menlo, monospace; }
   footer { border-top: 1px solid var(--line); padding: 24px 16px; text-align: center; color: var(--muted); font-size: .9rem; }
@@ -77,7 +82,7 @@
       original's rules, quirks and bugs included.</li>
     <li><b>Without it.</b> The engine runs on its own open content: ShadowFlare-style art,
       maps, monsters and story made for this project in Blender, under the MIT license.
-      Every picture on this page comes from that open content.</li>
+      The screenshots below come from that open content.</li>
   </ul>
 
   <h2>Features</h2>
@@ -118,6 +123,29 @@
       <figcaption>A story page, told in our own words.</figcaption></figure>
   </div>
 
+  <h2>The original and ours</h2>
+  <p>The same places in the original game (left) and with our art over the original's maps
+    (right), taken from the engine running on a copy of the original game. The game panel
+    along the bottom is the original's in both.</p>
+  <div class="compare">
+    <figure><div class="pair">
+      <a href="site/img/compare-remote-town-original.jpg"><img src="site/img/compare-remote-town-original.jpg" alt="The original game: the market in Remote Town" loading="lazy"><span>Original</span></a>
+      <a href="site/img/compare-remote-town-ours.jpg"><img src="site/img/compare-remote-town-ours.jpg" alt="Our art: the market in Remote Town" loading="lazy"><span>Our art</span></a>
+    </div><figcaption>Remote Town market.</figcaption></figure>
+    <figure><div class="pair">
+      <a href="site/img/compare-goblins-original.jpg"><img src="site/img/compare-goblins-original.jpg" alt="The original game: a goblin fight in the clearing near Remote Town" loading="lazy"><span>Original</span></a>
+      <a href="site/img/compare-goblins-ours.jpg"><img src="site/img/compare-goblins-ours.jpg" alt="Our art: a goblin fight in the clearing near Remote Town" loading="lazy"><span>Our art</span></a>
+    </div><figcaption>Goblins near Remote Town.</figcaption></figure>
+    <figure><div class="pair">
+      <a href="site/img/compare-cold-svalt-original.jpg"><img src="site/img/compare-cold-svalt-original.jpg" alt="The original game: the gate of Cold Svalt Town" loading="lazy"><span>Original</span></a>
+      <a href="site/img/compare-cold-svalt-ours.jpg"><img src="site/img/compare-cold-svalt-ours.jpg" alt="Our art: the gate of Cold Svalt Town" loading="lazy"><span>Our art</span></a>
+    </div><figcaption>The gate of Cold Svalt Town.</figcaption></figure>
+    <figure><div class="pair">
+      <a href="site/img/compare-dusty-ruins-original.jpg"><img src="site/img/compare-dusty-ruins-original.jpg" alt="The original game: the first floor of the Dusty Ruins" loading="lazy"><span>Original</span></a>
+      <a href="site/img/compare-dusty-ruins-ours.jpg"><img src="site/img/compare-dusty-ruins-ours.jpg" alt="Our art: the first floor of the Dusty Ruins" loading="lazy"><span>Our art</span></a>
+    </div><figcaption>The Dusty Ruins.</figcaption></figure>
+  </div>
+
   <h2>Building</h2>
   <p>You need a C++20 compiler, CMake and SDL2.</p>
   <pre><code>cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -128,7 +156,8 @@ cmake --build build
   <h2>License</h2>
   <p>The engine's code and the open content are both under the MIT license. ShadowFlare
     is the work of its original developers; this project is not affiliated with them and
-    contains none of their files.</p>
+    contains none of their files. The original-game screenshots above are shown only to
+    compare the two.</p>
 </main>
 
 <footer>ShadowFlare Engine &middot; open source reimplementation</footer>
