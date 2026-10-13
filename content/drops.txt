@@ -1,8 +1,7 @@
 # What monsters leave behind, standing in for the original's drop tables
 # (Table.Tbd tables 30 and 31): see docs/content.md. Each [drops <list>] is
 # used by the monsters whose enemy= line names that list (the field after
-# the AI list, which tools/content/balance.py sets to the level the hero
-# should be at there). Like the original, a list has its rolls, each
+# the AI list, the level the hero should be at there). Like the original, a list has its rolls, each
 # dropping something `chance` percent of the time (a little more: as in
 # the original, 15 means 16 in 100), as one of its picks chosen at random.
 # Monsters with no gold of their own drop gold= (chance, least, most).

@@ -383,6 +383,12 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             // calls them.
             const bool enemy = key == "enemy";
             auto fields = Lines::split(value, ',');
+            // An enemy's named fields (key=value) come after its 18th.
+            std::vector<std::string_view> named;
+            if (enemy && fields.size() > 18u) {
+                named.assign(fields.begin() + 18, fields.end());
+                fields.resize(18);
+            }
             if (enemy ? fields.size() != 8u && fields.size() != 12u && fields.size() != 13u && fields.size() != 16u && fields.size() != 18u
                       : fields.size() != 4u && fields.size() != 5u) {
                 lines.fail(enemy ? "enemy needs 8, 12, 13, 16 or 18 fields" : "person needs 4 or 5 fields");
@@ -420,6 +426,45 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                 if (fields.size() == 18) {
                     p.stats.magicDefense = lines.toInt(fields[16]);
                     p.stats.element = lines.toInt(fields[17]);
+                }
+                // The rest of the original's enemy block, as in
+                // ScenarioControl's loader; each slot list is a/b/c.
+                for (const auto field : named) {
+                    const auto at = field.find('=');
+                    if (at == std::string_view::npos) lines.fail("expected key=value after an enemy's 18 fields");
+                    const auto key = trim(field.substr(0, at)), v = trim(field.substr(at + 1));
+                    const auto three = [&](std::array<std::int32_t, 3>& out) {
+                        const auto parts = Lines::split(v, '/');
+                        if (parts.size() != 3) lines.fail(std::format("{} needs three values a/b/c", key));
+                        for (int k = 0; k < 3; ++k) out[static_cast<std::size_t>(k)] = lines.toInt(parts[static_cast<std::size_t>(k)]);
+                    };
+                    if (key == "attacks") {
+                        three(p.stats.attacks);
+                    } else if (key == "hits") {
+                        three(p.stats.hits);
+                    } else if (key == "spells") {
+                        three(p.stats.spells);
+                    } else if (key == "spell_power") {
+                        three(p.stats.spellPower);
+                    } else if (key == "spell_level") {
+                        three(p.stats.spellLevel);
+                    } else if (key == "spell_hit") {
+                        three(p.stats.spellHit);
+                    } else if (key == "magic_evasion") {
+                        p.stats.magicEvasion = lines.toInt(v);
+                    } else if (key == "speed") {
+                        p.stats.speed = lines.toInt(v);
+                    } else if (key == "word7") {
+                        p.stats.word7 = lines.toInt(v);
+                    } else if (key == "stun") {
+                        std::array<std::int32_t, 3> stun{};
+                        three(stun);
+                        p.stats.stunChanceResist = stun[0];
+                        p.stats.stunLengthResist = stun[1];
+                        p.stats.stunUncapped = stun[2] == 1;
+                    } else {
+                        lines.fail(std::format("unknown enemy field '{}'", key));
+                    }
                 }
             }
             c.placements.push_back(std::move(p));
