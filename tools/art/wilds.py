@@ -461,6 +461,43 @@ def pipe_stand(at=(0, 0), rot=0.0, n=1):
         box((1.4, 1.1, 0.06), tuple(c + Vector((0, 0, 0.6))), mat("mesh", MESH), rot=(0, 0, rot))
 
 
+def pipe_corner(legs):
+    """Two drums on trestles joined by a ribbed copper elbow: legs are the
+    two directions, in the game's world axes, the pipe runs off in from the
+    corner (the game's y is the scene's -y)."""
+    cu, iron = mat("rustcopper", RUSTCOPPER), mat("blackiron", BLACKIRON)
+    d1, d2 = (Vector((x, -y, 0)) for x, y in legs)
+    R, z = 0.8, Vector((0, 0, 1.1))
+    for d in (d1, d2):
+        pipe_stand(at=tuple(d * (R + 0.75))[:2], rot=math.atan2(d.y, d.x))
+    q = (d1 + d2) * R
+    n = 6
+    for i in range(n + 1):
+        t = math.pi / 2 * i / n
+        p = q - (d2 * math.cos(t) + d1 * math.sin(t)) * R
+        tan = d2 * math.sin(t) - d1 * math.cos(t)
+        yaw = math.atan2(tan.y, tan.x)
+        if i < n:
+            tm = math.pi / 2 * (i + 0.5) / n
+            pm = q - (d2 * math.cos(tm) + d1 * math.sin(tm)) * R
+            tn = d2 * math.sin(tm) - d1 * math.cos(tm)
+            cyl(0.55, R * math.pi / 2 / n * 1.2, tuple(pm + z), cu,
+                rot=(math.pi / 2, 0, math.atan2(tn.y, tn.x) + math.pi / 2), verts=16)
+        if i % 2 == 0:
+            bpy.ops.mesh.primitive_torus_add(major_radius=0.58, minor_radius=0.06, location=tuple(p + z),
+                                             rotation=(math.pi / 2, 0, yaw + math.pi / 2))
+            studio.assign(bpy.context.object, cu)
+    # A grated stand under the elbow.
+    mid = q - (d1 + d2) * (R * math.cos(math.pi / 4))
+    side = (d1 + d2).normalized()
+    across = Vector((-side.y, side.x, 0))
+    for a in (-0.5, 0.5):
+        for b in (-0.5, 0.5):
+            cyl(0.05, 1.0, tuple(mid + side * a + across * b + Vector((0, 0, 0.5))), iron, verts=6)
+    box((1.2, 1.2, 0.06), tuple(mid + Vector((0, 0, 0.6))), mat("mesh", MESH),
+        rot=(0, 0, math.atan2(side.y, side.x)))
+
+
 def engine():
     """A squat engine: a lattice housing at the front, a tall copper
     drum and a slimmer iron one behind, small cylinders to one side and a
@@ -574,7 +611,14 @@ PROPS = {
     "rune_disc_worn": (lambda: rune_disc(worn=True), 192),
     "copper_tank": (copper_tank, 448),
     "pipe_stand": (pipe_stand, 64),
+    "pipe_stand_y": (lambda: pipe_stand(rot=math.pi / 2), 64),
     "pipe_stand_long": (lambda: pipe_stand(n=3, rot=-math.pi / 2), 128),
+    # Corners, named for where the bend sits on screen: the pipe runs off
+    # from it toward the other two compass points.
+    "pipe_corner_s": (lambda: pipe_corner(((-1, 0), (0, -1))), 128),
+    "pipe_corner_n": (lambda: pipe_corner(((1, 0), (0, 1))), 128),
+    "pipe_corner_w": (lambda: pipe_corner(((1, 0), (0, -1))), 128),
+    "pipe_corner_e": (lambda: pipe_corner(((-1, 0), (0, 1))), 128),
     "engine": (engine, 192),
     "iron_fence_x": (iron_fence, 128),
     "iron_fence_y": (lambda: iron_fence(along_y=True), 128),
