@@ -129,8 +129,8 @@ loading-screen object at 0x482df4, and 0x417bd0 draws it:
   pattern 0 steps along at (590, 440), (598, 440) and (606, 440) on a
   15-tick cycle.
 
-If the content has no such picture (the open pack has none yet), the
-command is skipped.
+If the content has no such picture, the command is skipped. The open
+pack has its own pages, painted by `tools/art/story.py`.
 
 ## `SETTINGRAIN r g b count`
 
@@ -163,7 +163,5 @@ not.
   scenario objects work.
 - Scenario objects are not drawn with their SETCHARTRANS opacity yet. This
   also waits on that work.
-- The open pack has no art yet for OPTION 00000000-03 (the shots),
-  11000005-08, 10000020 and 11000020-22, or for the story pictures.
 - Sounds are not played. The engine has no sound yet, and the game files in
   the project have no sound files.

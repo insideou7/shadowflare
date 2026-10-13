@@ -1,0 +1,8 @@
+# Drawn by tools/art/story.py (our own art, see content/README.md).
+# 0 and 4: the first episode's opening and closing pages; 1 an emblem, 2 an arrow, 3 a LOADING plate.
+image=Waiting.png
+frame=0,0,640,480,0,0
+frame=0,481,240,240,-200,-120
+frame=0,722,22,22,0,0
+frame=0,745,64,32,0,0
+frame=0,778,640,480,0,0
