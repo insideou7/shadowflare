@@ -1,0 +1,4 @@
+# Drawn by tools/art/title_screen.py (our own art, see content/README.md).
+# The title screen behind the menu, the original's Title.njp pattern 0.
+image=Title.png
+frame=0,0,640,480,0,0
