@@ -37,7 +37,8 @@ bool Game::saveGame() {
     save.store(inventory_);
     if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
     for (const auto& [key, value] : flags_) {
-        if (key.first != ScenarioScript::kTemp && key.first >= 0) save.flags[key] = value;
+        // TEMP and NET flags start again with every scenario.
+        if (key.first != ScenarioScript::kTemp && key.first != ScenarioScript::kNet && key.first >= 0) save.flags[key] = value;
     }
     save.explored = explored_;
 

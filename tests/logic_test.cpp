@@ -1,4 +1,5 @@
 // Unit tests for the game rules that need neither SDL nor game data.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -374,6 +375,69 @@ void testScriptPartners() {
     check(flags[{S::kTemp, 1000006}] == -1 && flags[{S::kTemp, 1000007}] == -1, "GETPARTNERLIFE is -1 / -1 while it is down");
 }
 
+// Enemies 14000000-14000002: the first is dead, the others alive.
+struct QuestHost : sf::ScriptHost {
+    std::optional<bool> enemyAlive(std::int32_t id) const override {
+        if (id < 14000000 || id > 14000002) return std::nullopt;
+        return id != 14000000;
+    }
+    std::vector<std::pair<int, int>> items{{4, 99000000}};
+    bool hasItem(int cls, int code) const override { return std::ranges::find(items, std::pair(cls, code)) != items.end(); }
+    void deleteItem(int cls, int code) override { std::erase(items, std::pair(cls, code)); }
+    void playerLife(int& hp, int& max) const override { hp = 80, max = 150; }
+    void playerMental(int& mp, int& max) const override { mp = 20, max = 30; }
+    int percent = 0;
+    void giveExperiencePercent(int p) override { percent += p; }
+    void giveItem(int cls, int code) override { items.emplace_back(cls, code); }
+};
+
+void testScriptQuestChecks() {
+    using S = sf::ScenarioScript;
+    S script;
+    const Op live{S::kTemp, 1}, dead{S::kTemp, 2}, none{S::kTemp, 3}, has{S::kTemp, 4}, gone{S::kTemp, 5}, hp{S::kTemp, 6},
+        hpMax{S::kTemp, 7}, mp{S::kTemp, 8}, mpMax{S::kTemp, 9};
+    script.sentences = {{{S::kCheckEnemyLive, {constant(14000000), constant(14000002), live}},
+                         {S::kCheckEnemyDead, {constant(14000000), constant(14000002), dead}},
+                         {S::kCheckEnemyLive, {constant(14000005), constant(14000007), none}},
+                         {S::kCheckItemExist, {constant(4), constant(99000000), has}},
+                         {S::kDeleteItem, {constant(4), constant(99000000)}},
+                         {S::kCheckItemExist, {constant(4), constant(99000000), gone}},
+                         {S::kGetPlayerLife, {hp, hpMax}},
+                         {S::kGetPlayerMental, {mp, mpMax}},
+                         {S::kGetExperience, {constant(30)}},
+                         {S::kSetItemDirect, {constant(4), constant(99000010)}},
+                         {S::kSetFlag, {{S::kTemp, 10}, {S::kEnemyAlive, 0}}},
+                         {S::kSetFlag, {{S::kTemp, 11}, {S::kEnemyAlive, 1}}}}};
+    sf::ScriptFlags flags;
+    QuestHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(flags[{S::kTemp, 1}] == 14000001 && flags[{S::kTemp, 2}] == 14000000, "CHECKENEMYLIVE / DEAD give the first match");
+    check(flags[{S::kTemp, 3}] == -1, "CHECKENEMYLIVE gives -1 when none is alive");
+    check(flags[{S::kTemp, 4}] == 1 && flags[{S::kTemp, 5}] == 0, "CHECKITEMEXIST and DELETEITEM");
+    check(host.items == std::vector<std::pair<int, int>>{{4, 99000010}}, "SETITEMDIRECT hands the item over");
+    check(flags[{S::kTemp, 6}] == 80 && flags[{S::kTemp, 7}] == 150 && flags[{S::kTemp, 8}] == 20 && flags[{S::kTemp, 9}] == 30,
+          "GETPLAYERLIFE and GETPLAYERMENTAL");
+    check(host.percent == 30, "GETEXPERIENCE gives a share of the level's experience");
+    check(flags[{S::kTemp, 10}] == 0 && flags[{S::kTemp, 11}] == 1, "ELIV reads whether an enemy is alive");
+}
+
+void testScriptActiveFlagsAndRoutines() {
+    using S = sf::ScenarioScript;
+    S script;
+    // Sentence 0 calls routine 41000 (sentence 1), then hides a door;
+    // sentence 1 counts in TEMP[1].
+    script.triggers = {{0, S::kOnRoutine, 41000, 1}, {0, S::kOnRoutine, 42000, 2}};
+    script.sentences = {{{S::kRoutine, {constant(41000)}}, {S::kRoutine, {constant(41000)}}, {S::kSetInactive, {constant(10011000)}}},
+                        {{S::kAdd, {{S::kTemp, 1}, constant(1)}}},
+                        {{S::kAdd, {{S::kTemp, 1}, constant(100)}}}};
+    sf::ScriptFlags flags;
+    for (int base : sf::kStateFlagBases) flags[{S::kNet, base + 10011000}] = 1;
+    sf::ScriptRunner(script, flags).run(0);
+    check(flags[{S::kTemp, 1}] == 2, "ROUTIN runs that routine's triggers only");
+    check(flags[{S::kNet, 110011000}] == 0 && flags[{S::kNet, 210011000}] == 0 && flags[{S::kNet, 310011000}] == 0,
+          "SETINACTIVE clears the three NET flags");
+}
+
 void testPartners() {
     sf::GameTables tables;
     auto& kinds = tables.tables[60];
@@ -713,6 +777,8 @@ int main() {
     testScriptStorageAndLabels();
     testScriptRepairAndIdentify();
     testScriptPartners();
+    testScriptQuestChecks();
+    testScriptActiveFlagsAndRoutines();
     testPartners();
     testCareer();
     testScriptExit();

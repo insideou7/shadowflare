@@ -20,6 +20,7 @@ struct ScenarioScript {
         kOperator = 0,  // in IF: 0 '=', 1 '!', 2 '>', 3 '<'; also sentence numbers
         kConstant = 1,
         kMessage = 2,   // MSG
+        kEnemyAlive = 3,  // ELIV n: whether enemy 14,000,000 + n is alive
         kTemp = 4,      // TEMP: flags reset with the scenario
         kNet = 5,       // NET
         kSave = 11,     // SAVE: flags kept in the save game
@@ -59,7 +60,8 @@ struct ScenarioScript {
         kResurrect = 25,
         kMessageBoxValue = 26,
         kMessageBox = 27,
-        kRoutine = 28, kRoutineNet = 29,
+        kRoutine = 28,          // ROUTIN n: runs the event 6 triggers for n, then carries on
+        kRoutineNet = 29,       // ROUTINNET n: the same through the network host (network play only)
         kCreateOptionAngle = 30,
         kCheckEnemyLive = 31, kCheckEnemyDead = 32,
         kGetNearPlayerPos = 33,
@@ -105,6 +107,7 @@ struct ScenarioScript {
         kOnJudge = 3,      // the player walks into the character's rectangle
         kOnEnemyDead = 4,  // an enemy died (inferred from where the exe raises it)
         kEveryTick = 5,
+        kOnRoutine = 6,    // ROUTIN `character` runs these, as a subroutine (0x4309f0)
         kOnStart = 7,      // the scenario was entered
     };
 
@@ -126,6 +129,9 @@ struct ScenarioScript {
     };
 
     std::vector<std::pair<std::int32_t, std::int32_t>> tempFlags;  // id, initial value
+    // NET flags and their starting values. Out of network play they too
+    // start again at every scenario load (0x4300e0).
+    std::vector<std::pair<std::int32_t, std::int32_t>> netFlags;
     std::map<std::int32_t, std::string> messages;                  // dialogue text by id
     std::vector<Trigger> triggers;
     std::vector<std::vector<Command>> sentences;

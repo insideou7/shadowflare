@@ -321,6 +321,26 @@ int Inventory::takeAll(ItemDef::Class cls, std::int32_t code) {
     return static_cast<int>(std::erase_if(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; }));
 }
 
+bool Inventory::has(ItemDef::Class cls, std::int32_t code) const {
+    const auto is = [&](const Item& item) { return item.def->cls == cls && item.def->code == code; };
+    return carries(cls, code) || std::ranges::any_of(equipped_, [&](const auto& worn) { return worn && is(*worn); });
+}
+
+bool Inventory::removeOne(ItemDef::Class cls, std::int32_t code) {
+    const auto is = [&](const Item& item) { return item.def->cls == cls && item.def->code == code; };
+    if (const auto it = std::ranges::find_if(bag_, [&](const Placed& p) { return is(p.item); }); it != bag_.end()) {
+        bag_.erase(it);
+        return true;
+    }
+    for (auto& worn : equipped_) {
+        if (worn && is(*worn)) {
+            worn.reset();
+            return true;
+        }
+    }
+    return false;
+}
+
 void Inventory::identifyAll() {
     for (auto& p : bag_) p.item.unidentified = false;
     for (auto& worn : equipped_) {

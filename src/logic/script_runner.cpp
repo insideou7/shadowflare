@@ -10,9 +10,35 @@ namespace {
 using S = ScenarioScript;
 
 // Operand types that hold a value the script can change.
-bool writable(std::int32_t type) { return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == 10; }
+// 10 is WARP (the warp gates found) and 13 EXSTRG (a word list on the
+// player, + 0x55c, its use not traced).
+bool writable(std::int32_t type) {
+    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == 10 || type == 13;
+}
 
 }  // namespace
+
+bool ScriptRunner::implemented(std::int32_t opcode) {
+    switch (opcode) {
+        case S::kIf: case S::kSetFlag: case S::kTalk: case S::kTalkPartnerStatus: case S::kIdentify:
+        case S::kTrade: case S::kInitTrade: case S::kHealLife: case S::kHealMental: case S::kRepair:
+        case S::kCreateItem: case S::kAdd: case S::kSub: case S::kMul: case S::kDiv: case S::kRem:
+        case S::kPlaySound: case S::kChangeScenario: case S::kStop: case S::kMovable: case S::kSetAngleTo:
+        case S::kSetActive: case S::kSetInactive: case S::kCreateItemTable: case S::kMessageBoxValue:
+        case S::kMessageBox: case S::kGetRandom: case S::kStorage: case S::kGetPartnerKind:
+        case S::kChangePartner: case S::kDrawQuestName: case S::kSetCompasses: case S::kGetEntryPoint:
+        case S::kSetMessageDefine: case S::kGetRepairPrice: case S::kGetTotalGold: case S::kPayGold:
+        case S::kCheckUnopinionItem: case S::kGetPlayerSex: case S::kGetPlayerLevel: case S::kSetQuestFlag:
+        case S::kGetPartnerLife: case S::kEnableClassChange: case S::kGetClass:
+        case S::kRoutine: case S::kCheckEnemyLive: case S::kCheckEnemyDead: case S::kCheckItemExist:
+        case S::kDeleteItem: case S::kGetPlayerLife: case S::kGetPlayerMental: case S::kGetExperience:
+        case S::kSetItemDirect:
+        // Network play only: single play never reaches them.
+        case S::kRoutineNet:
+            return true;
+        default: return false;
+    }
+}
 
 std::optional<ScriptRunner::ScenarioChange> ScriptRunner::run(std::int32_t sentence) {
     change_.reset();
@@ -28,6 +54,12 @@ std::int32_t ScriptRunner::value(const ScenarioScript::Operand& op) const {
         case S::kCharacterX: return host_ ? host_->characterX(op.value) : 0;
         case S::kCharacterY: return host_ ? host_->characterY(op.value) : 0;
         case S::kPlayMode: return 0;  // single player
+        case S::kEnemyAlive: {
+            // ELIV n: 1 while enemy 14,000,000 + n is alive, 0 once dead;
+            // 0 too for one the scenario does not have (0x4346b0).
+            const auto alive = host_ ? host_->enemyAlive(14000000 + op.value) : std::nullopt;
+            return alive && *alive ? 1 : 0;
+        }
         default: break;
     }
     const auto found = flags_.find({op.type, op.value});
@@ -121,6 +153,26 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kChangeScenario:
                 if (ops.size() >= 2) change_ = ScenarioChange{value(ops[0]), value(ops[1])};
                 break;
+            case S::kSetActive:
+            case S::kSetInactive:
+                // The three NET flags of the character or object (0x430ffe
+                // cases 0x16 and 0x17); the game shows and hides by them.
+                if (!ops.empty()) {
+                    for (const std::int32_t base : kStateFlagBases) {
+                        flags_[{S::kNet, base + value(ops[0])}] = c.opcode == S::kSetActive ? 1 : 0;
+                    }
+                }
+                break;
+            case S::kRoutine:
+                // ROUTIN n runs the event 6 triggers for n there and then
+                // (0x4309f0), and the sentence carries on.
+                if (!ops.empty()) {
+                    const std::int32_t n = value(ops[0]);
+                    for (const auto& t : script_.triggers) {
+                        if (t.event == S::kOnRoutine && t.character == n) run(t.sentence, depth + 1);
+                    }
+                }
+                break;
             case S::kSetMessageDefine:
                 for (std::size_t i = 0; i < ops.size() && i < 20; ++i) {
                     flags_[{kMessageArgType, static_cast<std::int32_t>(i * 2)}] = ops[i].type;
@@ -158,6 +210,7 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             default: break;
         }
         if (!host_) continue;
+        if (!implemented(c.opcode)) host_->skippedCommand(c.opcode);
         switch (c.opcode) {
             case S::kTalk: {
                 if (ops.size() < 2) break;
@@ -191,6 +244,42 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kSetAngleTo: host_->faceCharacter(arg(0), arg(1)); break;
             case S::kSetActive: host_->setActive(arg(0), true); break;
             case S::kSetInactive: host_->setActive(arg(0), false); break;
+            case S::kCheckEnemyLive:
+            case S::kCheckEnemyDead: {
+                // first last var: the first enemy in first..last that is
+                // alive (or dead), else -1.
+                if (ops.size() < 3) break;
+                const bool wantAlive = c.opcode == S::kCheckEnemyLive;
+                std::int32_t found = -1;
+                for (std::int32_t id = arg(0), last = arg(1); id <= last && found < 0; ++id) {
+                    if (const auto alive = host_->enemyAlive(id); alive && *alive == wantAlive) found = id;
+                }
+                store(ops[2], found);
+                break;
+            }
+            case S::kCheckItemExist:
+                if (ops.size() >= 3) store(ops[2], host_->hasItem(arg(0), arg(1)) ? 1 : 0);
+                break;
+            case S::kDeleteItem:
+                if (ops.size() >= 2) host_->deleteItem(arg(0), arg(1));
+                break;
+            case S::kGetPlayerLife:
+            case S::kGetPlayerMental: {
+                if (ops.size() < 2) break;
+                int now = 0, most = 0;
+                if (c.opcode == S::kGetPlayerLife) {
+                    host_->playerLife(now, most);
+                } else {
+                    host_->playerMental(now, most);
+                }
+                store(ops[0], now);
+                store(ops[1], most);
+                break;
+            }
+            case S::kGetExperience: host_->giveExperiencePercent(arg(0)); break;
+            case S::kSetItemDirect:
+                if (ops.size() >= 2) host_->giveItem(arg(0), arg(1));
+                break;
             case S::kDrawQuestName: host_->showQuestName(arg(0)); break;
             case S::kSetCompasses:
                 if (ops.empty()) break;

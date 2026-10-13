@@ -139,13 +139,25 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
 
 void Game::loadScenario(const std::string& dir) {
     scenarioDir_ = dir;
+    skippedCommands_.clear();
     control_ = {};
     script_.reset();
     triggers_.clear();
     pendingScenario_.reset();
-    // TEMP flags last for one visit; the others persist.
-    std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp; });
+    // TEMP flags last for one visit, and out of network play so do NET
+    // ones (0x4300e0); the others persist.
+    std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
     if (!dir.empty()) readScenario(dir, control_, &script_);
+    // The NET flags start as the script lists them, then each character's
+    // and object's activity flags join them.
+    if (script_) {
+        for (const auto& [id, value] : script_->netFlags) flags_[{ScenarioScript::kNet, id}] = value;
+    }
+    for (const auto& p : control_.placements) {
+        for (std::size_t k = 0; k < kStateFlagBases.size(); ++k) {
+            flags_[{ScenarioScript::kNet, kStateFlagBases[k] + ScenarioControl::idBase(p.group) + p.id}] = p.states[k];
+        }
+    }
     spawnActors();
     spawnGroundItems();
     placePlayer();
@@ -237,6 +249,7 @@ void Game::spawnActors() {
         const CharacterModel* m = model(stemBuf);
         if (!m) continue;
         Actor actor{p, Character(m)};
+        actor.active = p.startsActive();
         actor.character.x = p.x;
         actor.character.y = p.y;
         actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
@@ -597,6 +610,11 @@ void Game::tick() {
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
     runEvent(ScenarioScript::kEveryTick);
     for (auto& actor : actors_) {
+        // Scripts show and hide characters through their NET flag, by
+        // SETACTIVE or by setting it themselves.
+        if (const auto f = flags_.find({ScenarioScript::kNet, kStateFlagBases[0] + actor.gameId()}); f != flags_.end()) {
+            actor.active = f->second != 0;
+        }
         if (!actor.active) continue;
         if (actor.hostile() && player_) {
             if (actor.aiList >= 0) {
@@ -688,7 +706,7 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
     double bestDistance = INFINITY;
     for (std::size_t i = 0; i < actors_.size(); ++i) {
         const auto& a = actors_[i];
-        if (!a.hostile() || !a.alive()) continue;
+        if (!a.hostile() || !a.alive() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
         const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
@@ -766,7 +784,7 @@ void Game::tickPlayer() {
             walkTarget_.emplace(wx, wy);
         }
     }
-    if (attackTarget_ && !actors_[*attackTarget_].alive()) attackTarget_.reset();
+    if (attackTarget_ && (!actors_[*attackTarget_].alive() || !actors_[*attackTarget_].active)) attackTarget_.reset();
     if (talkTarget_) {
         Actor& person = actors_[*talkTarget_];
         if (distance(*player_, person.character) <= kTalkRange) {
@@ -795,7 +813,7 @@ void Game::tickPlayer() {
     if (autoFight_ && !attackTarget_) {
         double best = kAggroRange;
         for (std::size_t i = 0; i < actors_.size(); ++i) {
-            if (!actors_[i].hostile() || !actors_[i].alive()) continue;
+            if (!actors_[i].hostile() || !actors_[i].alive() || !actors_[i].active) continue;
             const double d = distance(*player_, actors_[i].character);
             if (d < best) {
                 best = d;
@@ -991,6 +1009,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
         enemy.hp = 0;
         enemy.state = Actor::State::Dead;
         enemy.character.restart(chart::kEnemyDeath);
+        log::info("Monster {} defeated", enemy.gameId());
         dropLoot(enemy);
         // The original counts how the hero kills monsters, to offer a class
         // (0x4134a0), and every kill trains the companion (0x413640).
@@ -1287,7 +1306,7 @@ void Game::renderIsoGround(int camX, int camY) {
 // A bar over each wounded monster; the hero's are on the panel (panel.cpp).
 void Game::renderHealthBars(int camX, int camY) {
     for (const auto& a : actors_) {
-        if (!a.hostile() || !a.alive() || a.hp == a.maxHp) continue;
+        if (!a.hostile() || !a.alive() || !a.active || a.hp == a.maxHp) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
         SDL_Rect back{sx - camX - 20, sy - camY - 100, 40, 5};
