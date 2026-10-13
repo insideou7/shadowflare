@@ -352,9 +352,8 @@ and prints the prop and `@x,y` that overlap best.
     python3 tools/content/skin_fit.py game nomal.njp 23-40 conifer_green conifer_gold
 
 Nearly every piece of the original's maps is covered. Still drawn from the
-original: blood, bodies and the pits
-and holes in the ground (blood00, deadbody00, 00d_blood, jimen_x00,
-map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
+original: blood, bodies and the holes in the ground (blood00,
+deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
 ## The first area
 
@@ -370,7 +369,8 @@ the meadow; `--map f00_01` starts in Remote Town.
 Each follows the original map's routes, not its exact layout: which
 blocks of tiles can be walked through, where the exits and entries are,
 which monsters and townspeople stand where, and where the buildings and
-other landmarks stand. The walls, paths and forest edges are our own, and
+other landmarks stand (the town walls and gates, palisades and spike pits
+among them, each drawn with the prop skin.txt gives its original piece). The walls, paths and forest edges are our own, and
 the monsters' stats are the demo's. The dungeons are as dark as the
 original's, with lamps where its torches stand and glows on the monsters
 that carry one. The maps exactly as the original has
