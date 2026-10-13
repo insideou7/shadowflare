@@ -70,6 +70,16 @@ either opens the list. Ours lifts both a little to clear the spell bar.
 On arriving in an area its name shows at the top left beside a compass,
 which shrinks into place, stays for five seconds and fades (SETCOMPASSES).
 
+## Warp gates
+
+As the manual's "Use a Gate": walking up to a town's gate finds it, and a
+left click on it opens the GATE window in the left half of the screen,
+listing every gate found so far, ten to a page with arrows below for the
+others. A click on a gate's name takes the party there. Walking away, a
+right click in the window, Esc or opening another window closes it. A
+new game knows Remote Town's gate from the start. See
+[formats.md](formats.md#the-gate-window).
+
 ## Settings Menu
 
 Esc during play opens it; Options on the title menu opens the same rows

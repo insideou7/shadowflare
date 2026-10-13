@@ -93,6 +93,7 @@ public:
         g_.openShop_ = shop;
         g_.showStatus_ = false;  // the shop takes the left of the screen
         g_.closeMagicWindow();
+        g_.closeWarpWindow();
         g_.showInventory_ = true;
     }
     void healLife() override {
@@ -200,6 +201,8 @@ public:
             log::warn("Script command {} ({}) in {} is not carried out yet", ScenarioScript::commandName(opcode), opcode, g_.scenarioDir_);
         }
     }
+    void openWarpGate(int gate) override { g_.openWarpGate(gate); }
+    void closeWarpGate(int gate) override { g_.closeWarpGate(gate); }
     void offerClass(int cls) override {
         g_.career_.offered = static_cast<HeroClass>(cls);
         log::info("{} offered", className(g_.career_.offered, g_.heroSex_));

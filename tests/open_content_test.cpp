@@ -209,6 +209,13 @@ void testScript() {
           "IF with an operator and a sentence name");
     check(s.script.sentences[3][0].operands[1].value == 10000001, "names stand for their ids");
     check(S::commandName(41) == "STORAGE" && S::commandNumber("GETRANDAM") == 39, "command names");
+    {
+        auto town = sf::open::parseScenario(bytes("map=town\n"));
+        sf::open::parseScript(bytes("object=0,0,64,32,gate\n[sentence gate]\non=talk gate\nSETFLAG warp:4 1\nWARPGATE 0\n"), town);
+        const auto& found = town.script.sentences[0][0];
+        check(found.operands[0].type == S::kWarp && found.operands[0].value == 4 && town.script.sentences[0][1].opcode == S::kWarpGate,
+              "warp: names a warp gate's flag");
+    }
 
     auto rejects = [](const char* what, std::string_view text) {
         expectRejected(what, text, [](auto& d) {
@@ -234,6 +241,13 @@ void testScript() {
           "missions");
     expectRejected("title outside a mission", "title=x\n", [](auto& d) { sf::open::parseMissions(d); });
     expectRejected("mission twice", "[mission 1]\ntitle=a\n[mission 1]\ntitle=b\n", [](auto& d) { sf::open::parseMissions(d); });
+
+    const auto gates = sf::open::parseGates(bytes("[gate 4]\nname=Cold Svalt Town\nscenario=11000000\nentry=50\n"));
+    check(gates.count() == 5 && gates.find(4) && gates.find(4)->name == "Cold Svalt Town" && gates.find(4)->scenario == 11000000 &&
+              gates.find(4)->entry == 50 && gates.find(0)->name.empty(),
+          "warp gates");
+    expectRejected("gate twice", "[gate 1]\nname=a\n[gate 1]\nname=b\n", [](auto& d) { sf::open::parseGates(d); });
+    expectRejected("unknown gate key", "[gate 1]\nplace=a\n", [](auto& d) { sf::open::parseGates(d); });
 
     const auto drops = sf::open::parseDrops(
         bytes("[drops 2]\nrolls=2\nchance=15\ngold=10,4,12\npick=consumable,0\npick=any,any,1,3\npick=nothing\n"));
