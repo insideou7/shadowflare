@@ -387,6 +387,18 @@ std::array<int, ItemDef::kStatCount> Inventory::stats() const {
     return total;
 }
 
+int Inventory::wornWeight() const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
+        total += worn->def->weight;
+    }
+    return total;
+}
+
 int Inventory::modifier(ItemDef::Modifier which) const {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();

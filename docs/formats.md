@@ -657,7 +657,7 @@ bitwise inverted) followed by i32 fields. The shared part, in file order
 | drop pool (0x88), drop weight (0x78) | used by the drop tables |
 | price (0x40), fixed price (0x44) | |
 | width, height (0x20, 0x24) | size in 32-pixel inventory cells |
-| weight (0x28) | |
+| weight (0x28) | weighed against the hero's strength in the item window |
 | inventory bank, pattern (0x2c, 0x30) | `System/Game/Pattern/Item%04d.njp` |
 | ground folder, picture (0x34, 0x38) | `Character/ITEM/%08d`: a chart of its `Animation.Caf` (folders 0-6) or a pattern of its `Pattern.njp` (7-11) |
 | icon parameter (0x3c), ground tint R, G, B (0x50-0x58) | |
@@ -873,6 +873,39 @@ on: MagicIcon 0 at y 382 while chosen (player + 0x1288), else
 MagicBarIcon 2. While a window covers the left of the screen the bar
 starts at 344, while the item window is open at 124, and with both it is
 hidden.
+
+## The item window's totals (ShadowFlare.exe 0x408a80, 0x4074e0)
+
+The item window (Status.njp patterns 2 and 3 at x = 320) has no hero
+stats; those are in the status window. Its top left holds, in screen
+pixels:
+
+| what | where | colour |
+|---|---|---|
+| "Total Gold" and the gold | label at (342, 30), number ending at x = 471, y = 28 | label tan |
+| the mines' power: table 23 at the hero's level plus the Mine Effect worn, at least 1 | number ending at 471, y = 80 | tan when the Mine Effect worn is above 0, red below |
+| mines carried "/" the most | numbers ending at 446 and 471, y = 116, the slash at (445, 117) | tan when the most is above the base 10, red below |
+| Status.njp pattern 0x43, a mine, in the round socket | at its own position (336, 84), only while a mine is carried | |
+| the weight of everything worn (item 0x28; a shield hidden by a two-handed weapon does not count, broken items do) | number ending at 471, y = 224 | red when above the hero's strength |
+| the weight gauge | 33 marks of 3 x 5 pixels, 4 apart from (338, 239) | see below |
+
+POWER, STOCK, WEIGHT and OVER are part of the window's picture. Numbers
+(0x405590) are written a digit at a time, 8 pixels apart, ending at the
+given x and 2 pixels below the given y, over a black copy one pixel down
+and right. The colours are (224, 224, 224), (224, 64, 64) and
+(224, 192, 128).
+
+The gauge fills weight x 33 / strength marks (all 33 at strength 0 or
+less). The marks are Status.njp pattern 0x12 left of x = 438, 0x13 to
+x = 457 and 0x14 (red) after. The marks shown step one a frame towards
+that number; the ones between it and the marks shown fade out along the
+way, and on the first frame of a change the full marks are pattern 0x15,
+white. Holding an item over the book at (336, 140)-(391, 211) fades in
+pattern 4 over it.
+
+An item under the mouse is described in a box centred under the pointer,
+8 pixels below it and kept on the screen, edged in white at half strength
+(0x409160).
 
 ## The GATE window
 

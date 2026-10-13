@@ -379,6 +379,10 @@ private:
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
+    void renderItemTotals();
+    void renderItemPopup(const Item& item, int mx, int my);
+    void windowText(int x, int y, std::string_view text, SDL_Color color);
+    void windowNumber(int x, int y, int value, int tone);
     // The status window and its Change Career button (status.cpp).
     bool statusClick(int x, int y);
     void renderStatus();
@@ -790,6 +794,13 @@ private:
     std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
+    bool drawnPanel_ = false;  // the item window has a picture this frame
+    // The weight gauge's marks as last drawn (-1 until it is first shown),
+    // whether they had caught up with the weight, and the tick they last
+    // moved on (0x4074e0).
+    int weightGaugeShown_ = -1;
+    bool weightGaugeSettled_ = true;
+    std::uint64_t weightGaugeTick_ = 0;
     int playerLevel_ = 1;
     std::string saveFile_ = "save.txt";
     std::int64_t playerExperience_ = 0;

@@ -1,4 +1,9 @@
 # Drawn by tools/art/ui.py (our own art, see content/README.md).
-# The inventory panel; the anchor puts it at x = 320 on the 640 x 480 screen.
+# The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its socket, and the weight gauge's marks (light, darker, red, flash).
 image=Inventory.png
 frame=0,0,320,416,-320,0
+frame=0,416,48,48,-336,-84
+frame=52,416,3,5,0,0
+frame=57,416,3,5,0,0
+frame=62,416,3,5,0,0
+frame=67,416,3,5,0,0

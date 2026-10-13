@@ -19,6 +19,7 @@ level=1,1
 stats=20,100
 layer=12
 weight=10
+load=25
 
 [item weapon 5000000]
 name=Great Sword
@@ -32,6 +33,7 @@ level=3,1
 stats=45,90
 layer=19
 weight=4
+load=170
 
 [item armour 0]
 name=Cloth Armour
@@ -45,6 +47,7 @@ level=1,1
 stats=0,0,20,20,0,0,10,20
 layer=5
 weight=10
+load=60
 
 [item armour 1000000]
 name=Buckler
@@ -58,6 +61,7 @@ level=1,1
 stats=0,0,8,10,0,0,8,10
 layer=9
 weight=10
+load=35
 
 [item armour 2000000]
 name=Leather Hood
@@ -70,6 +74,7 @@ ground=7,4
 level=1,1
 stats=0,0,5,10,0,0,10,10
 weight=8
+load=15
 
 [item armour 3000000]
 name=Leather Boots
@@ -82,6 +87,7 @@ ground=7,5
 level=1,1
 stats=0,0,6,10,0,0,10,10
 weight=8
+load=15
 
 [item accessory 1000000]
 name=Copper Ring
@@ -138,6 +144,7 @@ level=2,1
 stats=32,95
 layer=17
 weight=6
+load=45
 
 [item weapon 2000000]
 name=Magic Staff
@@ -151,6 +158,7 @@ level=2,1
 stats=14,100,0,0,30,100
 layer=18
 weight=4
+load=25
 
 [item armour 4000000]
 name=Plate Mail
@@ -164,3 +172,4 @@ level=4,1
 stats=0,0,40,0
 layer=6
 weight=3
+load=130

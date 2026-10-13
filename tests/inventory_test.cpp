@@ -609,6 +609,25 @@ void testTakeAll() {
     check(inventory.takeAll(Class::Special, 1) == 0, "and then there are none");
 }
 
+// What is worn, weighed as the item window does (0x445630).
+void testWornWeight() {
+    auto heavy = [](sf::ItemDef d, int weight) {
+        d.weight = weight;
+        return d;
+    };
+    const sf::ItemDef sword = heavy(kSword, 30), great = heavy(kGreatSword, 180), cloth = heavy(kCloth, 70),
+                      shield = heavy(kShield, 40), ring = heavy(kRing, 5);
+    sf::Inventory inv;
+    check(inv.wornWeight() == 0, "nothing worn weighs nothing");
+    inv.equip(Slot::Weapon, {&sword});
+    inv.equip(Slot::Body, {&cloth});
+    inv.equip(Slot::Shield, {&shield});
+    inv.equip(Slot::Accessory4, {&ring});
+    check(inv.wornWeight() == 145, "weapon, armour, shield and ring add up");
+    inv.equip(Slot::Weapon, {&great});
+    check(inv.wornWeight() == 255, "a shield hidden by a two-handed weapon weighs nothing");
+}
+
 int main() {
     testTakeAll();
     testBagPlacement();
@@ -622,6 +641,7 @@ int main() {
     testStorageClicks();
     testWearRepairIdentify();
     testModifiers();
+    testWornWeight();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

@@ -544,6 +544,159 @@ void Game::renderGroundItems(int camX, int camY) {
     }
 }
 
+namespace {
+
+// The three colours the item window writes numbers in (0x405590): plain,
+// lowered by what is worn (red) and raised by it (tan).
+enum Tone { kPlain, kLowered, kRaised };
+constexpr SDL_Color kTones[] = {{224, 224, 224, 255}, {224, 64, 64, 255}, {224, 192, 128, 255}};
+constexpr SDL_Color kShadow{0, 0, 0, 255};
+
+Tone toneOf(int value, int base) { return value < base ? kLowered : value > base ? kRaised : kPlain; }
+
+// The weight gauge: 33 marks four pixels apart from (338, 239), tan up to
+// x = 437, darker to 457 and red after that (0x4074e0).
+constexpr int kGaugeMarks = 33, kGaugeX = 338, kGaugeY = 239, kGaugeStep = 4;
+constexpr SDL_Color kGaugeColours[] = {{214, 182, 134, 255}, {176, 144, 90, 255}, {168, 20, 20, 255}, {255, 255, 255, 255}};
+
+}  // namespace
+
+// Text as the item window writes it: in the original's font with a black
+// shadow one pixel down and to the right.
+void Game::windowText(int x, int y, std::string_view text, SDL_Color color) {
+    uiText(x + 1, y + 1, text, kShadow);
+    uiText(x, y, text, color);
+}
+
+// A number as the item window writes it (0x405590): its last digit ends at
+// x, eight pixels a digit, two pixels below y.
+void Game::windowNumber(int x, int y, int value, int tone) {
+    value = std::max(value, 0);
+    do {
+        x -= 8;
+        windowText(x, y + 2, std::string(1, static_cast<char>('0' + value % 10)), kTones[tone]);
+        value /= 10;
+    } while (value != 0);
+}
+
+// The top left of the item window, as ShadowFlare.exe fills it (0x408a80
+// and 0x4074e0): the gold, the mines' power and stock with a mine in the
+// socket while any are carried, and what the hero wears weighed against
+// their strength, as a number and a gauge. The labels POWER, STOCK, WEIGHT
+// and OVER are part of the window's picture.
+void Game::renderItemTotals() {
+    const SpriteBank* open = itemBank("System/Game/Pattern/Inventory");
+    const SpriteBank* bank = open ? open : itemBank("System/Game/Pattern/Status");
+    // The original's Status.njp patterns, or the open pack's Inventory frames.
+    auto part = [&](int originalPattern, int openPattern) -> const SpriteTexture* {
+        return bank ? sprites_.get(*bank, open ? openPattern : originalPattern, false) : nullptr;
+    };
+    const bool labelled = drawnPanel_;
+    if (!labelled) {
+        drawText(renderer_, 342, 84, "POWER", kWhite, 1);
+        drawText(renderer_, 342, 120, "STOCK", kWhite, 1);
+        drawText(renderer_, 342, 228, "WEIGHT", kWhite, 1);
+    }
+
+    windowText(342, 30, "Total Gold", kTones[kRaised]);
+    windowNumber(471, 28, inventory_.gold(), kPlain);
+
+    if (mineCount_ > 0) {
+        if (const SpriteTexture* mine = part(0x43, 1)) {
+            const SDL_Rect dst{mine->originX, mine->originY, mine->width, mine->height};
+            SDL_RenderCopy(renderer_, mine->texture, nullptr, &dst);
+        }
+    }
+    const int mineBonus = inventory_.modifier(ItemDef::kModMineEffect);
+    windowNumber(471, 80, minePower(playerLevel_), mineBonus > 0 ? kRaised : mineBonus < 0 ? kLowered : kPlain);
+    const Tone stock = toneOf(mostMines(), mines::most(0));
+    windowNumber(446, 116, mineCount_, stock);
+    windowText(445, 117, "/", kTones[kPlain]);
+    windowNumber(471, 116, mostMines(), stock);
+
+    const int strength = playerStats()[HeroStats::kStrength];
+    const int weight = inventory_.wornWeight();
+    windowNumber(471, 224, weight, weight > strength ? kLowered : kPlain);
+
+    // The gauge eases to the new weight a mark a tick, the marks between
+    // fading out, and flashes white the moment it starts to move.
+    const int target = std::min(kGaugeMarks, strength < 1 ? kGaugeMarks : weight * kGaugeMarks / strength);
+    if (weightGaugeShown_ < 0) weightGaugeShown_ = target;
+    int alpha = 1000;
+    for (int i = 0; i < weightGaugeShown_ || i < target; ++i) {
+        const int x = kGaugeX + i * kGaugeStep;
+        int kind = x < 438 ? 0 : x < 458 ? 1 : 2;
+        if (target < weightGaugeShown_ && i > target) alpha -= 1000 / (weightGaugeShown_ - target);
+        if (weightGaugeShown_ < target && i > weightGaugeShown_) alpha -= 1000 / (target - weightGaugeShown_);
+        if (weightGaugeSettled_ && target != weightGaugeShown_ && alpha == 1000) kind = 3;
+        const Uint8 a = static_cast<Uint8>(std::clamp(alpha, 0, 1000) * 255 / 1000);
+        if (const SpriteTexture* mark = part(18 + kind, 2 + kind)) {
+            SDL_SetTextureAlphaMod(mark->texture, a);
+            const SDL_Rect dst{x, kGaugeY, mark->width, mark->height};
+            SDL_RenderCopy(renderer_, mark->texture, nullptr, &dst);
+            SDL_SetTextureAlphaMod(mark->texture, 255);
+        } else {
+            SDL_Color c = kGaugeColours[kind];
+            c.a = a;
+            frame(renderer_, {x, kGaugeY, 3, 5}, c, c);
+        }
+    }
+    if (weightGaugeTick_ != ticks_) {
+        weightGaugeTick_ = ticks_;
+        weightGaugeSettled_ = weightGaugeShown_ == target;
+        if (target < weightGaugeShown_) --weightGaugeShown_;
+        else if (target > weightGaugeShown_) ++weightGaugeShown_;
+    }
+}
+
+// What the item under the mouse is, in a box centred under the pointer and
+// kept on screen, edged in half-bright white, as the original shows it
+// (0x409160).
+void Game::renderItemPopup(const Item& item, int mx, int my) {
+    const ItemDef& def = *item.def;
+    std::vector<std::pair<std::string, SDL_Color>> lines;
+    const bool unusable = def.requiredLevel > playerLevel_ || item.broken();
+    lines.emplace_back(item.shownName() + (item.unidentified ? "  ?" : ""), unusable ? kRed : kWhite);
+    std::string stats;
+    const auto& s = def.stats;
+    // Unidentified items keep what they do to themselves.
+    if (!item.unidentified) {
+        if (s[ItemDef::kAttack]) stats += std::format("  ATK {}", s[ItemDef::kAttack]);
+        if (s[ItemDef::kDefense]) stats += std::format("  DEF {}", s[ItemDef::kDefense]);
+    }
+    if (def.durability > 0) stats += std::format("  DUR {}/{}", item.durability(), def.durability);
+    if (def.weight > 0) stats += std::format("  WT {}", def.weight);
+    if (def.requiredLevel > 1) stats += std::format("  LV {}", def.requiredLevel);
+    if (def.effect[1] > 0) stats += std::format("  +{} HP", def.effect[1]);
+    if (!stats.empty()) lines.emplace_back(stats.substr(2), unusable ? kRed : kWhite);
+    // Its rolled modifiers, shortened.
+    static constexpr const char* kModNames[ItemDef::kModifierCount] = {
+        "ATK", "DEF", "HIT", "EVA", "MATK", "MDEF", "MHIT", "MEVA", "SPD", "WALK", "HP", "MP", "STR",
+        "MLV", "STUN%", "STUN", nullptr, "REGEN", "MREGEN", "MCOST", "REFL", "REFL", "TABLET", "CAPSULE",
+        "ABS", "ABS", "GOLD", "MINE", "MINES", "CHANT", "DOG HP", "DOG ATK", "DOG HIT", "DOG DEF",
+        "DOG EVA", "DOG MATK", "DOG MHIT", "DOG MDEF", "DOG MEVA"};
+    std::string mods;
+    for (int i = 0; i < ItemDef::kModifierCount && !item.unidentified; ++i) {
+        const int v = item.modifiers[static_cast<std::size_t>(i)];
+        if (v != 0 && kModNames[i]) mods += std::format("{}{}{:+d}", mods.empty() ? "" : " ", kModNames[i], v);
+    }
+    if (!mods.empty()) lines.emplace_back(mods, SDL_Color{150, 200, 255, 255});
+
+    int w = 0;
+    for (auto& [text, colour] : lines) {
+        if (text.size() > 50) text.resize(50);
+        w = std::max(w, uiTextWidth(text));
+    }
+    w += 8;
+    const int h = static_cast<int>(lines.size()) * 13 + 5;
+    const int x = std::clamp(mx - w / 2, 1, kScreenWidth - w);
+    const int y = std::clamp(my + 8, 1, kScreenHeight - h);
+    frame(renderer_, {x - 1, y - 1, w + 1, h + 1}, {0, 0, 0, 170}, {255, 255, 255, 128});
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        uiText(x + 4, y + 3 + static_cast<int>(i) * 13, lines[i].first, lines[i].second);
+    }
+}
+
 void Game::renderInventory() {
     int mx = 0, my = 0;
     {
@@ -559,6 +712,7 @@ void Game::renderInventory() {
         // The panel's picture has the slots and bag cells drawn in; without
         // one, plain rectangles stand in.
         const bool picture = drawPanelPicture();
+        drawnPanel_ = picture;
         if (!picture) frame(renderer_, kPanel, {20, 18, 26, 225}, {150, 130, 90, 255});
         // Equipment slots.
         for (const auto& box : kSlots) {
@@ -595,50 +749,8 @@ void Game::renderInventory() {
             drawItemPicture(*p.item.def, r);
             if (inside(r, mx, my)) hover = &p.item;
         }
-        // Totals on the left.
-        int ty = 20;
-        for (const auto& line : {std::format("LV {}", playerLevel_), std::format("EXP {}/{}", playerExperience_, levels_.need(playerLevel_)),
-                                 std::format("ATK {}", playerAttack()),
-                                 std::format("DEF {}", playerDefense()), std::format("HIT {}", playerHit()),
-                                 std::format("EVA {}", playerEvasion())}) {
-            drawText(renderer_, 336, ty, line, kWhite);
-            ty += 16;
-        }
-        drawText(renderer_, 336, kBagY + Inventory::kBagHeight * kCell + 10, std::format("GOLD {}", inventory_.gold()), kGoldColor);
-        // Mines in hand and the most, and their power, as the original's
-        // item window shows them (0x408a80).
-        drawText(renderer_, 456, kBagY + Inventory::kBagHeight * kCell + 10,
-                 std::format("MINES {}/{}  POW {}", mineCount_, mostMines(), minePower(playerLevel_)), kWhite);
-        if (hover && !hand_) {
-            const ItemDef& def = *hover->def;
-            std::string text = hover->shownName();
-            const auto& s = def.stats;
-            // Unidentified items keep what they do to themselves.
-            if (hover->unidentified) {
-                text += "  ?";
-            } else {
-                if (s[ItemDef::kAttack]) text += std::format("  ATK {}", s[ItemDef::kAttack]);
-                if (s[ItemDef::kDefense]) text += std::format("  DEF {}", s[ItemDef::kDefense]);
-            }
-            if (def.durability > 0) text += std::format("  DUR {}/{}", hover->durability(), def.durability);
-            if (def.requiredLevel > 1) text += std::format("  LV {}", def.requiredLevel);
-            if (def.effect[1] > 0) text += std::format("  +{} HP", def.effect[1]);
-            if (text.size() > 40) text.resize(40);
-            drawText(renderer_, 336, kBagY - 18, text, def.requiredLevel > playerLevel_ || hover->broken() ? kRed : kWhite);
-            // Its rolled modifiers on the line above, shortened.
-            static constexpr const char* kModNames[ItemDef::kModifierCount] = {
-                "ATK", "DEF", "HIT", "EVA", "MATK", "MDEF", "MHIT", "MEVA", "SPD", "WALK", "HP", "MP", "STR",
-                "MLV", "STUN%", "STUN", nullptr, "REGEN", "MREGEN", "MCOST", "REFL", "REFL", "TABLET", "CAPSULE",
-                "ABS", "ABS", "GOLD", "MINE", "MINES", "CHANT", "DOG HP", "DOG ATK", "DOG HIT", "DOG DEF",
-                "DOG EVA", "DOG MATK", "DOG MHIT", "DOG MDEF", "DOG MEVA"};
-            std::string mods;
-            for (int i = 0; i < ItemDef::kModifierCount && !hover->unidentified; ++i) {
-                const int v = hover->modifiers[static_cast<std::size_t>(i)];
-                if (v != 0 && kModNames[i]) mods += std::format("{}{}{:+d}", mods.empty() ? "" : " ", kModNames[i], v);
-            }
-            if (mods.size() > 40) mods.resize(40);
-            if (!mods.empty()) drawText(renderer_, 336, kBagY - 34, mods, {150, 200, 255, 255});
-        }
+        renderItemTotals();
+        if (hover && !hand_) renderItemPopup(*hover, mx, my);
     }
     if (hand_) {
         const int w = hand_->def->width * kCell, h = hand_->def->height * kCell;

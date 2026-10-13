@@ -7,10 +7,13 @@ Draws, in the style of the original but from scratch:
 
 - the inventory panel: a 320 x 416 window of dark carved stone in an iron
   frame with bronze trim, with sunken recesses for the equipment slots and
-  the 9 x 4 bag, and plates for the totals and the gold, where the engine
-  puts them (src/game/items.cpp, which follows ShadowFlare.exe's item
-  window). Written as System/Game/Pattern/Inventory; its anchor puts it at
-  x = 320 on the screen.
+  the 9 x 4 bag, and plates for the gold, the mines' power and stock
+  (with a round socket for our mine picture) and the weight with its
+  gauge, labelled as the original's are, where the engine writes them
+  (src/game/items.cpp, which follows ShadowFlare.exe's item window). Also
+  the mine and the gauge's marks. Written as
+  System/Game/Pattern/Inventory; its anchor puts it at x = 320 on the
+  screen.
 - the shop window: the same stone and frame with a carved header and the
   9 x 10 cells of goods at (16, 72), as the original's (src/game/talk.cpp).
   System/Game/Pattern/Shop, at x = 0.
@@ -56,8 +59,16 @@ BAG = (336 - LEFT, 264, 9, 4)  # x, y, columns, rows
 # Equipment slots (screen x, y, cells across, down), as in items.cpp.
 SLOTS = [(560, 16, 2, 2), (560, 88, 2, 3), (560, 192, 2, 2), (480, 16, 2, 4), (480, 160, 2, 3),
          (400, 143, 1, 1), (440, 143, 1, 1), (400, 183, 1, 1), (440, 183, 1, 1)]
-STATS_PLATE = (10, 10, 150, 102)  # x0, y0, x1, y1: the totals are written here
-GOLD_PLATE = (10, 396, 170, 411)
+# The totals in the top left, where items.cpp writes them after the
+# original's item window (x0, y0, x1, y1 in the panel): the gold, the mine
+# socket with the mines' power and stock, and the weight with its gauge.
+GOLD_PLATE = (16, 22, 152, 46)
+POWER_PLATE = (96, 80, 152, 97)
+STOCK_PLATE = (64, 115, 152, 132)
+MINE_SOCKET = (40, 108, 22)  # centre and radius; the mine sits at (16, 84), 48 x 48
+WEIGHT_PLATE = (96, 222, 152, 239)
+GAUGE = (16, 237, 152, 247)  # the groove the 33 marks fill from (18, 239)
+LABELS = [("LANDMINE", 18, 68), ("POWER", 64, 85), ("STOCK", 68, 104), ("WEIGHT", 18, 225), ("OVER", 126, 251)]
 GOODS = (16, 72, 9, 10)  # the shop's cells: x, y, columns, rows, as in talk.cpp
 
 STONE = np.array([42, 40, 47])
@@ -183,6 +194,50 @@ def write_sheet(folder, name, image, frames, comment):
             f.write("frame=" + ",".join(str(v) for v in fr) + "\n")
 
 
+def engrave(p, text, x0, y0):
+    """Cuts `text` in the capitals into the panel, filled with bronze."""
+    for i, ch in enumerate(text):
+        for y, row in enumerate(CAPS[ch]):
+            for x, bit in enumerate(row):
+                if bit == "#":
+                    p.colour[y0 + y, x0 + i * 6 + x] = BRONZE * 0.8
+                    p.height[y0 + y, x0 + i * 6 + x] -= 1.5
+
+
+def mine_picture():
+    """The mine shown in the socket while any are carried: a squat iron
+    drum seen from above, banded in bronze, with a pressure cap in the
+    middle and six studs round its rim."""
+    n = 48
+    gy, gx = np.mgrid[0:n, 0:n].astype(float)
+    d = np.hypot(gx - 23.5, gy - 23.5)
+    body = d < 19
+    height = np.where(body, np.sqrt(np.clip(1 - (d / 19) ** 2, 0, 1)) * 8, 0)
+    colour = np.zeros((n, n, 3)) + IRON * 1.2
+    band = (d > 12) & (d < 14.5)
+    colour[band] = BRONZE * 0.75
+    height[band] += 1
+    cap = d < 6
+    colour[cap] = IRON * 1.6
+    height += np.where(cap, 3 * np.sqrt(np.clip(1 - (d / 6) ** 2, 0, 1)), 0)
+    for k in range(6):
+        a = k * np.pi / 3 + np.pi / 6
+        sd = np.hypot(gx - (23.5 + 16 * np.cos(a)), gy - (23.5 + 16 * np.sin(a)))
+        stud = sd < 2.2
+        colour[stud] = BRONZE
+        height += np.where(stud, 2 * np.sqrt(np.clip(1 - (sd / 2.2) ** 2, 0, 1)), 0)
+    dy, dx = np.gradient(height)
+    light = np.clip(1.0 - 0.3 * dx - 0.3 * dy, 0.3, 1.7)
+    rgb = np.clip(colour * light[..., None], 0, 255).astype(np.uint8)
+    alpha = np.where(d < 19.5, 255, 0).astype(np.uint8)[..., None]
+    return Image.fromarray(np.concatenate([rgb, alpha], axis=2), "RGBA")
+
+
+# The weight gauge's marks: light, darker and red as it fills, and the
+# white it flashes as it starts to move.
+GAUGE_MARKS = [(222, 190, 140), (182, 148, 92), (176, 30, 24), (255, 255, 255)]
+
+
 def inventory(out):
     p = Panel(7)
     for sx, sy, cw, ch in SLOTS:
@@ -190,11 +245,36 @@ def inventory(out):
     bx, by, cols, rows = BAG
     p.sunken(bx, by, bx + cols * CELL, by + rows * CELL)
     p.cells(bx, by, cols, rows, STONE * 0.9)
-    # Plates for the totals and the gold: shallow, smooth and dark.
-    for x0, y0, x1, y1 in (STATS_PLATE, GOLD_PLATE):
+    # Plates for the totals: shallow, smooth and dark.
+    for x0, y0, x1, y1 in (GOLD_PLATE, POWER_PLATE, STOCK_PLATE, WEIGHT_PLATE):
         p.sunken(x0, y0, x1, y1, depth=1.5, rim=False, floor=STONE * 0.6)
-    write_sheet(out / "System/Game/Pattern", "Inventory", p.image(), [(0, 0, W, H, -LEFT, 0)],
-                "The inventory panel; the anchor puts it at x = 320 on the 640 x 480 screen.")
+    x0, y0, x1, y1 = GAUGE
+    p.sunken(x0, y0, x1, y1, depth=2, floor=HOLLOW)
+    # The round socket the mine sits in, ringed in bronze.
+    cx, cy, r = MINE_SOCKET
+    d = np.hypot(xx - cx, yy - cy)
+    ring = (d >= r) & (d < r + 2)
+    p.bronze(ring, 1.5)
+    hollow = np.clip((r - d) / 3, 0, 1)
+    p.height -= 4 * hollow
+    p.colour = np.where((hollow > 0)[..., None], HOLLOW * (0.8 + 0.4 * p.noise(16, 2))[..., None], p.colour)
+    for text, x, y in LABELS:
+        engrave(p, text, x, y)
+    panel = p.image()
+    sheet = Image.new("RGBA", (W, H + 48), (0, 0, 0, 0))
+    sheet.paste(panel, (0, 0))
+    sheet.paste(mine_picture(), (0, H))
+    frames = [(0, 0, W, H, -LEFT, 0), (0, H, 48, 48, -(LEFT + MINE_SOCKET[0] - 24), -(MINE_SOCKET[1] - 24))]
+    for k, rgb in enumerate(GAUGE_MARKS):
+        mark = Image.new("RGBA", (3, 5), rgb + (255,))
+        # A darker lower edge, so the marks read as raised.
+        for x in range(3):
+            mark.putpixel((x, 4), tuple(int(c * 0.7) for c in rgb) + (255,))
+        sheet.paste(mark, (52 + k * 5, H))
+        frames.append((52 + k * 5, H, 3, 5, 0, 0))
+    write_sheet(out / "System/Game/Pattern", "Inventory", sheet, frames,
+                "The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its "
+                "socket, and the weight gauge's marks (light, darker, red, flash).")
 
 
 def shop(out):

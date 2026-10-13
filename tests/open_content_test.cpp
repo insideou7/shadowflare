@@ -272,7 +272,7 @@ void testScript() {
 void testItems() {
     const auto table = sf::open::parseItems(bytes(
         "[item weapon 5]\nname=Great Sword\nsubtype=3\nsize=2,4\nicon=0,3\nground=7,3\nlevel=4,3\n"
-        "stats=45,90\nlayer=19\nweight=10\n"
+        "stats=45,90\nlayer=19\nweight=10\nload=180\n"
         "[item consumable 0]\nname=Potion\neffect=1,50\n"));
     check(table.items.size() == 2, "item count");
     const auto* sword = table.find(sf::ItemDef::Class::Weapon, 5);
@@ -280,6 +280,7 @@ void testItems() {
     check(sword && sword->invPattern == 3 && sword->groundFolder == 7 && sword->requiredLevel == 3 && sword->itemLevel == 4,
           "item pictures and levels");
     check(sword && sword->stats[0] == 45 && sword->stats[1] == 90 && sword->stats[2] == 0 && sword->heroLayer == 19, "item stats");
+    check(sword && sword->dropWeight == 10 && sword->weight == 180, "item drop weight and load");
     const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
     check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });

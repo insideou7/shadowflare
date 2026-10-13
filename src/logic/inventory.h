@@ -188,6 +188,10 @@ public:
     // at 0x44eb5b, does not check; a shield hidden by a two-handed weapon
     // does not.
     std::array<int, 8> elements() const;
+    // How heavy everything worn is, as the item window adds it up
+    // (0x445630): broken items count, a shield hidden by a two-handed
+    // weapon does not.
+    int wornWeight() const;
     // Layers of the hero's animation to draw: 0 (body) and 1 (shadow), then
     // the body armour's, the weapon's and its glow, and the shield's unless
     // the weapon is two-handed. Helmets, boots and accessories are not
