@@ -2,6 +2,8 @@
 title=Cold Ruins
 map=d02_02
 entry=0,4403,2416,7
+town=11000000
+transport=1
 exit=4516,1691,4810,2226,11020001,1
 enemy=4,4428,10732,3,41,56,640,goblin,2,0,0,0,14,24,50,0
 glow=3

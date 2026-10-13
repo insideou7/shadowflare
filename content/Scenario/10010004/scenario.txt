@@ -2,6 +2,8 @@
 title=Dusty Ruins
 map=d01_05
 entry=0,8063,6436,7
+town=10000000
+transport=1
 exit=7911,5629,8205,6164,10010003,1
 enemy=1,3300,7555,7,29,44,640,goblin,2,0,0,0,5,13,50,0
 glow=1

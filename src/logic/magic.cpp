@@ -106,6 +106,22 @@ MagicTables MagicTables::fromTables(const GameTables& tables) {
     grid(201, [&](int r, int c, int v) {
         if (r < 13 && c < kSpellColumns) t.berserker[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
     });
+    grid(200, [&](int r, int c, int v) {
+        if (r < 14 && c < kSpellColumns) t.moon[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
+    });
+    grid(24, [&](int r, int c, int v) {
+        if (r < 10 && c < 2) t.stunBonus[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
+    });
+    // Three columns a level: chance, length, may run past 15 ticks.
+    for (int e = 0; e <= kElementCount; ++e) {
+        grid(70 + e, [&](int r, int c, int v) {
+            if (r >= kSpellCount || c >= 3 * kSpellColumns) return;
+            Stun& s = t.stun(e, r, c / 3 + 1);
+            if (c % 3 == 0) s.chance = v;
+            else if (c % 3 == 1) s.length = v;
+            else s.uncapped = v != 0;
+        });
+    }
     // Tables 600-621: the name (row 0, "Fire Ball - Fire Attribute") and the
     // description (rows 2 on).
     for (int s = 0; s < kSpellCount; ++s) {
@@ -118,6 +134,26 @@ MagicTables MagicTables::fromTables(const GameTables& tables) {
         for (int r = 2; r < table->rows; ++r) spell.description.push_back(table->string(r, 0));
     }
     return t;
+}
+
+MagicTables::Stun spellStun(const MagicTables& t, int spell, int level, int monsterElement, const ElementLevels& hero) {
+    MagicTables::Stun s = t.stun(monsterElement, spell, level);
+    const int elementLevel = monsterElement >= 0 ? levelIn(hero, oppositeElement(monsterElement)) : 0;
+    if (elementLevel >= 1 && elementLevel <= 10) {
+        s.chance += t.stunBonus[static_cast<std::size_t>(elementLevel - 1)][0];
+        s.length += t.stunBonus[static_cast<std::size_t>(elementLevel - 1)][1];
+    }
+    return s;
+}
+
+StunKind stunKindOf(int spell) {
+    switch (spell) {
+        case kIceBolt:
+        case kIceBlast:
+        case kDreadDeathscythe: return StunKind::Freeze;
+        case kMedusa: return StunKind::Stone;
+        default: return StunKind::Plain;
+    }
 }
 
 bool isToggleSpell(int spell) {

@@ -19,8 +19,6 @@ namespace sf {
 namespace {
 
 constexpr double kTau = 2 * std::numbers::pi;
-// The original runs 30 ticks a second, so each engine tick is 1.5 of them.
-constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 // Half the side of the square a hero or monster can be hit in. The
 // original reads each one's judge rect; this is ours.
 constexpr double kTargetHalf = 50.0;
@@ -35,11 +33,11 @@ enum Option {
     kFireSpray = 10000000, kHellFireBurst = 10000001, kFireRing = 10000002, kFireBallFly = 10000010,
     kFireBurst = 10000011, kCastFlame = 10000012, kLightning = 10000030, kLightningSplash = 10000031,
     kLightningGlitter = 10000032, kIceBoltFly = 10000040, kIceCrystals = 10000050, kIceGather = 10000051,
-    kIceMist = 10000052, kEarthSpear = 10000060, kBladeAppear = 10000080, kBladeFly = 10000081,
+    kIceMist = 10000052, kEarthSpear = 10000060, kMedusaFly = 10000070, kBladeAppear = 10000080, kBladeFly = 10000081,
     kSonicBladeFly = 10000090, kElementOrb = 10000100, kMudFly = 10000110, kMudBurst = 10000111,
     kHitSpark = 11000000, kShock = 11000003, kFrostHit = 11000026, kIceSwirl = 11000027, kWaterBurst = 11000033,
-    kHealGlow = 11000060, kGatherSwirl = 11000100, kAirBurst = 11000200, kElementCast = 11000210,
-    kMagicShieldGlow = 11000241, kCounterBurstGlow = 11000251, kFirePillar = 12000000,
+    kStoneHit = 11000050, kHealGlow = 11000060, kGatherSwirl = 11000100, kAirBurst = 11000200, kElementCast = 11000210,
+    kMoonGlow = 11000040, kIdentifyGlow = 11000230, kMagicShieldGlow = 11000241, kCounterBurstGlow = 11000251, kFirePillar = 12000000,
 };
 
 // What is played on whoever a spell hurts (the effect kind in its damage
@@ -55,18 +53,18 @@ int hitOptionOf(int spell) {
         case kIceBlast:
         case kDreadDeathscythe: return kFrostHit;
         case kSonicBlade: return kAirBurst;
+        case kMedusa: return kStoneHit;
         default: return -1;
     }
 }
 
-enum class Kind { NotYet, Toggle, Heal, Cast, Companion };
+enum class Kind { Toggle, Moon, Heal, Cast, Companion, Transport, Identify };
 
 Kind kindOf(int spell) {
     switch (spell) {
-        case kTransport:
-        case kMoon:
-        case kMedusa:
-        case kIdentify: return Kind::NotYet;
+        case kTransport: return Kind::Transport;
+        case kMoon: return Kind::Moon;
+        case kIdentify: return Kind::Identify;
         case kExplosion: return Kind::Companion;  // the companion blows up (partner.cpp)
         case kHeal: return Kind::Heal;
         default: break;
@@ -165,10 +163,9 @@ void Game::startCast(double worldX, double worldY) {
     // or cast again to turn them off (0x441c00).
     if (power_.active() && blockedInPowerMode(spell)) return;
     const Kind kind = kindOf(spell);
-    if (kind == Kind::NotYet) {
-        showMessage(std::format("{} is not in the game yet", magic_.spell(spell).name));
-        return;
-    }
+    // Not while Identify already waits for an item (0x441c00).
+    if (kind == Kind::Identify && identifying_) return;
+    if (kind == Kind::Transport && !transportAllowed()) return;
     // Turning a shield or Berserker off is free and needs no casting.
     if (kind == Kind::Toggle && spellOn(spell)) {
         setSpellOn(spell, false);
@@ -177,7 +174,7 @@ void Game::startCast(double worldX, double worldY) {
     }
     if (kind == Kind::Heal && playerHp_ >= playerMaxHp()) return;  // as the original: not when full
     const int level = castLevel(spell);
-    const int cost = spellMpCost(magic_, spell, level);
+    const int cost = mpCost(spell, level);
     if (playerMp_ < cost) {
         showMessage("Not enough MP");
         return;
@@ -191,15 +188,14 @@ void Game::startCast(double worldX, double worldY) {
     talkTarget_.reset();
     mouseHeld_ = false;
     player_->faceTowards(worldX - player_->x, worldY - player_->y);
-    int chantSpeed = 0;
-    {
-        HeroStats stats = heroStats();
-        applyElementLevels(stats, chantSpeed, playerElements());
-    }
-    // Heal has a casting animation of its own.
-    int chart = spell == kHeal ? chart::kPlayerHeal : chart::kPlayerCast;
+    const int chantSpeed = playerChantSpeed();
+    // Heal has a casting animation of its own, and Moon and Transport cast
+    // with it too (0x43d290, 0x43a260).
+    int chart = spell == kHeal || spell == kMoon || spell == kTransport ? chart::kPlayerHeal : chart::kPlayerCast;
     if (!player_->hasChart(chart)) chart = player_->hasChart(chart::kPlayerCast) ? chart::kPlayerCast : chart::kPlayerPunch;
     player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active()));
+    // Transport's gate appears as the cast begins.
+    if (kind == Kind::Transport) openTransportGate();
     if (kind == Kind::Cast) {
         SpellCast cast;
         cast.spell = spell;
@@ -219,13 +215,31 @@ void Game::releaseSpell() {
     const int level = castLevel(spell);
     log::info("Cast {} at level {}", magic_.spell(spell).name, level);
     switch (kindOf(spell)) {
-        case Kind::NotYet: break;
+        case Kind::Identify:
+            // The inventory opens and the next unknown item clicked in the
+            // bag is identified (0x43f8d0).
+            spawnEffect(kIdentifyGlow, player_->x, player_->y).followsPlayer = true;
+            identifying_ = true;
+            showInventory_ = true;
+            closeWarpWindow();
+            showMessage("Choose an item to identify");
+            break;
+        case Kind::Transport: break;
         case Kind::Companion: orderPartnerExplosion(castTarget_.first, castTarget_.second); break;
         case Kind::Toggle:
             setSpellOn(spell, true);
             if (spell == kBerserker) berserkerCarry_ = 0;
             spawnEffect(kGatherSwirl, player_->x, player_->y).followsPlayer = true;
             showMessage(std::format("{} on", magic_.spell(spell).name));
+            break;
+        case Kind::Moon:
+            // Cast again, it goes off (0x43d290); either way it costs the
+            // casting. The companion's stats follow at once.
+            setSpellOn(spell, !spellOn(spell));
+            moonLevel_ = level;
+            moonCarry_ = 0;
+            refreshPartnerStats();
+            showMessage(std::format("{} {}", magic_.spell(spell).name, spellOn(spell) ? "on" : "off"));
             break;
         case Kind::Heal: {
             // Table 17 is the percent of the most HP restored.
@@ -250,7 +264,6 @@ void Game::showSpellHit(int spell, double x, double y) {
 }
 
 void Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption) {
-    (void)level;
     const auto& s = enemy.placement.stats;
     const int element = magic_.spell(spell).element;
     if (hitOption >= 0) spawnEffect(hitOption, enemy.character.x, enemy.character.y);
@@ -261,6 +274,10 @@ void Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int
     const int damage = spellDamage(power, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
     log::info("{} hits for {}", magic_.spell(spell).name, damage);
     hurtEnemy(enemy, damage, true);
+    // Then the spell's stun, as tables 70-78 give it for the monster's
+    // element (0x459690).
+    const auto stun = spellStun(magic_, spell, level, s.element, playerElements());
+    stunEnemy(enemy, stun.chance, stun.length, stun.uncapped, -1, stunKindOf(spell));
 }
 
 const CharacterModel* Game::effectModel(int option) {
@@ -316,6 +333,7 @@ void Game::clearSpells() {
     mines_.clear();
     mineWait_ = 0;
     originalTicks_ = 0;
+    identifying_ = false;
 }
 
 // One of the original's ticks of a spell controller. `t` counts from the
@@ -471,6 +489,13 @@ void Game::stepCast(SpellCast& c) {
             }
             break;
         }
+        case kMedusa:
+            // A missile that turns what it hits to stone (its stun).
+            if (r == 0) {
+                bolt(kMedusaFly, c.aim, 50);
+                c.done = true;
+            }
+            break;
         case kSonicBlade:
             if (r == 0) {
                 // A short, fast cut that hurts all in its square and is gone.
@@ -560,6 +585,14 @@ void Game::stepEffect(Effect& e) {
         e.x = player_->x;
         e.y = player_->y;
     }
+    if (e.followsPartner && partner_) {
+        e.x = partner_->character.x;
+        e.y = partner_->character.y;
+    }
+    if (e.followsActor >= 0 && static_cast<std::size_t>(e.followsActor) < actors_.size()) {
+        e.x = actors_[static_cast<std::size_t>(e.followsActor)].character.x;
+        e.y = actors_[static_cast<std::size_t>(e.followsActor)].character.y;
+    }
     if (e.turn > 0) {
         // Home in on the nearest monster.
         const Actor* nearest = nullptr;
@@ -597,7 +630,10 @@ void Game::stepEffect(Effect& e) {
         if (struck && e.diesOnHit) e.dead = true;
     }
     ++e.age;
-    if (e.life >= 0 && e.age >= e.life) e.dead = true;
+    if (e.life >= 0 && e.age >= e.life) {
+        e.dead = true;
+        if (e.then > 0) spawnEffect(e.then, e.x, e.y).followsActor = e.followsActor;
+    }
 }
 
 void Game::tickSpells() {
@@ -633,6 +669,27 @@ void Game::tickSpells() {
             showMessage("Berserker off");
         }
     }
+    // Moon likewise, at the rate of the level it was cast at.
+    if (spellOn(kMoon) && ticks_ % 3 == 0) {
+        playerMp_ += regenerate(playerMaxMp(), magic_.moon[0][MagicTables::column(moonLevel_)], moonCarry_);
+        if (playerMp_ <= 0) {
+            playerMp_ = 0;
+            setSpellOn(kMoon, false);
+            refreshPartnerStats();
+            showMessage("Moon off");
+        }
+    }
+    // While Moon is on, the companion glows (0x45f550).
+    const bool glows = spellOn(kMoon) && partner_ && partner_->hp > 0 && partner_->state != Partner::State::Dead;
+    Effect* glow = moonGlow_ ? findEffect(moonGlow_) : nullptr;
+    if (glows && !glow && player_) {
+        Effect& e = spawnEffect(kMoonGlow, partner_->character.x, partner_->character.y);
+        e.followsPartner = true;
+        e.life = -1;
+        moonGlow_ = e.id;
+    } else if (!glows && glow) {
+        glow->dead = true;
+    }
     playerHp_ = std::min(playerHp_, playerMaxHp());
     playerMp_ = std::min(playerMp_, playerMaxMp());
 }
@@ -647,9 +704,11 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
         if (!sprite) return;
         int sx, sy;
         worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
+        sy -= static_cast<int>(e.height * projection.y / 100);
+        const auto light = static_cast<Uint8>(std::clamp(e.light, 0, 1000) * 255 / 1000);
         SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
         SDL_SetTextureAlphaMod(sprite->texture, 255);
-        SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
+        SDL_SetTextureColorMod(sprite->texture, light, light, light);
         const SDL_Rect dst{sx - camX + sprite->originX, sy - camY + sprite->originY, sprite->width, sprite->height};
         SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         return;

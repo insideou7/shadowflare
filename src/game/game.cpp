@@ -509,6 +509,13 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && spellBarClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && panelClick(event.button.x, event.button.y)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
+            // While Identify waits for an item, the right button calls it
+            // off (0x445a40) and casts nothing.
+            if (identifying_ && event.button.button == SDL_BUTTON_RIGHT) {
+                identifying_ = false;
+                showMessage("Identify cancelled");
+                break;
+            }
             if (areaMapClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
@@ -557,6 +564,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::closeInventory() {
     showInventory_ = false;
+    identifying_ = false;  // closing the window ends Identify (0x41e4f0)
     // Closing the panel puts a held item back, or drops it.
     if (hand_) {
         if (inventory_.add(*hand_)) {
@@ -641,6 +649,7 @@ void Game::tick() {
     }
     tickPartner();
     tickSpells();
+    tickTransportGate();
     pickUpItems();
     for (auto& g : groundItems_) {
         if (g.sprite) g.sprite->tick();
@@ -672,6 +681,7 @@ void Game::checkTriggers(bool fire) {
 // Loads another scenario's map and puts the party at one of its entry points.
 void Game::changeScenario(int number, int entry) {
     pendingScenario_.reset();
+    const auto position = std::exchange(pendingPosition_, std::nullopt);
     char dir[32];
     std::snprintf(dir, sizeof dir, "Scenario/%08d", number);
     ScenarioControl target;
@@ -702,6 +712,15 @@ void Game::changeScenario(int number, int entry) {
         }
         log::info("Player enters at world ({}, {})", e.x, e.y);
         break;
+    }
+    if (position && player_) {
+        player_->x = position->first;
+        player_->y = position->second;
+        if (partner_) {
+            partner_->character.x = position->first;
+            partner_->character.y = position->second;
+        }
+        log::info("Player enters at world ({}, {})", position->first, position->second);
     }
     checkTriggers(false);
     updateCamera();
@@ -772,6 +791,7 @@ void Game::tickPlayer() {
         objectTarget_.reset();
         if (stayPut) {
             walkTarget_.reset();
+            if (identifying_) return;  // no fighting while Identify waits
             if (target.kind == Settings::kEnemy) attackTarget_ = target.index;
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
@@ -779,7 +799,7 @@ void Game::tickPlayer() {
             swing();
             return;
         }
-        if (target.kind == Settings::kEnemy) {
+        if (target.kind == Settings::kEnemy && !identifying_) {
             attackTarget_ = target.index;
             walkTarget_.reset();
         } else if (target.kind == Settings::kItem) {
@@ -916,7 +936,7 @@ void Game::tickEnemy(Actor& enemy) {
     switch (enemy.state) {
         case State::Dead: return;
         case State::Hit:
-            if (enemy.stunTicks > 0) --enemy.stunTicks;
+            if (enemy.stunTicks > 0 && (enemy.stunTicks -= kOriginalTicksPerTick) <= 0) endStun(enemy);
             if (!c.finished() || enemy.stunTicks > 0) return;
             enemy.state = State::Chase;
             break;
@@ -1015,6 +1035,9 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
     if (enemy.hp <= 0) {
         enemy.hp = 0;
         enemy.state = Actor::State::Dead;
+        // One killed as stone stays grey (its +0x344 is left at 2).
+        enemy.stunTicks = 0;
+        enemy.character.held = false;
         enemy.character.restart(chart::kEnemyDeath);
         log::info("Monster {} defeated", enemy.gameId());
         dropLoot(enemy);
@@ -1048,7 +1071,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
         const int charged = rules_.shieldsCostTheirOwnMp || spells_.selected < 0 ? shield : spells_.selected;
-        playerMp_ -= spellMpCost(magic_, charged, castLevel(shield));
+        playerMp_ -= mpCost(charged, castLevel(shield));
         if (playerMp_ <= 0) {
             playerMp_ = 0;
             setSpellOn(shield, false);
@@ -1157,6 +1180,8 @@ void Game::renderMap() {
     std::vector<Drawable> drawables;
     for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr});
     for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e});
+    const std::vector<Effect> gate = transportGateParts();
+    for (const Effect& e : gate) drawables.push_back({e.x, e.y, nullptr, &e});
     std::ranges::stable_sort(drawables, [](const Drawable& a, const Drawable& b) { return a.x + a.y < b.x + b.y; });
 
     // Semi-transparent Shadow off draws them solid black.
@@ -1195,6 +1220,7 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    renderTransportGateName(camX, camY);
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).
     renderPanel();

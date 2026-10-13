@@ -127,6 +127,13 @@ struct ScenarioControl {
     // Caravan and two towns, 3 a boss room, 4 ruins, towers and forts,
     // 5 caves, 6 shrines (named from which areas have which).
     std::int32_t areaKind = 0;
+    // The header's first word (scenario + 0x60): the scenario number of the
+    // area's town, where the hero's Transport gate leads (0x420020).
+    std::int32_t town = 0;
+    // The second of the three closing words (scenario + 0x70): 1 where
+    // Transport may be cast (fields and dungeons), 0 in towns and the
+    // Caravan (0x441c00).
+    bool transport = false;
     // How light the area is (the file's last word, scenario + 0x68, which
     // 0x426200 copies to the game at + 0xa9f8): 2000 fully lit, so no
     // darkness; 1000 Dark.njp's light as drawn; in between, lighter. The

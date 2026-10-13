@@ -452,6 +452,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             s.script.sentences.push_back({change});
             s.script.triggers.push_back({0, ScenarioScript::kOnJudge, ScenarioControl::idBase(Group::Object) + area.id, sentence});
             c.placements.push_back(std::move(area));
+        } else if (key == "town") {
+            // town=scenario: the town this area belongs to, where a Transport
+            // gate cast here leads.
+            c.town = lines.ints(value, 1)[0];
+        } else if (key == "transport") {
+            // transport=1: Transport can be cast here (fields and dungeons).
+            c.transport = lines.ints(value, 1)[0] != 0;
         } else if (key == "light") {
             // light=level: how light the area is, 2000 fully lit (the
             // default), 1000 dark beyond the hero's own light.
