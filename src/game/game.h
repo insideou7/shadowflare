@@ -386,6 +386,14 @@ private:
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
+    void renderItemTotals();
+    void renderItemPopup(const Item& item, int mx, int my);
+    // The colours the item and status windows write numbers in (0x405590):
+    // plain, lowered by what is worn (red) and raised by it (tan).
+    enum Tone { kPlain, kLowered, kRaised };
+    static Tone toneOf(int value, int base) { return value < base ? kLowered : value > base ? kRaised : kPlain; }
+    void windowText(int x, int y, std::string_view text, SDL_Color color);
+    void windowNumber(int x, int y, int value, int tone);
     // The status window and its Change Career button (status.cpp).
     bool statusClick(int x, int y);
     void renderStatus();
@@ -816,6 +824,13 @@ private:
     std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
+    bool drawnPanel_ = false;  // the item window has a picture this frame
+    // The weight gauge's marks as last drawn (-1 until it is first shown),
+    // whether they had caught up with the weight, and the tick they last
+    // moved on (0x4074e0).
+    int weightGaugeShown_ = -1;
+    bool weightGaugeSettled_ = true;
+    std::uint64_t weightGaugeTick_ = 0;
     // Identify was cast: the next item clicked in the bag is identified
     // (player + 0x1624).
     bool identifying_ = false;

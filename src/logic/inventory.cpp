@@ -102,6 +102,65 @@ void Inventory::clear() {
     gold_ = 0;
 }
 
+int Inventory::gold() const {
+    int total = gold_;
+    for (const auto& p : bag_) {
+        if (p.item.def->isGold()) total += p.item.count;
+    }
+    return total;
+}
+
+bool Inventory::addGold(int amount) {
+    if (amount < 0) {
+        int owed = -amount;
+        if (gold() < owed) return false;
+        const int fromCounter = std::min(owed, gold_);
+        gold_ -= fromCounter;
+        owed -= fromCounter;
+        while (owed > 0) {
+            auto smallest = bag_.end();
+            for (auto it = bag_.begin(); it != bag_.end(); ++it) {
+                if (it->item.def->isGold() && (smallest == bag_.end() || it->item.count < smallest->item.count)) smallest = it;
+            }
+            if (smallest->item.count > owed) {
+                smallest->item.count -= owed;
+                break;
+            }
+            owed -= smallest->item.count;
+            bag_.erase(smallest);
+        }
+        return true;
+    }
+    if (!goldDef_) {
+        gold_ += amount;
+        return true;
+    }
+    int room = 0;
+    for (const auto& p : bag_) {
+        if (p.item.def->isGold()) room += kGoldStack - p.item.count;
+    }
+    for (int y = 0; y < kBagHeight; ++y) {
+        for (int x = 0; x < kBagWidth; ++x) room += fits(1, 1, x, y) ? kGoldStack : 0;
+    }
+    if (room < amount) return false;
+    for (auto& p : bag_) {
+        if (amount == 0) break;
+        if (!p.item.def->isGold()) continue;
+        const int put = std::min(amount, kGoldStack - p.item.count);
+        p.item.count += put;
+        amount -= put;
+    }
+    for (int y = 0; y < kBagHeight && amount > 0; ++y) {
+        for (int x = 0; x < kBagWidth && amount > 0; ++x) {
+            if (!fits(1, 1, x, y)) continue;
+            const int put = std::min(amount, kGoldStack);
+            bag_.push_back({Item{goldDef_, put}, x, y});
+            amount -= put;
+        }
+    }
+    return true;
+}
+
 bool Inventory::fits(int w, int h, int x, int y) const {
     if (x < 0 || y < 0 || x + w > kBagWidth || y + h > kBagHeight) return false;
     return std::ranges::none_of(bag_, [&](const Placed& p) {
@@ -119,10 +178,7 @@ int Inventory::indexAt(int x, int y) const {
 
 bool Inventory::add(const Item& item) {
     if (!item.def) return false;
-    if (item.def->isGold()) {
-        gold_ += item.count;
-        return true;
-    }
+    if (item.def->isGold()) return addGold(item.count);
     for (int x = 0; x < kBagWidth; ++x) {
         for (int y = 0; y < kBagHeight; ++y) {
             if (addAt(item, x, y)) return true;
@@ -392,6 +448,18 @@ std::array<int, ItemDef::kStatCount> Inventory::stats() const {
         {ItemDef::kMagicDefense, ItemDef::kModMagicDefense}, {ItemDef::kMagicEvasion, ItemDef::kModMagicEvasion},
         {ItemDef::kAttackSpeed, ItemDef::kModAttackSpeed}, {ItemDef::kWalkSpeed, ItemDef::kModWalkSpeed}};
     for (const auto& [stat, mod] : kStatModifiers) total[stat] += modifier(mod);
+    return total;
+}
+
+int Inventory::wornWeight() const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
+        total += worn->def->weight;
+    }
     return total;
 }
 

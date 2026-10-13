@@ -300,6 +300,7 @@ Control.aid (see formats.md): the event, the action, then any of
     stats=20,100             # see below; numbers left out are 0
     layer=12                 # hero animation layer shown while worn
     weight=10                # how often it drops compared with others
+    load=30                  # how heavy it is to wear
 
 Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
 (gold is special 0). Weapon subtypes: 0 sword, 1 axe, 3 two-handed sword,
@@ -315,7 +316,8 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-and `glow` (a second hero layer).
+and `glow` (a second hero layer). The item window weighs the `load` of
+everything worn against the hero's strength, as the original does.
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with

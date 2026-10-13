@@ -172,13 +172,23 @@ def thing(kind):
                 add(shape("cone", (0.04, 0.04, 0.05), brass))
                 made[-1].location = (0.86 * math.cos(a), 0.86 * math.sin(a), 0.06)
     elif kind == "gold":
+        # A tied leather purse with coins spilled in front of it, so a
+        # stack of gold reads clearly in one bag cell.
         gold = mat("gold", (0.98, 0.78, 0.25), (0.55, 0.36, 0.06), scale=30, rough=0.25, bump=0.2)
-        coins = [(0, 0, 0), (0, 0, 1), (0.02, 0.01, 2), (-0.01, 0.02, 3), (0.12, -0.05, 0), (0.12, -0.05, 1),
-                 (-0.11, -0.06, 0), (-0.05, 0.11, 0), (0.06, 0.10, 0)]
+        purse = mat("purse leather", (0.78, 0.60, 0.38), (0.36, 0.22, 0.11), scale=24, rough=0.6, bump=0.5)
+        add(shape("ball", (0.13, 0.12, 0.15), purse))
+        made[-1].location = (0.04, 0.08, 0.15)
+        add(shape("cone", (0.07, 0.07, 0.08), purse))
+        made[-1].location = (0.04, 0.08, 0.32)
+        add(shape("cylinder", (0.055, 0.055, 0.015), dark))
+        made[-1].location = (0.04, 0.08, 0.28)
+        coins = [(-0.11, -0.09, 0), (-0.11, -0.09, 1), (-0.10, -0.08, 2), (-0.11, -0.10, 3), (-0.10, -0.09, 4),
+                 (0.07, -0.13, 0), (0.08, -0.12, 1), (0.07, -0.13, 2), (-0.20, 0.02, 0), (0.17, -0.02, 0),
+                 (-0.02, -0.18, 0), (0.17, -0.02, 1)]
         for x, y, k in coins:
-            add(shape("cylinder", (0.07, 0.07, 0.013), gold))
-            made[-1].location = (x, y, 0.013 + 0.027 * k)
-            made[-1].rotation_euler = (0.1 * ((k + x * 10) % 3 - 1), 0.08 * (k % 2), 0)
+            add(shape("cylinder", (0.075, 0.075, 0.014), gold))
+            made[-1].location = (x, y, 0.012 + 0.025 * k)
+            made[-1].rotation_euler = (0.12 * ((k + int(x * 100)) % 3 - 1), 0.1 * (k % 2), 0)
     return made
 
 
