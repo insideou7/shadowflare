@@ -423,7 +423,12 @@ bool Game::inventoryClick(int x, int y, bool right) {
         // Only an unknown item in the bag can be chosen, with an empty
         // hand; that ends the spell and trains it (0x446320).
         const SDL_Rect bag{kBagX, kBagY, Inventory::kBagWidth * kCell, Inventory::kBagHeight * kCell};
-        if (right || hand_ || !inside(bag, x, y)) return true;
+        if (right) {
+            identifying_ = false;  // the right button calls it off (0x445a40)
+            showMessage("Identify cancelled");
+            return true;
+        }
+        if (hand_ || !inside(bag, x, y)) return true;
         const int index = inventory_.indexAt((x - kBagX) / kCell, (y - kBagY) / kCell);
         if (!inventory_.identify(index)) return true;
         identifying_ = false;
