@@ -48,7 +48,6 @@ constexpr double kBannerTicks = 600;
 constexpr int kCompassHold = 150, kCompassFade = 30;
 constexpr int kAreaNameX = 108, kAreaNameY = 32;
 
-constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 constexpr SDL_Color kTaken{224, 224, 224, 255};
 constexpr SDL_Color kCleared{128, 128, 128, 255};
 constexpr SDL_Color kTitle{224, 192, 0, 255};

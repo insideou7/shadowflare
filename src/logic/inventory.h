@@ -175,6 +175,8 @@ public:
     bool has(ItemDef::Class cls, std::int32_t code) const;
     bool removeOne(ItemDef::Class cls, std::int32_t code);
     void identifyAll();            // IDENTIFY: everything worn and in the bag (0x432296)
+    // The Identify spell on one bag entry: false when it was already known.
+    bool identify(int index);
 
     // What REPAIR and GETREPAIRPRICE call a part (0x43234a, 0x4310d7):
     // 0 weapon, 1 helmet, 2 body, 3 shield, 4 boots; -1 every weapon and
@@ -191,10 +193,12 @@ public:
     // count them: broken weapons and armour don't count, nor a shield
     // hidden by a two-handed weapon.
     int modifier(ItemDef::Modifier which) const;
-    // The Amount of Gold modifiers worn, as the gold drop adds them
-    // (0x44f8b0): broken items count there, a shield hidden by a
-    // two-handed weapon does not.
-    int goldBonus() const;
+    // One modifier of everything worn, broken items included; a shield
+    // hidden by a two-handed weapon does not count. The gold drop adds
+    // Amount of Gold this way (0x44f8b0), the MP cost Mental Cost
+    // (0x44f610).
+    int modifierEvenBroken(ItemDef::Modifier which) const;
+    int goldBonus() const { return modifierEvenBroken(ItemDef::kModGold); }
     // Their element levels with their element modifiers, added up
     // (0x44fe30). Broken items still count: that code, unlike the stats
     // at 0x44eb5b, does not check; a shield hidden by a two-handed weapon

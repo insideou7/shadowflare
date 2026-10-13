@@ -112,7 +112,8 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
     ScenarioControl s;
     in.skip(0x104);  // AI data path
     s.mapPath = fixedString(in, 0x104);
-    in.skip(8);
+    s.town = in.i32();
+    in.skip(4);  // scenario + 0x64, use not traced
     s.areaKind = in.i32();
     s.title = fixedString(in, 0x100);
     // Character types used by the scenario (objects, people, enemies),
@@ -133,10 +134,12 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
         e.direction = in.i32();
         s.entryPoints.push_back(e);
     }
-    // Three words close the file (read at the end of 0x427b50): two flags (scenario + 0x2c
-    // and + 0x70, their use not traced) and the area's light.
+    // Three words close the file (read at the end of 0x427b50): a flag
+    // (scenario + 0x2c, its use not traced), whether Transport works here
+    // (+ 0x70) and the area's light.
     if (in.remaining() >= 12) {
-        in.skip(8);
+        in.skip(4);
+        s.transport = in.i32() != 0;
         s.light = in.i32();
     }
     return s;

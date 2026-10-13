@@ -8,6 +8,7 @@ namespace sf {
 
 struct GameTables;
 class Inventory;
+struct MagicTables;
 
 // The hero's animal companion, as ShadowFlare.exe runs it (the partner
 // object, ctor 0x45f410). Pure rules; the game moves and draws it.
@@ -45,6 +46,11 @@ struct PartnerStats {
 // attack, hit, defence, evasion and the four magic stats, each left at
 // least 1.
 void addItemBonuses(PartnerStats& stats, const Inventory& worn);
+// The hero's Moon at `level` (0x4138b0): table 200 rows 1-13 raise each of
+// the companion's stats, in the order of its own table's rows 0-12, by
+// that many percent; then the speeds are kept to 0-255 and the rest at
+// least 1.
+void applyMoon(PartnerStats& stats, const MagicTables& tables, int level);
 
 class PartnerTables {
 public:

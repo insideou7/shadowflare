@@ -471,7 +471,6 @@ int main(int argc, char** argv) {
     for (const auto& gift : options.gifts) app.game->give(gift.itemClass, gift.code, gift.count, gift.to, gift.wear);
     if (options.partner >= 0) app.game->bringPartner(options.partner);
     if (options.at) app.game->placePlayerAt(options.at->first, options.at->second);
-    if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     for (const auto& [id, value] : options.saveFlags) app.game->setSaveFlag(id, value);
     for (const auto& [id, value] : options.questFlags) app.game->setQuestFlag(id, value);
     if (options.missions) app.game->openMissions(*options.missions);
@@ -481,6 +480,8 @@ int main(int argc, char** argv) {
     if (options.hold >= 0) app.game->holdObject(options.hold);
     if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
+    // After the cast, so a walk can follow it (into a Transport gate).
+    if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);
     if (options.mine) app.game->layMineHere();
     if (options.powerCharge >= 0) app.game->setPowerCharge(options.powerCharge);

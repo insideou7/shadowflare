@@ -408,6 +408,13 @@ void testWearRepairIdentify() {
 
     sf::Item fresh = sf::Item::make(&magic);
     check(fresh.unidentified && fresh.shownName() == "Short Sword", "magic items start unidentified");
+    {
+        sf::Inventory bag;
+        bag.add(fresh);
+        bag.add(sf::Item::make(&sword));
+        check(bag.identify(0) && !bag.bag()[0].item.unidentified, "the Identify spell identifies one bag item");
+        check(!bag.identify(0) && !bag.identify(1) && !bag.identify(5), "but only an unknown one");
+    }
     check(!sf::Item::make(&sword).unidentified, "plain items start identified");
 
     sf::Inventory inventory;
@@ -567,6 +574,7 @@ void testModifiers() {
     sf::Inventory brokenSet;
     brokenSet.equip(Slot::Weapon, broken);
     check(brokenSet.modifier(M::kModCompanionHp) == 0, "broken weapons add nothing");
+    check(brokenSet.modifierEvenBroken(M::kModCompanionHp) == 100, "Mental Cost counts broken items too (0x44f610)");
     auto shieldDef = def(Class::Armour, sf::ItemDef::kShield, 2, 2, 9);
     shieldDef.modifiers[M::kModCompanionHp] = {7, 7, 100};
     sf::Inventory hidden;

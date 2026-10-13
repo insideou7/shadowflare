@@ -280,6 +280,17 @@ void Game::updateEquipment() {
 // As 0x44ea60 sums them: the hero's own stats, what they wear and its
 // modifiers, their element levels, then Berserker while it is on.
 HeroStats Game::playerStats() const {
+    int chant = 0;
+    return playerStats(chant);
+}
+
+int Game::playerChantSpeed() const {
+    int chant = 0;
+    playerStats(chant);
+    return chant;
+}
+
+HeroStats Game::playerStats(int& chant) const {
     HeroStats stats = heroStats();
     const auto worn = inventory_.stats();
     auto& v = stats.value;
@@ -296,7 +307,7 @@ HeroStats Game::playerStats() const {
     v[HeroStats::kHp] += inventory_.modifier(ItemDef::kModMaxHp);
     v[HeroStats::kMp] += inventory_.modifier(ItemDef::kModMaxMp);
     v[HeroStats::kStrength] += inventory_.modifier(ItemDef::kModStrength);
-    int chant = 0;  // chant speed has no source yet besides elements
+    chant = kHeroChantSpeed + inventory_.modifier(ItemDef::kModChantSpeed);
     applyElementLevels(stats, chant, playerElements());
     if (spellOn(kBerserker)) applyBerserker(stats, chant, magic_, castLevel(kBerserker));
     return stats;
@@ -409,6 +420,23 @@ void Game::dropHand() {
 // Mouse clicks while the inventory is open or an item is in hand, in
 // screen pixels. Returns whether the click was used up.
 bool Game::inventoryClick(int x, int y, bool right) {
+    if (identifying_ && showInventory_ && inside(kPanel, x, y)) {
+        // Only an unknown item in the bag can be chosen, with an empty
+        // hand; that ends the spell and trains it (0x446320).
+        const SDL_Rect bag{kBagX, kBagY, Inventory::kBagWidth * kCell, Inventory::kBagHeight * kCell};
+        if (right) {
+            identifying_ = false;  // the right button calls it off (0x445a40)
+            showMessage("Identify cancelled");
+            return true;
+        }
+        if (hand_ || !inside(bag, x, y)) return true;
+        const int index = inventory_.indexAt((x - kBagX) / kCell, (y - kBagY) / kCell);
+        if (!inventory_.identify(index)) return true;
+        identifying_ = false;
+        trainSpell(kIdentify);
+        showMessage(inventory_.bag()[static_cast<std::size_t>(index)].item.shownName());
+        return true;
+    }
     if (!showInventory_ || !inside(kPanel, x, y)) {
         if (!hand_) return false;
         if (!right) dropHand();

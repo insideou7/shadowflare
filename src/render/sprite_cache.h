@@ -28,7 +28,8 @@ public:
     SpriteCache& operator=(const SpriteCache&) = delete;
 
     // `opaque` keeps palette index 0 instead of treating it as transparent (ground chips).
-    const SpriteTexture* get(const SpriteBank& bank, int pattern, bool opaque);
+    // `grey` drops the colour (a monster turned to stone).
+    const SpriteTexture* get(const SpriteBank& bank, int pattern, bool opaque, bool grey = false);
     void clear();
 
 private:

@@ -173,6 +173,9 @@ void testScenario() {
               d.placements[1].y == 800,
           "a lamp");
     check(sf::open::parseScenario(bytes("map=a\n")).control.light == sf::ScenarioControl::kLit, "scenarios are lit by default");
+    const auto field = sf::open::parseScenario(bytes("town=10000000\ntransport=1\n")).control;
+    check(field.town == 10000000 && field.transport, "an area's town and Transport");
+    check(!sf::open::parseScenario(bytes("map=a\n")).control.transport, "no Transport unless the area says so");
     expectRejected("lamp size", "lamp=1,2,6\n", [](auto& d) { sf::open::parseScenario(d); });
     expectRejected("glow alone", "glow=1\n", [](auto& d) { sf::open::parseScenario(d); });
 }

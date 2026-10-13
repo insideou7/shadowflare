@@ -152,6 +152,12 @@ number is the folder name.
 `person` takes an optional fifth field, a name that `script.txt` calls
 them by.
 
+Each area names its town, where a Transport gate cast there leads (to
+the town's entry 100), and says whether Transport may be cast there:
+
+    town=10000000            # Remote Town
+    transport=1              # fields and dungeons; left out in towns
+
 Dark places say how light they are and where their lights are:
 
     light=1000               # 2000 lit (the default), 1000 dark
