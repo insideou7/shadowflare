@@ -93,6 +93,7 @@ void Game::loadItems() {
             }
         }
     }
+    inventory_.setGoldDef(items_.find(ItemDef::Class::Special, 0));
     log::info("Loaded {} item definitions", items_.items.size());
 }
 
@@ -671,7 +672,8 @@ void Game::renderItemPopup(const Item& item, int mx, int my) {
     const ItemDef& def = *item.def;
     std::vector<std::pair<std::string, SDL_Color>> lines;
     const bool unusable = def.requiredLevel > playerLevel_ || item.broken();
-    lines.emplace_back(item.shownName() + (item.unidentified ? "  ?" : ""), unusable ? kRed : kWhite);
+    const std::string name = def.isGold() ? std::format("{} {}", item.count, item.shownName()) : item.shownName();
+    lines.emplace_back(name + (item.unidentified ? "  ?" : ""), unusable ? kRed : kWhite);
     std::string stats;
     const auto& s = def.stats;
     // Unidentified items keep what they do to themselves.

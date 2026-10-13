@@ -591,7 +591,11 @@ bool Game::shopClick(int x, int y, bool right) {
             return true;
         }
         const int price = sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count);
-        inventory_.addGold(price);
+        // The gold goes in the bag; with no room for it there is no sale.
+        if (!inventory_.addGold(price)) {
+            showMessage("No room in the bag");
+            return true;
+        }
         stock.add(*hand_);
         showMessage(std::format("Sold for {} gold", price));
         hand_.reset();

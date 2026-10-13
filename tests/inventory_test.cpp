@@ -609,6 +609,28 @@ void testTakeAll() {
     check(inventory.takeAll(Class::Special, 1) == 0, "and then there are none");
 }
 
+// Gold kept in the bag as stacks of up to 10000 (0x466e10, 0x466da0).
+void testGoldInBag() {
+    sf::Inventory inv;
+    inv.setGoldDef(&kGold);
+    check(inv.add({&kGold, 150}) && inv.bag().size() == 1 && inv.bag()[0].x == 0 && inv.bag()[0].y == 0,
+          "picked-up gold becomes a stack in the first free cell");
+    check(inv.addGold(9900) && inv.bag().size() == 2 && inv.bag()[0].item.count == 10000 && inv.bag()[1].item.count == 50 &&
+              inv.bag()[1].x == 1 && inv.bag()[1].y == 0,
+          "stacks fill to 10000, then a new one goes in the next cell of the row");
+    check(inv.gold() == 10050, "the total adds up the stacks");
+    check(inv.addGold(-30) && inv.bag()[1].item.count == 20 && inv.bag()[0].item.count == 10000,
+          "paying takes from the smallest stack");
+    check(inv.addGold(-1000) && inv.bag().size() == 1 && inv.gold() == 9020, "an emptied stack leaves the bag");
+    check(!inv.addGold(-10000) && inv.gold() == 9020, "not enough gold pays nothing");
+    sf::Inventory full;
+    full.setGoldDef(&kGold);
+    for (int i = 0; i < 4; ++i) full.add({&kGreatSword});
+    check(full.addGold(5000) && full.bag().back().x == 8 && full.bag().back().y == 0, "gold takes the one free column");
+    check(full.addGold(20000) && full.gold() == 25000, "it fills that column");
+    check(!full.addGold(20000) && full.gold() == 25000, "no room: nothing is added");
+}
+
 // What is worn, weighed as the item window does (0x445630).
 void testWornWeight() {
     auto heavy = [](sf::ItemDef d, int weight) {
@@ -642,6 +664,7 @@ int main() {
     testWearRepairIdentify();
     testModifiers();
     testWornWeight();
+    testGoldInBag();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

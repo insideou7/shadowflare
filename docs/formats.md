@@ -919,6 +919,14 @@ marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
 330 - y x 48 / 20000), fading in and out over 50 frames. Not done yet: a
 bowgun's attack shown scaled for anyone but a hunter, and Max at level 100.
 
+Gold is not a counter: it is carried in the bag as Gold items (special
+0, 1 x 1, Item0000.njp pattern 270) holding up to 10000 each in the
+item's word at 0x40, and Total Gold adds them up (0x466d70). Gold coming
+in (0x466e10) first checks there is room for all of it (what the stacks
+lack of 10000 plus 10000 a free cell), then tops up the stacks in bag
+order and puts new stacks in free cells, row by row. Paying (0x466da0)
+takes from the smallest stack first, removing stacks it empties.
+
 While a window covers half the screen the view keeps the hero in the
 middle of the other half (0x41e8f0; the open windows are counted at
 0x416fb0): the item window on the right puts the hero at x = 160, a window

@@ -93,8 +93,19 @@ public:
 
     const std::vector<Placed>& bag() const { return bag_; }
     const std::optional<Item>& equipped(EquipSlot slot) const { return equipped_[static_cast<int>(slot)]; }
-    int gold() const { return gold_; }
-    void addGold(int amount) { gold_ += amount; }
+    // Gold is carried in the bag as Gold items (special 0) of up to 10000
+    // each, as in the original; the item window adds them up (0x466d70).
+    // Without a Gold item to make stacks of, a plain counter stands in.
+    static constexpr int kGoldStack = 10000;
+    void setGoldDef(const ItemDef* def) { goldDef_ = def; }
+    int gold() const;
+    int looseGold() const { return gold_; }  // the counter's part
+    // Positive amounts go into the bag (0x466e10): the stacks there are
+    // topped up to 10000 in bag order, then new stacks fill free cells row
+    // by row. Negative ones are paid from the smallest stack first
+    // (0x466da0). False, with nothing changed, when there is not room or
+    // not enough.
+    bool addGold(int amount);
     void clear();
 
     // Whether a w x h item fits with its top-left at (x, y).
@@ -102,7 +113,8 @@ public:
     // The bag entry covering a cell, or -1.
     int indexAt(int x, int y) const;
     // Puts an item in the first place it fits, column by column from the
-    // left. Gold goes to the gold counter. False when the bag is full.
+    // left. Gold joins the bag's gold (see addGold). False when the bag is
+    // full.
     bool add(const Item& item);
     bool addAt(const Item& item, int x, int y);
     // An item picked up from the ground (0x449ef0): consumables marked for
@@ -202,7 +214,8 @@ private:
     std::vector<Placed> bag_;
     std::array<std::optional<Item>, kBeltWidth * kBeltHeight> belt_;
     std::array<std::optional<Item>, kEquipSlotCount> equipped_;
-    int gold_ = 0;
+    int gold_ = 0;  // only without a Gold item
+    const ItemDef* goldDef_ = nullptr;
 };
 
 }  // namespace sf
