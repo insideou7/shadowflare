@@ -12,11 +12,13 @@ sets its panels and piers 7.5 units apart; a panel is about 11 units high.
 """
 
 import math
+import random
 import sys
 from pathlib import Path
 
 import bpy
 import bmesh  # noqa: E402  (needs bpy loaded first)
+from mathutils import Euler, Vector  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
@@ -237,6 +239,34 @@ def gate_wall(along_y=False, half=None):
         turn(math.pi / 2)
 
 
+BARK = dict(colour=(0.78, 0.60, 0.34), dark=(0.08, 0.06, 0.03), scale=7, detail=5, bump=1.0,
+            stretch=(9, 9, 0.25), band=(0.44, 0.56))
+CUT = dict(colour=(0.52, 0.48, 0.40), dark=(0.30, 0.27, 0.22), scale=20, bump=0.4)
+
+
+def stockade(n, length, along_y=False, seed=1, heights=(4.0, 5.0)):
+    """A row of n rough stakes along game x (or y), the palisade round the
+    fields outside Remote Town: thin barked poles set a little apart, each
+    leaning its own way, cut flat on top."""
+    rng = random.Random(seed)
+    bark, cut_end = mat("bark", BARK), mat("cut", CUT)
+    for i in range(n):
+        h = rng.uniform(*heights)
+        r = rng.uniform(0.15, 0.19)
+        t = (i + 0.5) / n * length - length / 2 + rng.uniform(-0.05, 0.05)
+        off = rng.uniform(-0.1, 0.1)
+        lean = (rng.uniform(-0.06, 0.06), rng.uniform(-0.06, 0.06), rng.uniform(0, 6))
+        pole = cyl(r, h, (0, 0, h / 2), bark, verts=9)
+        top = cyl(r * 0.98, 0.04, (0, 0, h), cut_end, verts=9)
+        for o in (pole, top):
+            v = Vector(o.location)
+            v.rotate(Euler(lean))
+            o.rotation_euler = lean
+            o.location = v + Vector((t, off, 0))
+    if along_y:
+        turn(math.pi / 2)
+
+
 PROPS = {
     "town_wall_x": (panel, 320, 11.2),
     "town_wall_y": (lambda: panel(along_y=True), 320, 11.2),
@@ -251,6 +281,10 @@ PROPS = {
     "town_gate_right_y": (lambda: gate_wall(along_y=True, half="right"), 320, 11.2),
     "drawbridge_post": (drawbridge_post, 512, 17),
     "drawbridge_beam": (lambda: drawbridge_post(beam=True), 512, 17),
+    "stockade_a_x": (lambda: stockade(6, 2.5, seed=13, heights=(3.4, 4.2)), 192, 5),
+    "stockade_b_x": (lambda: stockade(10, 4.4, seed=14, heights=(3.6, 5.0)), 192, 5),
+    "stockade_a_y": (lambda: stockade(6, 2.8, True, seed=16, heights=(3.4, 4.2)), 192, 5),
+    "stockade_b_y": (lambda: stockade(10, 4.6, True, seed=17, heights=(3.6, 5.0)), 192, 5),
 }
 
 
@@ -280,7 +314,11 @@ def main():
         build, size, top = PROPS[name]
         _mats.clear()
         scene = studio.reset(samples=32)
-        light(scene)
+        if name.startswith("stockade"):
+            # Softer fill, so each stake's shaded side reads against the next.
+            scene.world.node_tree.nodes["Background"].inputs[1].default_value = 0.5
+        else:
+            light(scene)
         build()
         bpy.data.objects["shadow catcher"].hide_render = True  # the original's walls cast no shadows
         for m in bpy.data.materials:
