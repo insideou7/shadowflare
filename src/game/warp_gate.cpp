@@ -70,10 +70,12 @@ void Game::loadWarpGates() {
     log::info("Loaded {} warp gates", warpGates_.count());
 }
 
-// Every gate whose WARP flag is set, in table order.
+// Every gate whose WARP flag is set, in table order. Numbers gates.txt
+// skips have no name and are left out.
 std::vector<int> Game::warpGatesFound() const {
     std::vector<int> found;
     for (int g = 0; g < warpGates_.count(); ++g) {
+        if (warpGates_.list[static_cast<std::size_t>(g)].name.empty()) continue;
         const auto it = flags_.find({ScenarioScript::kWarp, g});
         if (it != flags_.end() && it->second != 0) found.push_back(g);
     }

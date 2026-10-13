@@ -63,10 +63,9 @@ LANDMARKS = {
     "00f_obj02.njp": {0, 4, 5, 6, 9},
     "00d_obj00.njp": set(range(0, 24)) | {49, 51, 52, 53, 54, 55, 56},
     "00d_obj01.njp": None,
+    "00f_city02.njp": None, "mon01.njp": None,     # the town walls and gates
+    "jimen_x00.njp": {0, 1, 2, 3, 10, 11, 12, 13},  # spike pits
 }
-# The village's stone walls have no prop of their own in skin.txt.
-EXTRA = {"00f_city02.njp": {0: "pillar", 1: "pillar", 2: "pillar", 3: "pillar", 6: "pillar",
-                            4: "wall_x", 5: "wall_y"}}
 
 FOREST = ["tree1", "tree2", "tree3", "tree1", "tree2", "oak"]
 FROZEN = ["conifer_blue", "tree_dead", "conifer_green"]   # Frozen Forest
@@ -507,8 +506,6 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         pieces = []
         if bank_name in LANDMARKS and (LANDMARKS[bank_name] is None or ob["pattern"] in LANDMARKS[bank_name]):
             pieces = rules.get(bank_name, {}).get(ob["pattern"], [])
-        elif bank_name in EXTRA and ob["pattern"] in EXTRA[bank_name]:
-            pieces = [(EXTRA[bank_name][ob["pattern"]], 0, 0)]
         if not pieces:
             continue
         bank = o.bank(ob["file"])
