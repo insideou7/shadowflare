@@ -25,6 +25,7 @@ import bpy
 from mathutils import Matrix, Vector
 
 EXTENSION = "bl_ext.user_default.mpfb"
+EYES = ("helper-l-eye", "helper-r-eye")
 
 # creatures.Rig joint: (MPFB bones it drives, bone whose head is the joint)
 JOINTS = {
@@ -82,6 +83,14 @@ def human(height, macros, targets=()):
     ts.reapply_macro_details(body)
     for path, weight in targets:
         ts.load_target(body, os.path.join(loc.get_mpfb_data("targets"), path), weight=weight)
+    # MPFB shows only the "body" group; show the eyeballs too.
+    for mod in body.modifiers:
+        if mod.type == "MASK":
+            keep = {body.vertex_groups[n].index for n in (mod.vertex_group, *EYES)}
+            shown = body.vertex_groups.new(name="body and eyes")
+            shown.add([v.index for v in body.data.vertices if any(g.group in keep and g.weight > 0 for g in v.groups)],
+                      1.0, "REPLACE")
+            mod.vertex_group = shown.name
     armature = hs.add_builtin_rig(body, "game_engine")
     armature["height"] = height
     return body, armature
@@ -138,18 +147,26 @@ def dominant_bone(body):
     return out
 
 
-def paint(body, pick):
+def paint(body, pick, eye=None):
     """Gives each face the material pick(centre, bones of its vertices,
     normal) returns; centre and normal are in the body's rest pose, in
-    world units, front towards -Y. Materials are added to the mesh as
-    they are first returned."""
+    world units, front towards -Y. The eyeballs get `eye` (a dark brown
+    unless given). Materials are added to the mesh as they are first
+    returned."""
+    import studio
+    eye = eye or studio.material("eye", (0.16, 0.10, 0.07), (0.05, 0.03, 0.02), scale=60, rough=0.2, bump=0)
+    eyes = {g.index for g in body.vertex_groups if g.name in EYES}
+    in_eye = [any(g.group in eyes and g.weight > 0 for g in v.groups) for v in body.data.vertices]
     bones = dominant_bone(body)
     mw = body.matrix_world
     slots = {}
     for poly in body.data.polygons:
         centre = mw @ poly.center
         normal = (mw.to_3x3() @ poly.normal).normalized()
-        mat = pick(centre, [bones[i] for i in poly.vertices], normal)
+        if all(in_eye[i] for i in poly.vertices):
+            mat = eye
+        else:
+            mat = pick(centre, [bones[i] for i in poly.vertices], normal)
         if mat.name not in slots:
             body.data.materials.append(mat)
             slots[mat.name] = len(body.data.materials) - 1

@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from town import mesh  # noqa: E402
 
-SIZE = {"golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
+SIZE = {"hero": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
 HEIGHT = {"goblin": 3.8, "hero": 4.0, "heroine": 3.5, "fly": 2.4, "ghoul": 3.4, "shaman": 4.6, "golem": 9.5, "spider": 2.4,
           "bigspider": 3.6, "ogre": 4.8, "demon": 6.0, "dragon": 9.0}  # for framing
 
@@ -143,10 +143,10 @@ def build_hero():
     Its joints are the ones every rig has, so the pose code and equipment
     work as before."""
     import mpfb_body
-    skin = studio.material("skin", (0.86, 0.72, 0.58), (0.60, 0.45, 0.34), scale=30, bump=0.05)
+    skin = studio.material("skin", (0.86, 0.72, 0.58), (0.72, 0.56, 0.44), scale=30, bump=0.05)
     hair = studio.material("hair", (0.16, 0.11, 0.07), (0.06, 0.04, 0.03), scale=60, bump=0.5, stretch=(1, 1, 4))
     trousers = studio.material("trousers", (0.13, 0.13, 0.14), (0.04, 0.04, 0.05), scale=18, bump=0.3)
-    leather = studio.material("leather", (0.20, 0.14, 0.10), (0.07, 0.05, 0.04), scale=25, rough=0.6)
+    leather = studio.material("leather", (0.30, 0.20, 0.13), (0.12, 0.08, 0.05), scale=25, rough=0.6)
     height = 3.2 * SCALE_MH
     body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.5, muscle=1.0, weight=0.7, height=0.6,
                                                    proportions=0.8, caucasian=1.0, african=0.0, asian=0.0))
@@ -169,6 +169,9 @@ def build_hero():
     mpfb_body.paint(body, pick)
     rig = Rig()
     mpfb_body.bind(rig, body, armature, 1.22 * SCALE_MH)
+    # Boots over the feet, so no toes show.
+    mpfb_body.shell(body, lambda centre, part, normal: (leather, 0.035) if centre.z / height < 0.20 else None,
+                    "boots")
     rig.kind = "hero"
     rig.body = body
     rig.height = height
