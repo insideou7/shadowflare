@@ -59,9 +59,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
 bool Game::optionEnabled(OptionRow row) const {
     switch (row) {
         // Not in the engine yet.
-        case OptionRow::SaveImage:
-        case OptionRow::EffectVolume:
-        case OptionRow::MusicVolume: return false;
+        case OptionRow::SaveImage: return false;
         case OptionRow::MissionList:
         case OptionRow::Map: return map_ && player_;
         case OptionRow::SaveAndTitle:
@@ -135,6 +133,7 @@ void Game::openOptions(bool inGame) {
     optionsOpen_ = true;
     optionsInGame_ = inGame;
     optionsChoice_ = 0;
+    optionsDrag_ = -1;
     mouseHeld_ = false;
     walkTarget_.reset();
     attackTarget_.reset();
@@ -189,8 +188,16 @@ void Game::setOption(OptionRow row, int index) {
                 settings_.putFirst(settings_.clickPriority[static_cast<std::size_t>(index)]);
             }
             break;
-        case OptionRow::EffectVolume: settings_.effectVolume = std::clamp(index, 0, Settings::kMaxVolume); break;
-        case OptionRow::MusicVolume: settings_.musicVolume = std::clamp(index, 0, Settings::kMaxVolume); break;
+        case OptionRow::EffectVolume:
+        case OptionRow::MusicVolume: {
+            // Music follows its slider as it plays (tickMusic); effects take
+            // theirs when they start. Dragging only saves when it moves a step.
+            int& volume = row == OptionRow::EffectVolume ? settings_.effectVolume : settings_.musicVolume;
+            const int to = std::clamp(index, 0, Settings::kMaxVolume);
+            if (to == volume) return;
+            volume = to;
+            break;
+        }
         case OptionRow::OriginalMode:
             settings_.originalMode = index == 0;
             setOriginalMode(settings_.originalMode);
@@ -277,8 +284,11 @@ void Game::optionsEvent(const SDL_Event& event) {
         const int row = (y - kFirstRowY + 3) / kRowHeight;
         return y >= kFirstRowY - 3 && row < count ? row : -1;
     };
-    // Mouse x on a slider, as a volume.
-    auto sliderValue = [&](int x) { return std::clamp((x - kChoicesX) * Settings::kMaxVolume / kSliderWidth, 0, Settings::kMaxVolume); };
+    // Mouse x on a slider, as a volume: the nearest step to it.
+    auto sliderValue = [&](int x) {
+        return std::clamp(((x - kChoicesX) * Settings::kMaxVolume + kSliderWidth / 2) / kSliderWidth, 0, Settings::kMaxVolume);
+    };
+    auto onSlider = [&](int x) { return x >= kChoicesX - 6 && x <= kChoicesX + kSliderWidth + 6; };
 
     switch (event.type) {
         case SDL_QUIT: quit_ = true; break;
@@ -311,6 +321,13 @@ void Game::optionsEvent(const SDL_Event& event) {
             break;
         }
         case SDL_MOUSEMOTION:
+            if (optionsDrag_ >= 0 && optionsDrag_ < count && (event.motion.state & SDL_BUTTON_LMASK)) {
+                // Dragging a slider keeps hold of it wherever the mouse goes.
+                optionsChoice_ = optionsDrag_;
+                setOption(rows[static_cast<std::size_t>(optionsDrag_)], sliderValue(event.motion.x));
+                break;
+            }
+            optionsDrag_ = -1;
             if (const int i = rowAt(event.motion.y); i >= 0 && optionEnabled(rows[static_cast<std::size_t>(i)])) optionsChoice_ = i;
             break;
         case SDL_MOUSEBUTTONDOWN: {
@@ -328,7 +345,11 @@ void Game::optionsEvent(const SDL_Event& event) {
             int chosen = 0;
             const auto choices = optionChoices(row, chosen);
             if (optionIsSlider(row)) {
-                setOption(row, sliderValue(event.button.x));
+                if (optionEnabled(row) && onSlider(event.button.x)) {
+                    optionsChoice_ = i;
+                    optionsDrag_ = i;
+                    setOption(row, sliderValue(event.button.x));
+                }
             } else if (choices.empty()) {
                 chooseOption(row);
             } else {
@@ -339,6 +360,9 @@ void Game::optionsEvent(const SDL_Event& event) {
             }
             break;
         }
+        case SDL_MOUSEBUTTONUP:
+            if (event.button.button == SDL_BUTTON_LEFT) optionsDrag_ = -1;
+            break;
         default: break;
     }
 }

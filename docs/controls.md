@@ -120,7 +120,7 @@ change it, Enter steps through it or does it.
 | Click Range | ON: a click reaches things in a square around the cursor; OFF: only right at it |
 | Click Range size | MINI, SMAL, NORM, LARG, MAX. The square drawn round the pointer is the original's: none, 12, 16, 24 and 48 pixels either side (0x416bb0). The original picks what a sprite overlapping it is; ours aims at each character's middle, so it reaches further: 12, 20, 32, 44 and 60 pixels. |
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
-| Eff. Volume, BGM Volume | not in yet (no sound) |
+| Eff. Volume, BGM Volume | sliders from 0 (silent) to 10, as the original's. Left/Right move a step; click or drag along the bar. The music changes as it plays; effects take the new volume from the next one. Saved in options.txt. |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
 | Art | ours: ORIGINAL or OURS, the art the original game is drawn with; F12 swaps it too. Only shown when playing with the original files. |
 | Mission List | opens the mission list |
