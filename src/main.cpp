@@ -55,6 +55,7 @@ struct Options {
     int hpPercent = -1, experiencePercent = -1;  // --hurt, --experience: for screenshots of the panel
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
     bool originalArt = false;  // draw the original game with its own art
+    bool skinCharacters = false;  // the skin's monsters, people and hero too
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<int> use;  // objects to use from where the player stands
@@ -125,6 +126,8 @@ Options parseArgs(int argc, char** argv) {
             options.skin = argv[++i];
         } else if (arg == "--original-art") {
             options.originalArt = true;
+        } else if (arg == "--skin-characters") {
+            options.skinCharacters = true;
         } else if (arg == "--talk" && i + 1 < argc) {
             options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--answers" && i + 1 < argc) {
@@ -396,8 +399,10 @@ int main(int argc, char** argv) {
             sf::log::warn("content.txt: {}", e.what());
         }
     }
-    // The original game is drawn with the open content's art (content/
-    // or --skin) unless --original-art is given.
+    // The original game's maps are drawn with the open content's art
+    // (content/ or --skin) unless --original-art is given. Its monsters,
+    // people and hero keep the original's art unless --skin-characters
+    // asks for the pack's.
     std::unique_ptr<sf::Skin> skin;
     if (!app.data->exists("content.txt") && !options.originalArt) {
         std::vector<std::filesystem::path> packs;
@@ -410,6 +415,7 @@ int main(int argc, char** argv) {
             if (!std::filesystem::exists(pack / "skin.txt")) continue;
             skin = sf::Skin::load(std::make_unique<sf::DirectoryFileSystem>(pack), app.renderer);
             if (skin) {
+                skin->setCharacters(options.skinCharacters);
                 sf::log::info("Drawing the game with the art in {}", pack.string());
                 break;
             }

@@ -7,9 +7,11 @@ ways to play:
 
 - With your own copy of ShadowFlare: copy its files into a `game/` folder at
   the repository root (git ignores it), or point the engine elsewhere with
-  `--data`. The engine reads them at runtime and draws the game's own maps,
-  people and monsters with the art in [content/](content/) where it has
-  some (`--original-art` shows the original's art instead).
+  `--data`. The engine reads them at runtime and draws the game's own maps
+  with the art in [content/](content/) where it has some, and its people,
+  monsters and hero with their original art (`--original-art` shows the
+  original's art everywhere, `--skin-characters` uses ours for the
+  characters too).
 - Without it: the engine falls back to the open replacement content in
   [content/](content/): our own ShadowFlare-style art, made from scratch
   in Blender, with seven areas from a village meadow down to a castle.
@@ -74,6 +76,8 @@ Options:
   `content`). It can be the install folder itself or any folder above it, or
   an open content pack.
 - `--original-art` draw the original game with its own art rather than ours
+- `--skin-characters` draw the original game's monsters, people and hero
+  with our art too, where content/ has them
 - `--skin <path>` draw the original game with another content pack's art
 - `--map <name>` map or scenario number to open first, e.g. `c02_00`, `d02_01`
   or `0`. New games begin where the original's do, in Remote Town (scenario 0;
