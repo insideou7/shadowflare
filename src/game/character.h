@@ -104,6 +104,9 @@ public:
     // draws a see-through copy with no shadow.
     void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
               int alpha = 255) const;
+    // Where draw puts the picture (shadow left out), in map pixels; empty
+    // when it draws nothing.
+    SDL_Rect pictureBounds(SpriteCache& sprites) const;
 
 private:
     const AnimationSet::Direction* currentDirection() const;

@@ -394,6 +394,9 @@ private:
     void renderMap();
     void renderChips(int camX, int camY);
     void drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha);
+    // Where drawObject puts the object's picture, in map pixels; empty when
+    // it draws none (a shadow, or a piece with no picture or skinned away).
+    SDL_Rect objectPicture(const MapObject& o);
     void renderIsoGround(int camX, int camY);
     void renderJudge(int camX, int camY);
     void renderPlaceholder(double interpolation);
@@ -613,6 +616,8 @@ private:
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
+    // Where drawSceneObject puts its picture, in map pixels, as objectPicture.
+    SDL_Rect sceneObjectPicture(const SceneObject& o);
     bool workingObject(std::int32_t id) const;
     // The magic window (magic_window.cpp), the STATUS window's other tab:
     // the spells learned, six to a page, and the eight places of the

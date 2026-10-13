@@ -75,6 +75,12 @@ struct MapObject {
     // point nearest that position, so a long wall hides what is behind any
     // part of it, not just behind one corner.
     bool hides(double worldX, double worldY) const;
+    // A position past the footprint's front edge along one axis and not
+    // behind it along the other: anything standing there is in front.
+    // Past the front along one axis but behind along the other (beside a
+    // wall's end) is neither this nor surelyHides; hides decides it.
+    bool inFront(double worldX, double worldY) const;
+    bool surelyHides(double worldX, double worldY) const;
 };
 
 struct ObjectLayer {

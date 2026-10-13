@@ -635,7 +635,27 @@ void testVoiceBank() {
     check(threw, "a cut-off voice bank is refused");
 }
 
+// A palisade piece running along x: its footprint is 476 long, 90 deep.
+void testWallSides() {
+    sf::MapObject wall;
+    wall.x = 1000;
+    wall.y = 1000;
+    wall.judge[0] = 0;
+    wall.judge[1] = 0;
+    wall.judge[2] = 476;
+    wall.judge[3] = 90;
+    check(wall.hides(1200, 950) && wall.surelyHides(1200, 950), "behind a wall");
+    check(!wall.hides(1200, 1150) && wall.inFront(1200, 1150), "in front of a wall");
+    check(!wall.surelyHides(1200, 1150), "in front is not hidden");
+    // Past the wall's end and a little behind its line: hides() still says
+    // behind by depth, but neither side is sure, so a piece the monster is
+    // surely in front of can keep it.
+    check(wall.hides(1520, 950), "beside the end, by depth");
+    check(!wall.surelyHides(1520, 950) && !wall.inFront(1520, 950), "beside the end is neither side");
+}
+
 int main() {
+    testWallSides();
     testVoiceBank();
     testLzLiterals();
     testLzBackReference();
