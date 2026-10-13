@@ -127,10 +127,55 @@ def arcade(along_y=False):
     # Corbels under the coping, and the coping.
     for k in range(7):
         box((0.18, 0.2, 0.25), (-L / 2 + 0.35 + k * (L - 0.7) / 6, face - 0.1, H - 0.45), carved)
-    box((L, T, 0.2), (0, 0, H + 0.1), mat("earthtop", EARTHTOP))
-    cyl(0.32, L + 0.1, (0, face, H + 0.1), steel, rot=(0, math.pi / 2, 0), verts=20)
+    arcade_top(L, T, H)
     if along_y:
         turn(math.pi / 2)
+
+
+def arcade_top(L, T, H, end=False):
+    """The top of the canal walls: packed earth between a fat polished
+    steel roll along the front edge and a thin rail along the back.
+    end=True bends both round the +x end in one steel loop."""
+    steel = mat("steel", STEEL)
+    box((L, T, 0.2), (0, 0, H + 0.1), mat("earthtop", EARTHTOP))
+    for y, r in ((-T / 2 + 0.1, 0.6), (T / 2, 0.15)):
+        cyl(r, L + (0 if end else 0.1), (0, y, H + 0.12), steel, rot=(0, math.pi / 2, 0), verts=24)
+    if end:
+        # Half a ring joining the roll to the rail round the end, swept up
+        # like the original's cap.
+        bpy.ops.mesh.primitive_torus_add(major_radius=T / 2 - 0.05, minor_radius=0.45, major_segments=24, minor_segments=12,
+                                         location=(L / 2, 0, H + 0.12), rotation=(0, 0, -math.pi / 2))
+        o = bpy.context.object
+        studio.assign(o, steel)
+        studio.smooth(o)
+        cut(o, solid(box((T + 2, T + 2, 2), (L / 2 - (T + 2) / 2, 0, H), steel)))
+
+
+def arcade_end(carved=False, angle=0.0):
+    """The end of a canal wall: a short block of the wall's dark ashlar,
+    its steel top looping round the end, stepped buttresses at its foot;
+    carved=True sets a pale-framed black panel with a hooked inlay and a
+    ring into its face."""
+    stone = mat("arcade", dict(ASHLAR, colour=(0.34, 0.33, 0.31)))
+    carved_m, black = mat("moulding", dict(PALE, colour=(0.58, 0.56, 0.52))), mat("black", BLACK)
+    L, H, T = 2.0, WALL_H, 1.6
+    solid(box((L, T, H), (0, 0, H / 2), stone))
+    arcade_top(L, T, H, end=True)
+    for y in (-T / 2, T / 2):
+        box((0.7, 0.5, 1.4), (L / 2 - 0.2, y * 1.15, 0.7), carved_m)
+        box((0.5, 0.35, 0.9), (L / 2 - 0.2, y * 1.35, 0.45), carved_m)
+    box((0.5, T + 0.2, 1.2), (L / 2 + 0.2, 0, 0.6), carved_m)
+    if carved:
+        fx = L / 2 + 0.01
+        box((0.08, T - 0.3, H - 2.2), (fx, 0, H / 2 + 0.3), carved_m)
+        box((0.1, T - 0.55, H - 2.5), (fx + 0.02, 0, H / 2 + 0.3), black)
+        steel = mat("steel", STEEL)
+        for dz, dy, w, h in ((1.2, -0.15, 0.12, 1.4), (0.5, 0.1, 0.5, 0.12), (-0.1, 0.32, 0.12, 1.3)):
+            box((0.06, w, h), (fx + 0.06, dy, H / 2 + 0.3 + dz), steel)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.32, minor_radius=0.07, location=(fx + 0.07, 0, 1.9),
+                                         rotation=(0, math.pi / 2, 0))
+        studio.assign(bpy.context.object, steel)
+    turn(angle)
 
 
 def castle_gate(along_y=False):
@@ -402,6 +447,14 @@ PROPS = {
     "arcade_x": (arcade, 256),
     "arcade_y": (lambda: arcade(along_y=True), 256),
     "castle_gate_y": (lambda: castle_gate(along_y=True), 256),
+    "arcade_end_a": (lambda: arcade_end(angle=0), 192),
+    "arcade_end_b": (lambda: arcade_end(angle=math.pi / 2), 192),
+    "arcade_end_c": (lambda: arcade_end(angle=math.pi), 192),
+    "arcade_end_d": (lambda: arcade_end(angle=-math.pi / 2), 192),
+    "arcade_carved_a": (lambda: arcade_end(True, angle=0), 192),
+    "arcade_carved_b": (lambda: arcade_end(True, angle=math.pi / 2), 192),
+    "arcade_carved_c": (lambda: arcade_end(True, angle=math.pi), 192),
+    "arcade_carved_d": (lambda: arcade_end(True, angle=-math.pi / 2), 192),
     "tower": (tower, 192),
     "tower_round": (lambda: tower(round_=True), 192),
     "carved_pillar": (carved_pillar, 192),
