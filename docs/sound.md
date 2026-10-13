@@ -149,7 +149,8 @@ Each spell's controller plays its sounds where they happen (0x42a860-0x42f890):
   the blow falls, hit or miss: 96 for the hero and 99 for the heroine. The
   swing itself sounds 6 ticks in (5 for any other weapon): 2 for a weapon
   heavier than 59, otherwise 1, and 1 with bare hands. A blow that lands
-  plays 6 at the hero.
+  plays 6 at the hero. A bowgun twangs 3 at the same point of its pull,
+  and its arrows play 7 when they land (0x437fe0, 0x438a90).
 - **Steps** (0x4351f0, 0x435530). Voice 0 plays as the hero sets off, then
   every 12 ticks walking or every 8 running.
 - **Shields.** Magic Shield and Counter Burst play 60 when they work.
@@ -182,8 +183,7 @@ These sounds belong to things the engine does not have yet:
   hand and right-click buying (0x4480c0, 0x44b020), and picking up into
   the hand while the item window is open (0x449ef0), are also missing.
 - **Fights the engine lacks.** The Warrior's combos and axe spin
-  (0x4364e0-0x437910), bows and the Hunter's arrow rain (0x437fe0,
-  0x438a90), monsters freezing the hero (0x443cb0, 119), the revive item
+  (0x4364e0-0x437910), monsters freezing the hero (0x443cb0, 119), the revive item
   (17), life absorption (0x459690, 61) and the companion's idle animation
   (0x461230, 88).
 
