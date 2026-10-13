@@ -107,8 +107,9 @@ shows over it when the mouse is on it, and walking into its ±50 square
 goes to the town's entry 100. There the gate stands too, and leads back
 to where it was cast; its owner coming back closes it. Arriving on an end
 does not send the hero straight back. The gate is not saved. The open
-pack has no Pattern pictures for 10000020, only its glitter (PR #68 draws
-it for the scenario scripts), so there the gate shows as that glitter.
+pack's pieces (an outer ring of runes, a chain of stones, an eight-pointed
+star and a small sun, as big as the original's) are drawn by
+tools/art/effects.py, with the glitter as its animation.
 
 ### Moon (0x43d290, 0x4138b0, 0x45f550)
 

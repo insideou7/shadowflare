@@ -8,7 +8,8 @@ ice, lightning, earth and light, as Character/OPTION/<number>/Animation
 (.anim, .sheet and .png). Also the shots of traps (OPTION 0-3: an
 arrow that can burn or freeze, a stone, a jet of scalding vapor, a gilded
 bolt), the hunter's volley (9000, 11000004), the effects scenario scripts
-start (11000005-08, 10000020) and the sparks of a trap's
+start (11000005-08, 10000020, whose Pattern pictures are the four pieces
+of the Transport gate) and the sparks of a trap's
 arrow striking the hero (11000020-22) and the blood a trap's blow may
 splash (11000024-25). The numbers are the original's, so the engine
 finds our art where it would find ShadowFlare's own, and each effect has
@@ -1188,6 +1189,110 @@ def solid_rgba(draw_fn, w, h, scale=4):
     return Image.fromarray(arr, "RGBA")
 
 
+# The Transport gate's four pieces (OPTION 10000020's Pattern pictures),
+# which drop onto the ground one after another and lie there as one
+# circle: an outer ring of runes, a chain of stones, an eight-pointed star of two squares
+# and a small sun at the heart. Each is flat on the ground, centered on
+# the gate, and as big as the original's piece of the same number.
+GATE_PIECES = [(154, 113), (95, 68), (68, 48), (76, 56)]
+GATE_DARK, GATE_MID, GATE_LIGHT = (18, 36, 92, 255), (40, 112, 214, 255), (150, 210, 255, 255)
+
+
+def gate_pieces():
+    def on_ground(w, h, s):
+        cx, cy = w * s / 2, h * s / 2
+        def at(r, a):  # r in 0-1 of the half width, a in radians, flat on the ground
+            return cx + r * math.cos(a) * (w * s / 2 - 2 * s), cy + r * math.sin(a) * (h * s / 2 - 2 * s)
+        return at
+
+    def line(dr, pts, s, width, colour):
+        dr.line(pts, fill=colour, width=max(1, int(width * s)), joint="curve")
+
+    def loop(at, r, n=96):
+        return [at(r, 2 * math.pi * i / n) for i in range(n + 1)]
+
+    def outer(dr, s):
+        w, h = GATE_PIECES[0]
+        at = on_ground(w, h, s)
+        for r, wd in ((1.0, 3.2), (0.84, 3.2)):
+            line(dr, loop(at, r), s, wd, GATE_DARK)
+            line(dr, loop(at, r), s, 1.4, GATE_MID)
+        # Runes between the two rings: short strokes and hooks, sixteen of them.
+        for i in range(16):
+            a = 2 * math.pi * (i + 0.5) / 16
+            k = i % 4
+            if k == 0:
+                pts = [at(0.88, a - 0.06), at(0.96, a), at(0.88, a + 0.06)]
+            elif k == 1:
+                pts = [at(0.87, a), at(0.97, a)]
+            elif k == 2:
+                pts = [at(0.87, a - 0.05), at(0.97, a - 0.05), at(0.97, a + 0.05)]
+            else:
+                pts = [at(0.92, a - 0.07), at(0.92, a + 0.07)]
+            line(dr, pts, s, 2.6, GATE_DARK)
+            line(dr, pts, s, 1.1, GATE_LIGHT)
+        # Four notches where the ring points the ways the gate can open.
+        for a in (0, math.pi / 2, math.pi, 3 * math.pi / 2):
+            pts = [at(0.80, a - 0.08), at(1.04, a), at(0.80, a + 0.08)]
+            dr.polygon(pts, fill=GATE_DARK)
+            dr.polygon([at(0.85, a - 0.04), at(0.99, a), at(0.85, a + 0.04)], fill=GATE_MID)
+
+    def stones(dr, s):
+        w, h = GATE_PIECES[1]
+        at = on_ground(w, h, s)
+        line(dr, loop(at, 0.86), s, 2.4, GATE_DARK)
+        line(dr, loop(at, 0.86), s, 1.0, GATE_MID)
+        for i in range(6):
+            x, y = at(0.86, 2 * math.pi * i / 6 + math.pi / 6)
+            r = 5.5 * s
+            dr.ellipse([x - r, y - r * 0.75, x + r, y + r * 0.75], fill=GATE_DARK)
+            r = 3.6 * s
+            dr.ellipse([x - r, y - r * 0.75, x + r, y + r * 0.75], fill=GATE_MID)
+            r = 1.6 * s
+            dr.ellipse([x - r - s, y - r - s, x + r - s, y + r - s], fill=GATE_LIGHT)
+
+    def star(dr, s):
+        w, h = GATE_PIECES[2]
+        at = on_ground(w, h, s)
+        for width, colour in ((3.0, GATE_DARK), (1.2, GATE_LIGHT)):
+            for turn in (0, math.pi / 4):
+                pts = [at(1.0, turn + math.pi / 2 * i) for i in range(5)]
+                line(dr, pts, s, width, colour)
+
+    def sun(dr, s):
+        w, h = GATE_PIECES[3]
+        at = on_ground(w, h, s)
+        for i in range(8):
+            a = 2 * math.pi * i / 8 + math.pi / 8
+            long_ = 1.0 if i % 2 == 0 else 0.72
+            tip, l, r = at(long_, a), at(0.38, a - 0.22), at(0.38, a + 0.22)
+            dr.polygon([l, tip, r], fill=GATE_DARK)
+            dr.polygon([at(0.42, a - 0.1), at(long_ - 0.12, a), at(0.42, a + 0.1)], fill=GATE_MID)
+        dr.polygon(loop(at, 0.4, 48), fill=GATE_DARK)
+        dr.polygon(loop(at, 0.3, 48), fill=GATE_MID)
+        dr.polygon(loop(at, 0.14, 32), fill=GATE_LIGHT)
+
+    pieces = []
+    for (w, h), draw in zip(GATE_PIECES, (outer, stones, star, sun)):
+        pieces.append((solid_rgba(draw, w, h), w // 2, h // 2))
+    return pieces
+
+
+def write_pattern(pictures, folder):
+    """Pattern.png and Pattern.sheet: still pictures side by side."""
+    width = sum(im.width + 1 for im, _, _ in pictures)
+    sheet = Image.new("RGBA", (width, max(im.height for im, _, _ in pictures)))
+    lines = [HEADER, "image=Pattern.png\n"]
+    x = 0
+    for im, ax, ay in pictures:
+        sheet.paste(im, (x, 0))
+        lines.append(f"frame={x},0,{im.width},{im.height},{ax},{ay}\n")
+        x += im.width + 1
+    folder.mkdir(parents=True, exist_ok=True)
+    save_png(sheet, folder / "Pattern.png")
+    (folder / "Pattern.sheet").write_text("".join(lines))
+
+
 def arrow_shaft(dx, dy):
     """An arrow's solid shaft 26 long, centered on (30, 30) with its point
     along (dx, dy): an iron head and two scraps of fletching."""
@@ -1835,6 +1940,12 @@ EFFECTS = {
 }
 
 
+# Still pictures an OPTION folder also has (Pattern.png and .sheet).
+PATTERNS = {
+    10000020: gate_pieces,
+}
+
+
 def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
@@ -1844,6 +1955,8 @@ def main():
         e = Effect(number)
         EFFECTS[number](e)
         e.write(pack / "Character" / "OPTION" / f"{number:08d}")
+        if number in PATTERNS:
+            write_pattern(PATTERNS[number](), pack / "Character" / "OPTION" / f"{number:08d}")
         print(f"{number:08d}: {len(e.frames)} frames")
 
 

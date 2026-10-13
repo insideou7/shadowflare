@@ -1,0 +1,6 @@
+# Drawn by tools/art/effects.py (our own art, see content/README.md).
+image=Pattern.png
+frame=0,0,154,113,77,56
+frame=155,0,95,68,47,34
+frame=251,0,68,48,34,24
+frame=320,0,76,56,38,28
