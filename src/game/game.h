@@ -1217,6 +1217,8 @@ private:
     bool optionsOpen_ = false;
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
+    // The volume slider row being dragged with the mouse, or -1.
+    int optionsDrag_ = -1;
     bool helpOpen_ = false;
     int hurtPercent_ = -1;  // --hurt
     bool runMode_ = false;  // R or the RUN button: run instead of walk
