@@ -166,6 +166,24 @@ void testScenario() {
     check(l.size() == 2 && l[1].group == sf::ScenarioControl::Group::Item && l[1].itemClass == 3 && l[1].x == 700,
           "scenario item");
 
+    const auto full = sf::open::parseScenario(bytes(
+        "enemy=1,5,6,0,120,130,480,goblin,7,10,20,40,20,20,180,50,20,0,attacks=130/90/0,hits=180/170/0,spells=1/-1/-1,"
+        "spell_power=700/0/0,spell_level=10/10/10,spell_hit=210/0/0,magic_evasion=20,speed=1200,word7=100,stun=20/5/1\n"));
+    const auto& f = full.control.placements.at(0).stats;
+    check(f.hp == 120 && f.experience == 20 && f.defense == 20 && f.evasion == 50 && f.magicDefense == 20 && f.element == 0,
+          "an enemy's 18 fields");
+    check(f.attacks == std::array<std::int32_t, 3>{130, 90, 0} && f.hits == std::array<std::int32_t, 3>{180, 170, 0},
+          "an enemy's three attacks");
+    check(f.spells[0] == 1 && f.spells[1] == -1 && f.spellPower[0] == 700 && f.spellLevel[2] == 10 && f.spellHit[0] == 210,
+          "an enemy's spells");
+    check(f.magicEvasion == 20 && f.speed == 1200 && f.word7 == 100 && f.stunChanceResist == 20 && f.stunLengthResist == 5 &&
+              f.stunUncapped,
+          "an enemy's other fields");
+    expectRejected("unknown enemy field", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,fury=3\n",
+                   [](auto& d) { sf::open::parseScenario(d); });
+    expectRejected("enemy slots", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,attacks=3/4\n",
+                   [](auto& d) { sf::open::parseScenario(d); });
+
     const auto dark = sf::open::parseScenario(bytes("light=1000\nenemy=1,5,6,0,30,4,480,goblin\nglow=1\nlamp=700,800,3\n"));
     const auto& d = dark.control;
     check(d.light == 1000 && d.placements.size() == 2, "dark scenario");

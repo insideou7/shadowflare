@@ -21,7 +21,7 @@ from their own copy (content/skin.txt draws them with our art).
 
 Writes Map/<original map name>.txt and Scenario/<10000000 + original
 number>/ for each, apart from the demo's scenarios 1 to 7. Then run
-enemy_elements.py to give the monsters the original's elements. Exits that lead
+enemy_stats.py to give the monsters the original's numbers. Exits that lead
 out of the first area are left out. Needs Pillow and numpy.
 """
 
@@ -668,7 +668,7 @@ def our_stats(out, kinds):
                 v = line[6:].split("#")[0].strip().split(",")
                 kind, level = int(v[0]), int(v[8]) if len(v) > 8 else 0
                 if kind not in best or level < best[kind][0]:
-                    best[kind] = (level, ",".join(v[4:16]))  # elements come from enemy_elements.py
+                    best[kind] = (level, ",".join(v[4:16]))  # the original's come from enemy_stats.py
     fallback = best.get(0, (0, "15,39,960,goblin"))[1]
     return {k: best.get(k, (0, fallback))[1] for k in kinds}
 

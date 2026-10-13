@@ -148,13 +148,28 @@ magic defence and element (0 fire, 1 water, 2 earth, 3 thunder, 4 holy,
 experience field, a monster gives a third of its hit points plus its attack.
 Combat follows the original: a blow lands with a chance of hit minus
 evasion (20 to 98 percent) and does 90-110% of the attack minus the
-defence, at least 1, changed by elements as described in docs/magic.md. `tools/content/balance.py` sets these numbers for our
-maps from the level the player should be at on each; the `# base` comment
-on each line is the monster's strength it starts from (it keeps the magic
-defence and element). Every monster in the pack has an element, shown as
-the orb in its name label: `tools/content/enemy_elements.py` gives each one
-the element of the original placement it stands for, and the demo maps'
-monsters the element the original gives that kind most often. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
+defence, at least 1, changed by elements as described in docs/magic.md.
+
+After the 18th field come any of these named fields, for the rest of the
+original's monster numbers (slot lists are a/b/c, one per attack or spell):
+
+| Field | What it sets | Without it |
+| --- | --- | --- |
+| `attacks=` | power of its three attacks | the attack field, three times |
+| `hits=` | hit of its three attacks | the hit field, three times |
+| `spells=` | its three spells (-1 none) | -1/-1/-1 |
+| `spell_power=`, `spell_level=`, `spell_hit=` | each spell's power, Table.Tbd level and added hit | 0, 1, 0 |
+| `magic_evasion=` | what spells must beat | 0 |
+| `speed=` | per mille of its AI's speeds | 1000 |
+| `stun=` | what it takes off a stun's chance and length, and 1 if its stuns may run past 15 ticks | 0/0/0 |
+| `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
+
+Every monster in the pack has the original's numbers.
+`tools/content/enemy_stats.py` copies them from the player's own copy:
+each monster on a map laid out after an original area gets the numbers of
+the original placement it stands for, and the demo maps' monsters (1 to 7,
+which have no original) the numbers of that kind's first appearance in the
+original. It keeps our AI lists and drop lists. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
