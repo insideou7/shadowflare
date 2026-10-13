@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
+#include <format>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -226,6 +227,13 @@ void testScript() {
         check(found.operands[0].type == S::kWarp && found.operands[0].value == 4 && town.script.sentences[0][1].opcode == S::kWarpGate,
               "warp: names a warp gate's flag");
     }
+    {
+        auto town = sf::open::parseScenario(bytes("map=town\nperson=1000000,0,0,0,ash\n"));
+        sf::open::parseScript(bytes("person=1000001,0,0,0,pip\n[sentence hide]\non=tick\nIF shown:pip = 1 @off\n"
+                                    "[sentence off]\nSETINACTIVE pip\n"), town);
+        const auto& shown = town.script.sentences[0][0].operands[0];
+        check(shown.type == S::kNet && shown.value == 112000001, "shown: is the NET flag SETACTIVE sets");
+    }
 
     auto rejects = [](const char* what, std::string_view text) {
         expectRejected(what, text, [](auto& d) {
@@ -270,12 +278,31 @@ void testScript() {
           "drop picks");
     expectRejected("a code needs a class", "[drops 1]\npick=any,5\n", [](auto& d) { sf::open::parseDrops(d); });
     expectRejected("pick outside a list", "pick=consumable,0\n", [](auto& d) { sf::open::parseDrops(d); });
+
+    std::string partners;
+    for (int k = 0; k < 6; ++k) {
+        partners += std::format("[partner {}]\nname=Dog{}\nfolder={}\ntint=1000,900,{}\n", k, k, k == 4 ? 1 : 0, 800 + k);
+        partners += "attack_speed=128\nwalk=126,0\nrun=224,0\nhp=320,70\nattack=26,12,12,16\nhit=240,0\ndefense=40,24\n"
+                    "evasion=20,0\nmagic_attack=90,0\nmagic_defense=40,24\nmagic_hit=240,0\nmagic_evasion=20,0\n"
+                    "element=3\nstun_chance=25,30,35\nstun_length=14\nstun_uncapped=1,0\njump_area=880\nexperience=90\n";
+    }
+    const auto pt = sf::open::parsePartners(bytes(partners));
+    const auto* kinds = pt.find(60);
+    check(kinds && kinds->rows == 6 && kinds->string(4, 0) == "Dog4" && kinds->value(4, 1) == 1 && kinds->value(3, 4) == 803,
+          "partner kinds");
+    const auto* stats = pt.find(805);
+    check(stats && stats->rows == 19 && stats->cols == 35 && stats->value(3, 0) == 320 && stats->value(3, 34) == 70 &&
+              stats->value(5, 3) == 16 && stats->value(5, 20) == 16 && stats->value(14, 1) == 30 && stats->value(14, 34) == 35 &&
+              stats->value(16, 0) == 1 && stats->value(16, 1) == 0 && stats->value(13, 7) == 3 && stats->value(4, 0) == 0,
+          "partner stats: the last number carries on");
+    expectRejected("a partner short of a stat", "[partner 0]\nname=A\nhp=1\n", [](auto& d) { sf::open::parsePartners(d); });
+    expectRejected("partner kind 6", "[partner 6]\n", [](auto& d) { sf::open::parsePartners(d); });
 }
 
 void testItems() {
     const auto table = sf::open::parseItems(bytes(
         "[item weapon 5]\nname=Great Sword\nsubtype=3\nsize=2,4\nicon=0,3\nground=7,3\nlevel=4,3\n"
-        "stats=45,90\nlayer=19\nweight=10\ncarry-weight=80\n"
+        "stats=45,90\nlayer=19\nweight=10\nload=180\n"
         "[item consumable 0]\nname=Potion\neffect=1,50\n"));
     check(table.items.size() == 2, "item count");
     const auto* sword = table.find(sf::ItemDef::Class::Weapon, 5);
@@ -283,10 +310,10 @@ void testItems() {
     check(sword && sword->invPattern == 3 && sword->groundFolder == 7 && sword->requiredLevel == 3 && sword->itemLevel == 4,
           "item pictures and levels");
     check(sword && sword->stats[0] == 45 && sword->stats[1] == 90 && sword->stats[2] == 0 && sword->heroLayer == 19, "item stats");
+    check(sword && sword->dropWeight == 10 && sword->weight == 180, "item drop weight and load");
     const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
     check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
-    check(sword && sword->weight == 80 && sword->dropWeight == 10 && potion && potion->weight == 0,
-          "carry weight, 0 when left out");
+    check(potion && potion->weight == 0, "load is 0 when left out");
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item bad class", "[item hat 1]\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item twice", "[item weapon 1]\n[item weapon 1]\n", [](auto& d) { sf::open::parseItems(d); });

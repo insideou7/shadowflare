@@ -57,7 +57,7 @@ struct Options {
     int level = 0;            // start at this level (for tests)
     int hpPercent = -1, experiencePercent = -1;  // --hurt, --experience: for screenshots of the panel
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
-    bool originalArt = false;  // draw the original game with its own art
+    bool ourArt = false;  // draw the original game with content/'s art
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<int> use;  // objects to use from where the player stands
@@ -128,8 +128,11 @@ Options parseArgs(int argc, char** argv) {
             options.level = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--skin" && i + 1 < argc) {
             options.skin = argv[++i];
+        } else if (arg == "--our-art") {
+            options.ourArt = true;
         } else if (arg == "--original-art") {
-            options.originalArt = true;
+            options.ourArt = false;  // the default; kept for older scripts
+            options.skin.reset();
         } else if (arg == "--talk" && i + 1 < argc) {
             options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--answers" && i + 1 < argc) {
@@ -451,10 +454,10 @@ int main(int argc, char** argv) {
             sf::log::warn("content.txt: {}", e.what());
         }
     }
-    // The original game is drawn with the open content's art (content/
-    // or --skin) unless --original-art is given.
+    // The original game is drawn with its own art, unless --our-art (or
+    // --skin <pack>) asks for the open content's maps, characters and hero.
     std::unique_ptr<sf::Skin> skin;
-    if (!app.data->exists("content.txt") && !options.originalArt) {
+    if (!app.data->exists("content.txt") && (options.ourArt || options.skin)) {
         std::vector<std::filesystem::path> packs;
         if (options.skin) {
             packs.push_back(*options.skin);

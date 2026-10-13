@@ -6,26 +6,24 @@ of the game.
 
     python3 tools/content/first_area.py <game folder> <content pack>
 
-Only the shape of each original map is kept: which blocks of tiles (six
-tiles square outdoors, four in dungeons) can be walked through, which
-blocks are grass or dirt, where the exits lead and where the player
-arrives, which monsters and townspeople stand where (with our own
-monster stats, from the demo's scenarios), and where its landmarks
-(buildings, stairs, fences, pipes) stand, drawn with the props skin.txt
-gives them. The walls, paths and forest edges inside those blocks are our
-own: outdoors the edges follow our own random noise, dungeons are built
-from square rooms, any exit the noise cuts off gets a dirt path, trees
-fill the ground that cannot be walked on and walls run along the dungeon
-floors. No original picture, tile, sprite or walkability grid is copied;
-players who want the original maps exactly play them from their own copy
-(content/skin.txt draws them with our art).
+Each map is walked on like the original's: the ground that can be walked
+on from the entries is the original's, cell for cell (a cell is 160 world
+units, about the width of a character), so laid over the original the map
+looks a little different but plays the same. Also kept: which ground is
+grass or dirt, where the exits lead and where the player arrives, which
+monsters and townspeople stand where (with our own monster stats, from
+the demo's scenarios), and where its landmarks (buildings, stairs,
+fences, pipes) stand, drawn with the props skin.txt gives them. What is
+drawn round the walkable ground is our own: trees and rocks outdoors,
+walls along the dungeon floors. No original picture, tile or sprite is
+copied; players who want the original maps exactly as drawn play them
+from their own copy (content/skin.txt draws them with our art).
 
 Writes Map/<original map name>.txt and Scenario/<10000000 + original
 number>/ for each, apart from the demo's scenarios 1 to 7. Exits that lead
 out of the first area are left out. Needs Pillow and numpy.
 """
 
-import heapq
 import math
 import random
 import struct
@@ -310,65 +308,44 @@ def screen_to_world(sx, sy):
     return (u + v) / 2, (v - u) / 2
 
 
-def upsample(coarse, block, shape):
-    """Bilinear blow-up of a per-block grid to per-tile, block tiles a block."""
-    h, w = shape
-    ys = np.clip((np.arange(h) + 0.5) / block - 0.5, 0, coarse.shape[0] - 1)
-    xs = np.clip((np.arange(w) + 0.5) / block - 0.5, 0, coarse.shape[1] - 1)
-    rows = np.array([np.interp(xs, np.arange(coarse.shape[1]), r) for r in coarse])
-    return np.array([np.interp(ys, np.arange(coarse.shape[0]), c) for c in rows.T]).T
-
-
-def noise(shape, scale, rng):
-    """Smooth random values in 0..1, varying over about `scale` tiles."""
-    gh, gw = shape[0] // scale + 2, shape[1] // scale + 2
-    grid = np.array([[rng.random() for _ in range(gw)] for _ in range(gh)])
-    return upsample(grid, scale, shape)
-
-
-def components(open_):
-    """Label of the 4-connected open region of each tile (-1 = closed)."""
+def flood(open_, seeds):
+    """Cells of open_ 4-connected to any of the seed cells (row, column)."""
     h, w = open_.shape
-    label = np.full((h, w), -1, int)
-    n = 0
-    for sy, sx in zip(*np.nonzero(open_)):
-        if label[sy, sx] >= 0:
-            continue
-        label[sy, sx] = n
-        todo = [(sy, sx)]
-        while todo:
-            y, x = todo.pop()
-            for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
-                if 0 <= ny < h and 0 <= nx < w and open_[ny, nx] and label[ny, nx] < 0:
-                    label[ny, nx] = n
-                    todo.append((ny, nx))
-        n += 1
-    return label
-
-
-def cheapest_path(start, goal, cost):
-    """Tiles of the cheapest 4-connected path from start to any goal tile."""
-    h, w = cost.shape
-    best = {start: 0}
-    came = {}
-    heap = [(0, start)]
-    while heap:
-        d, (y, x) = heapq.heappop(heap)
-        if goal[y, x]:
-            path = [(y, x)]
-            while path[-1] in came:
-                path.append(came[path[-1]])
-            return path
-        if d > best[(y, x)]:
-            continue
+    seen = np.zeros_like(open_)
+    todo = [(y, x) for y, x in seeds if 0 <= y < h and 0 <= x < w and open_[y, x]]
+    for y, x in todo:
+        seen[y, x] = True
+    while todo:
+        y, x = todo.pop()
         for ny, nx in ((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)):
-            if 0 <= ny < h and 0 <= nx < w and cost[ny, nx] < math.inf:
-                nd = d + cost[ny, nx]
-                if nd < best.get((ny, nx), math.inf):
-                    best[(ny, nx)] = nd
-                    came[(ny, nx)] = (y, x)
-                    heapq.heappush(heap, (nd, (ny, nx)))
-    return []
+            if 0 <= ny < h and 0 <= nx < w and open_[ny, nx] and not seen[ny, nx]:
+                seen[ny, nx] = True
+                todo.append((ny, nx))
+    return seen
+
+
+def grow(mask, steps):
+    """mask widened by `steps` cells in every direction, corners included."""
+    for _ in range(steps):
+        g = mask.copy()
+        g[1:] |= mask[:-1]
+        g[:-1] |= mask[1:]
+        g[:, 1:] |= g[:, :-1].copy()
+        g[:, :-1] |= g[:, 1:].copy()
+        mask = g
+    return mask
+
+
+def distance(walk, limit):
+    """How many cells (counting diagonals as one) each cell is from walk, up to limit."""
+    d = np.full(walk.shape, limit, int)
+    reach = walk.copy()
+    d[reach] = 0
+    for k in range(1, limit):
+        nxt = grow(reach, 1)
+        d[nxt & ~reach] = k
+        reach = nxt
+    return d
 
 
 def nearest_open(open_, tx, ty):
@@ -384,7 +361,12 @@ def nearest_open(open_, tx, ty):
 
 # Names that a scenario's script.txt calls people by, by original scenario
 # and placement id: Remote Town's commander, smith and healer.
-PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer"}
+PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer",
+                # The companions waiting in Remote Town's kennel and
+                # Cold Svalt Town (people of kind 1000000 + their
+                # Character/PARTNER folder).
+                (0, 10000): "ash", (0, 10001): "soot", (0, 10002): "amber", (0, 10003): "pip",
+                (1000000, 10000): "rust"}
 # The warp gates the pack has (content/gates.txt): the object a click on
 # opens the GATE window, which stands on a warp circle.
 GATES = {0: 200, 1000000: 200}
@@ -396,11 +378,12 @@ def our_number(number):
     return OFFSET + number
 
 
-def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rng):
-    o = Original(game, number)
-    dungeon = number in DUNGEONS
+def walkable(o):
+    """The cells of the original map that can be walked on from its entries,
+    in the original's judge grid: its open ground that is drawn, joined to
+    an entry. Exits are gaps out to the empty ground round the map, so the
+    walk stops at them."""
     jh, jw = o.judge.shape
-    # The drawn part of the original map, cell by cell.
     drawn = np.zeros((jh, jw), bool)
     w_, h_, cw, ch = o.chips
     for jy in range(0, jh, 2):
@@ -409,12 +392,44 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             sx, sy = (x - y) * PROJ[0] / 100, (x + y) * PROJ[1] / 100
             if o.chip(int(sx // cw), int(sy // ch)) is not None:
                 drawn[jy:jy + 2, jx:jx + 2] = True
-    ys, xs = np.nonzero(drawn)
-    x0 = ((xs.min() + o.jx0) * CELL // TILE - 1) * TILE
-    y0 = ((ys.min() + o.jy0) * CELL // TILE - 1) * TILE
-    x1 = ((xs.max() + o.jx0) * CELL // TILE + 2) * TILE
-    y1 = ((ys.max() + o.jy0) * CELL // TILE + 2) * TILE
-    tw, th = (x1 - x0) // TILE, (y1 - y0) // TILE
+    walk = (o.judge & 1 == 0) & drawn
+    exits = np.zeros_like(walk)
+    for left, top, right, bottom, _, _ in o.exits:
+        exits[max(0, int(top // CELL) - o.jy0 - 1):max(0, int(bottom // CELL) - o.jy0 + 2),
+              max(0, int(left // CELL) - o.jx0 - 1):max(0, int(right // CELL) - o.jx0 + 2)] = True
+    seeds = [(int(y // CELL) - o.jy0, int(x // CELL) - o.jx0) for _, x, y, _ in o.entries]
+    reach = flood(walk & ~exits, seeds)
+    # The exits themselves, as far as they join what was reached.
+    while True:
+        more = grow(reach, 1) & walk & exits & ~reach
+        if not more.any():
+            return reach
+        reach |= more
+
+
+def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rng):
+    o = Original(game, number)
+    dungeon = number in DUNGEONS
+    reach = walkable(o)
+
+    # Our map covers what can be walked on, with a margin of ground round
+    # it, on whole tiles. Its walkability is the original's, cell for cell:
+    # the walls, trees and rocks drawn round it are our own.
+    margin = 4
+    ys, xs = np.nonzero(reach)
+    x0 = ((xs.min() + o.jx0) // PER - margin) * TILE
+    y0 = ((ys.min() + o.jy0) // PER - margin) * TILE
+    tw = (xs.max() + o.jx0) // PER + margin + 1 - x0 // TILE
+    th = (ys.max() + o.jy0) // PER + margin + 1 - y0 // TILE
+    ax, ay = x0 // CELL - o.jx0, y0 // CELL - o.jy0
+    walk = np.zeros((th * PER, tw * PER), bool)
+    sy, sx = max(0, -ay), max(0, -ax)
+    part = reach[max(0, ay):ay + th * PER, max(0, ax):ax + tw * PER]
+    walk[sy:sy + part.shape[0], sx:sx + part.shape[1]] = part
+    walk_tile = walk.reshape(th, PER, tw, PER).any(axis=(1, 3))
+    # Where ground is drawn: round what can be walked on (just under the
+    # walls in dungeons, the width of a forest edge outdoors).
+    inside = grow(walk_tile, 1 if dungeon else margin)
 
     def world(tx, ty):
         return x0 + tx * TILE, y0 + ty * TILE
@@ -422,88 +437,10 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     def tile_of(wx, wy):
         return int((wx - x0) // TILE), int((wy - y0) // TILE)
 
-    def walk_grid(x0, y0, tw, th):
-        """How much of each tile the original lets you walk on."""
-        cx = np.arange(tw * PER)
-        cy = np.arange(th * PER)
-        jxs = (x0 + cx * CELL + CELL // 2) // CELL - o.jx0
-        jys = (y0 + cy * CELL + CELL // 2) // CELL - o.jy0
-        valid = np.outer((jys >= 0) & (jys < jh), (jxs >= 0) & (jxs < jw))
-        JX, JY = np.meshgrid(np.clip(jxs, 0, jw - 1), np.clip(jys, 0, jh - 1))
-        walk = (o.judge[JY, JX] & 1 == 0) & drawn[JY, JX] & valid
-        return walk.reshape(th, PER, tw, PER).mean(axis=(1, 3))
+    def cell_of(wx, wy):
+        return int((wx - x0) // CELL), int((wy - y0) // CELL)
 
-    # Most of an original map is empty ground nobody can reach: keep the
-    # part that can be walked to from its entries and exits.
-    def reachable(walk_frac, x0, y0, tw, th):
-        walkable = walk_frac > 0
-
-        def entry_tiles():
-            """Tiles of the entries that stand on ground the original lets
-            you walk on (some wait in rock for routes opened later)."""
-            for _, x, y, _ in o.entries:
-                tx, ty = int((x - x0) // TILE), int((y - y0) // TILE)
-                if 1 <= tx < tw - 1 and 1 <= ty < th - 1 and walk_frac[ty - 1:ty + 2, tx - 1:tx + 2].any():
-                    yield tx, ty
-
-        def round_entries(label):
-            return {label[ny, nx] for nx, ny in (nearest_open(label >= 0, tx, ty) for tx, ty in entry_tiles())}
-        for left, top, right, bottom, _, _ in o.exits:   # exits are gaps out to that empty ground
-            ax, ay = int((left - x0) // TILE) - 1, int((top - y0) // TILE) - 1
-            bx, by = int((right - x0) // TILE) + 2, int((bottom - y0) // TILE) + 2
-            walkable[max(0, ay):max(0, by), max(0, ax):max(0, bx)] = False
-        label = components(walkable)
-        keep = round_entries(label)
-        reach = np.isin(label, list(keep))
-        # Some routes run on into that empty ground: keep to the box round
-        # the rock or forest that walls the map in.
-        rock = components(~walkable)
-        walls = set()
-        for tx, ty in entry_tiles():
-            nx, ny = nearest_open(rock >= 0, tx, ty)
-            walls.add(rock[ny, nx])
-        ys, xs = np.nonzero(np.isin(rock, list(walls)))
-        box = np.zeros_like(reach)
-        box[ys.min():ys.max() + 1, xs.min():xs.max() + 1] = True
-        reach &= box
-        label = components(reach)
-        keep = round_entries(label)
-        return np.isin(label, list(keep))
-
-    reach = reachable(walk_grid(x0, y0, tw, th), x0, y0, tw, th)
-    ys, xs = np.nonzero(reach)
-    margin = 6
-    x0, y0 = x0 + (xs.min() - margin) * TILE, y0 + (ys.min() - margin) * TILE
-    tw, th = xs.max() - xs.min() + 1 + 2 * margin, ys.max() - ys.min() + 1 + 2 * margin
-    walk_frac = walk_grid(x0, y0, tw, th)
-    reach = reachable(walk_frac, x0, y0, tw, th)
-    walk_frac = walk_frac * reach
-    inside = reach.copy()   # where ground is drawn: round the reachable part
-    for _ in range(8):
-        grown = inside.copy()
-        grown[1:] |= inside[:-1]
-        grown[:-1] |= inside[1:]
-        grown[:, 1:] |= inside[:, :-1]
-        grown[:, :-1] |= inside[:, 1:]
-        inside = grown
-
-    # The routes: only which blocks of tiles can be walked through is kept
-    # from the original. The walls and paths inside them are our own.
-    block = 4 if dungeon else 6
-    bh, bw = -(-th // block), -(-tw // block)
-    padded = np.zeros((bh * block, bw * block))
-    padded[:th, :tw] = walk_frac
-    coarse = padded.reshape(bh, block, bw, block).mean(axis=(1, 3))
-    if dungeon:
-        open_ = np.kron(coarse >= 0.2, np.ones((block, block), bool))[:th, :tw]
-    else:
-        field = upsample(coarse, block, (th, tw))
-        n = noise((th, tw), 4, rng) * 0.6 + noise((th, tw), 12, rng) * 0.4
-        open_ = field + 0.5 * (n - 0.5) > 0.4
-    open_ &= inside
-
-    # Landmarks where the original has them; the village's buildings stand
-    # on ground that cannot be walked on.
+    # Landmarks where the original has them.
     landmarks = []
     for ob in o.objects:
         bank_name = o.banks[ob["file"]].lower() if 0 <= ob["file"] < len(o.banks) else "?"
@@ -518,70 +455,29 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             continue
         fx, fy = screen_to_world(*f)
         for name, dx, dy in pieces:
-            landmarks.append((name.rstrip("!"), ob["x"] + fx + dx, ob["y"] + fy + dy, bank_name in SOLID))
-    solid = np.zeros((th, tw), bool)
-    for name, wx, wy, is_solid in landmarks:
-        if not is_solid or name not in sizes:
-            continue
-        side = sizes[name] * 0.8 / 0.3   # a footprint about as wide as the picture
-        ax, ay = tile_of(wx - side, wy - side)
-        bx, by = tile_of(wx, wy)
-        solid[max(0, ay):max(0, by), max(0, ax):max(0, bx)] = True
-    # Gates stand over exits: never wall in an exit or an entry.
-    for left, top, right, bottom, _, _ in o.exits:
-        ax, ay = tile_of(left, top)
-        bx, by = tile_of(right, bottom)
-        solid[max(0, ay - 1):max(0, by + 2), max(0, ax - 1):max(0, bx + 2)] = False
-    for _, x, y, _ in o.entries:
-        tx, ty = tile_of(x, y)
-        solid[max(0, ty - 1):max(0, ty + 2), max(0, tx - 1):max(0, tx + 2)] = False
-    open_ &= ~solid
+            landmarks.append((name.rstrip("!"), ob["x"] + fx + dx, ob["y"] + fy + dy))
+    # Ground the landmarks stand on is theirs: nothing else is put there.
+    taken = np.zeros(walk.shape, bool)
+    for name, wx, wy in landmarks:
+        side = sizes.get(name, 0) * 0.8 / 0.3   # a footprint about as wide as the picture
+        ax_, ay_ = cell_of(wx - side, wy - side)
+        bx_, by_ = cell_of(wx, wy)
+        taken[max(0, ay_):max(0, by_ + 1), max(0, ax_):max(0, bx_ + 1)] = True
 
-    # Every entry and exit is open, and they all join up.
-    targets = [tile_of(x, y) for _, x, y, _ in o.entries]
-    targets += [tile_of((left + right) / 2, (top + bottom) / 2) for left, top, right, bottom, _, _ in o.exits]
-    targets = [(min(max(tx, 1), tw - 2), min(max(ty, 1), th - 2)) for tx, ty in targets]
-    targets = [(tx, ty) for tx, ty in targets if reach[max(0, ty - 4):ty + 5, max(0, tx - 4):tx + 5].any()]
-    for tx, ty in targets:
-        open_[ty - 1:ty + 2, tx - 1:tx + 2] |= inside[ty - 1:ty + 2, tx - 1:tx + 2] & ~solid[ty - 1:ty + 2, tx - 1:tx + 2]
-    for left, top, right, bottom, _, _ in o.exits:   # the whole of each exit can be stepped on
-        ax, ay = tile_of(left, top)
-        bx, by = tile_of(right, bottom)
-        area = (slice(max(0, ay), max(0, by + 1)), slice(max(0, ax), max(0, bx + 1)))
-        if reach[max(0, ay - 4):by + 5, max(0, ax - 4):bx + 5].any():
-            open_[area] |= inside[area]
-    cost = np.where(open_, 1.0, np.where(inside & ~solid, 6.0, math.inf))
-    carved = np.zeros((th, tw), bool)
-    label = components(open_)
-    joined = label == label[targets[0][1], targets[0][0]] if targets else np.zeros((th, tw), bool)
-    for tx, ty in targets[1:]:
-        if joined[ty, tx]:
-            continue
-        for y, x in cheapest_path((ty, tx), joined, cost):
-            for yy, xx in ((y, x), (y + 1, x), (y, x + 1)):
-                if yy < th and xx < tw and cost[yy, xx] < math.inf:
-                    open_[yy, xx] = carved[yy, xx] = True
-                    cost[yy, xx] = 1.0
-        label = components(open_)
-        joined = label == label[targets[0][1], targets[0][0]]
-
-    # Ground: grass or dirt per block from the original's colour, with our
-    # own edges; carved paths are dirt. Dungeons are brick with rubble.
-    terrain = np.ones((th + 1, tw + 1), int)
+    # Ground: grass or dirt from the original's colour round each tile
+    # corner, with our own edges. Dungeons are brick with rubble.
     if dungeon:
+        terrain = (np.array([[rng.random() for _ in range(tw + 1)] for _ in range(th + 1)]) >= 0.08).astype(int)
+    else:
+        grass = np.ones((th + 1, tw + 1))
         for ty in range(th + 1):
             for tx in range(tw + 1):
-                terrain[ty, tx] = 0 if rng.random() < 0.08 else 1
-    else:
-        grass = np.zeros((bh, bw))
-        for by in range(bh):
-            for bx in range(bw):
-                c = o.colour(*world(bx * block + block // 2, by * block + block // 2))
-                grass[by, bx] = 1.0 if c is None or c[1] > c[0] * 1.02 else 0.0
-        g = upsample(grass, block, (th + 1, tw + 1)) + 0.6 * (noise((th + 1, tw + 1), 3, rng) - 0.5)
-        terrain = (g > 0.5).astype(int)
-        for ty, tx in zip(*np.nonzero(carved)):
-            terrain[ty:ty + 2, tx:tx + 2] = 0
+                c = o.colour(*world(tx, ty))
+                grass[ty, tx] = 1.0 if c is None or c[1] > c[0] * 1.02 else 0.0
+        smooth = grass.copy()
+        smooth[1:-1, 1:-1] = (grass[:-2, 1:-1] + grass[2:, 1:-1] + grass[1:-1, :-2] + grass[1:-1, 2:] + 2 * grass[1:-1, 1:-1]) / 6
+        n = np.array([[rng.random() for _ in range(tw + 1)] for _ in range(th + 1)])
+        terrain = (smooth + 0.3 * (n - 0.5) > 0.5).astype(int)
     rows = []
     for ty in range(th):
         row = []
@@ -594,95 +490,129 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         rows.append(" ".join(row))
 
     objects = []
-    taken = solid.copy()
 
     def place(name, wx, wy):
         if name in frames:
             objects.append((wy + wx, f"{int(wx - x0)},{int(wy - y0)},1,{frames[name]}"))
-            tx, ty = tile_of(wx, wy)
-            taken[max(0, ty - 1):ty + 2, max(0, tx - 1):tx + 2] = True
 
-    for name, wx, wy, _ in landmarks:
+    for name, wx, wy in landmarks:
         place(name, wx, wy)
 
+    blocked = ~walk
     if dungeon:
-        # Walls along every edge between floor and rock, two tiles a piece
-        # where they can be, a pillar where only one tile is left.
-        def edge_x(tx, ty):   # the edge along x at the top of tile (tx, ty)
-            above = ty > 0 and open_[ty - 1, tx]
-            below = ty < th and open_[ty, tx]
-            return above != below
-
-        def edge_y(tx, ty):
-            left = tx > 0 and open_[ty, tx - 1]
-            right = tx < tw and open_[ty, tx]
-            return left != right
-
+        # Walls along every edge between floor and rock, on the original's
+        # cells: four cells a piece, the last piece of a run overlapping the
+        # one before it, a pillar where a run is shorter than three cells.
+        # Rock one cell thick between two floors gets one wall down its middle.
+        h, w = walk.shape
         k = 0
-        for ty in range(th + 1):
-            tx = 0
-            while tx < tw:
-                if edge_x(tx, ty):
-                    if tx + 1 < tw and edge_x(tx + 1, ty):
-                        fit = "" if k % 6 else rng.choice(["_pipes", "_grate"])
-                        place(f"dwall{fit}_x", *world(tx + 1, ty))
-                        tx += 2
-                    else:
-                        place("dpillar", x0 + tx * TILE + TILE // 2, y0 + ty * TILE)
-                        tx += 1
-                    k += 1
+
+        def wall(axis, line, a, b):
+            """Pieces along a run of cells a..b on edge line `line`."""
+            nonlocal k
+            n = b - a
+            if n <= 2:
+                at = a * CELL + n * CELL / 2
+                xy = (x0 + at, y0 + line * CELL) if axis == "x" else (x0 + line * CELL, y0 + at)
+                place("dpillar", *xy)
+                k += 1
+                return
+            starts = list(range(a, b - 3, 4))
+            if not starts or starts[-1] + 4 < b:
+                starts.append(b - 4)
+            for s in starts:
+                fit = "" if k % 6 else rng.choice(["_pipes", "_grate"])
+                at = (s + 2) * CELL
+                xy = (x0 + at, y0 + line * CELL) if axis == "x" else (x0 + line * CELL, y0 + at)
+                place(f"dwall{fit}_{axis}", *xy)
+                k += 1
+
+        def runs(flags):
+            x = 0
+            while x < len(flags):
+                if flags[x]:
+                    s = x
+                    while x < len(flags) and flags[x]:
+                        x += 1
+                    yield s, x
                 else:
-                    tx += 1
-        for tx in range(tw + 1):
-            ty = 0
-            while ty < th:
-                if edge_y(tx, ty):
-                    if ty + 1 < th and edge_y(tx, ty + 1):
-                        fit = "" if k % 6 else rng.choice(["_pipes", "_grate"])
-                        place(f"dwall{fit}_y", *world(tx, ty + 1))
-                        ty += 2
-                    else:
-                        place("dpillar", x0 + tx * TILE, y0 + ty * TILE + TILE // 2)
-                        ty += 1
-                    k += 1
-                else:
-                    ty += 1
+                    x += 1
+
+        W = np.pad(walk, 1)          # rows and columns past the map are rock
+        B = ~W
+        thin_r = B[1:-1, 1:-1] & W[:-2, 1:-1] & W[2:, 1:-1]   # one cell of rock between floors, across rows
+        thin_c = B[1:-1, 1:-1] & W[1:-1, :-2] & W[1:-1, 2:]
+        for r in range(h + 1):       # edge lines between cell rows r-1 and r
+            above, below = W[r, 1:-1], W[r + 1, 1:-1]
+            thin_above = thin_r[r - 1] if r > 0 else np.zeros(w, bool)
+            thin_below = thin_r[r] if r < h else np.zeros(w, bool)
+            for a, b in runs((above != below) & ~thin_above & ~thin_below):
+                wall("x", r, a, b)
+        for r in range(h):
+            for a, b in runs(thin_r[r]):
+                wall("x", r + 0.5, a, b)
+        for c in range(w + 1):
+            left, right = W[1:-1, c], W[1:-1, c + 1]
+            thin_left = thin_c[:, c - 1] if c > 0 else np.zeros(h, bool)
+            thin_right = thin_c[:, c] if c < w else np.zeros(h, bool)
+            for a, b in runs((left != right) & ~thin_left & ~thin_right):
+                wall("y", c, a, b)
+        for c in range(w):
+            for a, b in runs(thin_c[:, c]):
+                wall("y", c + 0.5, a, b)
     else:
+        # Trees on the ground that cannot be walked on, thick at its edge
+        # and thinning out away from it; a rock or a bush where only a little
+        # ground is shut off in the open.
         trees = FROZEN if "Frozen" in o.title else BARE if "Wasteland" in o.title or "Pillars" in o.title else FOREST
-        for ty in range(th):
-            for tx in range(tw):
-                if not inside[ty, tx] or open_[ty, tx] or taken[ty, tx]:
+        near = distance(walk, 2 * margin + 1)
+        inside_cells = np.kron(inside, np.ones((PER, PER), bool))
+        mass = flood(blocked, [(0, 0)])            # the rock and forest round the map
+        free = blocked & inside_cells & ~taken
+        # Ground shut off by a landmark is the landmark's.
+        free &= ~flood(blocked & ~mass, list(zip(*np.nonzero(grow(taken, 2) & blocked & ~mass))))
+        spot_free = np.ones(walk.shape, bool)
+        cells = list(zip(*np.nonzero(free & (near <= 2 * margin))))
+        rng.shuffle(cells)
+        cells.sort(key=lambda c: near[c])
+        for cy, cx in cells:
+            if not spot_free[cy, cx]:
+                continue
+            d = near[cy, cx]
+            if mass[cy, cx]:
+                if d > 2 and rng.random() < 0.3:
                     continue
-                near = open_[max(0, ty - 1):ty + 2, max(0, tx - 1):tx + 2].any()
-                if rng.random() < (0.8 if near else 0.45):
-                    j = TILE // 4
-                    place(rng.choice(trees), x0 + tx * TILE + TILE // 2 + rng.randrange(-j, j),
-                          y0 + ty * TILE + TILE // 2 + rng.randrange(-j, j))
-                elif near and rng.random() < 0.15:
-                    place(rng.choice(["rock1", "rock2", "stones", "grass_tall"]),
-                          x0 + tx * TILE + TILE // 2, y0 + ty * TILE + TILE // 2)
+                r = 1 if d <= 1 else 2
+                j = CELL // 3
+                place(rng.choice(trees), x0 + cx * CELL + CELL // 2 + rng.randrange(-j, j),
+                      y0 + cy * CELL + CELL // 2 + rng.randrange(-j, j))
+            else:
+                r = 1
+                place(rng.choice(["rock1", "rock2", "stones", "boulder", "grass_tall"]),
+                      x0 + cx * CELL + CELL // 2, y0 + cy * CELL + CELL // 2)
+            spot_free[max(0, cy - r):cy + r + 1, max(0, cx - r):cx + r + 1] = False
 
     for c in o.groups[0]:
         if GATES.get(number) == c["id"]:
             place("warp_circle", c["x"], c["y"])
 
     objects.sort()
-    judge = ["".join("." if v else "x" for v in line) for line in open_]
+    judge = ["".join("." if v else "x" for v in line) for line in walk]
     sheet = "Map/floor.sheet" if dungeon else "Map/ground.sheet"
     with open(out / "Map" / f"{o.name}.txt", "w", newline="\n") as f:
-        f.write(f"# {o.title}: our own layout on the routes of the original's {o.name}, "
+        f.write(f"# {o.title}: walked on like the original's {o.name}, with our own ground, walls and trees, "
                 "generated by tools/content/first_area.py\n")
-        f.write(f"size={tw},{th}\ntiles={TILE}\ncell={TILE},{TILE}\njudge=0,0,{tw},{th}\n")
+        f.write(f"size={tw},{th}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{tw * PER},{th * PER}\n")
         f.write(f"bank={sheet}\nbank=Map/props.sheet\n\n[ground]\n" + "\n".join(rows))
         f.write("\n\n[judge]\n" + "\n".join(judge) + "\n\n[objects]\n" + "\n".join(t for _, t in objects) + "\n")
 
     def spot(x, y):
-        """(x, y) moved to the middle of the nearest open tile if it is not on one."""
-        tx, ty = tile_of(x, y)
-        if 0 <= ty < th and 0 <= tx < tw and open_[ty, tx]:
+        """(x, y) moved to the middle of the nearest open cell if it is not on one."""
+        cx, cy = cell_of(x, y)
+        if 0 <= cy < walk.shape[0] and 0 <= cx < walk.shape[1] and walk[cy, cx]:
             return int(x - x0), int(y - y0)
-        tx, ty = nearest_open(open_, tx, ty)
-        return int(tx * TILE + TILE // 2), int(ty * TILE + TILE // 2)
+        cx, cy = nearest_open(walk, cx, cy)
+        return int(cx * CELL + CELL // 2), int(cy * CELL + CELL // 2)
 
     lines = [f"# generated by tools/content/first_area.py after the original's scenario {number}",
              f"title={o.title}", f"map={o.name}"]
@@ -755,6 +685,8 @@ def main():
             sizes[name] = int(v[2])
     _, rules = read_skin(out / "skin.txt")
     people = {int(p.name) for p in (out / "Character" / "PEOPLE").iterdir()}
+    partners = out / "Character" / "PARTNER"
+    people |= {1000000 + int(p.name) for p in partners.iterdir()} if partners.is_dir() else set()
     enemies = our_stats(out, {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()})
     rng = random.Random(1)
     for number in FIELDS + DUNGEONS:

@@ -30,6 +30,8 @@ original format.
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
+| `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
+| `Character/PARTNER/%08d/Animation.*`  | `Character/PARTNER/%08d/Animation.anim` + `.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -205,7 +207,9 @@ A message is the lines under `[message <id>]`, each ending in a line
 break; options go between `~` marks. A sentence is a list of commands, one
 per line, and `on=` lines that start it. Operands are separated by spaces:
 a number, `temp:<id>`, `save:<id>`, `quest:<id>`, `net:<id>` or
-`warp:<gate>` (a warp gate found, see gates.txt) for a flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
+`warp:<gate>` (a warp gate found, see gates.txt) for a flag, `shown:<name>`
+for whether someone is shown (the flag `SETACTIVE` and `SETINACTIVE`
+set), `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
 someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
 sentence to run, and a person's or object's name for their id. As in the
 original, `IF` runs its sentence and then carries on, and closing any of
@@ -268,6 +272,40 @@ it; a click on it opens the window. The window's picture is
 pack's two towns have gates (gate 0 Remote Town, 4 Cold Svalt Town), at
 the original's places, with the props sheet's warp circle under them.
 
+### partners.txt
+
+The hero's companions, standing in for Table.Tbd tables 60 and 800-805
+(docs/partners.md says what each stat does). There are six kinds, 0 to
+5, with the original's numbers; a new hero has kind 0.
+
+    [partner 0]
+    name=Ash
+    folder=0                 # Character/PARTNER/00000000
+    tint=1000,1000,1000      # red, green, blue in thousandths
+    hp=320,70                # 320 at level 1, then 70 more each level
+    stun_chance=25,30,35     # the value at each level; 35 from level 3 on
+
+Every kind needs all of `attack_speed`, `walk`, `run`, `hp`, `attack`,
+`hit`, `defense`, `evasion`, `magic_attack`, `magic_defense`, `magic_hit`,
+`magic_evasion` (the value at level 1, then what each level adds),
+`element`, `stun_chance`, `stun_length`, `stun_uncapped`, `jump_area`
+and `experience` (the value at each level). A line has 1 to 35 numbers;
+the last carries on to level 35.
+
+A companion's pictures are `Character/PARTNER/<folder>/Animation.anim`,
+with charts 0 idle, 1 walk, 2 run, 3 hit, 4 death, 5 bite, 6 jump up
+and 7 jump down; the death and jump charts have only direction 8. The
+pack's four dogs share folder 0, a grey dog recoloured by each one's
+tint, and the small dog has folder 1, both drawn by `tools/art/creatures.py`
+(`dog`, `smalldog`). Townspeople of kind 1000000 + folder stand in for
+them, as in Remote Town's kennel:
+
+    [sentence ash-tick]      # hidden while Ash is out with the hero
+    on=tick
+    GETPARTNERKIND temp:42
+    IF shown:ash = 1 @ash-hide
+    IF shown:ash = 0 @ash-show
+
 ### shops.txt
 
     [shop 0]                 # the list INITTRADE names
@@ -301,6 +339,7 @@ Control.aid (see formats.md): the event, the action, then any of
     stats=20,100             # see below; numbers left out are 0
     layer=12                 # hero animation layer shown while worn
     weight=10                # how often it drops compared with others
+    load=30                  # how heavy it is to wear
 
 Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
 (gold is special 0). Weapon subtypes: 0 sword, 1 axe, 3 two-handed sword,
@@ -316,9 +355,10 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-`glow` (a second hero layer) and `carry-weight` (the original's item
-weight, 0 when left out; at 60 or more the item sounds heavy when it is
-taken or put down, and a weapon swings with the heavy voice).
+and `glow` (a second hero layer). The item window weighs the `load` of
+everything worn against the hero's strength, as the original does.
+An item with a `load` of 60 or more also sounds heavy when it is taken or
+put down, and a weapon that heavy swings with the heavy voice.
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with
@@ -348,14 +388,14 @@ items land around it.
 
 ## Drawing the original game with this art
 
-A player who has the original game sees its own maps, people and monsters,
-but drawn with the pack's art: the engine reads the maps, scripts and
-characters from their copy and draws them with content/'s ground
-textures, props, characters and hero. `skin.txt` at the pack's root says
-how; whatever it does not cover (and any character the pack has no
-`.anim` for) is drawn from the original files as before. This is the
-default when both are found; `--original-art` turns it off and
-`--skin <pack>` uses another pack.
+A player who has the original game sees it with its own art by default.
+With `--our-art` they see its own maps, people and monsters drawn with
+the pack's art instead: the engine reads the maps, scripts and characters
+from their copy and draws them with content/'s ground textures, props,
+characters and hero. `skin.txt` at the pack's root says how; whatever it
+does not cover (and any character the pack has no `.anim` for) is drawn
+from the original files as before. `--skin <pack>` does the same with
+another pack.
 
     props=Map/props.sheet        # the sheet whose named frames [objects] uses
 
@@ -428,19 +468,32 @@ numbered 10000000 plus the original's number (Remote Town is
 exits lead to each other as the original's do. The game still starts in
 the meadow; `--map f00_01` starts in Remote Town.
 
-Each follows the original map's routes, not its exact layout: which
-blocks of tiles can be walked through, where the exits and entries are,
-which monsters and townspeople stand where, and where the buildings and
-other landmarks stand (the town walls and gates, palisades and spike pits
-among them, each drawn with the prop skin.txt gives its original piece). The walls, paths and forest edges are our own, and
-the monsters' stats are the demo's. The dungeons are as dark as the
-original's, with lamps where its torches stand and glows on the monsters
-that carry one. The maps exactly as the original has
-them are what a player with the original game sees (see above).
+Each can be walked on exactly where the original's can: its judge grid
+is the original's, cell for cell (cells of 160 world units, about the
+width of a character), for the ground reachable from the map's entries.
+Laid over the original, a map looks a little different but plays the
+same. Also kept: where the exits and entries are, which monsters and
+townspeople stand where, which ground is grass or dirt, and where the
+buildings and other landmarks stand (the town walls and gates, palisades
+and spike pits among them, each drawn with the prop skin.txt gives its
+original piece). What is drawn round the walkable ground is our own:
+trees, thinning out away from the paths, outdoors, a rock or a bush where
+the original shuts off a little ground in the open, and walls along the
+dungeon floors (one down the middle of rock a cell thick). The monsters'
+stats are the demo's. The dungeons are as dark as the original's, with
+lamps where its torches stand and glows on the monsters that carry one.
+The maps exactly as the original draws them are what a player with the
+original game sees (see above).
 
 `tools/content/first_area.py` writes them from the player's own copy:
 
     python3 tools/content/first_area.py <game folder> content
+
+and `tools/content/map_overlay.py` checks them against it, printing for
+each map how much of the original's walkable ground is walkable in ours
+and the other way round, and drawing them laid over each other:
+
+    python3 tools/content/map_overlay.py <game folder> content overlay.png
 
 ## Rebuilding content/
 

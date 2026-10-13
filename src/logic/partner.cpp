@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "formats/table_data.h"
 #include "logic/inventory.h"
 #include "logic/magic.h"
 
@@ -20,10 +19,10 @@ std::optional<PartnerTables> PartnerTables::load(const GameTables& tables) {
     const auto* kinds = tables.find(kKindTable);
     if (!kinds || kinds->rows < kPartnerKinds || kinds->cols < 5) return std::nullopt;
     PartnerTables t;
-    t.tables_ = &tables;
     for (int k = 0; k < kPartnerKinds; ++k) {
         const auto* stats = tables.find(kStatTableBase + k);
         if (!stats || stats->rows < kStatRows || stats->cols < 1) return std::nullopt;
+        t.tables_.tables[kStatTableBase + k] = *stats;
         auto& kind = t.kinds_[static_cast<std::size_t>(k)];
         if (kinds->strings.size() > static_cast<std::size_t>(k * kinds->cols)) kind.name = kinds->string(k, 0);
         kind.folder = kinds->value(k, 1);
@@ -33,7 +32,7 @@ std::optional<PartnerTables> PartnerTables::load(const GameTables& tables) {
 }
 
 PartnerStats PartnerTables::stats(int kind, int level) const {
-    const auto& t = *tables_->find(kStatTableBase + kind);
+    const auto& t = *tables_.find(kStatTableBase + kind);
     const int columns = std::clamp(level, 1, t.cols);
     auto sum = [&](int row) {
         int total = 0;
@@ -89,7 +88,7 @@ void applyMoon(PartnerStats& s, const MagicTables& t, int level) {
 }
 
 int PartnerTables::need(int kind, int level) const {
-    const auto& t = *tables_->find(kStatTableBase + kind);
+    const auto& t = *tables_.find(kStatTableBase + kind);
     return t.value(18, std::clamp(level, 1, t.cols) - 1);
 }
 

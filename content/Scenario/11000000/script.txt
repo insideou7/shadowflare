@@ -16,3 +16,79 @@ MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
 [sentence gate]
 on=talk gate
 WARPGATE 0
+
+# The dog waiting in town, as the original's: like
+# Remote Town's kennel dogs, it offers its status, two boxes about itself
+# and a swap. temp:40 says which of its boxes is showing; temp:41 is the
+# answer.
+
+[message 40]
+Rust
+~See how I'm doing~
+~Tell me about yourself~
+~Swap partners~
+~Leave~
+
+[message 41]
+I'm not like the dogs back in Remote Town.
+
+[message 42]
+...Though, to be fair, a few of us here
+could not keep up with them.
+
+[sentence rust]
+on=talk rust
+C_STOP rust
+C_SETANGLETO rust 0
+SETFLAG temp:40 0
+TALK msg:40 temp:41 1 3 -1 -1
+
+[sentence rust-end]
+on=talk-end rust
+IF temp:40 = 2 @rust-done
+IF temp:40 = 1 @rust-more
+IF temp:40 = 0 @rust-choice
+
+[sentence rust-done]
+C_MOVABLE rust
+
+[sentence rust-more]
+SETFLAG temp:40 2
+TALK msg:42 temp:41 1 -1 -1 -1
+
+[sentence rust-choice]
+IF temp:41 = 0 @rust-status
+IF temp:41 = 1 @rust-tell
+IF temp:41 = 2 @rust-swap
+IF temp:41 = 3 @rust-done
+
+[sentence rust-status]
+SETFLAG temp:40 2
+TALKPARTNERSTATUS 3 temp:41
+
+[sentence rust-tell]
+SETFLAG temp:40 1
+TALK msg:41 temp:41 1 -1 -1 -1
+
+[sentence rust-swap]
+CHANGEPARTNER 3
+C_MOVABLE rust
+
+# Hidden while it is the hero's companion, back once it is swapped out.
+[sentence rust-tick]
+on=tick
+GETPARTNERKIND temp:42
+IF shown:rust = 1 @rust-hide
+IF shown:rust = 0 @rust-show
+
+[sentence rust-hide]
+IF temp:42 = 3 @rust-off
+
+[sentence rust-off]
+SETINACTIVE rust
+
+[sentence rust-show]
+IF temp:42 ! 3 @rust-on
+
+[sentence rust-on]
+SETACTIVE rust

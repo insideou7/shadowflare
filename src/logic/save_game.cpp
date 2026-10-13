@@ -248,7 +248,9 @@ SaveGame SaveGame::parse(std::string_view text) {
 }
 
 void SaveGame::store(const Inventory& inventory) {
-    gold = inventory.gold();
+    // Gold in the bag is saved with the bag; `gold` keeps only a counter's
+    // (no Gold item to stack, or an older save).
+    gold = inventory.looseGold();
     bag.clear();
     for (const auto& p : inventory.bag()) bag.push_back({ref(p.item), p.x, p.y});
     belt.clear();
@@ -265,7 +267,6 @@ void SaveGame::store(const Inventory& inventory) {
 
 int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
     inventory.clear();
-    inventory.addGold(gold);
     int skipped = 0;
     auto find = [&](const ItemRef& r) { return items.find(static_cast<ItemDef::Class>(r.cls), r.code); };
     for (const auto& e : bag) {
@@ -285,6 +286,8 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
             ++skipped;
         }
     }
+    // A counter's gold goes back, into the bag where there is a Gold item.
+    if (gold > 0 && !inventory.addGold(gold)) ++skipped;
     return skipped;
 }
 

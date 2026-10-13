@@ -53,8 +53,9 @@ struct ItemDef {
     std::int32_t quality = 0;  // 0 normal, 1 magic, 2 unique, 3 quest
     std::int32_t width = 1, height = 1;  // in 32-pixel inventory cells
     std::int32_t price = 0;
-    // 0x28: how heavy it is. It only picks sounds (0x466110): 60 or more
-    // sounds heavy.
+    // How heavy it is (0x28). The item window weighs what the hero wears
+    // against their strength (0x445630), and it picks sounds (0x466110):
+    // 60 or more sounds heavy.
     std::int32_t weight = 0;
     bool fixedPrice = false;  // 0x44: its modifiers add nothing to the price
     // Picture in the bag: pattern `invPattern` of System/Game/Pattern/Item<invBank as %04d>.

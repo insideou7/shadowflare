@@ -185,10 +185,8 @@ void Game::renderMagicWindow() {
         SDL_SetTextureAlphaMod(t->texture, 255);
         return true;
     };
-    auto text = [&](int x, int y, std::string_view s, SDL_Color c) {
-        uiText(x + 1, y + 1, s, kShadow);
-        uiText(x, y, s, c);
-    };
+    // In Font01, with lowercase, as the window's strings are written.
+    auto text = [&](int x, int y, std::string_view s, SDL_Color c) { windowText(x, y, s, c); };
 
     if (!draw(bank, parts.window)) {
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
@@ -223,8 +221,9 @@ void Game::renderMagicWindow() {
             text(column(34), y - 1, "Max", kName);
         } else {
             text(column(33), y - 1, std::format("{:3d}", spells_.uses[static_cast<std::size_t>(spell)]), kValue);
+            // "%3d/%3d" (0x47d80c): the most is padded too.
             text(column(36), y - 1, "/", kLabel);
-            text(column(37), y - 1, std::format("{}", info.usesToLevel[static_cast<std::size_t>(own - 1)]), kValue);
+            text(column(37), y - 1, std::format("{:3d}", info.usesToLevel[static_cast<std::size_t>(own - 1)]), kValue);
         }
 
         // Line 2: MP and power at the level it is cast at.

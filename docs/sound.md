@@ -85,7 +85,7 @@ original: only the mouse makes these sounds.
   Wearing an item plays 0x31. Gold always plays 0x55 and accessories
   always 0x5d. These play in the bag, on the belt, on the equipment slots,
   in the warehouse, and when buying or selling. The weight is the Item.Ibn
-  field at 0x28; the open content's `carry-weight` key gives it (0 when
+  field at 0x28; the open content's `load` key gives it (0 when
   left out). The same function gives the hero's swing voice: 1, or 2 for a
   weapon of 60 or more.
 - **Picking up** (0x449ef0) plays 0x30 for anything but gold and mines,

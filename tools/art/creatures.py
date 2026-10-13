@@ -1,10 +1,10 @@
 """Animated characters in ShadowFlare's style, rendered with studio.py.
 
-    python tools/art/creatures.py [--preview] [--blend] <kind> <output folder>
+    python tools/art/creatures.py [--preview] [--blend] [--only idle,walk] <kind> <output folder>
 
 where kind is goblin, hero, heroine, fly, ghoul, shaman, golem, spider, bigspider,
 swordsman, archer, ogre, demon, dragon, boar, boarrider, skeleton,
-barbarian, lizard, scorpion, bigscorpion, fire, raptor or person<N> (a townsperson from the
+barbarian, lizard, scorpion, bigscorpion, fire, raptor, dog, smalldog or person<N> (a townsperson from the
 PEOPLE table).
 
 (run with a Python that has the `bpy` module). Characters are built from
@@ -1931,6 +1931,212 @@ HEIGHT.update({"bonebeast": 12.0, "vampire": 3.7, "bonewarrior": 7.0, "angel": 1
 SIZE.update({"bonebeast": 420, "angel": 420, "bonewarrior": 240})
 
 
+# The hero's companions (Character/PARTNER): a wolf-like dog, recoloured by
+# partners.txt's tint for each kind, and a small long-bodied dog. Besides
+# the usual charts they run, bite, fall (death) and jump; the death and
+# jump charts have no direction (8): the third field is the direction they
+# are drawn from instead (the jumps face the camera).
+DOG_ANIMATIONS = {
+    "idle": (12, True),
+    "walk": (12, True),
+    "run": (8, True),
+    "hit": (6, False),
+    "death": (12, False, 1),
+    "bite": (10, False),
+    "jumpup": (14, False, 0),
+    "jumpdown": (22, False, 0),
+}
+
+
+def build_dog(small=False):
+    """A big grey wolf-like dog with a dark saddle, pale legs, belly and
+    mask, pricked ears and a bushy tail curled up over its back. Small:
+    a little long-bodied dog with short legs, a long muzzle, floppy ears
+    and a thin tail, in reddish tan."""
+    if small:
+        coat = studio.material("coat", (0.82, 0.52, 0.22), (0.48, 0.26, 0.08), scale=40, detail=8, rough=0.8, bump=0.6,
+                               stretch=(1, 1, 3))
+        back = studio.material("back", (0.68, 0.40, 0.15), (0.36, 0.18, 0.05), scale=40, detail=8, rough=0.8, bump=0.6)
+        pale = studio.material("pale", (0.90, 0.66, 0.36), (0.60, 0.38, 0.16), scale=40, rough=0.8, bump=0.4)
+    else:
+        coat = studio.material("coat", (0.26, 0.22, 0.19), (0.07, 0.06, 0.05), scale=70, detail=10, rough=0.85,
+                               bump=1.2, stretch=(1, 1, 3), band=(0.25, 0.70))
+        back = studio.material("back", (0.11, 0.095, 0.085), (0.03, 0.025, 0.02), scale=70, detail=10, rough=0.85,
+                               bump=1.2, stretch=(1, 1, 3), band=(0.25, 0.70))
+        pale = studio.material("pale", (0.66, 0.63, 0.58), (0.36, 0.34, 0.31), scale=40, detail=6, rough=0.85,
+                               bump=0.6)
+    nose = studio.material("nose", (0.06, 0.05, 0.05), scale=30, rough=0.3)
+    eye = studio.material("eye", (0.80, 0.62, 0.25) if not small else (0.10, 0.06, 0.04), scale=60, rough=0.2)
+    rig = Rig()
+    rig.kind = "dog"
+    rig.animations = DOG_ANIMATIONS
+    leg = 0.20 if small else 0.42  # length of each of a leg's two parts
+    long = 1.25 if small else 1.30  # body length
+    rig.body_height = 2 * leg + 0.10
+    rig.joint("body", "root", (0, 0, rig.body_height))
+    # Body: chest and ribs, a slimmer waist, the dark saddle and pale belly.
+    rig.attach(shape("ball", (0.60 * long, 0.27, 0.28), coat), "body", (0, 0, 0.02))
+    rig.attach(shape("ball", (0.40, 0.28, 0.38), coat), "body", (0.38 * long, 0, 0.0))  # deep chest
+    rig.attach(shape("ball", (0.30, 0.24, 0.26), coat), "body", (-0.42 * long, 0, 0.02))  # haunches
+    rig.attach(shape("ball", (0.55 * long, 0.22, 0.13), back), "body", (-0.02, 0, 0.15))
+    rig.attach(shape("ball", (0.48 * long, 0.19, 0.16), pale), "body", (0.12, 0, -0.12))
+    # Neck and head, with a lower jaw that opens to bite.
+    rig.joint("neck", "body", (0.58 * long, 0, 0.12))
+    if small:
+        segment(rig, "neck", (0, 0, 0), (0.12, 0, 0.26), 0.14, coat)
+    else:
+        segment(rig, "neck", (0, 0, 0), (0.24, 0, 0.32), 0.18, coat)
+        rig.attach(shape("ball", (0.20, 0.22, 0.26), pale), "neck", (0.14, 0, 0.02))  # pale ruff under the throat
+        rig.attach(shape("ball", (0.20, 0.19, 0.16), back), "neck", (0.06, 0, 0.20))
+    rig.joint("head", "neck", (0.16, 0, 0.32) if small else (0.28, 0, 0.36))
+    rig.attach(shape("ball", (0.22, 0.19, 0.18), coat), "head", (0, 0, 0))
+    rig.attach(shape("ball", (0.16, 0.15, 0.10), back), "head", (-0.02, 0, 0.07))
+    snout = 0.46 if small else 0.44
+    segment(rig, "head", (0.08, 0, -0.02), (snout, 0, -0.06), 0.075 if small else 0.085, pale if not small else coat)
+    rig.attach(shape("ball", (0.045, 0.05, 0.04), nose), "head", (snout + 0.02, 0, -0.05))
+    rig.joint("jaw", "head", (0.08, 0, -0.08))
+    segment(rig, "jaw", (0, 0, 0), (snout - 0.10, 0, -0.03), 0.05, pale)
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.035, 0.03, 0.025), eye), "head", (0.15, 0.10 * side, 0.05))
+        if small:
+            # Floppy ears hanging beside the head.
+            rig.attach(shape("ball", (0.10, 0.03, 0.15), back, rotation=(math.radians(-15 * side), 0, 0)), "head",
+                       (-0.04, 0.17 * side, -0.06))
+        else:
+            rig.attach(shape("cone", (0.085, 0.04, 0.15), back, rotation=(math.radians(-15 * side), 0, 0)), "head",
+                       (-0.04, 0.11 * side, 0.22))
+            rig.attach(shape("ball", (0.07, 0.10, 0.06), pale), "head", (0.10, 0.10 * side, -0.04))  # pale mask
+    # Tail: curled up over the back (bushy, pale-tipped) or long and thin.
+    rig.joint("tail", "body", (-0.58 * long, 0, 0.10))
+    if small:
+        pts = [(0, 0, 0), (-0.20, 0, 0.06), (-0.38, 0, 0.16), (-0.50, 0, 0.30)]
+        for i in range(3):
+            segment(rig, "tail", pts[i], pts[i + 1], 0.045 - 0.01 * i, coat)
+    else:
+        # Hanging out behind and a little down, thick, paler towards the tip.
+        pts = [(0, 0, 0), (-0.20, 0, -0.06), (-0.42, 0, -0.16), (-0.62, 0, -0.22), (-0.80, 0, -0.24)]
+        for i in range(4):
+            segment(rig, "tail", pts[i], pts[i + 1], 0.09 + 0.01 * min(i, 2), coat if i < 2 else pale)
+            rig.attach(shape("ball", (0.13, 0.11, 0.11), coat if i < 2 else pale), "tail", pts[i + 1])
+    # Legs: hip or shoulder, then knee (or hock) and paw. Pale lower legs.
+    rig.legs = []
+    for front in (1, -1):
+        for side in (1, -1):
+            name = f"leg{'f' if front > 0 else 'b'}{'l' if side > 0 else 'r'}"
+            x = (0.42 if front > 0 else -0.40) * long
+            rig.joint(name, "body", (x, 0.15 * side, -0.10))
+            if front < 0:
+                rig.attach(shape("ball", (0.17, 0.11, 0.22 if not small else 0.13), coat), name, (0, 0, -0.06))
+            segment(rig, name, (0, 0, 0), (0, 0, -leg), 0.07 if not small else 0.06, coat)
+            rig.joint(name + "_k", name, (0, 0, -leg))
+            segment(rig, name + "_k", (0, 0, 0), (0, 0, -leg), 0.05, pale)
+            rig.attach(shape("ball", (0.07, 0.05, 0.04), pale), name + "_k", (0.04, 0, -leg - 0.01))
+            rig.legs.append((name, front, side))
+    rig.joints["root"].scale = (1.1, 1.1, 1.1) if not small else (0.62, 0.62, 0.62)
+    return rig
+
+
+def dog_pose(rig, animation, t, frames):
+    """Trots, gallops, flinches, falls on its side, lunges to bite and
+    leaps out of sight and back down."""
+    s = math.sin(2 * math.pi * t)
+    c = math.cos(2 * math.pi * t)
+    k = min(1.0, t * frames / max(1, frames - 1))
+    r = {"tail": (0, 0, 0.25 * s), "head": (0, 0.03 * s, 0), "neck": (0, 0.05, 0)}
+    offset = [0, 0, 0]
+    knees = {}
+    if animation == "idle":
+        r["body"] = (0, 0, 0)
+        offset[2] = 0.01 * s  # breathing
+    elif animation == "walk":
+        # A trot: diagonal pairs of legs swing together.
+        for name, front, side in rig.legs:
+            phase = s if front * side > 0 else -s
+            r[name] = (0, 0.45 * phase, 0)
+            lift = max(0.0, (c if front * side > 0 else -c))
+            knees[name] = 0.7 * lift
+        r["head"] = (0, 0.05 * c, 0)
+        offset[2] = 0.03 * abs(s)
+    elif animation == "run":
+        # A gallop: front legs together, back legs half a stride later.
+        b = math.sin(2 * math.pi * t + 1.6)
+        for name, front, side in rig.legs:
+            phase = (s if front > 0 else b) + 0.1 * side
+            r[name] = (0, 0.75 * phase, 0)
+            knees[name] = 0.9 * max(0.0, math.cos(2 * math.pi * t + (0 if front > 0 else 1.6)))
+        r["body"] = (0, 0.12 * c, 0)
+        r["tail"] = (0, 0.3, 0.1 * s)
+        r["neck"] = (0, 0.25, 0)
+        offset[2] = 0.10 * max(0.0, s)
+    elif animation == "hit":
+        jolt = math.sin(math.pi * k)
+        r["body"] = (0.15 * jolt, -0.12 * jolt, 0)
+        r["neck"] = (0, -0.35 * jolt, 0)
+        offset[0] = -0.22 * jolt
+    elif animation == "death":
+        # Staggers, then drops onto its side, legs stiff.
+        fall = min(1.0, k * 1.4) ** 2
+        r["body"] = (math.radians(85) * fall, 0, 0)
+        for name, front, side in rig.legs:
+            r[name] = (0, -0.35 * front * fall, 0)
+        r["neck"] = (0, 0.4 * fall, 0)
+        r["tail"] = (0, 0.6 * fall, 0)
+        offset[2] = -(rig.body_height - 0.25) * fall  # down until its side is on the ground
+        offset[1] = 0.20 * fall
+    elif animation == "bite":
+        # Draws back, lunges with the jaws wide, snaps them shut.
+        back = math.sin(math.pi * min(1.0, k / 0.3)) if k < 0.3 else 0.0
+        lunge = math.sin(math.pi * (k - 0.3) / 0.7) if k >= 0.3 else 0.0
+        offset[0] = -0.15 * back + 0.40 * lunge
+        r["body"] = (0, 0.12 * lunge - 0.08 * back, 0)
+        r["neck"] = (0, 0.30 * lunge - 0.15 * back, 0)
+        r["jaw"] = (0, 0.6 * (lunge if k < 0.6 else max(0.0, 1 - (k - 0.6) / 0.15)), 0)
+        for name, front, side in rig.legs:
+            r[name] = (0, (-0.5 if front > 0 else 0.5) * lunge, 0)
+    elif animation == "jumpup":
+        # Crouches, then springs straight up out of sight.
+        f = t * frames
+        if f < 5:
+            crouch = math.sin(math.pi / 2 * f / 4)
+            offset[2] = -0.20 * crouch
+            for name, front, side in rig.legs:
+                r[name] = (0, 0.5 * front * crouch, 0)
+                knees[name] = 1.1 * crouch
+        else:
+            u = (f - 5) / (frames - 6)
+            offset[2] = 9.0 * u * u + 0.6 * u
+            r["body"] = (0, -0.6, 0)
+            for name, front, side in rig.legs:
+                r[name] = (0, (-0.7 if front > 0 else 0.6), 0)
+    elif animation == "jumpdown":
+        # Drops from above, lands hard in a crouch and gets up.
+        f = t * frames
+        if f < 8:
+            u = 1 - f / 8
+            offset[2] = 9.0 * u * u
+            r["body"] = (0, 0.45 * u, 0)
+            for name, front, side in rig.legs:
+                r[name] = (0, (-0.8 if front > 0 else 0.5) * u, 0)
+        else:
+            u = min(1.0, (f - 8) / (frames - 10))
+            crouch = math.sin(math.pi / 2 * (1 - u)) if f >= 10 else 1.0
+            offset[2] = -0.22 * crouch
+            for name, front, side in rig.legs:
+                r[name] = (0, 0.5 * front * crouch, 0)
+                knees[name] = 1.2 * crouch
+            r["neck"] = (0, 0.3 * crouch, 0)
+    for name, front, side in rig.legs:
+        bend = knees.get(name, 0.0)
+        # Front knees fold the paw back; hocks fold the other way.
+        r[name + "_k"] = (0, (bend if front > 0 else -bend), 0)
+    rig.pose(r, tuple(offset))
+
+
+BUILDERS.update({"dog": lambda: build_dog(), "smalldog": lambda: build_dog(small=True)})
+HEIGHT.update({"dog": 2.0, "smalldog": 1.4})
+SIZE.update({"dog": 360, "smalldog": 300})
+
+
 def pose(rig, animation, t, frames):
     """Rotations (radians, about X, Y, Z) per joint at time t in [0, 1)."""
     s = math.sin(2 * math.pi * t)
@@ -1947,6 +2153,9 @@ def pose(rig, animation, t, frames):
         return
     if getattr(rig, "kind", None) == "boar":
         boar_pose(rig, animation, t, frames)
+        return
+    if getattr(rig, "kind", None) == "dog":
+        dog_pose(rig, animation, t, frames)
         return
     if getattr(rig, "kind", None) == "fire":
         fire_pose(rig, animation, t, frames)
@@ -2133,17 +2342,19 @@ def render_frames(scene, rig, kind, out, preview, skip=()):
     the frames.txt lines and calls back for each posed frame."""
     ax, ay = studio.anchor(scene)
     lines = [f"anchor {ax:.0f} {ay:.0f}"]
-    for name, (frames, loop) in ANIMATIONS.items():
+    for name, (frames, loop, *directional) in getattr(rig, "animations", ANIMATIONS).items():
         if kind.startswith("person") and name not in ("idle", "walk"):
             continue  # townspeople only stand about and stroll
         if name in skip:
             continue
         lines.append(f"animation {name} {frames} {'loop' if loop else 'once'}")
-        for d in range(8):
+        # An animation with no direction is drawn once, from the direction
+        # it names, as direction 8.
+        for d in ([8] if directional else range(8)):
             for f in ([frames // 2] if preview else range(frames)):
                 pose(rig, name, f / frames, frames)
                 spin = rig.joints["root"].rotation_euler
-                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(d)))
+                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(directional[0] if directional else d)))
                 yield lines, name, d, f
         print(name, "done", flush=True)
 
@@ -2202,6 +2413,11 @@ def main():
         k = sys.argv.index("--layers")
         layers = [int(x) for x in sys.argv[k + 1].split(",")]
         del sys.argv[k:k + 2]
+    only = None
+    if "--only" in sys.argv:
+        k = sys.argv.index("--only")
+        only = sys.argv[k + 1].split(",")
+        del sys.argv[k:k + 2]
     args = [a for a in sys.argv if a not in ("--preview", "--blend")]
     kind, out = args[-2], Path(args[-1])
     out.mkdir(parents=True, exist_ok=True)
@@ -2217,7 +2433,9 @@ def main():
         render_hero(scene, rig, out, preview, layers or [0, *sorted(GEAR)])
         return
     lines = []
-    for lines, name, d, f in render_frames(scene, rig, kind, out, preview):
+    animations = getattr(rig, "animations", ANIMATIONS)
+    skip = [name for name in animations if only and name not in only]
+    for lines, name, d, f in render_frames(scene, rig, kind, out, preview, skip):
         studio.render(scene, str(out / f"{name}_{d}_{f}.png"))
     (out / "frames.txt").write_text("\n".join(lines) + "\n")
 

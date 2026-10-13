@@ -1,6 +1,7 @@
 #include "formats/open_content.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <charconv>
 #include <cstdlib>
@@ -578,7 +579,7 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
             S::Command command{*opcode, {}};
             static const std::map<std::string_view, std::int32_t, std::less<>> kKinds = {
                 {"temp", S::kTemp}, {"save", S::kSave}, {"quest", S::kQuest}, {"net", S::kNet}, {"msg", S::kMessage}, {"warp", S::kWarp},
-                {"x", S::kCharacterX}, {"y", S::kCharacterY},
+                {"x", S::kCharacterX}, {"y", S::kCharacterY}, {"shown", -1},
             };
             static const std::map<std::string_view, std::int32_t, std::less<>> kOperators = {
                 {"=", 0}, {"!", 1}, {"!=", 1}, {">", 2}, {"<", 3},
@@ -595,7 +596,13 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
                     if (kind == kKinds.end()) lines.fail(std::format("unknown operand '{}'", w));
                     const auto rest = w.substr(colon + 1);
                     const bool position = kind->second == S::kCharacterX || kind->second == S::kCharacterY;
-                    command.operands.push_back({kind->second, position ? character(rest) : lines.toInt(rest)});
+                    if (kind->second == -1) {
+                        // shown:<name>: the NET flag SETACTIVE and SETINACTIVE
+                        // set for someone, as the original's 1xxxxxxxx flags.
+                        command.operands.push_back({S::kNet, 100000000 + character(rest)});
+                    } else {
+                        command.operands.push_back({kind->second, position ? character(rest) : lines.toInt(rest)});
+                    }
                 } else {
                     command.operands.push_back({S::kConstant, character(w)});
                 }
@@ -746,6 +753,74 @@ WarpGates parseGates(std::span<const std::uint8_t> text) {
     return gates;
 }
 
+// [partner <kind>] sections; see docs/content.md. Each stat lists its value
+// at level 1, then what each level adds (or, for the rows the game reads
+// at the level, the value there); the last number carries on to level 35.
+GameTables parsePartners(std::span<const std::uint8_t> text) {
+    constexpr int kKinds = 6, kLevels = 35, kRows = 19;
+    // Rows of tables 800-805, in order; row 4 is unused.
+    static const std::map<std::string_view, int, std::less<>> kRowOf = {
+        {"attack_speed", 0}, {"walk", 1}, {"run", 2}, {"hp", 3}, {"attack", 5}, {"hit", 6}, {"defense", 7},
+        {"evasion", 8}, {"magic_attack", 9}, {"magic_defense", 10}, {"magic_hit", 11}, {"magic_evasion", 12},
+        {"element", 13}, {"stun_chance", 14}, {"stun_length", 15}, {"stun_uncapped", 16}, {"jump_area", 17},
+        {"experience", 18},
+    };
+    Lines lines(text);
+    GameTables out;
+    auto& kinds = out.tables[60];
+    kinds.rows = kKinds;
+    kinds.cols = 5;
+    kinds.values.assign(kKinds * 5, 0);
+    kinds.strings.assign(kKinds * 5, {});
+    std::array<std::vector<bool>, kKinds> seen;
+    GameTables::Table* stats = nullptr;
+    int kind = -1;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "partner") lines.fail("expected [partner <kind>]");
+            kind = lines.toInt(words[1]);
+            if (kind < 0 || kind >= kKinds) lines.fail("partner kinds go from 0 to 5");
+            if (out.tables.contains(800 + kind)) lines.fail("partner defined twice");
+            stats = &out.tables[800 + kind];
+            stats->rows = kRows;
+            stats->cols = kLevels;
+            stats->values.assign(kRows * kLevels, 0);
+            seen[static_cast<std::size_t>(kind)].assign(kRows, false);
+            continue;
+        }
+        std::string_view key, value;
+        if (!stats || !keyValue(*line, key, value)) lines.fail("expected [partner <kind>] then key=value lines");
+        const auto k = static_cast<std::size_t>(kind);
+        if (key == "name") {
+            kinds.strings[k * 5] = value;
+        } else if (key == "folder") {
+            kinds.values[k * 5 + 1] = lines.toInt(value);
+        } else if (key == "tint") {
+            const auto rgb = lines.ints(value, 3);
+            for (std::size_t c = 0; c < 3; ++c) kinds.values[k * 5 + 2 + c] = rgb[c];
+        } else if (const auto row = kRowOf.find(key); row != kRowOf.end()) {
+            const auto v = lines.ints(value);
+            if (v.empty() || v.size() > kLevels) lines.fail("expected 1 to 35 numbers");
+            for (int c = 0; c < kLevels; ++c) {
+                stats->values[static_cast<std::size_t>(row->second * kLevels + c)] = v[std::min<std::size_t>(c, v.size() - 1)];
+            }
+            seen[k][static_cast<std::size_t>(row->second)] = true;
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    for (int k = 0; k < kKinds; ++k) {
+        if (!out.tables.contains(800 + k)) lines.fail(std::format("partner {} is missing", k));
+        for (const auto& [name, row] : kRowOf) {
+            if (!seen[static_cast<std::size_t>(k)][static_cast<std::size_t>(row)]) {
+                lines.fail(std::format("partner {} has no {}", k, name));
+            }
+        }
+    }
+    return out;
+}
+
 // [drops <list>] sections; see docs/content.md.
 DropTables parseDrops(std::span<const std::uint8_t> text) {
     Lines lines(text);
@@ -854,7 +929,7 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             pair(value, item->itemLevel, item->requiredLevel);
         } else if (key == "weight") {
             item->dropWeight = lines.toInt(value);
-        } else if (key == "carry-weight") {
+        } else if (key == "load") {
             item->weight = lines.toInt(value);
         } else if (key == "stats") {
             numbers(value, item->stats);

@@ -1,0 +1,155 @@
+# The hero's companions, standing in for the original's Table.Tbd tables 60
+# and 800-805: see docs/content.md. The kinds keep the original's numbers,
+# so CHANGEPARTNER, saves and the kennel scripts work with either. Names,
+# colours and stats are our own. A new hero starts with kind 0.
+#
+# Each stat is its value at level 1, then what each later level adds; the
+# last number carries on to level 35. element and the stun_ and jump_
+# lines are the value at each level instead. Speeds are as the hero's
+# (walking 128); stun chances are percent, lengths ticks; the jump lands
+# on a square jump_area wide; experience is the kills to the next level.
+
+# A grey wolf-dog: steady all round.
+[partner 0]
+name=Ash
+folder=0                 # Character/PARTNER/00000000
+tint=1000,1000,1000      # red, green, blue in thousandths
+attack_speed=128
+walk=126,0
+run=224,0
+hp=320,70
+attack=26,12,12,12,16,16,16,16,24,24,24,24,32
+hit=240,0
+defense=40,24,24,24,24,24,24,24,24,24,32
+evasion=20,0
+magic_attack=90,0
+magic_defense=40,24,24,24,24,24,24,24,24,24,32
+magic_hit=240,0
+magic_evasion=20,0
+element=0                # fire
+stun_chance=70
+stun_length=14
+stun_uncapped=0
+jump_area=880
+experience=90
+
+# Near black: quick to bite, and its jump stuns for longer as it grows.
+[partner 1]
+name=Soot
+folder=0
+tint=420,420,450
+attack_speed=150
+walk=126,0
+run=224,0
+hp=320,60
+attack=30,12,12,12,16,16,16,26,26,26,26,34
+hit=240,0
+defense=36,22,22,22,22,22,22,22,22,22,30
+evasion=20,0
+magic_attack=90,0
+magic_defense=36,22,22,22,22,22,22,22,22,22,30
+magic_hit=240,0
+magic_evasion=20,0
+element=3                # thunder
+stun_chance=25,30,35,40,45,50
+stun_length=3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+stun_uncapped=1,1,1,1,1,1,1,1,0
+jump_area=640
+experience=90
+
+# Sandy: slower to bite but hard to hurt.
+[partner 2]
+name=Amber
+folder=0
+tint=950,820,620
+attack_speed=100
+walk=126,0
+run=224,0
+hp=320,60
+attack=22,10,10,10,22,22,26,26,26,26,30
+hit=240,0
+defense=46,26,26,26,26,26,26,26,26,26,30,30,30,30,30,30,30,30,30,30,56
+evasion=20,0
+magic_attack=90,0
+magic_defense=46,30
+magic_hit=240,0
+magic_evasion=20,0
+element=4                # holy
+stun_chance=25,30,35,40,45,50
+stun_length=3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+stun_uncapped=1,1,1,1,1,1,1,1,0
+jump_area=640
+experience=90
+
+# Rust red, met in Cold Svalt Town: the strongest, slowest to train.
+[partner 3]
+name=Rust
+folder=0
+tint=820,500,400
+attack_speed=150
+walk=126,0
+run=224,0
+hp=320,55
+attack=34,14,14,14,18,18,18,26,26,26,26,36
+hit=240,0
+defense=46,26,26,26,26,26,26,26,26,26,36
+evasion=20,0
+magic_attack=90,0
+magic_defense=46,26,26,26,26,26,26,26,26,26,36
+magic_hit=240,0
+magic_evasion=20,0
+element=5                # dark
+stun_chance=45,50,55,60,65,70
+stun_length=3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+stun_uncapped=1,1,1,1,1,1,1,1,0
+jump_area=760
+experience=140
+
+# A small long-bodied dog: slow and weak, but very hard to put down.
+[partner 4]
+name=Pip
+folder=1                 # Character/PARTNER/00000001
+tint=1000,1000,1000
+attack_speed=100
+walk=104,1
+run=186,1
+hp=480,90
+attack=12,6,6,6,6,6,14
+hit=240,0
+defense=46,26,26,26,26,26,26,26,26,26,36
+evasion=20,0
+magic_attack=90,0
+magic_defense=46,26,26,26,26,26,26,26,26,26,36
+magic_hit=240,0
+magic_evasion=20,0
+element=2                # earth
+stun_chance=70
+stun_length=14
+stun_uncapped=0
+jump_area=520
+experience=90
+
+# A hawk: fast and fierce but frail. Not met in this pack's areas, and
+# Character/PARTNER/00000002 has no pictures yet.
+[partner 5]
+name=Kestrel
+folder=2
+tint=1000,1000,1000
+attack_speed=128
+walk=220,0
+run=250,0
+hp=220,55
+attack=46,20,20,20,26,26,26,26,36,36,36,36,46
+hit=240,0
+defense=46,24,24,24,24,24,24,24,24,24,32
+evasion=20,0
+magic_attack=90,0
+magic_defense=46,24,24,24,24,24,24,24,24,24,32
+magic_hit=240,0
+magic_evasion=20,0
+element=2                # earth
+stun_chance=70
+stun_length=14
+stun_uncapped=0
+jump_area=860
+experience=360
