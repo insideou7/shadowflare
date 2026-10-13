@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -18,6 +19,7 @@
 #include "formats/open_content.h"
 #include "game/game.h"
 #include "game/skin.h"
+#include "platform/audio.h"
 #include "platform/filesystem.h"
 
 namespace {
@@ -26,6 +28,7 @@ struct Options {
     std::optional<std::filesystem::path> dataDir;  // default: game/, else the open content in content/
     std::string map;  // default: c02_00, or the content pack's start map
     std::string screenshot;  // saved as BMP when the run ends
+    std::string recordSound;  // the game's sound, saved as a WAV file when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
@@ -90,6 +93,8 @@ Options parseArgs(int argc, char** argv) {
             options.map = argv[++i];
         } else if (arg == "--screenshot" && i + 1 < argc) {
             options.screenshot = argv[++i];
+        } else if (arg == "--record-sound" && i + 1 < argc) {
+            options.recordSound = argv[++i];
         } else if (arg == "--walk" && i + 1 < argc) {
             int dx = 0, dy = 0;
             if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) options.walk.emplace(dx, dy);
@@ -262,11 +267,49 @@ void saveScreenshot(SDL_Renderer* renderer, const std::string& path) {
     SDL_FreeSurface(surface);
 }
 
+// A 16-bit stereo WAV file at the mixer's rate.
+void saveSound(const std::vector<std::int16_t>& samples, const std::string& path) {
+    std::FILE* f = std::fopen(path.c_str(), "wb");
+    if (!f) {
+        sf::log::error("Could not write {}", path);
+        return;
+    }
+    const auto put32 = [&](std::uint32_t v) {
+        const unsigned char b[4] = {static_cast<unsigned char>(v), static_cast<unsigned char>(v >> 8),
+                                    static_cast<unsigned char>(v >> 16), static_cast<unsigned char>(v >> 24)};
+        std::fwrite(b, 1, 4, f);
+    };
+    const auto put16 = [&](std::uint16_t v) {
+        const unsigned char b[2] = {static_cast<unsigned char>(v), static_cast<unsigned char>(v >> 8)};
+        std::fwrite(b, 1, 2, f);
+    };
+    const auto bytes = static_cast<std::uint32_t>(samples.size() * 2);
+    std::fwrite("RIFF", 1, 4, f);
+    put32(36 + bytes);
+    std::fwrite("WAVEfmt ", 1, 8, f);
+    put32(16);
+    put16(1);
+    put16(2);
+    put32(sf::Mixer::kRate);
+    put32(sf::Mixer::kRate * 4);
+    put16(4);
+    put16(16);
+    std::fwrite("data", 1, 4, f);
+    put32(bytes);
+    for (const std::int16_t s : samples) put16(static_cast<std::uint16_t>(s));
+    std::fclose(f);
+    sf::log::info("Saved sound to {}", path);
+}
+
 struct App {
     SDL_Window* window = nullptr;
     SDL_Renderer* renderer = nullptr;
     std::unique_ptr<sf::FileSystem> data;
     std::unique_ptr<sf::Game> game;
+    std::unique_ptr<sf::AudioOutput> audio;
+    // --record-sound: the mix of every tick so far, in place of the device.
+    bool recording = false;
+    std::vector<std::int16_t> recorded;
     Uint64 lastCounter = 0;
     double accumulator = 0.0;
     long frames = 0;
@@ -300,6 +343,18 @@ void frame(void* userData) {
             app.accumulator -= kTickSeconds;
         }
         app.game->render(app.accumulator / kTickSeconds);
+    }
+
+    if (app.recording) {
+        // Exactly the ticks' worth, so runs come out the same every time.
+        const auto want = static_cast<std::size_t>(app.game->tickCount() * sf::Mixer::kRate / sf::kTicksPerSecond) * 2;
+        if (want > app.recorded.size()) {
+            const std::size_t from = app.recorded.size();
+            app.recorded.resize(want);
+            app.game->mixer().mix(std::span(app.recorded).subspan(from));
+        }
+    } else if (app.audio) {
+        app.audio->pump(app.game->mixer());
     }
 
     ++app.frames;
@@ -490,6 +545,8 @@ int main(int argc, char** argv) {
     }
     if (options.warpGate) app.game->openWarpGate(0, *options.warpGate);
     if (options.warpTo >= 0) app.game->chooseWarpGate(options.warpTo);
+    app.recording = !options.recordSound.empty();
+    if (!app.recording) app.audio = std::make_unique<sf::AudioOutput>();
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__
@@ -499,11 +556,13 @@ int main(int argc, char** argv) {
 #endif
 
     if (options.saveAtEnd) app.game->saveGame();
+    if (app.recording) saveSound(app.recorded, options.recordSound);
     if (!options.screenshot.empty()) {
         app.game->render(0.0);
         saveScreenshot(app.renderer, options.screenshot);
     }
     sf::log::info("Exited after {} frames, {} ticks", app.frames, app.game->tickCount());
+    app.audio.reset();
     app.game.reset();
     skin.reset();
     SDL_DestroyRenderer(app.renderer);

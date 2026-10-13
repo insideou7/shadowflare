@@ -241,6 +241,14 @@ public:
     }
     void startVisual(int picture) override { g_.startVisual(picture); }
     void rain(int r, int g, int b, int count) override { g_.addRain(r, g, b, count); }
+    void playSound(int voice, bool everywhere, int x, int y) override {
+        if (!g_.player_) return;
+        if (x == -1) {
+            g_.playSound(voice, g_.player_->x, g_.player_->y, everywhere);
+        } else {
+            g_.playSound(voice, x, y, everywhere);
+        }
+    }
     void memorizeSpell(int spell) override {
         // The original only marks it known (player + 0x1440 = 3) and casts
         // it at level 1 at the least; ours records it as level 1.

@@ -162,7 +162,11 @@ public:
     // hero is taught, and whether they know it.
     virtual void memorizeSpell(int /*spell*/) {}
     virtual bool knowsSpell(int /*spell*/) const { return false; }
-    // A command the engine does not carry out yet ran (sound aside), so a
+    // PLAYSOUND voice everywhere x y (0x430f80 case 16): a sound effect of
+    // Voice00.Voc at a spot, x -1 meaning where the player stands. Unless
+    // `everywhere`, only heard near the player.
+    virtual void playSound(int /*voice*/, bool /*everywhere*/, int /*x*/, int /*y*/) {}
+    // A command the engine does not carry out yet ran, so a
     // playthrough can list what a scenario still lacks.
     virtual void skippedCommand(std::int32_t /*opcode*/) {}
 };
@@ -197,8 +201,7 @@ public:
     // Original mode's SETQUESTFLAG (see Rules::missionsClearOnlyWhenTaken).
     void setRules(const Rules& rules) { rules_ = rules; }
 
-    // Whether the engine carries the command out (PLAYSOUND counts, as sound
-    // is a separate piece of work).
+    // Whether the engine carries the command out.
     static bool implemented(std::int32_t opcode);
 
 private:

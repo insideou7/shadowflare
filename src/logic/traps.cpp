@@ -66,6 +66,7 @@ std::optional<TrapShot> trapShot(int kind, int direction, double angle) {
             s.box = {-30, -30, 30, 30};
             s.diesOnHit = true;
             s.diesOnWall = true;
+            s.hitSound = 7;
             return s;
         case 2:
             // A fire jet: 360 units long out of the trap along one of the

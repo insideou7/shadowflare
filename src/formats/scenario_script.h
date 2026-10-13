@@ -49,7 +49,7 @@ struct ScenarioScript {
         kRepair = 9,            // REPAIR part: 0 weapon, 1 helmet, 2 body, 3 shield, 4 boots, -1 the bag
         kCreateItem = 10,       // CREATEITEM class code x y min max
         kAdd = 11, kSub = 12, kMul = 13, kDiv = 14, kRem = 15,  // ADD var value...
-        kPlaySound = 16,        // PLAYSOUND sound ? x y
+        kPlaySound = 16,        // PLAYSOUND voice everywhere x y
         kChangeScenario = 17,   // CHANGESCENARIO scenario entry
         kStop = 18,             // C_STOP character: stops it wandering (to talk)
         kMovable = 19,          // C_MOVABLE character: lets it wander again

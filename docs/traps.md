@@ -87,6 +87,8 @@ fill hit words 0x29, 0x2b, 0x28 and 0x48.
   - **Not copied.** The original also reads some of the hero's own states,
     which can make a stun certain or impossible. The engine does not have
     those states.
+- **Sound.** An arrow plays voice 7 where it is when its blow lands. Fire
+  jets have no sound. See [sound.md](sound.md).
 - **Splash.** A shot with the splash word set shows 11000024 or 11000025 on
   one hit in five, facing a random direction.
 
@@ -163,5 +165,3 @@ not.
   scenario objects work.
 - Scenario objects are not drawn with their SETCHARTRANS opacity yet. This
   also waits on that work.
-- Sounds are not played. The engine has no sound yet, and the game files in
-  the project have no sound files.

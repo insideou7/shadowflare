@@ -13,6 +13,7 @@
 #include <string_view>
 #include <vector>
 
+#include "audio/mixer.h"
 #include "game/character.h"
 #include "logic/ai_select.h"
 #include "logic/explored_map.h"
@@ -82,6 +83,9 @@ public:
     void handleEvent(const SDL_Event& event);
     void tick();
     void render(double interpolation);
+    // The sounds and music playing, for the main loop to send to the
+    // sound device.
+    Mixer& mixer() { return mixer_; }
 
     bool wantsQuit() const { return quit_; }
 
@@ -532,6 +536,26 @@ private:
     bool visualEvent(const SDL_Event& event);
     void renderVisual();
     std::map<std::int32_t, int> objectOpacity_;  // SETCHARTRANS, by object id
+
+    // Sound (sound.cpp): Voice00.Voc's effects in bank 0 and one piece of
+    // music in bank 500, as the original keeps them.
+    Mixer mixer_;
+    void loadSounds();
+    // A sound effect where something happens (0x417260): only heard
+    // within 3000 units of the hero unless `everywhere`.
+    void playSound(int voice, double x, double y, bool everywhere = false);
+    // A sound heard wherever the hero is (the menus' clicks).
+    void playSound(int voice);
+    // The area's music, BGM<areaKind>.Voc, on a scenario change (0x4275e0).
+    void startAreaMusic(int areaKind);
+    // Plays the music: the title's on the title screens, otherwise the
+    // area's, started again from the top after each scenario change
+    // (0x4275a0).
+    void tickMusic();
+    void loadMusic(const std::string& path);
+    std::string musicFile_;   // what bank 500 holds
+    int areaMusic_ = -1;      // the area's BGM number, -1 for none
+    int musicTicks_ = 0;      // ticks since the area's music started
     double everyTickCarry_ = 0;  // event 5 runs once an original tick
 
     // Land mines (mines.cpp): B or the MINE button lays one where the hero

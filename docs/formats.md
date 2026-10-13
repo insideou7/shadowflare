@@ -338,7 +338,7 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 9 | `REPAIR slot` | 35 | `CALCANGLE dx dy var` | 61 | `GETPLAYERLEVEL var` |
 | 10 | `CREATEITEM class code x y min max` | 36 | `CREATEEFFECT effect x y height dir` | 62 | `SETQUESTFLAG` |
 | 11-15 | `ADD`, `SUB`, `MUL`, `DIV`, `REM var value` | 37 | `WARPGATE` | 63 | `GETPARTNERLIFE life max` |
-| 16 | `PLAYSOUND sound ? x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL picture` |
+| 16 | `PLAYSOUND voice everywhere x y` | 38 | `DELETEWARPGATE` | 64 | `STARTVISUAL picture` |
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN r g b count` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR effect char` | 66 | `GETMYPLAYERNO var` |
 | 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC spell` |
@@ -354,7 +354,8 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | | | 51 | `SETMSGDEFINE v0 ... v19` | | |
 
 Traps, effects, rain, story pictures and taught spells (30, 33-36, 40,
-46, 47, 64-67, 69) are described in [traps.md](traps.md).
+46, 47, 64-67, 69) are described in [traps.md](traps.md), and `PLAYSOUND`
+(16) and the `.Voc` sound banks in [sound.md](sound.md).
 
 `MESSAGEBOX` floats a message at (dx, dy) screen pixels from a character
 or map object, such as an area's name over its warp gate (Remote Town runs

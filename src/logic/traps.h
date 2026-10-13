@@ -48,6 +48,9 @@ struct TrapShot {
     bool hitsAll = false;     // everyone in the box (each tick), else the nearest
     bool diesOnHit = false;
     bool diesOnWall = false;
+    // The Voice00.Voc sound of a hit that lands (the create struct's
+    // words 0x76 and 0x77), -1 for none.
+    int hitSound = -1;
 };
 // Empty for the kinds no script uses (4-7), which the exe sets up further.
 std::optional<TrapShot> trapShot(int kind, int direction, double angle);

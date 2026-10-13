@@ -120,6 +120,7 @@ void Game::stepTrap(Effect& e) {
 void Game::trapHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
     if (random_.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) return;
+    playSound(e.trap->shot.hitSound, e.x, e.y);
     int damage = e.trap->power;
     if (!e.trap->fixedDamage) {
         int defense = stats[HeroStats::kDefense];
@@ -156,6 +157,7 @@ void Game::trapHitsPartner(const Effect& e) {
     Partner& p = *partner_;
     const PartnerStats& st = p.stats;
     if (random_.next(100) >= hitChance(kTrapHit, st.evasion)) return;
+    playSound(e.trap->shot.hitSound, e.x, e.y);
     const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, random_.next(3)));
     hurtPartner(damage);
     if (!partnerAlive()) return;

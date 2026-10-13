@@ -24,6 +24,7 @@ add_library(sf_formats STATIC
     src/formats/ground_skin.cpp
     src/formats/missions.cpp
     src/formats/warp_gates.cpp
+    src/formats/voice_bank.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -51,6 +52,7 @@ add_library(sf_logic STATIC
     src/logic/partner.cpp
     src/logic/lighting.cpp
     src/logic/explored_map.cpp
+    src/audio/mixer.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -58,6 +60,7 @@ add_executable(shadowflare
     src/main.cpp
     src/core/log.cpp
     src/platform/filesystem.cpp
+    src/platform/audio.cpp
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
@@ -83,6 +86,7 @@ add_executable(shadowflare
     src/game/magic_window.cpp
     src/game/darkness.cpp
     src/game/area_map.cpp
+    src/game/sound.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

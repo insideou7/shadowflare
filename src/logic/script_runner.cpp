@@ -354,6 +354,13 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                     if (const auto opacity = host_->objectOpacity(arg(0))) store(ops[1], *opacity);
                 }
                 break;
+            case S::kPlaySound:
+                if (ops.size() >= 4) {
+                    // x -1: at the player, and y is not read.
+                    const int x = arg(2);
+                    host_->playSound(arg(0), arg(1) != 0, x, x == -1 ? -1 : arg(3));
+                }
+                break;
             case S::kStartVisual: host_->startVisual(arg(0)); break;
             case S::kSettingRain:
                 if (ops.size() >= 4) host_->rain(arg(0), arg(1), arg(2), arg(3));

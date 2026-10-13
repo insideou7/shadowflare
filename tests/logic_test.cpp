@@ -23,6 +23,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "audio/mixer.h"
 #include "logic/traps.h"
 #include "formats/item_data.h"
 #include "formats/warp_gates.h"
@@ -875,6 +876,8 @@ struct TrapHost : sf::ScriptHost {
         return found == opacity.end() ? std::nullopt : std::optional(found->second);
     }
     void startVisual(int n) override { pictures.push_back(n); }
+    std::vector<std::vector<int>> sounds;
+    void playSound(int voice, bool everywhere, int x, int y) override { sounds.push_back({voice, everywhere ? 1 : 0, x, y}); }
     void memorizeSpell(int n) override { learned.push_back(n); }
     bool knowsSpell(int n) const override { return std::ranges::find(learned, n) != learned.end(); }
 };
@@ -898,7 +901,9 @@ void testScriptTrapsAndEffects() {
                          {S::kStartVisual, {constant(3)}},
                          {S::kCheckMemorizedMagic, {constant(17), t10}},
                          {S::kMemorizeMagic, {constant(17)}},
-                         {S::kCheckMemorizedMagic, {constant(17), {S::kTemp, 11}}}}};
+                         {S::kCheckMemorizedMagic, {constant(17), {S::kTemp, 11}}},
+                         {S::kPlaySound, {constant(7), constant(0), constant(300), constant(400)}},
+                         {S::kPlaySound, {constant(20), constant(5), constant(-1), constant(9)}}}};
     sf::ScriptFlags flags;
     flags[{S::kTemp, 5}] = 77;
     TrapHost host;
@@ -916,9 +921,62 @@ void testScriptTrapsAndEffects() {
     check(flags[{S::kTemp, 9}] == 400, "SETCHARTRANS and GETCHARTRANS");
     check(host.pictures == std::vector{3}, "STARTVISUAL shows a story picture");
     check(flags[{S::kTemp, 10}] == 0 && flags[{S::kTemp, 11}] == 1, "MEMORIZEMAGIC teaches a spell CHECKMEMORIZEDMAGIC sees");
+    check(host.sounds == std::vector<std::vector<int>>{{7, 0, 300, 400}, {20, 1, -1, -1}},
+          "PLAYSOUND: voice, heard everywhere when not 0, at x y or at the player for x -1");
+    check(sf::trapShot(0, 8, 0)->hitSound == 7 && sf::trapShot(2, 1, 0)->hitSound == -1, "arrows sound when they hit, jets do not");
+}
+
+// A voice of 8-bit mono samples at the mixer's own rate.
+sf::VoiceBank oneVoice(std::vector<std::uint8_t> pcm, int copies = 0) {
+    sf::VoiceBank bank;
+    bank.copies = copies;
+    sf::VoiceBank::Voice v;
+    v.sampleRate = sf::Mixer::kRate;
+    v.pcm = std::move(pcm);
+    bank.voices.push_back(std::move(v));
+    return bank;
+}
+
+void testMixer() {
+    check(sf::Mixer::attenuation(0) == sf::Mixer::kSilent && sf::Mixer::attenuation(10) == 0 && sf::Mixer::attenuation(5) == -1500,
+          "volume sliders: 0 silent, then -3000 + 300 a step");
+    check(sf::Mixer::gain(sf::Mixer::kSilent) == 0 && sf::Mixer::gain(0) == 1 && std::abs(sf::Mixer::gain(-2000) - 0.1) < 1e-9,
+          "attenuation is hundredths of a decibel");
+
+    sf::Mixer m;
+    m.load(0, oneVoice({255, 255, 128}));
+    std::vector<std::int16_t> out(8);
+    check(!m.play(0, 1, false, 0) && !m.play(3, 0, false, 0), "voices that are not loaded do not play");
+    check(m.play(0, 0, false, 0) && m.playing(0, 0), "a voice plays");
+    m.mix(out);
+    check(out[0] > 32000 && out[1] == out[0] && out[4] == 0 && out[6] == 0 && !m.playing(0, 0),
+          "mono goes to both sides, and a voice stops at its end");
+
+    m.play(0, 0, true, 0);
+    m.mix(out);
+    check(out[6] > 32000 && m.playing(0, 0), "a looping voice starts again");
+    m.stop(0, 0);
+    check(!m.playing(0, 0), "stop");
+
+    // Two at once clip; with no spare copy the second play restarts it.
+    m.load(1, oneVoice({192, 192, 192, 192}, 1));
+    m.play(1, 0, false, 0);
+    m.play(1, 0, false, 0);
+    m.mix(out);
+    check(out[0] > 32000, "a voice's copies play together");
+    m.load(2, oneVoice({192, 192, 192, 192}));
+    m.release(1);
+    m.play(2, 0, false, 0);
+    m.play(2, 0, false, 0);
+    m.mix(out);
+    check(out[0] > 16000 && out[0] < 17000, "with every copy busy, the oldest starts again");
+    m.play(2, 0, false, -2000);
+    m.mix(out);
+    check(out[0] > 1600 && out[0] < 1700, "quieter by its attenuation");
 }
 
 int main() {
+    testMixer();
     testLighting();
     testExploredMap();
     testSettings();

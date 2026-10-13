@@ -84,6 +84,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadLevelCurve();
     loadMissions();
     loadWarpGates();
+    loadSounds();
     indexScenarios();
     if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
     giveStartingKit();
@@ -150,7 +151,10 @@ void Game::loadScenario(const std::string& dir) {
     // ones (0x4300e0); the others persist.
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
     warpPage_ = 0;
-    if (!dir.empty()) readScenario(dir, control_, &script_);
+    if (!dir.empty()) {
+        readScenario(dir, control_, &script_);
+        startAreaMusic(control_.areaKind);
+    }
     // The NET flags start as the script lists them, then each character's
     // and object's activity flags join them.
     if (script_) {
@@ -598,6 +602,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 
 void Game::tick() {
     ++ticks_;
+    tickMusic();
     if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
     if (newCharacter_) tickNewCharacter();
     if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
