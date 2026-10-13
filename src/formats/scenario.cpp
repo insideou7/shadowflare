@@ -83,9 +83,21 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
     } else if (group == ScenarioControl::Group::Object) {
         const auto raw = in.bytes(extraSize);
         BinaryReader block(raw);
-        block.skip(4 * 5);
-        p.companionSwitch = block.i32() == 1;
-        p.linkedEnemy = block.i32();
+        std::int32_t w[13];
+        for (auto& v : w) v = block.i32();
+        if (w[0] == 1) {
+            p.look.pattern = w[1];
+        } else {
+            p.look.chart = w[2];
+        }
+        p.look.height = w[4];
+        p.companionSwitch = w[5] == 1;
+        p.linkedEnemy = w[6];
+        p.look.flags = w[7] | (w[3] == 1 ? 0x80 : 0);
+        p.look.opacity = w[8];
+        p.look.r = w[10];
+        p.look.g = w[11];
+        p.look.b = w[12];
     } else {
         in.skip(extraSize);
     }

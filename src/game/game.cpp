@@ -161,6 +161,7 @@ void Game::loadScenario(const std::string& dir) {
         }
     }
     spawnActors();
+    spawnObjects();
     spawnGroundItems();
     placePlayer();
     dialogue_.reset();
@@ -349,7 +350,24 @@ void Game::placePlayerAt(double screenX, double screenY) {
     }
 }
 
-bool Game::tryMove(Character& who, double dx, double dy) { return sf::tryMove(map_->ground(), who.x, who.y, dx, dy); }
+bool Game::tryMove(Character& who, double dx, double dy) {
+    const double x0 = who.x, y0 = who.y;
+    if (!sf::tryMove(map_->ground(), who.x, who.y, dx, dy)) return false;
+    if (!objectInTheWay(x0, y0, who.x, who.y)) return true;
+    // A closed door or a chest in the way: slide along it as along a wall.
+    for (const auto& [sx, sy] : {std::pair{dx, 0.0}, std::pair{0.0, dy}}) {
+        if (sx == 0 && sy == 0) continue;
+        double x = x0, y = y0;
+        if (sf::tryMove(map_->ground(), x, y, sx, sy) && !objectInTheWay(x0, y0, x, y)) {
+            who.x = x;
+            who.y = y;
+            return true;
+        }
+    }
+    who.x = x0;
+    who.y = y0;
+    return false;
+}
 
 void Game::walkBy(int screenDx, int screenDy) {
     if (!player_) return;
@@ -615,7 +633,9 @@ void Game::tick() {
         closeDialogue(answer);
     }
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
+    unlockSwitch_ = false;  // SETUNLOCKSW lasts the frame a script sets it (0x443490)
     runEvent(ScenarioScript::kEveryTick);
+    tickObjects();
     for (auto& actor : actors_) {
         // Scripts show and hide characters through their NET flag, by
         // SETACTIVE or by setting it themselves.
@@ -1162,19 +1182,28 @@ void Game::renderMap() {
     // Semi-transparent Shadow off draws them solid black.
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     const auto& objects = map_->objects().objects;
+    // The scenario's chests, doors and levers sort in among the map's
+    // pieces by the same footprint.
+    std::vector<std::pair<MapObject, const SceneObject*>> scene;
+    for (const auto& o : sceneObjects_) {
+        if (placementOf(o).look.drawn() && objectState(o, kShown)) scene.emplace_back(objectFootprint(o), &o);
+    }
+    std::ranges::stable_sort(scene, [](const auto& a, const auto& b) { return a.first.depth() < b.first.depth(); });
     for (int pass = 0; pass < 2; ++pass) {
         const bool shadows = pass == 0;
         // Characters and effects not drawn yet this pass, back to front.
         std::vector<Drawable> pending = shadows ? std::vector<Drawable>{} : drawables;
         auto draw = [&](const Drawable& d) {
             if (d.character) d.character->draw(renderer_, sprites_, camX, camY, shadowAlpha);
-            if (!shadows && d.character && player_ && d.character == &*player_) renderPowerAura(camX, camY);
+            if (!shadows && d.character && player_ && d.character == &*player_) {
+                renderPowerAura(camX, camY);
+                if (unlockSwitch_) renderHeroOverlay(model("Player/Common/UnlockSW"), unlockTicks_, camX, camY);
+            }
             if (d.effect) renderEffect(*d.effect, camX, camY);
         };
-        for (std::size_t i : drawOrder_) {
-            const MapObject& o = objects[i];
-            // Everyone this object hides goes first, even if someone nearer
-            // the front is still waiting for a later object.
+        // Everyone an object hides goes first, even if someone nearer the
+        // front is still waiting for a later object.
+        auto drawHidden = [&](const MapObject& o) {
             for (auto it = pending.begin(); it != pending.end();) {
                 if (o.hides(it->x, it->y)) {
                     draw(*it);
@@ -1183,8 +1212,21 @@ void Game::renderMap() {
                     ++it;
                 }
             }
+        };
+        std::size_t next = 0;  // into scene
+        auto drawSceneUpTo = [&](long long depth) {
+            for (; next < scene.size() && scene[next].first.depth() <= depth; ++next) {
+                drawHidden(scene[next].first);
+                drawSceneObject(*scene[next].second, shadows, camX, camY, shadowAlpha);
+            }
+        };
+        for (std::size_t i : drawOrder_) {
+            const MapObject& o = objects[i];
+            drawSceneUpTo(o.depth());
+            drawHidden(o);
             drawObject(o, shadows, camX, camY, shadowAlpha);
         }
+        drawSceneUpTo(LLONG_MAX);
         for (const Drawable& d : pending) draw(d);
     }
     // Semi-transparent Player: a faint copy on top shows the hero through

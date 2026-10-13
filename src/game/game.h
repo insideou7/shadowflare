@@ -186,6 +186,10 @@ public:
     void talkToId(std::int32_t id);
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
     // Sets a SAVE story flag, for testing scripts part way through the story.
+    // Uses a scenario object as a click on it does, from wherever the
+    // player is, or holds the left button on one (for scripted tests).
+    void useObject(std::int32_t id) { runEvent(ScenarioScript::kOnTalk, id); }
+    void holdObject(std::int32_t id) { heldObject_ = id; }
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
     // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
     void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
@@ -450,6 +454,38 @@ private:
     bool powerButtonClick(int x, int y);
     const CharacterModel* powerModel();
     void renderPowerAura(int camX, int camY);
+    // An effect animation's first chart, looping, drawn round the hero.
+    void renderHeroOverlay(const CharacterModel* model, double ticks, int camX, int camY);
+
+    // Scenario objects: the chests, doors, levers and gates a scenario
+    // places (objects.cpp). Each has three states, kept in the NET flags
+    // 100,000,000, 300,000,000 and 200,000,000 + its id until
+    // ABSOLUTEOBJECTFLAG fixes them: whether it is shown, whether it can
+    // be used (clicked), and whether its rectangle stands in the way
+    // (0x45e080).
+    struct SceneObject {
+        std::size_t placement = 0;  // into control_.placements
+        std::optional<std::array<int, 3>> fixed;  // set by ABSOLUTEOBJECTFLAG
+        std::optional<Character> animation;       // for a chart rather than a still picture
+        const SpriteBank* body = nullptr;
+        const SpriteBank* shadow = nullptr;
+        int prop = -1;  // open content: frame of Map/props.sheet
+    };
+    enum ObjectState { kShown = 0, kUsable = 1, kBlocks = 2 };
+    void spawnObjects();
+    void tickObjects();
+    bool objectState(const SceneObject& o, ObjectState which) const;
+    SceneObject* sceneObject(std::int32_t id);
+    const SceneObject* sceneObject(std::int32_t id) const;
+    const ScenarioControl::Placement& placementOf(const SceneObject& o) const { return control_.placements[o.placement]; }
+    // Whether a step from one world position to another walks into an
+    // object that stands in the way (0x414990); starting inside one does
+    // not trap anyone.
+    bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
+    // Where the object sorts among the map's pieces, as MapObject::depth.
+    MapObject objectFootprint(const SceneObject& o) const;
+    void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
+    bool workingObject(std::int32_t id) const;
     // The magic window (magic_window.cpp), the STATUS window's other tab:
     // the spells learned, six to a page, and the eight places of the
     // magic/attack bar that spells are dragged to.
@@ -690,6 +726,11 @@ private:
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
     std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
     std::vector<Actor> actors_;
+    std::vector<SceneObject> sceneObjects_;
+    std::map<std::string, std::unique_ptr<SpriteBank>> objectShadows_;  // by path stem; null = missing
+    bool unlockSwitch_ = false;  // SETUNLOCKSW this frame
+    std::int32_t heldObject_ = -1;  // --hold
+    double unlockTicks_ = 0;
     std::optional<AiControl> ai_;
     Random random_;
     std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
