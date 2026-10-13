@@ -468,6 +468,10 @@ void Game::handleEvent(const SDL_Event& event) {
         newCharacterEvent(event);
         return;
     }
+    if (loadData_) {
+        loadDataEvent(event);
+        return;
+    }
     if (menuOpen_) {
         menuEvent(event);
         return;
@@ -707,7 +711,8 @@ void Game::tick() {
     tickMusic();
     if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
     if (newCharacter_) tickNewCharacter();
-    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
+    if (loadData_) tickLoadData();
+    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_) return;  // the world waits while a menu is open
     tickMissions();
     if (startScripts_) {
         startScripts_ = false;
@@ -1322,13 +1327,15 @@ void Game::render(double interpolation) {
         renderOptions();
     } else if (newCharacter_) {
         renderNewCharacter();
+    } else if (loadData_) {
+        renderLoadData();
     } else if (menuOpen_) {
         renderMenu();
     }
     // The name under the pointer is over the windows (layer 17) and in a
     // screenshot; the frame (0x41e4f0) saves that before it draws the
     // pointer's square and the pointer (0x416bb0, 0x4087b0).
-    const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !menuOpen_;
+    const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !loadData_ && !menuOpen_;
     if (hovering) renderHoverName(static_cast<int>(std::floor(cameraX_)), static_cast<int>(std::floor(cameraY_)));
     if (screenshotPending_) takeScreenshot();
     if (hovering) renderClickSquare();
@@ -1445,6 +1452,7 @@ void Game::renderMap() {
     renderLabels(camX, camY);
     renderRain();
     renderTransportGateName(camX, camY);
+    if (worldOnly_) return;  // a save's picture
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).
     renderPanel();

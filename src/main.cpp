@@ -54,7 +54,9 @@ struct Options {
     bool options = false;     // open the Settings Menu at the start (for screenshots)
     bool help = false;        // open the Help window at the start
     std::string optionsFile;  // default: options.txt in the user's settings folder
-    std::string saveFile;     // default: save.txt in the user's settings folder
+    std::string saveFile;     // one save file for everything; default: six slots in the user's settings folder
+    std::string saveFolder;   // where the six save slots are, instead of the settings folder
+    bool loadData = false;    // open the Load Data screen
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
     int level = 0;            // start at this level (for tests)
@@ -124,6 +126,10 @@ Options parseArgs(int argc, char** argv) {
             options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
             options.saveFile = argv[++i];
+        } else if (arg == "--save-folder" && i + 1 < argc) {
+            options.saveFolder = argv[++i];
+        } else if (arg == "--load-data") {
+            options.loadData = true;
         } else if (arg == "--hurt" && i + 1 < argc) {
             options.hpPercent = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--experience" && i + 1 < argc) {
@@ -507,8 +513,10 @@ int main(int argc, char** argv) {
     app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);
+    } else if (!options.saveFolder.empty()) {
+        app.game->setSaveFolder(options.saveFolder);
     } else if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
-        app.game->setSaveFile(std::string(prefs) + "save.txt");
+        app.game->setSaveFolder(prefs);
         SDL_free(prefs);
     }
     // The main menu, unless this is a scripted run (tests, screenshots) or
@@ -537,8 +545,9 @@ int main(int argc, char** argv) {
         app.game->setHero(options.hero.value_or(sf::HeroSex::Male), options.heroName);
         if (options.level <= 0 && !options.load) app.game->setLevel(1);  // full with the hero's own stats
     }
-    if (!scripted && !options.newCharacter) app.game->openMenu();
+    if (!scripted && !options.newCharacter && !options.loadData) app.game->openMenu();
     if (options.newCharacter) app.game->openNewCharacter();
+    if (options.loadData) app.game->openLoadData();
     // Queued key presses, for scripted runs of the menus.
     for (const auto& press : options.presses) {
         SDL_Event e{};

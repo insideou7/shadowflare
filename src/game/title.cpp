@@ -31,6 +31,7 @@ const char* label(Game::MenuItem item) {
 }  // namespace
 
 void Game::openMenu() {
+    adoptOldSave();
     menuOpen_ = true;
     optionsOpen_ = false;
     helpOpen_ = false;
@@ -45,10 +46,15 @@ void Game::openMenu() {
 }
 
 bool Game::menuItemEnabled(MenuItem item) const {
-    if (item == MenuItem::Continue) {
+    if (saveFolder_.empty()) {
+        // One save file named on the command line.
         std::error_code ec;
-        return std::filesystem::exists(saveFile_, ec);
+        return item != MenuItem::Continue || std::filesystem::exists(saveFile_, ec);
     }
+    // As the original's title: Load Game while there is a save, New Game
+    // while one of the six slots is free (the manual's Starting the Game).
+    if (item == MenuItem::Continue) return !savedSlots().empty();
+    if (item == MenuItem::NewGame) return freeSlot().has_value();
     return true;
 }
 
@@ -56,7 +62,13 @@ void Game::chooseMenuItem(MenuItem item) {
     if (!menuItemEnabled(item)) return;
     switch (item) {
         case MenuItem::Continue:
-            if (loadGame()) menuOpen_ = false;
+            if (saveFolder_.empty()) {
+                if (loadGame()) menuOpen_ = false;
+            } else {
+                // The Load Data screen, to choose one of the saves.
+                menuOpen_ = false;
+                openLoadData();
+            }
             break;
         case MenuItem::NewGame:
             // The Create New Character screen first, as in the original.
@@ -95,6 +107,8 @@ void Game::newGame() {
     partnerRecord_ = {};
     partner_.reset();
     partnerHpCarried_ = 0;
+    // A new hero gets a save slot of their own when first saved.
+    if (!saveFolder_.empty()) saveFile_.clear();
     giveStartingKit();
     updateEquipment();
     if (!mapNames_.empty()) goToStart();

@@ -1,5 +1,5 @@
 # Drawn by tools/art/select_screen.py (our own art, see content/README.md).
-# The Create New Character screen, by the original's Select.njp pattern numbers; each anchor puts its picture at its place on the screen.
+# The Create New Character and Load Data screens, by the original's Select.njp pattern numbers; each anchor puts its picture at its place on the screen.
 image=Select.png
 frame=0,0,59,14,-575,-7
 frame=59,0,59,14,-575,-7
@@ -38,8 +38,32 @@ frame=659,614,1,1,0,0
 frame=660,614,83,14,-96,-410
 frame=743,614,83,14,-96,-410
 frame=0,628,272,40,-48,-16
-frame=272,628,1,1,0,0
-frame=273,628,288,171,-176,-154
-frame=561,628,1,1,0,0
-frame=562,628,1,1,0,0
-frame=0,799,640,480,0,0
+frame=272,628,120,40,-48,-16
+frame=392,628,288,171,-176,-154
+frame=0,799,415,130,-208,-52
+frame=415,799,287,76,0,0
+frame=0,929,640,480,0,0
+frame=640,929,32,40,0,0
+frame=672,929,32,40,0,0
+frame=704,929,32,40,0,0
+frame=736,929,32,40,0,0
+frame=768,929,32,40,0,0
+frame=800,929,32,40,0,0
+frame=832,929,32,40,0,0
+frame=864,929,32,40,0,0
+frame=896,929,32,40,0,0
+frame=928,929,32,40,0,0
+frame=960,929,32,40,0,0
+frame=992,929,32,40,0,0
+frame=0,1409,32,40,0,0
+frame=32,1409,32,40,0,0
+frame=64,1409,32,40,0,0
+frame=96,1409,32,40,0,0
+frame=128,1409,32,40,0,0
+frame=160,1409,32,40,0,0
+frame=192,1409,32,40,0,0
+frame=224,1409,32,40,0,0
+frame=256,1409,32,40,0,0
+frame=288,1409,32,40,0,0
+frame=320,1409,32,40,0,0
+frame=352,1409,32,40,0,0
