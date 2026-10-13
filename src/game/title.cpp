@@ -90,6 +90,7 @@ void Game::newGame() {
     spellOn_ = {};
     casting_.reset();
     clearSpells();
+    transportGate_.reset();
     setOriginalMode(settings_.originalMode);
     partnerRecord_ = {};
     partner_.reset();

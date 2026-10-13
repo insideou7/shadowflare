@@ -64,14 +64,64 @@ spell level (1-30), read through 0x417410:
 | 4 | chant speed / 32 to a step of the casting speed scale |
 | 100-103 | class point weights (mercenary, warrior, wizard, hunter) |
 | 104-107 | the class points at which each class learns each spell (99999 = never) |
+| 200 | Moon: MP drain per 10000 of the maximum (row 0) and its percent changes to the companion's 13 stat rows (rows 1-13, one for each row 0-12 of its own table, 0x4136f0) |
 | 201 | Berserker: MP drain per 10000 of the maximum (row 0) and its percent changes to 12 stats (rows 1-12) |
+| 24 | by the attacker's level in the monster's opposite element - 1: added to a stun's chance and length |
+| 70-78 | a spell's stun on a monster of each element (78: none): chance, length and whether it may run past 15 ticks, three columns per level (0x4174b0) |
 | 600-621 | each spell's name and description |
 
 A spell's power is table 17 plus the hero's magic attack (at least 1),
 its hit table 18 plus magic hit (Fire Ball's cast, 0x4399db). Casting a
 spell costs table 16, less what equipment saves, at least 1 (0x44f610).
-Spells are trained to level 20 (0x44f6f0); equipment can add levels up to
-30 when cast (0x451e60).
+Spells are trained to level 20 (0x44f6f0); equipment's Magic Level
+modifiers add levels up to 30 when cast (0x451e60). Mental Cost modifiers
+come off the MP cost, broken items included (0x44f610). A new hero's chant
+speed is 80 (0x440f70); Chant Speed modifiers add to it.
+
+### Stuns (0x459690)
+
+A spell that hurts a monster may stun it: tables 70-78 give the chance in
+percent and the length in ticks for the monster's element, at the
+spell's level, and whether it may last past 15 ticks. When the hero's
+level in the monster's opposite element is 1-10, table 24's row for it
+adds to both. The monster's own resistances come off. Ice Bolt, Ice Blast
+and Dread Deathscythe freeze (their damage block's word 3 is 1): ice
+closes round the monster (11000028), one of four blocks of ice holds it
+(11000029-11000032, chosen at random) and breaks away when the stun ends
+(11000033), all from the controller at 0x42d380. Medusa's stun turns it to
+stone (word 3 is 2): it is drawn grey, held still on the first frame of
+its hit pose, and can't be stunned again until it wakes; one killed as
+stone stays grey.
+
+### Transport (0x43a260, 0x420020, 0x4201b0, 0x420970)
+
+Only where the area allows it (scenario + 0x70). As the cast begins, a
+gate opens 500 away towards the cursor, up, down, left or right (whichever
+the cursor is most towards); if the way there (a corridor 160 wide) is
+blocked, the first of the four ways that is clear. None in the town
+itself, nor where its ±80 square is blocked. A new gate replaces the old
+one. Its four pieces (OPTION 10000020's Pattern pictures) drop from
+height 300 by 50 a tick and brighten 200 a tick, 7 ticks apart; once the
+last is down, its animation plays every 30-89 ticks, its owner's name
+shows over it when the mouse is on it, and walking into its ±50 square
+goes to the town's entry 100. There the gate stands too, and leads back
+to where it was cast; its owner coming back closes it. Arriving on an end
+does not send the hero straight back. The gate is not saved.
+
+### Moon (0x43d290, 0x4138b0, 0x45f550)
+
+Cast with Heal's casting animation, it turns on, or off if it was on;
+either way it costs the casting. While on it drains MP every third tick
+like Berserker, at the rate of the level it was cast at, raises the
+companion's stats by table 200 and makes it glow (11000040). It goes off
+at 0 MP and trains by kills.
+
+### Identify (0x43f8d0, 0x446320)
+
+Plays 11000230 and opens the inventory; the next unknown item clicked in
+the bag is identified, which trains the spell. The right button calls it
+off, and so does closing the inventory. It can't be cast again while it
+waits, and the hero doesn't fight meanwhile.
 
 ### Learning (0x412fb0, 0x41334f)
 
@@ -178,6 +228,7 @@ the hand:
 | Flame Strike | 10000012; at R table 204 Fire Balls evenly round the caster from the aim, homing 20° a tick, for 90 ticks, ±80 | 10000011 |
 | Dread Deathscythe | 11000027 and table 204 blades 10000080 150 out in a fan (144° at the most blades) until R; then a missile 10000081 from each, 90 ticks | 11000026 |
 | Lightning Storm | table 204 rays round the caster; 4 rings of Plasma bursts every 4 ticks from R, 350 to 950 out | 11000003 |
+| Medusa | at R a missile 10000070 from 180 in front, ±50, like Fire Ball; its stun turns monsters to stone | 11000050 |
 | Sonic Blade | at R a cut 10000090 at the spell's speed for 7 ticks, hurting all in ±80, gone after its first hit | 11000200 |
 | Mud Javelin | at R a missile 10000110 (±80); where it ends, 10000111 hurting ±240 | |
 | Elemental Strike | 11000210; at R table 207 orbs 10000100 round the caster, homing; where each ends, 12000000, 11000033, the Plasma burst and 10000060, 4 ticks apart, each hurting ±240 | 10000011, 11000026, 11000003, 11000000 |
@@ -200,11 +251,16 @@ Ours rather than the original's, until they are read from the exe:
   they stand, but the original's effect heights are not used for it.
 - A shield or Berserker turning on plays 11000100 (which effect the
   original plays is not known), and a faint ring shows while it is on.
-- Transport, Moon, Medusa and Identify are not in yet. Explosion sends
-  the companion to blow up where it is cast ([partners.md](partners.md)).
+- Explosion sends the companion to blow up where it is cast
+  ([partners.md](partners.md)).
+- Transport's gate tests the ground every 20 units for walls where the
+  original asks its collision map for the whole rectangle, and the hero
+  steps into a gate with a ±30 square (the original uses their judge
+  rect).
+- The mouse pointer is the system's: Identify's pointer is not shown.
 - Monster spells land halfway through their animation, like blows.
-- Chant speed and equipment that adds spell levels or saves MP are not
-  read from items yet.
+- The hunter's special attack in power mode needs bows' arrows, which are
+  not in yet.
 
 ## Original mode
 

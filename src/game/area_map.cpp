@@ -34,7 +34,6 @@ constexpr int kNameX = 72, kNameY = 50;
 // Clicks on the left half above the bar belong to the open map (0x4484c0).
 constexpr int kClickRight = 320, kClickBottom = 412;
 constexpr int kScrollX = 16, kScrollY = 10;
-constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 
 // The pictures: Status.njp's frame (pattern 0x47) and glowing gem (0x76)
 // with MapIcon.njp's arrow (0) and PLAYER (1), or our Map sheet's.

@@ -80,6 +80,26 @@ struct MagicTables {
     // speed, walking speed, HP, MP, attack, defence, magic attack, magic
     // defence, hit, evasion, magic hit, magic evasion).
     std::array<std::array<int, kSpellColumns>, 13> berserker{};
+    // Table 200, by level - 1: Moon's MP drain per 10000 of the maximum
+    // (row 0) and its percent changes to the companion's stats (rows 1-13,
+    // one for each row of the companion's own table, 0x4136f0).
+    std::array<std::array<int, kSpellColumns>, 14> moon{};
+    // Tables 70-78 (0x4174b0): how a spell stuns a monster of each element
+    // (table 70 + element, 78 for none), by spell and level: the chance in
+    // percent, the length in ticks and whether it may run past 15 ticks.
+    struct Stun {
+        int chance = 0, length = 0;
+        bool uncapped = false;
+    };
+    std::vector<Stun> stuns = std::vector<Stun>(9 * kSpellCount * kSpellColumns);
+    Stun& stun(int monsterElement, int s, int level) {
+        const int e = monsterElement >= 0 && monsterElement < kElementCount ? monsterElement : 8;
+        return stuns[(static_cast<std::size_t>(e) * kSpellCount + static_cast<std::size_t>(s)) * kSpellColumns + column(level)];
+    }
+    const Stun& stun(int monsterElement, int s, int level) const { return const_cast<MagicTables*>(this)->stun(monsterElement, s, level); }
+    // Table 24, by the attacker's level in the monster's opposite element
+    // - 1: what that adds to a stun's chance and length (0x459690).
+    std::array<std::array<int, 2>, 10> stunBonus{};
     // Tables 204-207, by level - 1: how many of something a spell makes.
     // 204: Flame Strike's fireballs, Dread Deathscythe's blades and
     // Lightning Storm's rays; 205: Plasma's bursts; 206: Earth Spears'
@@ -119,6 +139,18 @@ bool trainsByKills(int spell);
 void applyElementLevels(HeroStats& stats, int& chantSpeed, const ElementLevels& levels);
 // Berserker at `level` changes the stats by table 201's percentages.
 void applyBerserker(HeroStats& stats, int& chantSpeed, const MagicTables& tables, int level);
+// The stun a hero's spell at `level` gives a monster of `monsterElement`
+// (0x459690): tables 70-78, plus table 24's row for the hero's level in
+// the monster's opposite element when that is 1-10.
+MagicTables::Stun spellStun(const MagicTables& t, int spell, int level, int monsterElement, const ElementLevels& hero);
+// What a stun does besides holding the monster in its hit pose: the
+// damage block's word 3 (Ice Bolt, Ice Blast and Dread Deathscythe
+// freeze, Medusa turns to stone).
+enum class StunKind { Plain = 0, Freeze = 1, Stone = 2 };
+StunKind stunKindOf(int spell);
+// A new hero's chant speed (player + 0x16c, set at 0x440f70). Items add
+// to it (modifier 29) and so does a gel and metal pair at 10.
+inline constexpr int kHeroChantSpeed = 80;
 // Attack speed, walking speed and chant speed 0-255, strength at least 0,
 // everything else at least 1.
 void clampStats(HeroStats& stats, int& chantSpeed);

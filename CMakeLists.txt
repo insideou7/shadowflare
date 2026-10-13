@@ -75,6 +75,7 @@ add_executable(shadowflare
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
+    src/game/transport.cpp
     src/game/warp_gate.cpp
     src/game/panel.cpp
     src/game/power.cpp

@@ -217,7 +217,7 @@ void Game::renderMagicWindow() {
         // Line 2: MP and power at the level it is cast at.
         text(column(22), y + 11, "MP.", kLabel);
         const int baseCost = magic_.mpCost(spell, cast);
-        const int cost = spellMpCost(magic_, spell, cast);
+        const int cost = mpCost(spell, cast);
         const SDL_Color costColor = cost > baseCost ? kLow : cost < baseCost ? kName : kValue;
         text(column(25), y + 11, std::format("{:3d}", cost), costColor);
         if (const char* label = powerLabel(spell)) {

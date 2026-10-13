@@ -265,6 +265,14 @@ class Effect:
         self.number = number
         self.frames = []  # (RGBA image, anchor x, anchor y)
         self.charts = []  # [(loop, {direction: [(additive, priority, [frame or None, ...], [trans])]})]
+        self.patterns = []  # still pictures for the folder's Pattern bank: (RGBA image, anchor x, anchor y)
+
+    def pattern(self, image, ax, ay):
+        """Adds a picture to the folder's Pattern bank (Pattern.png/.sheet)."""
+        bbox = image.getbbox()
+        if bbox is not None:
+            image, ax, ay = image.crop(bbox), ax - bbox[0], ay - bbox[1]
+        self.patterns.append((image, ax, ay))
 
     def frame(self, image, ax, ay):
         """Adds a frame cropped to what is drawn; returns its number."""
@@ -286,25 +294,31 @@ class Effect:
     def chart(self, loop, directions):
         self.charts.append((loop, directions))
 
-    def write(self, folder):
-        folder.mkdir(parents=True, exist_ok=True)
-        # Pack frames in rows no wider than 1024.
+    @staticmethod
+    def write_sheet(folder, stem, frames):
+        """Packs frames in rows no wider than 1024 into <stem>.png and .sheet."""
         x = y = row = 0
         places = []
-        for im, _, _ in self.frames:
+        for im, _, _ in frames:
             if x + im.width > 1024:
                 x, y, row = 0, y + row + 1, 0
             places.append((x, y))
             x += im.width + 1
             row = max(row, im.height)
         sheet = Image.new("RGBA", (1024 if y else max(x, 1), y + row + 1))
-        for (im, _, _), (px, py) in zip(self.frames, places):
+        for (im, _, _), (px, py) in zip(frames, places):
             sheet.paste(im, (px, py))
-        save_png(sheet, folder / "Animation.png")
-        lines = [HEADER, "image=Animation.png\n"]
-        for (im, ax, ay), (px, py) in zip(self.frames, places):
+        save_png(sheet, folder / f"{stem}.png")
+        lines = [HEADER, f"image={stem}.png\n"]
+        for (im, ax, ay), (px, py) in zip(frames, places):
             lines.append(f"frame={px},{py},{im.width},{im.height},{ax},{ay}\n")
-        (folder / "Animation.sheet").write_text("".join(lines))
+        (folder / f"{stem}.sheet").write_text("".join(lines))
+
+    def write(self, folder):
+        folder.mkdir(parents=True, exist_ok=True)
+        self.write_sheet(folder, "Animation", self.frames)
+        if self.patterns:
+            self.write_sheet(folder, "Pattern", self.patterns)
         lines = [HEADER, "sheet=Animation.sheet\n"]
         for c, (loop, directions) in enumerate(self.charts):
             lines.append(f"\n[chart {c} {'loop' if loop else 'once'}]\n")
@@ -1170,8 +1184,234 @@ def mine_piece(e, seed, loop=True):
     e.chart(loop, {8: [(False, 0, frames, None)]})
 
 
+# --- Transport, Moon, Medusa and the stuns ---------------------------------
+
+def gate_piece(size, draw_fn, scale=3):
+    """A piece of the Transport gate drawn flat on the ground: `draw_fn`
+    gets an ImageDraw on a big canvas and a function mapping ground
+    coordinates (x, y, round the middle) to it; shrunk for smooth edges."""
+    w, h = size
+    im = Image.new("RGBA", (w * scale, h * scale))
+    dr = ImageDraw.Draw(im)
+
+    def at(x, y):
+        return ((w / 2 + x) * scale, (h / 2 + y * GROUND) * scale)
+    draw_fn(dr, at, scale)
+    return im.resize((w, h), Image.LANCZOS), w // 2, h // 2
+
+
+GATE_LINE = (70, 150, 235, 255)
+GATE_DARK = (12, 36, 80, 255)
+GATE_FILL = (25, 70, 140, 255)
+
+
+def gate_ring(dr, at, scale, r, width, colour):
+    pts = [at(math.cos(a / 64 * 2 * math.pi) * r, math.sin(a / 64 * 2 * math.pi) * r) for a in range(65)]
+    dr.line(pts, fill=GATE_DARK, width=int((width + 2) * scale))
+    dr.line(pts, fill=colour, width=int(width * scale))
+
+
+# Transport: the gate is four pieces laid on the ground one after another,
+# from the outside in (Character/OPTION/10000020/Pattern), and a glitter of
+# blue light that plays over it now and then once it stands.
+def transport_gate(e):
+    def arrows(dr, at, scale):
+        # Four arrowheads pointing out along the ground's axes.
+        for k in range(4):
+            a = k * math.pi / 2 + math.pi / 4
+            ca, sa = math.cos(a), math.sin(a)
+            nx, ny = -sa, ca
+            tip = (ca * 74, sa * 74)
+            back = (ca * 46, sa * 46)
+            wing = [(back[0] + nx * 13, back[1] + ny * 13), tip, (back[0] - nx * 13, back[1] - ny * 13),
+                    (ca * 54, sa * 54)]
+            dr.polygon([at(*p) for p in wing], fill=GATE_FILL, outline=GATE_DARK)
+            dr.line([at(*p) for p in wing + wing[:1]], fill=GATE_LINE, width=int(1.5 * scale))
+            dot = at(ca * 38, sa * 38)
+            r = 3 * scale
+            dr.ellipse([dot[0] - r, dot[1] - r, dot[0] + r, dot[1] + r], fill=GATE_LINE, outline=GATE_DARK)
+
+    def runes(dr, at, scale):
+        gate_ring(dr, at, scale, 42, 1.5, GATE_LINE)
+        gate_ring(dr, at, scale, 34, 1.0, GATE_LINE)
+        rng = np.random.default_rng(20)
+        for k in range(12):  # little marks between the two rings
+            a = k / 12 * 2 * math.pi
+            r0, r1 = 35.5, 40.5
+            kind = rng.integers(3)
+            c, s_ = math.cos(a), math.sin(a)
+            if kind == 0:
+                dr.line([at(c * r0, s_ * r0), at(c * r1, s_ * r1)], fill=GATE_LINE, width=int(1.2 * scale))
+            elif kind == 1:
+                m = at(c * 38, s_ * 38)
+                dr.ellipse([m[0] - 1.6 * scale, m[1] - 1.2 * scale, m[0] + 1.6 * scale, m[1] + 1.2 * scale], fill=GATE_LINE)
+            else:
+                b = a + 0.12
+                dr.line([at(c * r0, s_ * r0), at(math.cos(b) * r1, math.sin(b) * r1)], fill=GATE_LINE, width=int(1.2 * scale))
+
+    def star(dr, at, scale):
+        for turn in (0, math.pi / 3):
+            pts = [at(math.cos(turn + k * 2 * math.pi / 3) * 30, math.sin(turn + k * 2 * math.pi / 3) * 30) for k in range(3)]
+            dr.polygon(pts, outline=GATE_DARK)
+            dr.line(pts + pts[:1], fill=GATE_LINE, width=int(1.6 * scale))
+
+    def heart(dr, at, scale):
+        pts = [at(math.cos(a / 48 * 2 * math.pi) * 18, math.sin(a / 48 * 2 * math.pi) * 18) for a in range(48)]
+        dr.polygon(pts, fill=GATE_FILL, outline=GATE_DARK)
+        gate_ring(dr, at, scale, 18, 2.0, GATE_LINE)
+        gate_ring(dr, at, scale, 10, 1.2, (120, 190, 255, 255))
+        m = at(0, 0)
+        r = 2.5 * scale
+        dr.ellipse([m[0] - r, m[1] - r * GROUND, m[0] + r, m[1] + r * GROUND], fill=(170, 220, 255, 255))
+
+    for size, fn in (((156, 112), arrows), ((96, 68), runes), ((70, 50), star), ((44, 32), heart)):
+        e.pattern(*gate_piece(size, fn))
+    # The glitter: blue motes swirling up off the rings and fading.
+    rng = np.random.default_rng(2020)
+    motes = [(rng.uniform(0, 2 * math.pi), rng.uniform(4, 60), rng.uniform(0.7, 1.6), rng.uniform(0, 0.35)) for _ in range(30)]
+    frames = []
+    for f in range(16):
+        t = f / 15
+        cv = Canvas(170, 150, 85, 100)
+        for a, r, sz, start in motes:
+            u = (t - start) / (1 - start) if t >= start else -1
+            if u < 0:
+                continue
+            ang = a + u * 1.2
+            x, y = math.cos(ang) * r * (1 + 0.4 * u), math.sin(ang) * r * GROUND - 18 - 26 * ease(u)
+            k = math.sin(math.pi * min(1, u * 1.3)) if u < 0.77 else (1 - u) / 0.23
+            cv.blob(x, y, 2.2 * sz, 2.2 * sz, (215, 240, 255), 1.4 * k)
+            cv.blob(x, y, 9 * sz, 8 * sz, (20, 90, 230), 0.8 * k)
+            cv.streak(x - 9 * sz, y, x + 9 * sz, y, 0.7, (130, 200, 255), 0.7 * k)
+            cv.streak(x, y - 11 * sz, x, y + 11 * sz, 0.7, (130, 200, 255), 0.7 * k)
+        frames.append(e.light(cv))
+    e.chart(False, {8: [(True, 0, frames, None)]})
+
+
+# Medusa: a pale violet eye of light, held up off the ground, trailing
+# two twisting wisps of grey-violet smoke.
+def medusa_missile(e):
+    def draw(cv, f, dx, dy):
+        lift = -36
+        along = -((cv.x) * dx + (cv.y - lift) * dy)
+        across = cv.x * -dy + (cv.y - lift) * dx
+        tex = noise(cv.w, cv.h, 3, 7000 + f, 2)
+        trail = np.exp(-(np.clip(along, 0, None) / 46) ** 2 - (np.clip(-along, 0, None) / 10) ** 2) \
+            * np.exp(-(across / (20 + 0.12 * np.clip(along, 0, None))) ** 2)
+        cv.add(np.clip(trail * (0.5 + 0.8 * tex) - 0.15, 0, 1), (125, 80, 180), 1.5)
+        for k in range(2):  # the wisps wind round each other
+            for step in range(18):
+                u = step * 3.2
+                ph = f / 16 * 2 * math.pi + k * math.pi + u * 0.13
+                off = math.sin(ph) * (6 + u * 0.2)
+                x = -dx * u + -dy * off
+                y = lift - dy * u + dx * off
+                cv.blob(x, y, 3.2, 3.2, (185, 160, 215), 0.9 * (1 - step / 18))
+        cv.blob(0, lift, 22, 20, (190, 150, 255), 1.0, sharp=2.0)
+        cv.blob(0, lift, 13, 12, (255, 245, 255), 1.5, sharp=2.5)
+    dirs = missile_frames(e, 16, draw, size=(130, 140))
+    e.chart(True, {d: [(True, 0, fr, None)] for d, fr in dirs.items()})
+
+
+# Medusa hits: a puff of grey stone dust with grit and chips flying out.
+def stone_hit(e):
+    rng = np.random.default_rng(5050)
+    chips = [(rng.uniform(0, 2 * math.pi), rng.uniform(20, 38), rng.uniform(1.2, 2.4)) for _ in range(14)]
+    frames = []
+    for f in range(12):
+        t = f / 11
+        cv = Canvas(110, 110, 55, 60)
+        r = 12 + 30 * ease(min(1, t * 1.6))
+        smoke(cv, 0, -4, r, r * 0.95, 5000 + f // 2, (190, 186, 178), 1.8 * (1 - 0.4 * t), hole=0.15 * t, bits=0.15 + 0.25 * t)
+        for a, reach, sz in chips:
+            x, y = math.cos(a) * reach * 1.3 * t, math.sin(a) * reach * 1.3 * t * 0.8 - 4 + 16 * t * t
+            cv.blob(x, y, sz, sz, (215, 210, 200), 1.0 * (1 - t))
+        grain(cv, 5100 + f, 1.5, 0.45)
+        frames.append(e.light(cv))
+    e.chart(True, {8: [(True, 0, frames, None)]})
+
+
+# Moon: a faint haze of silver moonlight round the companion, with two
+# crescents of light slowly circling it.
+def moon_glow(e):
+    frames, trans = [], []
+    for f in range(30):
+        t = f / 30
+        cv = Canvas(120, 130, 60, 75)
+        smoke(cv, 0, -24, 46, 50, 4000 + f // 3, (150, 165, 200), 0.8, hole=0.2, bits=0.2)
+        for k in range(2):
+            a = t * 2 * math.pi + k * math.pi
+            cx, cy = math.cos(a) * 40, -24 + math.sin(a) * 40 * 0.45
+            cv.ring(cx, cy, 9, 9, 0.18, (230, 240, 255), 1.2, arc=(a + math.pi * 0.6, math.pi * 0.9))
+        grain(cv, 4100 + f, 1.5, 0.5)
+        frames.append(e.light(cv))
+        trans.append(int(300 + 50 * math.sin(t * 2 * math.pi)))
+    e.chart(True, {8: [(True, 0, frames, trans)]})
+
+
+# A freezing stun begins: a ring of frost closing in on the monster and
+# breaking into mist.
+def freeze_start(e):
+    rng = np.random.default_rng(2800)
+    motes = [(rng.uniform(0, 2 * math.pi), rng.uniform(0.85, 1.15)) for _ in range(40)]
+    frames, trans = [], []
+    for f in range(16):
+        t = f / 15
+        r = 150 * (1 - ease(min(1, t * 1.6))) + 22
+        cv = Canvas(340, 250, 170, 140)
+        cv.ring(0, -10, r, r * GROUND, 0.025 + 0.05 * t, (110, 150, 230), 0.35)
+        for a, k in motes:
+            x, y = math.cos(a + t) * r * k, -10 + math.sin(a + t) * r * k * GROUND
+            cv.blob(x, y, 2.0, 2.0, (235, 245, 255), 1.2)
+            cv.blob(x, y, 6, 5, (120, 150, 230), 0.4)
+        if t > 0.4:
+            smoke(cv, 0, -30, 38, 40, 2850 + f // 2, (170, 190, 230), 1.1 * (t - 0.4) / 0.6, bits=0.3)
+        grain(cv, 2900 + f, 1.5, 0.45)
+        frames.append(e.light(cv))
+        trans.append(1000 if f < 10 else 1000 - 150 * (f - 9))
+    e.chart(False, {8: [(True, 0, frames, trans)]})
+
+
+# A frozen monster: a cluster of ice crystals around it, with a glint
+# running over them. Four shapes; one is picked each time.
+def freeze_hold(e, seed):
+    rng = np.random.default_rng(seed)
+    crystals = []
+    n = int(rng.integers(3, 6))
+    for k in range(n):
+        x = (k - (n - 1) / 2) * 11 + rng.normal(0, 3)
+        h = rng.uniform(80, 110) * (1 - abs(x) / 55)
+        crystals.append((x, rng.uniform(22, 32), max(h, 45), rng.uniform(17, 25)))
+    crystals.sort(key=lambda c: -c[2])
+    base = Image.new("RGBA", (120, 150))
+    dr = ImageDraw.Draw(base)
+    for i, (x, foot, h, w) in enumerate(crystals):
+        ice_spindle(dr, 60, 110, x, foot, h, w, seed * 10 + i, k=1.15)
+    arr = np.asarray(base).astype(np.float32)
+    arr[..., :3] *= np.array([0.86, 0.9, 1.0], np.float32)  # pale blue ice
+    frames = []
+    ys, xs = np.mgrid[0:150, 0:120].astype(np.float32)
+    for f in range(12):
+        # A glint sweeping slantwise up the ice.
+        u = f / 12 * 2.2 - 0.6
+        band = np.exp(-((xs * 0.6 - ys) / 150 + 0.5 - u) ** 2 / 0.006)
+        lit = arr[..., :3] * (1 + 0.8 * band[..., None])
+        im = np.dstack([np.clip(lit, 0, 255), arr[..., 3]]).astype(np.uint8)
+        frames.append(e.frame(Image.fromarray(im, "RGBA"), 60, 110))
+    e.chart(True, {8: [(True, 0, frames, None)]})
+
+
 EFFECTS = {
     10000000: fire_spray,
+    10000020: transport_gate,
+    10000070: medusa_missile,
+    11000028: freeze_start,
+    11000029: lambda e: freeze_hold(e, 29),
+    11000030: lambda e: freeze_hold(e, 30),
+    11000031: lambda e: freeze_hold(e, 31),
+    11000032: lambda e: freeze_hold(e, 32),
+    11000040: moon_glow,
+    11000050: stone_hit,
     10000001: gold_burst,
     10000002: fire_ring,
     10000010: fire_ball,

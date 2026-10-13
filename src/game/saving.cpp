@@ -109,9 +109,11 @@ bool Game::loadGame() {
     for (int s = 0; s < kSpellCount; ++s) {
         if (!isToggleSpell(s) || !spells_.knows(s)) setSpellOn(s, false);
     }
+    moonLevel_ = castLevel(kMoon);
     setOriginalMode(save.originalMode);
     casting_.reset();
     clearSpells();
+    transportGate_.reset();  // the gate is not saved
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", saveFile_, skipped);
     // Saves from before mines: a new hero's five, and any mines that went
     // into the bag then.

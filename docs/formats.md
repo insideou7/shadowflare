@@ -199,14 +199,18 @@ ShadowFlare.exe at 0x427b50. All 209 files parse to their last byte.
 char magic[16]          "MCED DATA v0000\x1a"
 char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
 char mapPath[0x104]     e.g. Map\c02_00.map
-i32  unknown[2]
+i32  town               the area's town (scenario + 0x60): 0 for Remote Town's
+                        areas, 1000000 for Cold Svalt's, ...; where Transport leads
+i32  unknown            scenario + 0x64
 i32  areaKind          0 town, 1 field, 2 caravan, 3 boss room, 4 ruins/tower/fort,
                         5 cave, 6 shrine (scenario + 0x6c)
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"
 3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
 4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
 i32  n; EntryPoint[n]   where the party appears: i32 id, x, y, direction
-i32  flags[2]           scenario + 0x2c and + 0x70, use not traced
+i32  unknown            scenario + 0x2c, use not traced
+i32  transport          scenario + 0x70: 1 where Transport may be cast (fields,
+                        dungeons), 0 in towns and the Caravan (0x441c00)
 i32  light              how light the area is: 2000 lit (towns, fields), 1000
                         dark beyond the lights, 1200-1600 dim (see Darkness)
 ```
