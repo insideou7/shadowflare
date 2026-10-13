@@ -314,7 +314,10 @@ constant, 2 `MSG`, 3 `ELIV`, 4 `TEMP`, 5 `NET`, 6 `CPOSX`, 7 `CPOSY`, 8
 Operand values (ShadowFlare.exe 0x4346b0): types 0-2 are the value
 itself; `TEMP`, `NET`, `WARP`, `SAVE` and `QUEST` are variables; `CPOSX`
 and `CPOSY` are a character's world position; `PLAYMODE` is single or
-network play.
+network play (2 is network play); `ELIV n` is 1 while enemy 14,000,000 + n
+is alive and 0 once it is dead; `CCHECK id` is 1 while the hero stands on
+object `id` (not carried out yet); `EXSTRG n` is a word list on the
+player (+ 0x55c, use not traced).
 
 Command numbers come from the keyword table in RKC_RPG_SCRIPT.dll (each
 keyword stores its number and operand count). ShadowFlare.exe runs them in
@@ -412,6 +415,8 @@ item anywhere: special items, the bag or worn.
 `GETPLAYERLIFE hp max` and `GETPLAYERMENTAL mp max` read
 the hero's. `GETEXPERIENCE percent` gives that share of the
 experience the hero's level needs, which can raise one level.
+`SETITEMDIRECT class code` hands the hero the item (kept with the
+special items) unless they already have one.
 All of these are cases of the script switch at 0x430ffe.
 
 Shops: `INITTRADE shop list` stocks shop `shop` from row `list` of

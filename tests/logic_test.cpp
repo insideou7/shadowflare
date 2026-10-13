@@ -405,7 +405,9 @@ void testScriptQuestChecks() {
                          {S::kGetPlayerLife, {hp, hpMax}},
                          {S::kGetPlayerMental, {mp, mpMax}},
                          {S::kGetExperience, {constant(30)}},
-                         {S::kSetItemDirect, {constant(4), constant(99000010)}}}};
+                         {S::kSetItemDirect, {constant(4), constant(99000010)}},
+                         {S::kSetFlag, {{S::kTemp, 10}, {S::kEnemyAlive, 0}}},
+                         {S::kSetFlag, {{S::kTemp, 11}, {S::kEnemyAlive, 1}}}}};
     sf::ScriptFlags flags;
     QuestHost host;
     sf::ScriptRunner(script, flags, &host).run(0);
@@ -416,6 +418,7 @@ void testScriptQuestChecks() {
     check(flags[{S::kTemp, 6}] == 80 && flags[{S::kTemp, 7}] == 150 && flags[{S::kTemp, 8}] == 20 && flags[{S::kTemp, 9}] == 30,
           "GETPLAYERLIFE and GETPLAYERMENTAL");
     check(host.percent == 30, "GETEXPERIENCE gives a share of the level's experience");
+    check(flags[{S::kTemp, 10}] == 0 && flags[{S::kTemp, 11}] == 1, "ELIV reads whether an enemy is alive");
 }
 
 void testScriptActiveFlagsAndRoutines() {

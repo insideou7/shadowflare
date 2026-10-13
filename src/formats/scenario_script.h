@@ -20,6 +20,7 @@ struct ScenarioScript {
         kOperator = 0,  // in IF: 0 '=', 1 '!', 2 '>', 3 '<'; also sentence numbers
         kConstant = 1,
         kMessage = 2,   // MSG
+        kEnemyAlive = 3,  // ELIV n: whether enemy 14,000,000 + n is alive
         kTemp = 4,      // TEMP: flags reset with the scenario
         kNet = 5,       // NET
         kSave = 11,     // SAVE: flags kept in the save game

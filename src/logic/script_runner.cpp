@@ -54,6 +54,12 @@ std::int32_t ScriptRunner::value(const ScenarioScript::Operand& op) const {
         case S::kCharacterX: return host_ ? host_->characterX(op.value) : 0;
         case S::kCharacterY: return host_ ? host_->characterY(op.value) : 0;
         case S::kPlayMode: return 0;  // single player
+        case S::kEnemyAlive: {
+            // ELIV n: 1 while enemy 14,000,000 + n is alive, 0 once dead;
+            // 0 too for one the scenario does not have (0x4346b0).
+            const auto alive = host_ ? host_->enemyAlive(14000000 + op.value) : std::nullopt;
+            return alive && *alive ? 1 : 0;
+        }
         default: break;
     }
     const auto found = flags_.find({op.type, op.value});
