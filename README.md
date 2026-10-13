@@ -14,7 +14,8 @@ ways to play:
   `--our-art` starts with it.
 - Without it: the engine falls back to the open replacement content in
   [content/](content/): our own ShadowFlare-style art, made from scratch
-  in Blender, with seven areas from a village meadow down to a castle.
+  in Blender, with the original's first area (Remote Town and the fields,
+  forests and dungeons round it) laid out with our art.
   See [docs/content.md](docs/content.md).
 
 ## Status
@@ -81,8 +82,7 @@ Options:
 - `--skin <path>` draw the original game with another content pack's art
 - `--map <name>` map or scenario number to open first, e.g. `c02_00`, `d02_01`
   or `0`. New games begin where the original's do, in Remote Town (scenario 0;
-  `10000000` in the open content); `--map meadow` opens the open content's
-  older demo village, Goblin Meadow
+  `10000000` in the open content)
 - `--frames <n>` quit after n frames
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests

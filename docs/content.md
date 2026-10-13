@@ -167,9 +167,8 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 Every monster in the pack has the original's numbers.
 `tools/content/enemy_stats.py` copies them from the player's own copy:
 each monster on a map laid out after an original area gets the numbers of
-the original placement it stands for, and the demo maps' monsters (1 to 7,
-which have no original) the numbers of that kind's first appearance in the
-original. It keeps our AI lists and drop lists. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
+the original placement it stands for. It keeps our AI lists and drop
+lists. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
@@ -200,8 +199,8 @@ arrow, the PLAYER label).
 ### Scenario/\<number\>/script.txt
 
 What the people of a scenario say and do, in the original's script
-commands (docs/formats.md lists them). Optional; Goblin Meadow's is a
-worked example.
+commands (docs/formats.md lists them). Optional; Remote Town's
+(`Scenario/10000000`) is a worked example.
 
     person=8,3072,6048,0,merchant   # more people: kind, x, y, direction, name
     object=0,0,640,320,well         # something to click: left, top, right, bottom, name
@@ -498,14 +497,12 @@ deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in t
 
 ## The first area
 
-Besides the demo's seven areas, the pack has the original's first area
-laid out with our art: the opening fields, Remote Town, the Dusty Ruins,
-Cold Svalt Town and the forests and four dungeons round it, 29 maps in
+The pack's maps are the original's first area, laid out with our art:
+the opening fields, Remote Town, the Dusty Ruins, Cold Svalt Town and the forests and four dungeons round it, 29 maps in
 all (`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). Their scenarios are
 numbered 10000000 plus the original's number (Remote Town is
-`Scenario/10000000`), so they keep clear of the demo's 1 to 7, and their
-exits lead to each other as the original's do. The game still starts in
-the meadow; `--map f00_01` starts in Remote Town.
+`Scenario/10000000`), and their exits lead to each other as the
+original's do. A new game starts in Remote Town, as the original's does.
 
 Each can be walked on exactly where the original's can: its judge grid
 is the original's, cell for cell (cells of 160 world units, about the
@@ -518,8 +515,8 @@ and spike pits among them, each drawn with the prop skin.txt gives its
 original piece). What is drawn round the walkable ground is our own:
 trees, thinning out away from the paths, outdoors, a rock or a bush where
 the original shuts off a little ground in the open, and walls along the
-dungeon floors (one down the middle of rock a cell thick). The monsters'
-stats are the demo's. The dungeons are as dark as the original's, with
+dungeon floors (one down the middle of rock a cell thick). The monsters
+have the original's numbers (`enemy_stats.py`, above). The dungeons are as dark as the original's, with
 lamps where its torches stand and glows on the monsters that carry one.
 The maps exactly as the original draws them are what a player with the
 original game sees (see above).
@@ -552,7 +549,8 @@ which is run but not copied:
     git clone --depth 1 https://github.com/makehumancommunity/mpfb2.git
     export MPFB_SRC=$PWD/mpfb2/src/mpfb
 
-`build_pack.py` lays out the maps and writes the text files;
+`build_pack.py` writes the ground, floors, props and text files
+(`tools/content/first_area.py` and `enemy_stats.py` then lay out the maps);
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. The item pictures
 and the interface (inventory panel, shop window, speech balloon, area map window and

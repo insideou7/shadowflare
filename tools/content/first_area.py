@@ -11,8 +11,8 @@ on from the entries is the original's, cell for cell (a cell is 160 world
 units, about the width of a character), so laid over the original the map
 looks a little different but plays the same. Also kept: which ground is
 grass or dirt, where the exits lead and where the player arrives, which
-monsters and townspeople stand where (with our own monster stats, from
-the demo's scenarios), and where its landmarks (buildings, stairs,
+monsters and townspeople stand where (enemy_stats.py then gives the
+monsters the original's numbers), and where its landmarks (buildings, stairs,
 fences, pipes) stand, drawn with the props skin.txt gives them. What is
 drawn round the walkable ground is our own: trees and rocks outdoors,
 walls along the dungeon floors. No original picture, tile or sprite is
@@ -20,7 +20,7 @@ copied; players who want the original maps exactly as drawn play them
 from their own copy (content/skin.txt draws them with our art).
 
 Writes Map/<original map name>.txt and Scenario/<10000000 + original
-number>/ for each, apart from the demo's scenarios 1 to 7. Then run
+number>/ for each. Then run
 enemy_stats.py to give the monsters the original's numbers. Exits that lead
 out of the first area are left out. Needs Pillow and numpy.
 """
@@ -73,7 +73,7 @@ BARE = ["tree_dead", "tree_dead", "oak"]                  # the wastelands
 # Banks whose pieces stand on ground that cannot be walked on.
 SOLID = {"00f_city00.njp", "00f_city01.njp", "00f_city02.njp"}
 
-# Added to the original scenario numbers, to keep clear of the demo's.
+# Added to the original scenario numbers (once to keep clear of the old demo's).
 OFFSET = 10000000
 
 
@@ -374,8 +374,7 @@ GATES = {0: 200, 1000000: 200}
 
 
 def our_number(number):
-    """The open pack's scenario number for an original one: the first area
-    sits apart from the demo scenarios (1 to 7)."""
+    """The open pack's scenario number for an original one."""
     return OFFSET + number
 
 
@@ -658,19 +657,18 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
 
 
 def our_stats(out, kinds):
-    """Our own stats for each kind of monster (hp to element, as an enemy=
-    line after kind, x, y, direction): the weakest of that kind in the
-    demo's scenarios, or the demo's goblin for kinds the demo leaves out."""
-    best = {}
-    for f in sorted((out / "Scenario").glob("0000000[1-9]/scenario.txt")):
+    """What goes after kind, x, y, direction on each kind's enemy= lines
+    until enemy_stats.py gives them the original's numbers: the wander
+    radius, AI list and drop list the pack already gives that kind (or a
+    goblin's), with stand-in numbers."""
+    ours = {}
+    for f in sorted((out / "Scenario").glob("*/scenario.txt")):
         for line in f.read_text().split("\n"):
             if line.startswith("enemy="):
                 v = line[6:].split("#")[0].strip().split(",")
-                kind, level = int(v[0]), int(v[8]) if len(v) > 8 else 0
-                if kind not in best or level < best[kind][0]:
-                    best[kind] = (level, ",".join(v[4:16]))  # the original's come from enemy_stats.py
-    fallback = best.get(0, (0, "15,39,960,goblin"))[1]
-    return {k: best.get(k, (0, fallback))[1] for k in kinds}
+                ours.setdefault(int(v[0]), (v[6], v[7], v[8] if len(v) > 8 else "1"))
+    fallback = ours.get(1, ("960", "goblin", "1"))
+    return {k: "1,1,{},{},{},0,0,0,1,0,50,0".format(*ours.get(k, fallback)) for k in kinds}
 
 
 def main():

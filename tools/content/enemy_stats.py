@@ -9,17 +9,13 @@ one (Scenario/1xxxxxxx) takes the numbers of the monster it stands for,
 placement by placement, so it fights as the original's does: health,
 attacks and their hit, defence, evasion, magic defence and evasion,
 element, spells, experience, gold, speed and what it takes off stuns
-(the enemy block's words, as src/formats/scenario.cpp reads them). The
-demo's scenarios (1 to 7) have no original to follow; their monsters take
-the numbers of that kind's first appearance in the original, its weakest
-(the usual one of the first scenario it is in).
+(the enemy block's words, as src/formats/scenario.cpp reads them).
 
 Kept as they are: kind, place, facing, wander radius, the AI list (ours,
 in ai.txt) and the drop list (ours, in drops.txt). Only numbers are taken
 from the original.
 """
 
-import collections
 import sys
 from pathlib import Path
 
@@ -68,19 +64,10 @@ def main():
     kinds = {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()}
 
     originals = {}
-    first = {}  # each kind's first appearance, the story's scenarios in order
     for sc in sorted((game / "Scenario").iterdir()):
         mct = find(sc, "Scenario", ".mct")
-        if not mct:
-            continue
-        enemies = read_mct(mct.read_bytes())[2][2]
-        originals[int(sc.name)] = enemies
-        if not sc.name.startswith("99"):  # 99xxxxxx are not the story's
-            here = collections.defaultdict(collections.Counter)
-            for c in enemies:
-                here[c["kind"]][tuple(c["words"])] += 1
-            for kind, counts in here.items():  # its usual one there, not a leader
-                first.setdefault(kind, list(counts.most_common(1)[0][0]))
+        if mct:
+            originals[int(sc.name)] = read_mct(mct.read_bytes())[2][2]
 
     for f in sorted((out / "Scenario").glob("*/scenario.txt")):
         number = int(f.parent.name)
@@ -88,20 +75,16 @@ def main():
         ours = [i for i, line in enumerate(lines) if line.startswith("enemy=")]
         if not ours:
             continue
-        theirs = [c for c in originals.get(number - OFFSET, []) if c["kind"] in kinds] if number >= OFFSET else []
-        if number >= OFFSET and len(theirs) != len(ours):
+        theirs = [c for c in originals.get(number - OFFSET, []) if c["kind"] in kinds]
+        if len(theirs) != len(ours):
             raise SystemExit(f"{f}: {len(ours)} monsters but the original has {len(theirs)}")
         for n, i in enumerate(ours):
             kind = int(lines[i][len("enemy="):].split(",")[0])
-            if theirs:
-                if theirs[n]["kind"] != kind:
-                    raise SystemExit(f"{f}: monster {n} is kind {kind}, the original's {theirs[n]['kind']}")
-                words = theirs[n]["words"]
-            else:
-                words = first[kind]
-            lines[i] = stats_line(lines[i], words)
+            if theirs[n]["kind"] != kind:
+                raise SystemExit(f"{f}: monster {n} is kind {kind}, the original's {theirs[n]['kind']}")
+            lines[i] = stats_line(lines[i], theirs[n]["words"])
         f.write_text("\n".join(lines))
-        print(f"{f.parent.name}: {len(ours)} monsters" + (" (as the original's)" if theirs else " (as each kind first appears)"))
+        print(f"{f.parent.name}: {len(ours)} monsters")
 
 
 if __name__ == "__main__":

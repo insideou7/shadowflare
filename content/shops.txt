@@ -1,7 +1,7 @@
 # What INITTRADE stocks a shop with, by list number: see docs/content.md.
 # sell=<class>,<code>[,<count>] with classes and codes from items.txt.
 
-[shop 0]                 # Goblin Meadow's merchant
+[shop 0]                 # Remote Town's smith
 sell=weapon,0
 sell=weapon,1000000
 sell=weapon,2000000
