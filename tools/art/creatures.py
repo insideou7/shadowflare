@@ -1949,8 +1949,9 @@ DOG_ANIMATIONS = {
 
 
 def build_dog(small=False):
-    """A big grey wolf-like dog with a dark saddle, pale legs, belly and
-    mask, pricked ears and a bushy tail curled up over its back. Small:
+    """A big wolf-like dog with a dark brown-black mottled coat, a
+    near-black saddle, greyish legs, belly and muzzle, pricked ears and a
+    bushy tail hanging behind. Small:
     a little long-bodied dog with short legs, a long muzzle, floppy ears
     and a thin tail, in reddish tan."""
     if small:
@@ -1959,12 +1960,14 @@ def build_dog(small=False):
         back = studio.material("back", (0.68, 0.40, 0.15), (0.36, 0.18, 0.05), scale=40, detail=8, rough=0.8, bump=0.6)
         pale = studio.material("pale", (0.90, 0.66, 0.36), (0.60, 0.38, 0.16), scale=40, rough=0.8, bump=0.4)
     else:
-        coat = studio.material("coat", (0.26, 0.22, 0.19), (0.07, 0.06, 0.05), scale=70, detail=10, rough=0.85,
-                               bump=1.2, stretch=(1, 1, 3), band=(0.25, 0.70))
-        back = studio.material("back", (0.11, 0.095, 0.085), (0.03, 0.025, 0.02), scale=70, detail=10, rough=0.85,
-                               bump=1.2, stretch=(1, 1, 3), band=(0.25, 0.70))
-        pale = studio.material("pale", (0.66, 0.63, 0.58), (0.36, 0.34, 0.31), scale=40, detail=6, rough=0.85,
-                               bump=0.6)
+        # Dark brown-black, mottled with grey-tan flecks; a near-black saddle;
+        # greyish legs, belly and muzzle.
+        coat = studio.material("coat", (0.40, 0.34, 0.27), (0.055, 0.045, 0.035), scale=5, detail=12, rough=0.85,
+                               bump=1.4, stretch=(1, 1, 2), band=(0.48, 0.62), spot=0.22, spot_colour=(0.60, 0.54, 0.45))
+        back = studio.material("back", (0.22, 0.17, 0.12), (0.03, 0.022, 0.015), scale=5, detail=12, rough=0.85,
+                               bump=1.4, stretch=(1, 1, 2), band=(0.50, 0.62), spot=0.12, spot_colour=(0.40, 0.35, 0.29))
+        pale = studio.material("pale", (0.74, 0.70, 0.62), (0.32, 0.28, 0.22), scale=5, detail=10, rough=0.85,
+                               bump=1.0, band=(0.40, 0.58))
     nose = studio.material("nose", (0.06, 0.05, 0.05), scale=30, rough=0.3)
     eye = studio.material("eye", (0.80, 0.62, 0.25) if not small else (0.10, 0.06, 0.04), scale=60, rough=0.2)
     rig = Rig()
@@ -1978,7 +1981,8 @@ def build_dog(small=False):
     rig.attach(shape("ball", (0.60 * long, 0.27, 0.28), coat), "body", (0, 0, 0.02))
     rig.attach(shape("ball", (0.40, 0.28, 0.38), coat), "body", (0.38 * long, 0, 0.0))  # deep chest
     rig.attach(shape("ball", (0.30, 0.24, 0.26), coat), "body", (-0.42 * long, 0, 0.02))  # haunches
-    rig.attach(shape("ball", (0.55 * long, 0.22, 0.13), back), "body", (-0.02, 0, 0.15))
+    rig.attach(shape("ball", (0.58 * long, 0.25, 0.17) if not small else (0.55 * long, 0.22, 0.13), back), "body",
+               (-0.02, 0, 0.13 if not small else 0.15))
     rig.attach(shape("ball", (0.48 * long, 0.19, 0.16), pale), "body", (0.12, 0, -0.12))
     # Neck and head, with a lower jaw that opens to bite.
     rig.joint("neck", "body", (0.58 * long, 0, 0.12))
@@ -2027,9 +2031,9 @@ def build_dog(small=False):
             rig.joint(name, "body", (x, 0.15 * side, -0.10))
             if front < 0:
                 rig.attach(shape("ball", (0.17, 0.11, 0.22 if not small else 0.13), coat), name, (0, 0, -0.06))
-            segment(rig, name, (0, 0, 0), (0, 0, -leg), 0.07 if not small else 0.06, coat)
+            segment(rig, name, (0, 0, 0), (0, 0, -leg), 0.085 if not small else 0.06, coat)
             rig.joint(name + "_k", name, (0, 0, -leg))
-            segment(rig, name + "_k", (0, 0, 0), (0, 0, -leg), 0.05, pale)
+            segment(rig, name + "_k", (0, 0, 0), (0, 0, -leg), 0.06 if not small else 0.05, pale)
             rig.attach(shape("ball", (0.07, 0.05, 0.04), pale), name + "_k", (0.04, 0, -leg - 0.01))
             rig.legs.append((name, front, side))
     rig.joints["root"].scale = (1.1, 1.1, 1.1) if not small else (0.62, 0.62, 0.62)
