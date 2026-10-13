@@ -4,9 +4,10 @@
 #include <optional>
 #include <string>
 
+#include "formats/table_data.h"
+
 namespace sf {
 
-struct GameTables;
 class Inventory;
 struct MagicTables;
 
@@ -54,7 +55,8 @@ void applyMoon(PartnerStats& stats, const MagicTables& tables, int level);
 
 class PartnerTables {
 public:
-    // Reads tables 60 and 800-805; nothing when they are missing.
+    // Reads tables 60 and 800-805 (Table.Tbd's, or an open pack's
+    // partners.txt); nothing when they are missing. Keeps its own copy.
     static std::optional<PartnerTables> load(const GameTables& tables);
 
     const PartnerKind& kind(int kind) const { return kinds_[static_cast<std::size_t>(kind)]; }
@@ -63,7 +65,7 @@ public:
     int need(int kind, int level) const;
 
 private:
-    const GameTables* tables_ = nullptr;
+    GameTables tables_;  // just tables 800-805
     std::array<PartnerKind, kPartnerKinds> kinds_;
 };
 

@@ -41,6 +41,11 @@ PER = TILE // CELL
 PLAYER_CHARTS = [(0, "idle"), (1, "walk"), (3, "hit"), (5, "attack")]
 ENEMY_CHARTS = [(0, "idle"), (1, "walk"), (2, "hit"), (3, "death"), (4, "attack")]
 PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
+# The hero's companions (Character/PARTNER): the death and jump charts are
+# drawn once, as direction 8.
+PARTNER_CHARTS = [(0, "idle"), (1, "walk"), (2, "run"), (3, "hit"), (4, "death"), (5, "bite"), (6, "jumpup"),
+                  (7, "jumpdown")]
+PARTNERS = {"dog": 0, "smalldog": 1}
 # Monster art and the Character/ENEMY folder each one fills.
 ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "demon": 3, "golem": 4, "shaman": 5, "spider": 6, "bigspider": 7,
            "archer": 10, "swordsman": 11, "dragon": 12, "ogre": 13, "boarrider": 8, "boar": 9, "skeleton": 14,
@@ -83,7 +88,7 @@ def character(src, dst, charts):
     for chart, name in charts:
         frames, loop = anims[name]
         out.append(f"\n[chart {chart} {'loop' if loop else 'once'}]")
-        for d in range(8):
+        for d in ([8] if (src / f"{name}_8_0.png").exists() else range(8)):
             idx = [atlas.add((name, d, f), cropped(src / f"{name}_{d}_{f}.png", ax, ay)) for f in range(frames)]
             out.append(f"{d}{f'@{BODY_PRIORITY}' if layers else ''}=" + ",".join(map(str, idx)))
             for number, folder in layers:
@@ -99,6 +104,18 @@ def character(src, dst, charts):
                 out.append(f"{d}.{number}=" + ",".join(cells))
     atlas.write(dst / "Animation.sheet", "Animation.png", NOTE)
     return "\n".join(out) + "\n"
+
+
+def partners(art, out):
+    """The companions' folders; on their own with --partners:
+
+        python3 tools/art/build_pack.py --partners <rendered art folder> content
+    """
+    for name, folder in PARTNERS.items():
+        if (art / name / "frames.txt").exists():
+            dst = out / "Character" / "PARTNER" / f"{folder:08d}"
+            dst.mkdir(parents=True, exist_ok=True)
+            (dst / "Animation.anim").write_text(character(art / name, dst, PARTNER_CHARTS))
 
 
 def meadow(rng, size):
@@ -121,7 +138,10 @@ def meadow(rng, size):
 
 def main():
     art, out = Path(sys.argv[1]), Path(sys.argv[2])
-    for sub in ("Map", "Scenario", "Character/ENEMY", "Character/PEOPLE", "Player"):
+    if sys.argv[1] == "--partners":
+        partners(Path(sys.argv[2]), Path(sys.argv[3]))
+        return
+    for sub in ("Map", "Scenario", "Character/ENEMY", "Character/PEOPLE", "Character/PARTNER", "Player"):
         shutil.rmtree(out / sub, ignore_errors=True)
     out.mkdir(parents=True, exist_ok=True)
     rng = random.Random(7)
@@ -142,6 +162,7 @@ def main():
         folder = out / "Character" / "PEOPLE" / f"{kind:08d}"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / "Animation.anim").write_text(character(art / f"person{kind}", folder, PEOPLE_CHARTS))
+    partners(art, out)
     print("characters done")
     # Items: their definitions, inventory and ground pictures and the
     # inventory panel, all our own renders kept in content/ (tools/art/items.py),

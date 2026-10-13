@@ -30,6 +30,8 @@ original format.
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
+| `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
+| `Character/PARTNER/%08d/Animation.*`  | `Character/PARTNER/%08d/Animation.anim` + `.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -205,7 +207,9 @@ A message is the lines under `[message <id>]`, each ending in a line
 break; options go between `~` marks. A sentence is a list of commands, one
 per line, and `on=` lines that start it. Operands are separated by spaces:
 a number, `temp:<id>`, `save:<id>`, `quest:<id>`, `net:<id>` or
-`warp:<gate>` (a warp gate found, see gates.txt) for a flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
+`warp:<gate>` (a warp gate found, see gates.txt) for a flag, `shown:<name>`
+for whether someone is shown (the flag `SETACTIVE` and `SETINACTIVE`
+set), `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
 someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
 sentence to run, and a person's or object's name for their id. As in the
 original, `IF` runs its sentence and then carries on, and closing any of
@@ -267,6 +271,40 @@ it; a click on it opens the window. The window's picture is
 `System/Game/Pattern/Warp.sheet`, drawn by `tools/art/warp.py`. The
 pack's two towns have gates (gate 0 Remote Town, 4 Cold Svalt Town), at
 the original's places, with the props sheet's warp circle under them.
+
+### partners.txt
+
+The hero's companions, standing in for Table.Tbd tables 60 and 800-805
+(docs/partners.md says what each stat does). There are six kinds, 0 to
+5, with the original's numbers; a new hero has kind 0.
+
+    [partner 0]
+    name=Ash
+    folder=0                 # Character/PARTNER/00000000
+    tint=1000,1000,1000      # red, green, blue in thousandths
+    hp=320,70                # 320 at level 1, then 70 more each level
+    stun_chance=25,30,35     # the value at each level; 35 from level 3 on
+
+Every kind needs all of `attack_speed`, `walk`, `run`, `hp`, `attack`,
+`hit`, `defense`, `evasion`, `magic_attack`, `magic_defense`, `magic_hit`,
+`magic_evasion` (the value at level 1, then what each level adds),
+`element`, `stun_chance`, `stun_length`, `stun_uncapped`, `jump_area`
+and `experience` (the value at each level). A line has 1 to 35 numbers;
+the last carries on to level 35.
+
+A companion's pictures are `Character/PARTNER/<folder>/Animation.anim`,
+with charts 0 idle, 1 walk, 2 run, 3 hit, 4 death, 5 bite, 6 jump up
+and 7 jump down; the death and jump charts have only direction 8. The
+pack's four dogs share folder 0, a grey dog recoloured by each one's
+tint, and the small dog has folder 1, both drawn by `tools/art/creatures.py`
+(`dog`, `smalldog`). Townspeople of kind 1000000 + folder stand in for
+them, as in Remote Town's kennel:
+
+    [sentence ash-tick]      # hidden while Ash is out with the hero
+    on=tick
+    GETPARTNERKIND temp:42
+    IF shown:ash = 1 @ash-hide
+    IF shown:ash = 0 @ash-show
 
 ### shops.txt
 

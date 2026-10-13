@@ -86,7 +86,7 @@ Options:
 - `--screenshot <file.bmp>` save the last frame when quitting
 - `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
-- `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk, original data only), ACTIVE
+- `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
 - `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player

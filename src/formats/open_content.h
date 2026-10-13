@@ -16,6 +16,7 @@
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "formats/sprite_bank.h"
+#include "formats/table_data.h"
 
 // Readers for the open content pack: PNG images and small text files that
 // stand in for the original game's data, so the engine can run without it.
@@ -103,6 +104,11 @@ Missions parseMissions(std::span<const std::uint8_t> text);
 // gates.txt: each warp gate's name and the scenario and entry it leads
 // to, standing in for Table.Tbd table 40.
 WarpGates parseGates(std::span<const std::uint8_t> text);
+
+// partners.txt: the hero's animal companions, as the Table.Tbd tables they
+// stand in for: table 60 (name, Character/PARTNER folder, tint) and
+// 800-805 (stats, one column per level).
+GameTables parsePartners(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);
