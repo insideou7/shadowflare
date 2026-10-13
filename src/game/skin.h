@@ -35,13 +35,8 @@ public:
     Skin& operator=(const Skin&) = delete;
 
     // The pack's version of a character ("Character/ENEMY/00000001/Animation",
-    // "Player/Male/Animation00"), if it has one and characters are skinned.
+    // "Player/Male/Animation00"), if it has one.
     std::optional<CharacterModel> character(const std::string& stem) const;
-
-    // Whether the pack's monsters, people and hero (and the hero's
-    // Player/Common effects) stand in for the original's. Off by default: a player with the original sees its own
-    // characters on the skinned maps.
-    void setCharacters(bool on) { characters_ = on; }
 
     // Call when a new map is shown: forgets the last map's ground.
     void setMap(const Map* map);
@@ -79,7 +74,6 @@ private:
     SDL_Texture* propTexture(const std::string& prop, int& frame);
 
     std::unique_ptr<FileSystem> pack_;
-    bool characters_ = false;
     SDL_Renderer* renderer_ = nullptr;
     open::Skin file_;
     std::unique_ptr<SpriteBank> props_;
