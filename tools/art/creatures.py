@@ -33,7 +33,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from town import mesh  # noqa: E402
 
-SIZE = {"hero": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
+SIZE = {"hero": 200, "heroine": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
 HEIGHT = {"goblin": 3.8, "hero": 4.0, "heroine": 3.5, "fly": 2.4, "ghoul": 3.4, "shaman": 4.6, "golem": 9.5, "spider": 2.4,
           "bigspider": 3.6, "ogre": 4.8, "demon": 6.0, "dragon": 9.0}  # for framing
 
@@ -296,60 +296,50 @@ def build_hero_shapes():
 
 
 def build_heroine():
-    """The heroine: the hero's joints, so the same equipment fits her, on a
-    slighter frame with a narrow waist and wider hips, a sleeveless jerkin
-    over a laced bodice, leggings and tall boots, and fair hair cut to the
-    jaw with a braid down her back."""
-    skin = studio.material("skin", (0.84, 0.64, 0.50), (0.56, 0.38, 0.27), scale=12, bump=0.08)
-    hair = studio.material("hair", (0.62, 0.48, 0.26), (0.30, 0.20, 0.09), scale=40, bump=0.5, stretch=(1, 1, 6))
-    jerkin = studio.material("jerkin", (0.40, 0.18, 0.16), (0.16, 0.06, 0.05), scale=18, bump=0.3)
-    bodice = studio.material("bodice", (0.70, 0.62, 0.48), (0.36, 0.30, 0.20), scale=22, bump=0.3)
-    leggings = studio.material("leggings", (0.20, 0.20, 0.22), (0.07, 0.07, 0.08), scale=18)
-    leather = studio.material("leather", (0.34, 0.21, 0.12), (0.14, 0.08, 0.04), scale=25, rough=0.6)
-    steel = studio.material("steel", (0.78, 0.78, 0.80), (0.40, 0.40, 0.44), scale=40, rough=0.3, bump=0.1)
+    """The heroine on a MakeHuman body (mpfb_body.py): slim and athletic,
+    with short red-brown hair, a dark leather bodysuit cut high at the
+    hips and laced sandals up the shins. The same joints and poses as the
+    hero, so the same equipment fits her."""
+    import mpfb_body
+    skin = studio.material("skin", (0.90, 0.74, 0.62), (0.76, 0.58, 0.47), scale=30, bump=0.05)
+    hair = studio.material("hair", (0.66, 0.24, 0.14), (0.34, 0.10, 0.06), scale=60, bump=0.5, stretch=(1, 1, 4))
+    suit = studio.material("bodysuit", (0.32, 0.12, 0.10), (0.12, 0.04, 0.03), scale=25, rough=0.6, bump=0.3)
+    leather = studio.material("leather", (0.36, 0.22, 0.14), (0.14, 0.08, 0.05), scale=25, rough=0.6)
+    height = 3.15
+    body, armature = mpfb_body.human(height, dict(gender=0.0, age=0.5, muscle=0.6, weight=0.4, height=0.5,
+                                                   proportions=0.8, caucasian=1.0, african=0.0, asian=0.0))
+    mpfb_body.bake_rest(body, armature)
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part == "torso" and 0.47 < z < 0.80:
+            return suit
+        if part == "thigh" and z > 0.50 and abs(centre.x) < 0.11 * height:
+            return suit  # cut high at the hips
+        if part in ("foot", "shin") and z < 0.16:
+            return leather
+        if part == "head" and (z > 0.96 or (z > 0.87 and normal.y > 0.3)):
+            return hair
+        return skin
+
+    mpfb_body.paint(body, pick)
     rig = Rig()
-    rig.joint("hips", "root", (0, 0, 1.25))
-    rig.joint("spine", "hips", (0, 0, 0.05))
-    rig.joint("head", "spine", (0, 0, 0.90))
-    rig.joint("arm_l", "spine", (0, 0.40, 0.78))
-    rig.joint("arm_r", "spine", (0, -0.40, 0.78))
-    rig.joint("leg_l", "hips", (0, 0.16, 0))
-    rig.joint("leg_r", "hips", (0, -0.16, 0))
-    for side in ("l", "r"):
-        rig.split(f"arm_{side}", f"elbow_{side}", -0.46)
-        rig.split(f"leg_{side}", f"knee_{side}", -0.60)
-    # A slim chest and narrow waist over rounder hips.
-    rig.attach(shape("ball", (0.23, 0.37, 0.30), bodice), "spine", (0, 0, 0.60))
-    for side in (1, -1):
-        rig.attach(shape("ball", (0.12, 0.12, 0.11), bodice), "spine", (0.15, 0.12 * side, 0.58))
-    rig.attach(shape("cylinder", (0.18, 0.22, 0.26), bodice), "spine", (0, 0, 0.28))
-    # The jerkin: open at the front, flaring over the hips.
-    rig.attach(shape("cylinder", (0.20, 0.33, 0.25), jerkin), "spine", (-0.04, 0, 0.55))
-    rig.attach(shape("flare", (0.33, 0.36, 0.20), jerkin), "hips", (0, 0, -0.10))
-    rig.attach(shape("cylinder", (0.27, 0.29, 0.06), leather), "hips", (0, 0, 0.06))
-    rig.attach(shape("box", (0.03, 0.06, 0.05), steel), "hips", (0.28, 0, 0.06))
-    for k in range(4):  # laces down the bodice
-        rig.attach(shape("box", (0.02, 0.07, 0.012), leather), "spine", (0.21, 0, 0.66 - 0.09 * k))
-    # Head, jaw-length hair and a braid.
-    rig.attach(shape("cylinder", (0.06, 0.06, 0.08), skin), "head", (0, 0, 0.0))
-    rig.attach(shape("ball", (0.17, 0.15, 0.20), skin), "head", (0.02, 0, 0.21))
-    rig.attach(shape("ball", (0.19, 0.18, 0.15), hair), "head", (-0.03, 0, 0.31))
-    rig.attach(shape("ball", (0.13, 0.19, 0.17), hair), "head", (-0.07, 0, 0.18))
-    for k in range(4):
-        rig.attach(shape("ball", (0.055, 0.05, 0.075), hair), "head", (-0.20 - 0.015 * k, 0, 0.12 - 0.13 * k))
-    limb(rig, "arm_l", 0.92, 0.088, skin, "ball", skin, (0.095, 0.095, 0.095))
-    limb(rig, "arm_r", 0.92, 0.088, skin, "ball", skin, (0.095, 0.095, 0.095))
-    limb(rig, "leg_l", 1.20, 0.12, leggings, "box", leather, (0.18, 0.08, 0.065))
-    limb(rig, "leg_r", 1.20, 0.12, leggings, "box", leather, (0.18, 0.08, 0.065))
-    for side in ("arm_l", "arm_r"):
-        rig.attach(shape("ball", (0.12, 0.12, 0.09), jerkin), side, (0, 0, -0.02))
-        rig.attach(shape("cylinder", (0.10, 0.10, 0.10), leather), side, (0, 0, -0.74))
-    for side in ("leg_l", "leg_r"):
-        rig.attach(shape("cylinder", (0.135, 0.135, 0.26), leather), side, (0, 0, -0.96))
-    rig.joint("weapon", "elbow_r", (0, 0, -0.46))
-    rig.joints["root"].scale = (1.16, 1.16, 1.16)
+    mpfb_body.bind(rig, body, armature, 1.22 * SCALE_MH * 0.855)
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.96 or (z > 0.86 and normal.y > 0.25) or (z > 0.91 and abs(normal.x) > 0.6 and normal.y > -0.1)):
+            return hair, 0.035  # a short, full cut
+        if part in ("foot", "shin") and z < 0.16:
+            return leather, 0.02  # sandal straps over the feet and shins
+        return None
+
+    mpfb_body.shell(body, gear, "hair and sandals")
     rig.kind = "hero"
     rig.heroine = True
+    rig.body = body
+    rig.height = height
     return rig
 
 
@@ -2274,6 +2264,8 @@ def pose(rig, animation, t, frames):
             r = keyframes(HERO_ATTACK, k)
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
+        elif animation == "idle" and getattr(rig, "heroine", False):
+            r = heroine_stand(s)
         else:
             r = hero_guard(animation, s, c)
         rig.pose(r)
@@ -2377,6 +2369,24 @@ def hero_guard(animation, s, c):
         r["elbow_r"] = (0, -0.55, 0)
         r["weapon"] = (0, math.radians(70), 0)
     return r
+
+
+def heroine_stand(s):
+    """The heroine waits upright, as the original's does: feet a little
+    apart, arms held out from her sides, the shield arm forward."""
+    return {
+        "spine": (0, 0.05 + 0.015 * s, 0),
+        "head": (0, -0.05, 0),
+        "arm_l": (0.40, -0.55, 0),
+        "elbow_l": (-0.9, 0.3, 0),
+        "arm_r": (-0.40, -0.10 - 0.03 * s, 0),
+        "elbow_r": (0, -0.45, 0),
+        "weapon": (0, math.radians(55), 0),
+        "leg_l": (0.12, -0.05, 0.1),
+        "knee_l": (0, 0.12, 0),
+        "leg_r": (-0.12, 0.10, -0.1),
+        "knee_r": (0, 0.10 + 0.02 * s, 0),
+    }
 
 
 def keyframes(keys, k):
