@@ -1021,15 +1021,16 @@ none=
 5=paving@-180,-200
 6=paving@-167,-173
 7=paving@-198,-172
+# The spike pits in the fields outside Remote Town; 0-3 hold bones.
 [objects jimen_x00.njp]
-0=pit@-437,-403
-1=pit@-410,-430
-2=pit@-368,-402
-3=pit@-378,-372
-10=pit@-388,-382
-11=pit@-320,-320
-12=pit@-420,-420
-13=pit@-373,-367
+0=spike_pit_bones_a@-450,-450
+1=spike_pit_bones_b@-412,-438
+2=spike_pit_bones_c@-372,-378
+3=spike_pit_bones_d@-392,-378
+10=spike_pit_a@-410,-390
+11=spike_pit_b@-325,-305
+12=spike_pit_c@-423,-397
+13=spike_pit_d@-387,-353
 [objects tower2.njp]
 0=stones@-30,-30
 1=stone_small@-55,-55

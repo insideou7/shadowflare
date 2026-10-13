@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from castle import cut  # noqa: E402
 from dungeon import solid, turn  # noqa: E402
-from town import _mats, box, cyl, mat, mesh  # noqa: E402
+from town import _mats, ball, box, cyl, mat, mesh  # noqa: E402
 
 # Pale sandy stone laid in small courses, stained darker in patches.
 SANDSTONE = dict(colour=(0.64, 0.60, 0.48), dark=(0.26, 0.23, 0.17), scale=26, detail=12, bump=0.9, grime=0.35,
@@ -267,6 +267,112 @@ def stockade(n, length, along_y=False, seed=1, heights=(4.0, 5.0)):
         turn(math.pi / 2)
 
 
+# The spike pits dug in the fields outside Remote Town: a ragged hole in
+# the dirt, a crumbly rim of thrown-up earth, sharpened stakes standing in
+# the bottom and, in some, the bones of whoever fell in.
+DIRT = dict(colour=(0.42, 0.31, 0.18), dark=(0.10, 0.07, 0.04), scale=16, detail=10, bump=1.0, grime=0.5)
+SPIKE = dict(colour=(0.80, 0.66, 0.40), dark=(0.22, 0.16, 0.08), scale=8, detail=5, bump=0.8, stretch=(9, 9, 0.3))
+BONE = dict(colour=(0.82, 0.78, 0.66), dark=(0.40, 0.36, 0.28), scale=12, bump=0.4)
+BLOOD = dict(colour=(0.32, 0.04, 0.02), dark=(0.10, 0.01, 0.01), scale=10, bump=0.3)
+PIT_R, PIT_D = 3.2, 2.8
+# The pit's sides darken as they go down, streaked by run-off.
+PIT_SIDE = dict(DIRT, colour=(0.30, 0.21, 0.12), dark=(0.06, 0.04, 0.02), stretch=(3, 3, 0.5),
+                fade=(0.85, 0.1, -0.7 * PIT_D))
+
+
+def spike_pit(seed=1, bones=0, blood=False):
+    """A pit about 7 units across and PIT_D deep, its sides sloping down to
+    a floor of stakes; bones=1 or 2 lays a skeleton (or two) among them."""
+    rng = random.Random(seed)
+    dirt = mat("dirt", DIRT)
+    lobes = [(rng.uniform(0, 2 * math.pi), rng.uniform(0.02, 0.05), k) for k in (2, 3, 5)]
+
+    def edge(a):
+        return PIT_R * (1 + sum(amp * math.sin(k * a + ph) for ph, amp, k in lobes))
+
+    def height(x, y):
+        r = math.hypot(x, y) / edge(math.atan2(y, x))
+        if r < 1:
+            return -PIT_D * (1 - r ** 2.2) ** 0.8
+        return 0.25 * math.exp(-((r - 1.06) / 0.08) ** 2)  # the rim of thrown-up earth
+
+    span = PIT_R * 1.6
+    bpy.ops.mesh.primitive_grid_add(x_subdivisions=120, y_subdivisions=120, size=2 * span, location=(0, 0, 0))
+    o = bpy.context.object
+    o.data.materials.append(mat("pitside", PIT_SIDE))
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    for v in bm.verts:
+        v.co.z = height(v.co.x, v.co.y) + rng.uniform(-0.04, 0.04)
+    outside = []
+    for f in bm.faces:
+        c = f.calc_center_median()
+        r = math.hypot(c.x, c.y) / edge(math.atan2(c.y, c.x))
+        if r > 1.15 + rng.uniform(0, 0.12) or (r > 1.12 and rng.random() < 0.6):
+            outside.append(f)
+    bmesh.ops.delete(bm, geom=outside, context="FACES")
+    bm.to_mesh(o.data)
+    bm.free()
+    studio.smooth(o)
+    # Loose clods round the rim, thinning out onto the ground.
+    for k in range(260):
+        a = rng.uniform(0, 2 * math.pi)
+        d = edge(a) * (1.1 + rng.expovariate(1 / 0.12))
+        ball(rng.uniform(0.04, 0.09), (d * math.cos(a), d * math.sin(a), 0.02), dirt, scale=(1, 1, 0.5))
+    # Stakes, cut to a point, standing every which way in the floor.
+    spike = mat("spike", SPIKE)
+    for k in range(rng.randint(6, 8)):
+        a, d = rng.uniform(0, 2 * math.pi), PIT_R * math.sqrt(rng.uniform(0, 0.5))
+        x, y = d * math.cos(a), d * math.sin(a)
+        z0 = height(x, y) - 0.3
+        h, r = rng.uniform(2.6, 3.8), rng.uniform(0.1, 0.15)
+        lean = Euler((rng.uniform(-0.18, 0.18), rng.uniform(-0.18, 0.18), 0))
+        for part, (zc, length, top) in (("pole", (h * 0.4, h * 0.8, r)), ("tip", (h * 0.9, h * 0.2, 0.0))):
+            s = cyl(r, length, (0, 0, zc), spike, verts=5, r2=top)
+            v = Vector(s.location)
+            v.rotate(lean)
+            s.rotation_euler = lean
+            s.location = v + Vector((x, y, z0))
+    for b in range(bones):
+        a, d = rng.uniform(0, 2 * math.pi), PIT_R * rng.uniform(0.0, 0.12)
+        skeleton(d * math.cos(a), d * math.sin(a), height(d * math.cos(a), d * math.sin(a)), rng, blood)
+
+
+def skeleton(x, y, z, rng, blood):
+    """A skeleton lying on its back: skull, spine, ribs, hips and limbs."""
+    bone = mat("bone", BONE)
+    turnz = rng.uniform(0, 2 * math.pi)
+    parts, legs = [], []
+    if blood:
+        ball(1.0, (x, y, z + 0.05), mat("blood", BLOOD), scale=(1.6, 1.3, 0.04))
+    parts.append(ball(0.3, (0, 0, 0.3), bone, scale=(1.15, 0.9, 0.95)))
+    parts.append(cyl(0.06, 1.5, (1.0, 0, 0.18), bone, verts=6, rot=(0, math.pi / 2, 0)))
+    for k in range(5):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.32 - 0.02 * k, minor_radius=0.04,
+                                         location=(0.45 + 0.14 * k, 0, 0.2), rotation=(0, math.pi / 2, 0))
+        o = studio.assign(bpy.context.object, bone)
+        o.scale = (1, 1, 0.6)
+        parts.append(o)
+    parts.append(ball(0.28, (1.8, 0, 0.14), bone, scale=(0.6, 1.2, 0.5)))
+    for side in (-1, 1):
+        a = rng.uniform(0.2, 0.7)
+        parts.append(cyl(0.05, 1.3, (0.9, side * (0.45 + 0.3 * a), 0.12), bone, verts=6,
+                         rot=(0, math.pi / 2, side * a)))
+        b = rng.uniform(-0.25, 0.25)
+        legs.append(cyl(0.07, 1.9, (2.75, side * (0.3 + 0.5 * abs(b)), 0.12), bone, verts=6,
+                         rot=(0, math.pi / 2, b)))
+    # Slumped half upright against the stakes, legs up the slope of the floor.
+    for group, tilt in ((parts, 0.55), (legs, -0.4)):
+        bpy.ops.object.empty_add(location=(0, 0, 0))
+        pivot = bpy.context.object
+        for o in group:
+            o.location.x -= 1.8  # turn about the hips
+            o.parent = pivot
+        pivot.rotation_euler = (0, tilt, turnz)
+        pivot.scale = (1.05, 1.05, 1.05)
+        pivot.location = (x, y, z)
+
+
 PROPS = {
     "town_wall_x": (panel, 320, 11.2),
     "town_wall_y": (lambda: panel(along_y=True), 320, 11.2),
@@ -281,6 +387,14 @@ PROPS = {
     "town_gate_right_y": (lambda: gate_wall(along_y=True, half="right"), 320, 11.2),
     "drawbridge_post": (drawbridge_post, 512, 17),
     "drawbridge_beam": (lambda: drawbridge_post(beam=True), 512, 17),
+    "spike_pit_a": (lambda: spike_pit(1), 256, 0),
+    "spike_pit_b": (lambda: spike_pit(2), 256, 0),
+    "spike_pit_c": (lambda: spike_pit(3), 256, 0),
+    "spike_pit_d": (lambda: spike_pit(4), 256, 0),
+    "spike_pit_bones_a": (lambda: spike_pit(5, bones=1), 256, 0),
+    "spike_pit_bones_b": (lambda: spike_pit(9, bones=1), 256, 0),
+    "spike_pit_bones_c": (lambda: spike_pit(7, bones=1, blood=True), 256, 0),
+    "spike_pit_bones_d": (lambda: spike_pit(8, bones=2, blood=True), 256, 0),
     "stockade_a_x": (lambda: stockade(6, 2.5, seed=13, heights=(3.4, 4.2)), 192, 5),
     "stockade_b_x": (lambda: stockade(10, 4.4, seed=14, heights=(3.6, 5.0)), 192, 5),
     "stockade_a_y": (lambda: stockade(6, 2.8, True, seed=16, heights=(3.4, 4.2)), 192, 5),
