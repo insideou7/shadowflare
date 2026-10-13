@@ -108,4 +108,29 @@ int trapHitOption(int kind, int roll) {
     return scriptEffectOption(21000 + std::clamp(roll, 0, 3));
 }
 
+bool shotMeetsWall(const GroundLayer& ground, int x, int y, const JudgeRect& box) {
+    if (ground.magX <= 0 || ground.magY <= 0) return false;
+    const int left = x + box.left, top = y + box.top, right = x + box.right, bottom = y + box.bottom;
+    auto cell = [](int v, int mag) { return v >= 0 ? v / mag : -((-v + mag - 1) / mag); };
+    const int x0 = std::max(cell(left, ground.magX) - ground.judgeX, 0);
+    const int x1 = std::min(cell(right, ground.magX) - ground.judgeX, ground.judgeWidth - 1);
+    const int y0 = std::max(cell(top, ground.magY) - ground.judgeY, 0);
+    const int y1 = std::min(cell(bottom, ground.magY) - ground.judgeY, ground.judgeHeight - 1);
+    for (int jy = y0; jy <= y1; ++jy) {
+        for (int jx = x0; jx <= x1; ++jx) {
+            const auto judge = ground.judge[static_cast<std::size_t>(jy) * ground.judgeWidth + jx];
+            if ((judge & 1) && !(judge & 2)) return true;
+        }
+    }
+    return false;
+}
+
+std::optional<int> stunTicks(int chance, int length, bool steady, int chanceResist, int lengthResist, int roll) {
+    if (roll >= std::max(0, chance - chanceResist)) return std::nullopt;
+    const int ticks = std::max(1, length - lengthResist);
+    return steady ? ticks : std::min(ticks, 15);
+}
+
+int stunPush(int tick, int total) { return total > 0 ? (total - tick) * 120 / total : 0; }
+
 }  // namespace sf

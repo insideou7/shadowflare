@@ -34,16 +34,21 @@ is negated when it is handed over.
 ## `CREATEOPTIONANGLE`: trap shots
 
 The operands are: x, y, kind, angle (degrees), speed, power, height, distance,
-direction, fixed, and four stun words (stun chance, stun length, knockback,
-poison).
+direction, fixed, stun chance, stun length, steady and splash. The last four
+fill hit words 0x29, 0x2b, 0x28 and 0x48.
 
 - The shot starts `distance` out along its angle, and each axis is cut to a
   whole number (0x4140a0).
 - It goes to option controller `kind` (0x429ec0, then 0x42a300). It is drawn
   from `Character/OPTION/0000000k`.
 - It hurts players, companions and blocking objects (mask 19).
-- On each original tick (0x45e1e0), it hurts first, then moves `speed`, then
-  checks for walls, then ages.
+- On each original tick (0x45e1e0), it hurts first, then checks for walls,
+  then moves `speed`, then ages.
+- **Walls.** Arrows (kinds 0, 1 and 3) stop at walls. If the shot's box
+  already touches a blocked judge cell (bit 0), the shot is gone. The same
+  happens if its path meets one while it moves, and it stops there (0x4145b0,
+  0x414990). Cells with bit 1 set are low walls that shots fly over. The engine
+  checks the path in steps of 40 units or less.
 
 | Kind | What it is | Box | Hurts | Lasts |
 |---|---|---|---|---|
@@ -57,11 +62,33 @@ poison).
 - **Chance.** A hit must beat the target's evasion, using the monsters' hit
   chance.
 - **Damage.** A `fixed` shot deals its power outright. Otherwise the power is
-  a monster blow with no element, through 0x412a40, against the hero's
-  defense. Power mode raises that defense by a fifth.
+  a monster blow with no element, through 0x412a40, against the defense of
+  whoever is hit. Power mode raises the hero's defense by a fifth.
+- **Companions.** A companion is hit through its own code (0x45f9f0), with the
+  same hit roll, damage rule and stun. Its gear does not resist the stun.
 - **Sparks.** The hero shows sparks:
   - for an arrow (kind 0): one of 11000020-22;
   - for any other kind: one of 11000000, 01, 02 or 09.
+- **Stun** (0x443cb0, 0x45f9f0). The chance is the stun chance less the
+  hero's resistance. If the roll (0-99) is under it, the hero is held in the
+  hit pose, its frames spread over the stun.
+  - **Length.** The stun length less the hero's resistance, in original ticks.
+    It is at least 1, and at most 15 unless the shot is steady.
+  - **Table 25.** A chance or length of -1 comes from Table.Tbd table 25,
+    from the row for how much of the hero's health the blow took
+    (damage × 50 / max HP, at most row 49).
+  - **Resistance.** The hero's resistance is modifiers 14 (chance) and
+    15 (length) of the armor and accessories worn (0x450d90). The weapon does
+    not count, and broken items do.
+  - **Push back.** Unless the shot is steady, or modifier 16 is on something
+    worn, the hero turns to face the blow and is pushed straight away from it
+    (0x435870). On tick t of a stun T ticks long, the push is
+    (T - t) × 120 / T units, as far as the ground allows.
+  - **Not copied.** The original also reads some of the hero's own states,
+    which can make a stun certain or impossible. The engine does not have
+    those states.
+- **Splash.** A shot with the splash word set shows 11000024 or 11000025 on
+  one hit in five, facing a random direction.
 
 Some scenarios point a trap's switch at a constant instead of a temp flag, so
 those traps never fire. The original does the same, and it is kept.
@@ -131,13 +158,12 @@ not.
 
 ## Not done yet
 
-- The stun words (hit words 0x29-0x2b) are not rolled, so trap hits do not
-  stun or knock back the hero.
-- Damage to companions is inferred: their evasion, and a melee blow against
-  their defense.
-- The wall check tests the shot's center, not its box.
-- Blocking scenario objects do not stop arrows yet.
+- Blocking scenario objects do not stop arrows yet. In the original, an object
+  with status bit 0 set and +0xf8 clear ends the shot. This waits on the
+  scenario objects work.
+- Scenario objects are not drawn with their SETCHARTRANS opacity yet. This
+  also waits on that work.
 - The open pack has no art yet for OPTION 00000000-03 (the shots),
   11000005-08, 10000020 and 11000020-22, or for the story pictures.
-- Scenario objects are not drawn with their SETCHARTRANS opacity yet.
-- Sounds are not played.
+- Sounds are not played. The engine has no sound yet, and the game files in
+  the project have no sound files.

@@ -198,6 +198,14 @@ void Game::tickPartner() {
         }
         p.state = State::Idle;
     }
+    if (p.state == State::Hit && p.stun) {
+        if (tickStun(c, *p.stun)) {
+            c.tick();
+            return;
+        }
+        p.stun.reset();
+        p.state = State::Idle;
+    }
     if (p.state == State::Hit) {
         if (!c.finished()) {
             c.tick();
@@ -345,6 +353,7 @@ void Game::hurtPartner(int damage) {
     if (!partnerAlive()) return;
     Partner& p = *partner_;
     p.hp -= damage;
+    p.stun.reset();
     if (p.hp <= 0) {
         p.hp = 0;
         p.state = Partner::State::Dead;

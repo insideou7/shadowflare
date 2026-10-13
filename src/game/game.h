@@ -424,6 +424,7 @@ private:
             int kind = 0;
             int power = 0;
             bool fixedDamage = false;
+            ScriptHost::TrapFire::Stun stun;
         };
         std::optional<Trap> trap;
         bool dead = false;
@@ -486,6 +487,19 @@ private:
     void stepTrap(Effect& e);
     void trapHitsPlayer(const Effect& e);
     void trapHitsPartner(const Effect& e);
+    // A stun from a trap's blow (0x443cb0, 0x45f9f0): held in the hit pose
+    // for `total` original ticks, pushed away from the blow unless steady.
+    struct Stun {
+        int total = 1, tick = 0;
+        double angle = 0;  // radians, world y up, from the blow to the one hit
+        bool pushed = false;
+        double carry = 0;  // original ticks still to run
+    };
+    std::optional<Stun> trapStun(const Effect& e, double x, double y, int chanceResist, int lengthResist, bool gearSteady, int damage,
+                                 int maxHp);
+    bool tickStun(Character& who, Stun& stun);
+    void trapSplash(const Effect& e, double x, double y, bool onHero);
+    std::optional<Stun> heroStun_;
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
     int directionFrames(int option, int direction);
     std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
@@ -570,6 +584,7 @@ private:
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
         int restDirection = 0;  // its facing before a jump
+        std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
     void spawnPartner();
     void changePartner(int kind);

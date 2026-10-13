@@ -836,6 +836,23 @@ void testTrapShots() {
     check(sf::scriptEffectOption(21003) == 11000009 && sf::scriptEffectOption(22000) == 12000000 && sf::scriptEffectOption(1) == 0,
           "effect numbers name OPTION folders");
     check(sf::trapHitOption(0, 1) == 11000021 && sf::trapHitOption(2, 3) == 11000009, "the sparks of a trap's hit");
+
+    check(sf::stunTicks(30, 20, false, 10, 3, 19) == 15 && !sf::stunTicks(30, 20, false, 10, 3, 20), "a stun's chance less resistance, capped at 15");
+    check(sf::stunTicks(30, 20, true, 0, 0, 0) == 20 && sf::stunTicks(100, 2, false, 0, 9, 0) == 1, "a steady stun runs long; at least 1 tick");
+    check(sf::stunPush(0, 5) == 120 && sf::stunPush(4, 5) == 24 && sf::stunPush(5, 5) == 0, "a stun's push shrinks each tick");
+
+    // A 4 x 3 judge grid of 160-unit cells from cell (0, 0): (1, 1) is a
+    // wall, (2, 1) a low wall shots fly over.
+    sf::GroundLayer g;
+    g.judgeWidth = 4;
+    g.judgeHeight = 3;
+    g.judge.assign(12, 0);
+    g.judge[5] = 1;
+    g.judge[6] = 3;
+    const sf::JudgeRect box{-30, -30, 30, 30};
+    check(!sf::shotMeetsWall(g, 80, 80, box) && sf::shotMeetsWall(g, 140, 200, box), "a shot meets a wall under any part of its box");
+    check(!sf::shotMeetsWall(g, 400, 240, box), "shots fly over low walls");
+    check(!sf::shotMeetsWall(g, -500, -500, box), "off the grid is not a wall");
 }
 
 struct TrapHost : sf::ScriptHost {
@@ -868,7 +885,8 @@ void testScriptTrapsAndEffects() {
     const Op t1{S::kTemp, 1}, t2{S::kTemp, 2}, t3{S::kTemp, 3}, t4{S::kTemp, 4}, t5{S::kTemp, 5}, t6{S::kTemp, 6},
         t7{S::kTemp, 7}, t8{S::kTemp, 8}, t9{S::kTemp, 9}, t10{S::kTemp, 10};
     script.sentences = {{{S::kCreateOptionAngle, {constant(1000), constant(2000), constant(0), constant(90), constant(40),
-                                                  constant(25), constant(50), constant(100), constant(-1), constant(1)}},
+                                                  constant(25), constant(50), constant(100), constant(-1), constant(1),
+                                                  constant(40), constant(6), constant(0), constant(1)}},
                          {S::kCreateEffect, {constant(21003), constant(5), constant(6), constant(7), constant(-1)}},
                          {S::kCreateEffectChar, {constant(21000), constant(0)}},
                          {S::kGetNearPlayerPos, {constant(12000000), constant(-1), constant(-1), t1, t2, t3}},
@@ -887,7 +905,8 @@ void testScriptTrapsAndEffects() {
     sf::ScriptRunner(script, flags, &host).run(0);
     // The exe's degree is a shade short, so 100 out at 90 degrees cuts to 99.
     check(host.fired.size() == 1 && host.fired[0].x == 1000 && host.fired[0].y == 1901 && host.fired[0].fixedDamage &&
-              host.fired[0].power == 25 && host.fired[0].direction == -1,
+              host.fired[0].power == 25 && host.fired[0].direction == -1 && host.fired[0].stun.chance == 40 &&
+              host.fired[0].stun.length == 6 && !host.fired[0].stun.steady && host.fired[0].stun.splash,
           "CREATEOPTIONANGLE starts its distance out along the angle");
     check(host.effects.size() == 2 && host.effects[0] == std::vector{21003, 5, 6, 7, 8} && host.effects[1] == std::vector{21000, 0},
           "CREATEEFFECT (no direction is 8) and CREATEEFFECTCHAR");

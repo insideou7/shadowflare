@@ -127,6 +127,14 @@ public:
         bool fixedDamage = false;  // the power is the damage, defense or not
         int height = 0;
         int direction = -1;  // -1: from the angle
+        // Hit words 0x29, 0x2b, 0x28 and 0x48: the stun's chance (percent,
+        // -1 for table 25's) and length (original ticks, -1 likewise),
+        // whether it is steady (stuns past 15 ticks and does not push),
+        // and whether the hit may splash (11000024 or 25, one time in five).
+        struct Stun {
+            int chance = 0, length = 0;
+            bool steady = false, splash = false;
+        } stun;
     };
     virtual void fireTrap(const TrapFire&) {}
     // CREATEEFFECT number x y height direction: an effect where it stands;

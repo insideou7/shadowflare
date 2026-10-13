@@ -2,6 +2,8 @@
 
 #include <optional>
 
+#include "formats/map_layers.h"
+
 namespace sf {
 
 // Traps and map effects that scenario scripts set off (ShadowFlare.exe;
@@ -59,5 +61,21 @@ int scriptEffectOption(int controller);
 // and 0x443cb0 plays it): one of 11000020-22 for an arrow (kind 0), else
 // one of 11000000, 01, 02 and 09. `roll` is the random pick, 0-3.
 int trapHitOption(int kind, int roll);
+
+// Whether a shot's box at (x, y) meets a wall (0x4145b0 as 0x45e1e0 calls
+// it): a judge cell under any part of the box that is blocked (bit 0) and
+// is not one shots fly over (bit 1). Cells off the grid do not count.
+bool shotMeetsWall(const GroundLayer& ground, int x, int y, const JudgeRect& box);
+
+// How a blow stuns the hero or a companion (0x443cb0, 0x45f9f0): with
+// `chance` less `chanceResist` percent (`roll` is 0-99) it holds them
+// `length` less `lengthResist` original ticks, at least 1 and, unless the
+// blow is `steady`, at most 15. Empty when it does not stun.
+std::optional<int> stunTicks(int chance, int length, bool steady, int chanceResist, int lengthResist, int roll);
+
+// How far a stunned hero or companion is pushed on tick `tick` of a stun
+// `total` ticks long (the hit state, 0x435870): (total - tick) x 120
+// / total world units, straight away from the blow.
+int stunPush(int tick, int total);
 
 }  // namespace sf

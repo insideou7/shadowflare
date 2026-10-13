@@ -400,6 +400,19 @@ int Inventory::modifier(ItemDef::Modifier which) const {
     return total;
 }
 
+int Inventory::guardModifier(ItemDef::Modifier which) const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto slot = static_cast<EquipSlot>(s);
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || slot == EquipSlot::Weapon || (slot == EquipSlot::Shield && shieldHidden)) continue;
+        total += worn->modifiers[static_cast<std::size_t>(which)];
+    }
+    return total;
+}
+
 int Inventory::goldBonus() const {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();

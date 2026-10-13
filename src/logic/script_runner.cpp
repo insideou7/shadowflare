@@ -315,6 +315,7 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 f.y = arg(1) - static_cast<int>(std::sin(f.angle) * distance);
                 f.direction = arg(8);
                 f.fixedDamage = arg(9) != 0;
+                if (ops.size() >= 14) f.stun = {arg(10), arg(11), arg(12) != 0, arg(13) != 0};
                 host_->fireTrap(f);
                 break;
             }

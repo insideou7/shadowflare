@@ -303,6 +303,7 @@ void Game::placePlayer() {
 }
 
 void Game::placePlayerAt(double screenX, double screenY) {
+    heroStun_.reset();
     const auto& g = map_->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
     int left, top, right, bottom;
@@ -742,6 +743,12 @@ void Game::swing() {
 }
 
 void Game::tickPlayer() {
+    // A trap's stun holds the hero in the hit pose (0x435870).
+    if (heroStun_) {
+        if (tickStun(*player_, *heroStun_)) return;
+        heroStun_.reset();
+        player_->play(chart::kIdle);
+    }
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
     if (casting_) {
