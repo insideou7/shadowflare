@@ -315,8 +315,8 @@ Operand values (ShadowFlare.exe 0x4346b0): types 0-2 are the value
 itself; `TEMP`, `NET`, `WARP`, `SAVE` and `QUEST` are variables; `CPOSX`
 and `CPOSY` are a character's world position; `PLAYMODE` is single or
 network play (2 is network play); `ELIV n` is 1 while enemy 14,000,000 + n
-is alive and 0 once it is dead; `CCHECK id` is 1 while the hero stands on
-object `id` (not carried out yet); `EXSTRG n` is a word list on the
+is alive and 0 once it is dead; `CCHECK id` is 1 while object `id` is within
+the hero's reach (inferred; not carried out yet); `EXSTRG n` is a word list on the
 player (+ 0x55c, use not traced).
 
 Command numbers come from the keyword table in RKC_RPG_SCRIPT.dll (each
