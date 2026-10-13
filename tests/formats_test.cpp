@@ -470,7 +470,8 @@ void testItems() {
     check(items.items.size() == 5, "item count");
     using C = sf::ItemDef::Class;
     const auto* sword = items.find(C::Weapon, 0);
-    check(sword && sword->name == "Sword" && sword->width == 1 && sword->height == 4, "item name and size");
+    check(sword && sword->name == "Sword" && sword->width == 1 && sword->height == 4 && sword->weight == 30,
+          "item name, size and weight");
     check(sword && sword->stats[sf::ItemDef::kAttack] == 20 && sword->requiredLevel == 3 && sword->heroLayer == 12,
           "weapon stats, level and layer");
     check(sword && sword->invBank == 2 && sword->invPattern == 17 && sword->groundFolder == 7 && sword->groundPicture == 5,

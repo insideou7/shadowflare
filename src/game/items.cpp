@@ -261,6 +261,7 @@ void Game::pickUpItems() {
         if (item.def->isGold()) {
             showMessage(std::format("{} gold", item.count));
         } else {
+            playSound(0x30);  // a fixed sound, into the belt or the bag; gold is silent (0x449ef0)
             showMessage(item.shownName());
         }
         log::info("Picked up {}{}", item.def->isGold() ? std::format("{} ", item.count) : std::string(), item.def->name);
@@ -348,6 +349,7 @@ bool Game::applyConsumable(const ItemDef& def) {
     // Words 7 and 8 (the medicines and fruits) are not in yet; those are
     // used up as before.
     if (!used && e[7] == -1) return false;
+    playSound(0x10);  // (0x44a240)
     showMessage(std::format("Used {}", def.name));
     return true;
 }
@@ -382,6 +384,9 @@ void Game::gainExperience(int amount) {
     // As in the original: one level at a time, counting again from 0.
     ++playerLevel_;
     playerExperience_ = 0;
+    // Level 5 sets the first class, with its own sound first (0x412fb0).
+    if (player_ && playerLevel_ == 5) playSound(0x40, player_->x, player_->y);
+    if (player_) playSound(0x3f, player_->x, player_->y);
     career_.levelUp(playerLevel_);
     const std::vector<int> learned = spells_.learn(magic_, career_.history);
     // A new level heals fully and refills magic, as in the original.
@@ -453,16 +458,25 @@ bool Game::inventoryClick(int x, int y, bool right) {
             const double left = x - hand_->def->width * kCell / 2.0 - kBagX;
             const double top = y - hand_->def->height * kCell / 2.0 - kBagY;
             const int tx = static_cast<int>(std::lround(left / kCell)), ty = static_cast<int>(std::lround(top / kCell));
-            if (inventory_.clickBag(hand_, tx, ty) == Inventory::Result::NoRoom) showMessage("No room there");
-        } else {
-            inventory_.clickBag(hand_, cx, cy);
+            const ItemDef& held = *hand_->def;
+            const auto result = inventory_.clickBag(hand_, tx, ty);
+            if (result == Inventory::Result::NoRoom) showMessage("No room there");
+            // Put down in empty cells, or over one item, which is taken up (0x446320).
+            if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
+        } else if (inventory_.clickBag(hand_, cx, cy) == Inventory::Result::Done) {
+            playSound(itemSound(*hand_->def, kItemTake));
         }
         return true;
     }
     for (const auto& box : kSlots) {
         if (!inside(box.rect(), x, y) || right) continue;
+        const ItemDef* held = hand_ ? hand_->def : nullptr;
         switch (inventory_.clickSlot(hand_, box.slot, playerLevel_)) {
-            case Inventory::Result::Done: updateEquipment(); break;
+            case Inventory::Result::Done:
+                // Wearing an item, or taking one off (0x446320).
+                playSound(held ? itemSound(*held, kItemEquip) : itemSound(*hand_->def, kItemTake));
+                updateEquipment();
+                break;
             case Inventory::Result::WrongSlot: showMessage("That does not go there"); break;
             case Inventory::Result::LevelTooLow: showMessage(std::format("Needs level {}", hand_->def->requiredLevel)); break;
             default: break;
@@ -702,9 +716,13 @@ bool Game::beltClick(int x, int y, bool right) {
     if (menuOpen_ || !player_ || !beltCellAt(x, y, cx, cy)) return false;
     if (right) {
         useBelt(cx, cy);
-    } else if (inventory_.clickBelt(hand_, cx, cy) == Inventory::Result::WrongSlot) {
-        showMessage("Only potions go in the belt");
+        return true;
     }
+    // Taking an item, or putting one there, both with event 0 (0x445bd0).
+    const ItemDef* held = hand_ ? hand_->def : nullptr;
+    const auto result = inventory_.clickBelt(hand_, cx, cy);
+    if (result == Inventory::Result::WrongSlot) showMessage("Only potions go in the belt");
+    if (result == Inventory::Result::Done) playSound(itemSound(held ? *held : *hand_->def, kItemTake));
     return true;
 }
 

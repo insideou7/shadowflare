@@ -164,6 +164,8 @@ void Game::applyScreenMode() {
 // Picks choice `index` on a row (or the slider value).
 void Game::setOption(OptionRow row, int index) {
     if (!optionEnabled(row)) return;
+    // Every choice clicks, even one already set; the sliders are silent (0x4103c0).
+    if (!optionIsSlider(row)) playSound(0x37);
     switch (row) {
         case OptionRow::ScreenMode:
             settings_.fullScreen = index == 1;
@@ -194,6 +196,17 @@ void Game::setOption(OptionRow row, int index) {
 
 void Game::chooseOption(OptionRow row) {
     if (!optionEnabled(row)) return;
+    // Going ahead plays 0x38 (0x4103c0). The original asks YES or NO before
+    // saving and plays it again on YES; the engine saves at once.
+    switch (row) {
+        case OptionRow::Help:
+        case OptionRow::MissionList:
+        case OptionRow::Map:
+        case OptionRow::SaveAndTitle:
+        case OptionRow::SaveAndExit: playSound(0x38); break;
+        case OptionRow::Back: playSound(0x39); break;
+        default: break;
+    }
     switch (row) {
         case OptionRow::Help:
             closeOptions();
@@ -291,6 +304,13 @@ void Game::optionsEvent(const SDL_Event& event) {
             break;
         case SDL_MOUSEBUTTONDOWN: {
             if (event.button.button != SDL_BUTTON_LEFT) break;
+            // The panel's MENU button closes the menu again (0x4458c0).
+            if (optionsInGame_ && event.button.x >= 589 && event.button.x <= 639 && event.button.y >= 402 &&
+                event.button.y <= 413) {
+                playSound(0x39);
+                closeOptions();
+                break;
+            }
             const int i = rowAt(event.button.y);
             if (i < 0 || event.button.x < kOptionsPanel.x || event.button.x >= kOptionsPanel.x + kOptionsPanel.w) break;
             const OptionRow row = rows[static_cast<std::size_t>(i)];

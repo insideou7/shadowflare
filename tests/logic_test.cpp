@@ -113,6 +113,17 @@ void testScriptQuestFlags() {
     run(0);
     check(original[{S::kQuest, 0}] == 1, "original mode: a mission cleared before it was taken stays taken");
     check(original[{sf::kQuestClearedType, 0}] == 1, "original mode remembers the clear");
+
+    // 0x41 for any state but 2, 0x42 for clearing a taken mission, heard everywhere.
+    struct Host : sf::ScriptHost {
+        std::vector<int> voices;
+        void playSound(int voice, bool everywhere, int x, int) override {
+            if (everywhere && x == -1) voices.push_back(voice);
+        }
+    } host;
+    sf::ScriptFlags sounded;
+    for (int sentence : {0, 1, 1, 0, 0}) sf::ScriptRunner(script, sounded, &host).run(sentence);
+    check(host.voices == std::vector<int>{0x41, 0x41, 0x42}, "SETQUESTFLAG sounds");
 }
 
 void testScriptMissionNames() {

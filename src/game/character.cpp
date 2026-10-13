@@ -57,6 +57,16 @@ void Character::restart(int chart, double speed) {
     frame_ = 0;
     speed_ = speed;
     progress_ = 0;
+    cues_ = 0;
+    reached(0);
+}
+
+void Character::reached(int frame) {
+    const auto* dir = currentDirection();
+    if (!dir) return;
+    for (const auto& layer : dir->layers) {
+        if (frame < static_cast<int>(layer.size())) cues_ |= layer[static_cast<std::size_t>(frame)].status & kCueFlags;
+    }
 }
 
 bool Character::hasChart(int chart) const {
@@ -107,11 +117,13 @@ void Character::tick() {
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return;
     for (progress_ += speed_; progress_ >= 1.0; progress_ -= 1.0) {
+        const int was = frame_;
         if (model_->animations.charts[chart_].status == 1) {
             frame_ = (frame_ + 1) % dir->frameCount;
         } else {
             frame_ = std::min(frame_ + 1, dir->frameCount - 1);
         }
+        if (frame_ != was) reached(frame_);
     }
 }
 

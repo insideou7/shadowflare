@@ -66,12 +66,16 @@ bool Game::statusClick(int x, int y) {
     if (!showStatus_ || openShop_ || !inside(kStatusPanel, x, y)) return false;
     if (inside(kChangeButton, x, y)) changeCareer();
     // The MAGIC tab at the top right (0x4474b0).
-    if (y < 37 && x >= 160) toggleMagicWindow();
+    if (y < 37 && x >= 160) {
+        playSound(0x3a);
+        toggleMagicWindow();
+    }
     return true;
 }
 
 void Game::changeCareer() {
     if (!career_.change()) return;
+    if (player_) playSound(0x40, player_->x, player_->y);  // at the hero (0x4474b0)
     playerHp_ = std::min(playerHp_, playerMaxHp());
     playerMp_ = std::min(playerMp_, playerMaxMp());
     log::info("Changed class to {}", className(career_.current, heroSex_));

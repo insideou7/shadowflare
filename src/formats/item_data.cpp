@@ -44,7 +44,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     d.fixedPrice = in.i32() != 0;  // 0x44
     d.width = in.i32();       // 0x20
     d.height = in.i32();      // 0x24
-    in.i32();                 // 0x28 weight
+    d.weight = in.i32();      // 0x28
     d.invBank = in.i32();     // 0x2c
     d.invPattern = in.i32();  // 0x30
     d.groundFolder = in.i32();   // 0x34

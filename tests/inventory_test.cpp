@@ -617,7 +617,31 @@ void testTakeAll() {
     check(inventory.takeAll(Class::Special, 1) == 0, "and then there are none");
 }
 
+// The item sound selector (0x466110).
+void testItemSounds() {
+    auto light = def(Class::Weapon, sf::ItemDef::kSword, 1, 4);
+    light.weight = 59;
+    auto heavy = light;
+    heavy.weight = 60;
+    auto gold = def(Class::Special, -1, 1, 1);
+    auto mine = gold;
+    mine.code = 1;
+    mine.weight = 60;
+    const auto ring = def(Class::Accessory, 0, 1, 1);
+    check(sf::itemSound(light, 0) == 0x30 && sf::itemSound(light, 1) == 0x30, "light items take and put with 0x30");
+    check(sf::itemSound(heavy, 0) == 0x2f && sf::itemSound(heavy, 1) == 0x2f, "60 and more is heavy: 0x2f");
+    check(sf::itemSound(light, 2) == 0x0f && sf::itemSound(heavy, 3) == 0x31, "event 2 is 0x0f, equipping 0x31");
+    check(sf::itemSound(gold, 0) == 0x55 && sf::itemSound(gold, 1) == 0x55 && sf::itemSound(gold, 2) == 0x55,
+          "gold rings in events 0-2");
+    check(sf::itemSound(gold, 3) == 0x31, "but equipping gold falls to the default");
+    check(sf::itemSound(mine, 0) == 0x2f, "other special items go by weight");
+    for (int e = 0; e < 4; ++e) check(sf::itemSound(ring, e) == 0x5d, "accessories always 0x5d");
+    check(sf::itemSound(light, 4) == 1 && sf::itemSound(heavy, 4) == 2, "the swing voice: 1 light, 2 heavy");
+    check(sf::itemSound(light, 5) == -1 && sf::itemSound(light, -1) == -1, "other events are silent");
+}
+
 int main() {
+    testItemSounds();
     testTakeAll();
     testBagPlacement();
     testBagClicks();

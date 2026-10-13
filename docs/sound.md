@@ -73,17 +73,119 @@ All numbers are little-endian (`RKC_DSOUND_VOC::Read`).
   fire jets (kind 2) have none. The wall sound of the shots scripts use is
   -1, so they are silent when they hit a wall.
 
+## Menus, windows and items
+
+All of these are heard wherever the hero is. The keys that open and close
+windows or press buttons (I, S, Esc, Q, N, M, B, P) are silent, as in the
+original: only the mouse makes these sounds.
+
+- **Items** (0x466110). The item picks its own voice. Taking an item into
+  the hand, or putting it over another one, plays 0x30, or 0x2f when the
+  item weighs 60 or more. Putting it down in empty cells plays the same.
+  Wearing an item plays 0x31. Gold always plays 0x55 and accessories
+  always 0x5d. These play in the bag, on the belt, on the equipment slots,
+  in the warehouse, and when buying or selling. The weight is the Item.Ibn
+  field at 0x28; the open content's `carry-weight` key gives it (0 when
+  left out). The same function gives the hero's swing voice: 1, or 2 for a
+  weapon of 60 or more.
+- **Picking up** (0x449ef0) plays 0x30 for anything but gold and mines,
+  which are silent. **Using** a potion or other consumable (0x44a240) plays
+  0x10, but only when it did something.
+- **Panel** (0x445bd0). The MENU, RUN, WALK, power and MINE buttons, and
+  opening the status and item windows, play 0x3a. Closing those windows
+  with their buttons plays 0x39, and so does the MENU button while the
+  Settings Menu is open, which closes it.
+- **Spells** (0x447570, 0x447790, 0x404e40). Choosing another spell on the
+  bar, or the attack icon, plays 0x3a. In the magic window the STATUS tab
+  and the page buttons play 0x3a, taking up a spell to drag 0x39, and
+  dropping it on the bar 0x3a. The status window's MAGIC tab plays 0x3a,
+  and changing class plays 0x40 at the hero.
+- **Missions and gates** (0x40cea0, 0x40c950). The mission list's page
+  buttons play 0x3a even when that page is showing. In the GATE window,
+  choosing a gate and turning the page play 0x3a.
+- **Dialogue** (0x457fa0, 0x458080). Clicking an option, or closing the
+  box with Enter or Space, plays 0x39. Esc, the arrows, and a click on a
+  box without options are silent.
+- **Settings Menu** (0x4103c0). Every choice on the ON/OFF rows, the
+  click size and the click order plays 0x37, even one already set; the
+  volume sliders are silent. Mission List, MAP, HELP and the two save rows
+  play 0x38, and Back plays 0x39.
+- **New character** (0x423ca0, 0x424d80). Moving between the hero and the
+  heroine plays 0x3a, but only when the choice changes. Choosing one, BACK,
+  EXIT, and closing the name box with a name play 0x37. In the mode window,
+  moving up or down plays 0x3a and SINGLE MODE, BACK and Enter play 0x38.
+- **Missions from scripts** (0x430f80 case 0x3e). SETQUESTFLAG plays 0x41
+  when it sets any state but 2, even an unchanged one, and 0x42 when it
+  clears a mission that was taken.
+
+## Spells, mines and power mode
+
+Each spell's controller plays its sounds where they happen (0x42a860-0x42f890):
+
+- **Casts.** Fire Ball, Flame Strike, Mud Javelin and Elemental Strike play
+  19 as the shot leaves the hand. Ice Bolt and Dread Deathscythe play 94,
+  and Medusa plays 22. Where several shots fly, it plays once, at the last
+  one. Hell Fire and the companion's Explosion play 29, then 23. Sonic
+  Blade plays 154 at the hero.
+- **Bursts.** Plasma plays 21 for each burst that is not blocked, and
+  Lightning Storm 21 for each ring, even a blocked one. Earth Spears play
+  22 for each spear. Ice Blast plays 22 six times, every 3 ticks. Mud
+  Javelin's burst and Elemental Strike's earth stage play 22, and every
+  Elemental Strike stage plays 19.
+- **Hits.** A shot plays its hit sound where it is when a hit lands, once
+  a tick. Most spells' shots play 20, and Sonic Blade 155. Plasma, Earth
+  Spears and Lightning Storm have none, and no shot sounds at a wall.
+- **Heal** plays 17 when it restores health.
+- **Mines** beep 54 every 20 ticks from tick 40, and the blast plays 29,
+  then 6 when it hits something (0x42bd40).
+- **Power mode** hums 76 at the hero every 15 ticks, 60 times in all
+  (0x443490).
+- **The Transport gate** plays 79 when it is made, and 51 each time its
+  animation starts again (0x4201b0).
+
+## Fighting
+
+- **The hero** (0x435e60, 0x439140). A sword, great sword or axe shouts as
+  the blow falls, hit or miss: 96 for the hero and 99 for the heroine. The
+  swing itself sounds 6 ticks in (5 for any other weapon): 2 for a weapon
+  heavier than 59, otherwise 1, and 1 with bare hands. A blow that lands
+  plays 6 at the hero.
+- **Steps** (0x4351f0, 0x435530). Voice 0 plays as the hero sets off, then
+  every 12 ticks walking or every 8 running.
+- **Shields.** Magic Shield and Counter Burst play 60 when they work.
+- **Defeat and levels.** The hero's defeat plays 13, or 14 for the
+  heroine. Each new level plays 63, and level 5 plays 64 first (0x412fb0).
+- **Monsters** (0x45a2f0, 0x45bec0, 0x45a2a0). A monster's blow that lands
+  on the hero or the companion plays 6 at the monster. Its death cry comes
+  from a table by its Character/ENEMY folder. Some frames of its animations
+  carry cue flags (cell status 0x400, 0x800 and 0x1000), and those frames
+  play that kind's sound for the animation. Every kind's death frames play
+  86 unless its own table has another sound. A monster that is frozen plays
+  119.
+- **Companions** (0x45fff0-0x461c40). A bite's cue frame plays 95, and 44
+  when the bite lands. A jump plays 45 twice as it takes off, and 46 as it
+  lands. A dash plays 95 as it starts, for kinds whose table 60 column 6 is
+  set, and 6 on each tick it bites something.
+- Getting hit has no sound of its own; the only sound is the blow's.
+
 ## Not done yet
 
-The original plays effects in about 50 more places, which the engine does
-not play yet:
+These sounds belong to things the engine does not have yet:
 
-- **Windows and menus.** Clicks and page turns use voices 0x2c and
-  0x37-0x41 (0x404e40-0x425830).
-- **Spells.** Their casts and hits (0x42a860-0x42f890).
-- **The hero.** Steps, swings, hits and level-ups (0x4456d0-0x44b020).
-- **Monsters.** Their blows and deaths (0x457fa0-0x45bec0).
-- **Companions.** Their blows and hits (0x45fff0-0x461c40).
+- **Windows the engine lacks.** The save and delete confirmations
+  (0x4103c0, 0x4228b0), the load screen (0x422e30), the special items page
+  and the second weapon set (0x446320, 0x406aa0), the drop box and the mine
+  slot of the item window, the 10-tab storage (0x447ca0), the Change Color
+  window (0x40f9e0), the card game (0x40da90, 0x2c, 0x40 and 0x41), the
+  gold split box (0x4429b0, 0x55), clearing a bar slot with a right click
+  in the magic window (0x44a8f0) and the online menus. The shop's unpaid
+  hand and right-click buying (0x4480c0, 0x44b020), and picking up into
+  the hand while the item window is open (0x449ef0), are also missing.
+- **Fights the engine lacks.** The Warrior's combos and axe spin
+  (0x4364e0-0x437910), bows and the Hunter's arrow rain (0x437fe0,
+  0x438a90), monsters freezing the hero (0x443cb0, 119), the revive item
+  (17), life absorption (0x459690, 61) and the companion's idle animation
+  (0x461230, 88).
 
 The open content pack has no sounds of its own yet. It needs its own banks
 before the game can be played with sound without the original files.

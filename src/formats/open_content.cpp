@@ -854,6 +854,8 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             pair(value, item->itemLevel, item->requiredLevel);
         } else if (key == "weight") {
             item->dropWeight = lines.toInt(value);
+        } else if (key == "carry-weight") {
+            item->weight = lines.toInt(value);
         } else if (key == "stats") {
             numbers(value, item->stats);
         } else if (key == "elements") {

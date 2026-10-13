@@ -135,6 +135,7 @@ void Game::newCharacterClick(int x, int y) {
     }
     if (n.step != S::Choose && n.step != S::Name) return;
     if (kExitArea.contains(x, y)) {
+        playSound(0x37);  // (0x423ca0)
         quit_ = true;
     } else if (kBackArea.contains(x, y)) {
         newCharacterKey(SDLK_ESCAPE);
@@ -154,10 +155,15 @@ void Game::newCharacterKey(SDL_Keycode key) {
     const bool back = key == SDLK_ESCAPE;
     const bool enter = key == SDLK_RETURN || key == SDLK_KP_ENTER;
     switch (n.step) {
-        case S::Choose:
+        case S::Choose: {
             if (n.fade || n.slideBack) break;
+            // Moving clicks with 0x3a when the choice changes, going on or
+            // back with 0x37 (0x423ca0).
+            const int was = n.hover;
             if (key == SDLK_LEFT || key == SDLK_UP) n.hover = static_cast<int>(HeroSex::Male);
             if (key == SDLK_RIGHT || key == SDLK_DOWN) n.hover = static_cast<int>(HeroSex::Female);
+            if (n.hover != was) playSound(0x3a);
+            if (enter || back) playSound(0x37);
             if (enter) {
                 n.chosen = static_cast<HeroSex>(n.hover);
                 n.step = S::Name;
@@ -168,15 +174,18 @@ void Game::newCharacterKey(SDL_Keycode key) {
                 n.ticks = 0;
             }
             break;
+        }
         case S::Name:
             if (key == SDLK_BACKSPACE && !n.name.empty()) n.name.pop_back();
             // Enter with no name goes back to the figures, as the exe does
             // when its edit box closes empty.
             if (enter && !n.name.empty()) {
+                playSound(0x37);
                 n.step = S::Mode;
                 n.hover = 1;
                 SDL_StopTextInput();
             } else if (back || enter) {
+                if (back) playSound(0x37);  // an empty name goes back silently
                 n.step = S::Choose;
                 n.fade = 0;
                 n.slideBack = 1;
@@ -184,9 +193,14 @@ void Game::newCharacterKey(SDL_Keycode key) {
                 SDL_StopTextInput();
             }
             break;
-        case S::Mode:
+        case S::Mode: {
+            // Moving clicks with 0x3a when the choice changes; every way
+            // out plays 0x38 (0x424d80).
+            const int was = n.hover;
             if (key == SDLK_UP) n.hover = 1;
             if (key == SDLK_DOWN) n.hover = 2;
+            if (n.hover != was) playSound(0x3a);
+            if (back || enter) playSound(0x38);
             if (back || (enter && n.hover == 2)) {
                 n.step = S::Name;  // back to the name, still typed in
                 SDL_StartTextInput();
@@ -196,6 +210,7 @@ void Game::newCharacterKey(SDL_Keycode key) {
                 log::info("New {} named {}", n.chosen == HeroSex::Male ? "hero" : "heroine", n.name);
             }
             break;
+        }
         case S::Starting:
         case S::Leaving: break;
     }

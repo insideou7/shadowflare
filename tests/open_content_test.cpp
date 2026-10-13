@@ -275,7 +275,7 @@ void testScript() {
 void testItems() {
     const auto table = sf::open::parseItems(bytes(
         "[item weapon 5]\nname=Great Sword\nsubtype=3\nsize=2,4\nicon=0,3\nground=7,3\nlevel=4,3\n"
-        "stats=45,90\nlayer=19\nweight=10\n"
+        "stats=45,90\nlayer=19\nweight=10\ncarry-weight=80\n"
         "[item consumable 0]\nname=Potion\neffect=1,50\n"));
     check(table.items.size() == 2, "item count");
     const auto* sword = table.find(sf::ItemDef::Class::Weapon, 5);
@@ -285,6 +285,8 @@ void testItems() {
     check(sword && sword->stats[0] == 45 && sword->stats[1] == 90 && sword->stats[2] == 0 && sword->heroLayer == 19, "item stats");
     const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
     check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
+    check(sword && sword->weight == 80 && sword->dropWeight == 10 && potion && potion->weight == 0,
+          "carry weight, 0 when left out");
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item bad class", "[item hat 1]\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item twice", "[item weapon 1]\n[item weapon 1]\n", [](auto& d) { sf::open::parseItems(d); });

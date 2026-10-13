@@ -102,19 +102,26 @@ bool Game::magicWindowClick(int x, int y, bool right) {
     if (!magicOpen_) return false;
     if (x >= 320 || y >= kAboveBar) return false;
     if (right) return true;
+    // The tab and the page buttons click with 0x3a, taking up a spell
+    // with 0x39 (0x447790).
     if (y < kTabBottom && x < 160) {
+        playSound(0x3a);
         closeMagicWindow();
         showStatus_ = true;
         return true;
     }
     if (magicPage_ > 0 && inside(kPrevButton, x, y)) {
+        playSound(0x3a);
         --magicPage_;
         return true;
     }
     if (magicPage_ < kPages - 1 && inside(kNextButton, x, y)) {
+        playSound(0x3a);
         ++magicPage_;
         return true;
     }
+    const int before = dragSpell_;
+    dragSpell_ = -1;
     for (int row = 0; row < kPerPage; ++row) {
         const int spell = magicPage_ * kPerPage + row;
         if (spell >= kSpellCount) break;
@@ -123,6 +130,11 @@ bool Game::magicWindowClick(int x, int y, bool right) {
     for (int slot = 0; slot < kSpellBarSize; ++slot) {
         const int spell = spells_.bar[static_cast<std::size_t>(slot)];
         if (spells_.knows(spell) && inside(barSlot(slot), x, y)) dragSpell_ = spell;
+    }
+    if (dragSpell_ >= 0) {
+        playSound(0x39);
+    } else {
+        dragSpell_ = before;
     }
     return true;
 }
@@ -141,6 +153,7 @@ void Game::magicWindowRelease(int x, int y) {
             if (s == spell) s = -1;
         }
         spells_.bar[static_cast<std::size_t>(slot)] = spell;
+        playSound(0x3a);  // (0x404e40)
         return;
     }
 }

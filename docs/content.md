@@ -316,7 +316,9 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-and `glow` (a second hero layer).
+`glow` (a second hero layer) and `carry-weight` (the original's item
+weight, 0 when left out; at 60 or more the item sounds heavy when it is
+taken or put down, and a weapon swings with the heavy voice).
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with

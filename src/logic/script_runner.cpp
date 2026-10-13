@@ -204,17 +204,28 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 if (ops.empty()) break;
                 const std::int32_t quest = arg(0), state = arg(1);
                 auto& flag = flags_[{S::kQuest, quest}];
+                // Setting a state plays 0x41 even when nothing changes,
+                // clearing a taken mission 0x42; both are heard everywhere.
+                auto sound = [&](int voice) {
+                    if (host_) host_->playSound(voice, true, -1, -1);
+                };
+                auto clear = [&] {
+                    if (flag != 1) return;
+                    flag = 2;
+                    sound(0x42);
+                };
                 if (state != 2) {
                     flag = state;
+                    sound(0x41);
                 } else if (rules_.missionsClearOnlyWhenTaken) {
-                    if (flag == 1) flag = 2;
+                    clear();
                 } else {
                     // The original clears a mission once at most: the first
                     // clear is spent even when the mission was not taken.
                     auto& cleared = flags_[{kQuestClearedType, quest}];
                     if (cleared == 0) {
                         cleared = 1;
-                        if (flag == 1) flag = 2;
+                        clear();
                     }
                 }
                 break;
