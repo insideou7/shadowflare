@@ -2,11 +2,13 @@
 // ShadowFlare.exe asks RKC_DSOUND.dll to play them (see docs/sound.md).
 #include <array>
 #include <cmath>
-#include <iterator>
 #include <format>
+#include <iterator>
+#include <string>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
+#include "formats/open_content.h"
 #include "game/game.h"
 #include "platform/filesystem.h"
 
@@ -19,9 +21,52 @@ constexpr const char* kTitleMusic = "System/Title/Music/BGM00.Voc";
 // How far from the hero a sound is heard (0x417260).
 constexpr int kHearing = 3000;
 
-std::optional<VoiceBank> readBank(const FileSystem& data, const std::string& path) {
+// More copies of each effect that may play at once, as in Voice00.Voc.
+constexpr int kOpenCopies = 4;
+
+std::optional<VoiceBank::Voice> readOpenSound(const FileSystem& data, const std::string& path) {
     const auto bytes = data.read(path);
     if (!bytes) return std::nullopt;
+    try {
+        return open::decodeSound(*bytes);
+    } catch (const FormatError& e) {
+        log::warn("{}: {}", path, e.what());
+        return std::nullopt;
+    }
+}
+
+// The open content pack has no .Voc banks: the effects are
+// System/Game/Voice/<voice>.ogg, one a voice, and each piece of music is
+// the .Voc's own path ending in .ogg (docs/content.md).
+std::optional<VoiceBank> readOpenBank(const FileSystem& data, const std::string& path) {
+    const auto dot = path.rfind('.');
+    if (path == kVoices) {
+        const std::string folder = path.substr(0, path.rfind('/'));
+        VoiceBank bank;
+        bank.copies = kOpenCopies;
+        for (const auto& name : data.list(folder)) {
+            if (name.size() < 5 || name.substr(name.size() - 4) != ".ogg") continue;
+            const std::string stem = name.substr(0, name.size() - 4);
+            if (stem.empty() || stem.size() > 4 || stem.find_first_not_of("0123456789") != std::string::npos) continue;
+            const auto voice = static_cast<std::size_t>(std::stoi(stem));
+            auto sound = readOpenSound(data, folder + "/" + name);
+            if (!sound) continue;
+            if (bank.voices.size() <= voice) bank.voices.resize(voice + 1);
+            bank.voices[voice] = std::move(*sound);
+        }
+        if (bank.voices.empty()) return std::nullopt;
+        return bank;
+    }
+    auto sound = readOpenSound(data, path.substr(0, dot) + ".ogg");
+    if (!sound) return std::nullopt;
+    VoiceBank bank;
+    bank.voices.push_back(std::move(*sound));
+    return bank;
+}
+
+std::optional<VoiceBank> readBank(const FileSystem& data, const std::string& path) {
+    const auto bytes = data.read(path);
+    if (!bytes) return readOpenBank(data, path);
     try {
         return VoiceBank::parse(*bytes);
     } catch (const FormatError& e) {
@@ -112,7 +157,7 @@ void Game::heroSteps(bool walking, bool running) {
 void Game::loadSounds() {
     auto bank = readBank(*data_, kVoices);
     if (!bank) return;
-    log::info("{} sounds in {}", bank->voices.size(), kVoices);
+    log::info("{} sounds", bank->voices.size());
     mixer_.load(Mixer::kSoundBank, std::move(*bank));
 }
 

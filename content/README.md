@@ -10,13 +10,17 @@ painted by `tools/art/effects.py`) and the story pages that open and close
 each episode (`System/Common/Pattern/Visual01`-`06`, `Waiting` and
 `WaitIcon`, painted by `tools/art/story.py`; the story is told in our own
 words and set in Liberation Serif Italic, under the SIL Open Font License
-1.1). The formats are described in
+1.1), and the sound effects and music (`System/Game/Voice`,
+`System/Game/Music` and `System/Title/Music`, synthesized and composed by
+`tools/sound`). The formats are described in
 [docs/content.md](../docs/content.md).
 
 All of it is made for this project: modelled and rendered in Blender by
 the scripts in [tools/art](../tools/art) and laid out by
 `tools/art/build_pack.py`, in the style of the original game but drawn
-from scratch, with no original pictures traced or reused. Monster stats
+from scratch, with no original pictures traced or reused. The sounds are
+made the same way: synthesized by our own scripts, with no recording of
+the original's sampled or reused, and the music is our own. Monster stats
 and behaviour (`ai.txt`), the item definitions (`items.txt`) and the
 dogs' names and stats (`partners.txt`) are our own too.
 

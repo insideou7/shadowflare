@@ -21,6 +21,7 @@ add_library(sf_formats STATIC
     src/formats/drop_tables.cpp
     src/formats/item_data.cpp
     src/formats/open_content.cpp
+    src/formats/open_sound.cpp
     src/formats/ground_skin.cpp
     src/formats/missions.cpp
     src/formats/warp_gates.cpp
@@ -28,9 +29,9 @@ add_library(sf_formats STATIC
 )
 target_include_directories(sf_formats PUBLIC src)
 
-# stb_image decodes the open content pack's PNGs. Third-party code is built
-# on its own so it keeps its own warnings.
-add_library(sf_stb STATIC src/formats/stb_image.cpp)
+# stb_image decodes the open content pack's PNGs and stb_vorbis its sounds.
+# Third-party code is built on its own so it keeps its own warnings.
+add_library(sf_stb STATIC src/formats/stb_image.cpp src/formats/stb_vorbis.cpp)
 target_include_directories(sf_stb PUBLIC third_party/stb)
 target_link_libraries(sf_formats PRIVATE sf_stb)
 
@@ -118,6 +119,7 @@ if(BUILD_TESTING)
     add_test(NAME inventory COMMAND inventory_test)
     add_executable(open_content_test tests/open_content_test.cpp)
     target_link_libraries(open_content_test PRIVATE sf_formats)
+    target_compile_definitions(open_content_test PRIVATE SF_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
     add_test(NAME open_content COMMAND open_content_test)
     add_executable(ground_skin_test tests/ground_skin_test.cpp)
     target_link_libraries(ground_skin_test PRIVATE sf_formats)

@@ -34,9 +34,22 @@ original format.
 | names, heights and colours in `Scenario.Mct` enemy placements | `enemies.txt` (by monster kind) |
 | `System/Common/Pattern/System.njp` (the pointer) | `System/Common/Pattern/System.sheet` |
 | `Character/PARTNER/%08d/Animation.*`  | `Character/PARTNER/%08d/Animation.anim` + `.sheet` |
+| `System/Game/Voice/Voice00.Voc`       | `System/Game/Voice/<voice>.ogg`, one file a voice |
+| `System/Game/Music/BGMnn.Voc`, `System/Title/Music/BGM00.Voc` | the same paths ending in `.ogg` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
+
+## Sounds and music
+
+The pack's sounds are Ogg Vorbis files, mono or stereo, at any rate up to
+22,050 Hz (the mixer's). Each effect is its own file, named by its voice
+number in the original's `Voice00.Voc`: `System/Game/Voice/006.ogg` is
+voice 6, the sound of a blow landing. A missing number is a silent voice,
+as an empty one is in the original, and up to five copies of each may
+play at once. Each piece of music is the original's `.Voc` path with
+`.ogg` in place of `.Voc`, and loops whole. `tools/sound/build.py` makes
+them all; [sound.md](sound.md) says when each plays.
 
 ## Text files
 
