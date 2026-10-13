@@ -425,19 +425,32 @@ numbered 10000000 plus the original's number (Remote Town is
 exits lead to each other as the original's do. The game still starts in
 the meadow; `--map f00_01` starts in Remote Town.
 
-Each follows the original map's routes, not its exact layout: which
-blocks of tiles can be walked through, where the exits and entries are,
-which monsters and townspeople stand where, and where the buildings and
-other landmarks stand (the town walls and gates, palisades and spike pits
-among them, each drawn with the prop skin.txt gives its original piece). The walls, paths and forest edges are our own, and
-the monsters' stats are the demo's. The dungeons are as dark as the
-original's, with lamps where its torches stand and glows on the monsters
-that carry one. The maps exactly as the original has
-them are what a player with the original game sees (see above).
+Each can be walked on exactly where the original's can: its judge grid
+is the original's, cell for cell (cells of 160 world units, about the
+width of a character), for the ground reachable from the map's entries.
+Laid over the original, a map looks a little different but plays the
+same. Also kept: where the exits and entries are, which monsters and
+townspeople stand where, which ground is grass or dirt, and where the
+buildings and other landmarks stand (the town walls and gates, palisades
+and spike pits among them, each drawn with the prop skin.txt gives its
+original piece). What is drawn round the walkable ground is our own:
+trees, thinning out away from the paths, outdoors, a rock or a bush where
+the original shuts off a little ground in the open, and walls along the
+dungeon floors (one down the middle of rock a cell thick). The monsters'
+stats are the demo's. The dungeons are as dark as the original's, with
+lamps where its torches stand and glows on the monsters that carry one.
+The maps exactly as the original draws them are what a player with the
+original game sees (see above).
 
 `tools/content/first_area.py` writes them from the player's own copy:
 
     python3 tools/content/first_area.py <game folder> content
+
+and `tools/content/map_overlay.py` checks them against it, printing for
+each map how much of the original's walkable ground is walkable in ours
+and the other way round, and drawing them laid over each other:
+
+    python3 tools/content/map_overlay.py <game folder> content overlay.png
 
 ## Rebuilding content/
 
