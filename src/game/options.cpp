@@ -1,7 +1,8 @@
 // The Settings Menu (Esc in the game, Options on the title menu) and the
 // Help window (H), laid out after the original's: each row names a setting
 // with its choices to the right, the chosen one bright. Rows the engine
-// cannot do yet (no sound) are shown dimmed.
+// cannot do yet (no sound) are shown dimmed. A second tab, ours, holds
+// the cheats; original mode turns them all off.
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -37,12 +38,19 @@ void frame(SDL_Renderer* renderer, const SDL_Rect& r, SDL_Color fill, SDL_Color 
     SDL_RenderDrawRect(renderer, &r);
 }
 
+constexpr const char* kTabNames[] = {"SETTINGS", "CHEATS"};
+constexpr int kTabGap = 24;
+
 constexpr const char* kTargetLabels[Settings::kTargetCount] = {"ENEM", "ITEM", "OBJ.", "PEOP", "COMP"};
 
 }  // namespace
 
 std::vector<Game::OptionRow> Game::optionRows() const {
     using R = OptionRow;
+    // A new cheat is a row here, with its label, its choices or stepper
+    // text, what setOption or stepOption does with it, and a field in
+    // Settings. Each one must do nothing in original mode.
+    if (optionsTab_ == OptionsTab::Cheats) return {R::XpRate};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
@@ -67,6 +75,8 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
+        // Cheats are ours, so original mode turns them off.
+        case OptionRow::XpRate: return !originalMode();
         default: return true;
     }
 }
@@ -91,6 +101,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::SaveAndTitle: return "SAVE AND RETURN TO TITLE";
         case OptionRow::SaveAndExit: return "SAVE AND EXIT";
         case OptionRow::Back: return "BACK";
+        case OptionRow::XpRate: return "EXPERIENCE RATE";
     }
     return "";
 }
@@ -131,10 +142,64 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
 
 bool Game::optionIsSlider(OptionRow row) { return row == OptionRow::EffectVolume || row == OptionRow::MusicVolume; }
 
+bool Game::optionIsStepper(OptionRow row) { return row == OptionRow::XpRate; }
+
+std::string Game::optionStepperText(OptionRow row) const {
+    switch (row) {
+        case OptionRow::XpRate: {
+            const int rate = xpRate();
+            std::string text = std::format("{}.{}X", rate / 100, rate % 100 / 10);
+            if (originalMode()) text += "  (ORIGINAL MODE)";
+            return text;
+        }
+        default: return {};
+    }
+}
+
+// Moves a stepper row `by` steps; with `wrap`, past the end goes back to
+// the start (Enter), else it stops there (the arrows).
+void Game::stepOption(OptionRow row, int by, bool wrap) {
+    if (!optionEnabled(row)) return;
+    switch (row) {
+        case OptionRow::XpRate: {
+            int rate = settings_.xpRate + by * Settings::kXpRateStep;
+            if (wrap && rate > Settings::kXpRateMax) rate = Settings::kXpRateMin;
+            if (wrap && rate < Settings::kXpRateMin) rate = Settings::kXpRateMax;
+            rate = Settings::clampXpRate(rate);
+            if (rate == settings_.xpRate) return;
+            settings_.xpRate = rate;
+            log::info("Experience rate {}%", rate);
+            break;
+        }
+        default: return;
+    }
+    playSound(0x37);
+    saveSettings();
+}
+
+void Game::switchOptionsTab(int by) {
+    const int count = static_cast<int>(OptionsTab::Count);
+    optionsTab_ = static_cast<OptionsTab>((static_cast<int>(optionsTab_) + by + count) % count);
+    optionsChoice_ = 0;
+    playSound(0x37);
+}
+
+// The tabs sit side by side, centred where the menu's title was.
+SDL_Rect Game::optionsTabRect(int tab) {
+    const char* first = optionsInGame_ ? "SETTINGS MENU" : "OPTIONS";
+    auto name = [&](int t) { return t == 0 ? std::string(first) : std::string(kTabNames[t]); };
+    int total = 0;
+    for (int t = 0; t < static_cast<int>(OptionsTab::Count); ++t) total += uiTextWidth(name(t)) + (t ? kTabGap : 0);
+    int x = kOptionsPanel.x + (kOptionsPanel.w - total) / 2;
+    for (int t = 0; t < tab; ++t) x += uiTextWidth(name(t)) + kTabGap;
+    return {x - 6, kOptionsPanel.y + 8, uiTextWidth(name(tab)) + 12, kRowHeight};
+}
+
 void Game::openOptions(bool inGame) {
     optionsOpen_ = true;
     optionsInGame_ = inGame;
     optionsChoice_ = 0;
+    optionsTab_ = OptionsTab::Settings;
     mouseHeld_ = false;
     walkTarget_.reset();
     attackTarget_.reset();
@@ -246,6 +311,10 @@ void Game::chooseOption(OptionRow row) {
             setOption(row, 1);
             break;
         default: {
+            if (optionIsStepper(row)) {
+                stepOption(row, 1, true);
+                break;
+            }
             // Enter steps through a row's choices.
             int chosen = 0;
             const auto choices = optionChoices(row, chosen);
@@ -297,6 +366,8 @@ void Game::optionsEvent(const SDL_Event& event) {
                         setOption(row, by > 0 ? 1 : Settings::kTargetCount - 1);
                     } else if (optionIsSlider(row)) {
                         setOption(row, (row == OptionRow::EffectVolume ? settings_.effectVolume : settings_.musicVolume) + by);
+                    } else if (optionIsStepper(row)) {
+                        stepOption(row, by);
                     } else if (!choices.empty()) {
                         setOption(row, std::clamp(chosen + by, 0, static_cast<int>(choices.size()) - 1));
                     }
@@ -305,6 +376,9 @@ void Game::optionsEvent(const SDL_Event& event) {
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                 case SDLK_SPACE: chooseOption(row); break;
+                case SDLK_TAB: switchOptionsTab((event.key.keysym.mod & KMOD_SHIFT) ? -1 : 1); break;
+                case SDLK_PAGEUP: switchOptionsTab(-1); break;
+                case SDLK_PAGEDOWN: switchOptionsTab(1); break;
                 case SDLK_ESCAPE: closeOptions(); break;
                 default: break;
             }
@@ -322,6 +396,14 @@ void Game::optionsEvent(const SDL_Event& event) {
                 closeOptions();
                 break;
             }
+            for (int t = 0; t < static_cast<int>(OptionsTab::Count); ++t) {
+                const SDL_Rect r = optionsTabRect(t);
+                const SDL_Point p{event.button.x, event.button.y};
+                if (SDL_PointInRect(&p, &r)) {
+                    if (t != static_cast<int>(optionsTab_)) switchOptionsTab(t - static_cast<int>(optionsTab_));
+                    return;
+                }
+            }
             const int i = rowAt(event.button.y);
             if (i < 0 || event.button.x < kOptionsPanel.x || event.button.x >= kOptionsPanel.x + kOptionsPanel.w) break;
             const OptionRow row = rows[static_cast<std::size_t>(i)];
@@ -329,6 +411,12 @@ void Game::optionsEvent(const SDL_Event& event) {
             const auto choices = optionChoices(row, chosen);
             if (optionIsSlider(row)) {
                 setOption(row, sliderValue(event.button.x));
+            } else if (optionIsStepper(row)) {
+                // The arrows either side of the value step it.
+                const int w = uiTextWidth(optionStepperText(row));
+                if (event.button.x >= kChoicesX - 4 && event.button.x < kChoicesX + 10) stepOption(row, -1);
+                else if (event.button.x >= kChoicesX + 18 + w && event.button.x < kChoicesX + 32 + w) stepOption(row, 1);
+                else if (event.button.x >= kChoicesX + 10) stepOption(row, 1, true);
             } else if (choices.empty()) {
                 chooseOption(row);
             } else {
@@ -350,8 +438,13 @@ void Game::renderOptions() {
     SDL_RenderFillRect(renderer_, &all);
     frame(renderer_, kOptionsPanel, {14, 12, 18, 235}, {150, 130, 90, 255});
 
-    const char* title = optionsInGame_ ? "SETTINGS MENU" : "OPTIONS";
-    uiText(kOptionsPanel.x + (kOptionsPanel.w - uiTextWidth(title)) / 2, kOptionsPanel.y + 12, title, kTitle);
+    for (int t = 0; t < static_cast<int>(OptionsTab::Count); ++t) {
+        const SDL_Rect r = optionsTabRect(t);
+        const bool active = t == static_cast<int>(optionsTab_);
+        if (active) frame(renderer_, r, {60, 45, 20, 200}, {150, 130, 90, 255});
+        const char* name = t == 0 ? (optionsInGame_ ? "SETTINGS MENU" : "OPTIONS") : kTabNames[t];
+        uiText(r.x + 6, kOptionsPanel.y + 12, name, active ? kTitle : kOff);
+    }
 
     const auto rows = optionRows();
     for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
@@ -360,7 +453,7 @@ void Game::renderOptions() {
         const int y = kFirstRowY + i * kRowHeight;
         int chosen = 0;
         const auto choices = optionChoices(row, chosen);
-        const bool action = choices.empty() && !optionIsSlider(row);
+        const bool action = choices.empty() && !optionIsSlider(row) && !optionIsStepper(row);
         if (i == optionsChoice_) {
             SDL_Rect bar{kOptionsPanel.x + 6, y - 3, kOptionsPanel.w - 12, kRowHeight};
             SDL_SetRenderDrawColor(renderer_, 90, 70, 30, 120);
@@ -378,13 +471,22 @@ void Game::renderOptions() {
             SDL_Rect knob{kChoicesX + value * kSliderWidth / Settings::kMaxVolume - 3, y + 1, 7, 11};
             SDL_RenderFillRect(renderer_, &knob);
         }
+        if (optionIsStepper(row)) {
+            const std::string value = optionStepperText(row);
+            const int w = uiTextWidth(value);
+            uiText(kChoicesX, y, "<", enabled ? kLabel : kDimmed);
+            uiText(kChoicesX + 14, y, value, enabled ? kOn : kDimmed);
+            uiText(kChoicesX + 22 + w, y, ">", enabled ? kLabel : kDimmed);
+        }
         for (int c = 0; c < static_cast<int>(choices.size()); ++c) {
             const SDL_Rect r = optionChoiceRect(i, c);
             const SDL_Color color = !enabled ? kDimmed : c == chosen ? kOn : kOff;
             uiText(r.x + 3, y, choices[static_cast<std::size_t>(c)], color);
         }
     }
-    const char* note = optionsInGame_ ? "ESC TO GO BACK TO THE GAME   DIM ROWS ARE NOT IN YET" : "ESC TO GO BACK   DIM ROWS ARE NOT IN YET";
+    const char* note = optionsTab_ == OptionsTab::Cheats ? "TAB FOR SETTINGS   CHEATS ARE OURS; ORIGINAL MODE TURNS THEM OFF"
+                       : optionsInGame_                  ? "ESC TO GO BACK TO THE GAME   TAB FOR CHEATS   DIM ROWS ARE NOT IN YET"
+                                                         : "ESC TO GO BACK   TAB FOR CHEATS   DIM ROWS ARE NOT IN YET";
     drawText(renderer_, kOptionsPanel.x + (kOptionsPanel.w - textWidth(note, 1)) / 2, kOptionsPanel.y + kOptionsPanel.h - 14, note,
              kOff, 1);
 }

@@ -151,6 +151,8 @@ public:
     // (logic/rules.h). Off by default.
     void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
     bool originalMode() const { return rules_.originalMode(); }
+    // The Cheats tab's experience rate in percent; 100 in original mode.
+    int xpRate() const { return originalMode() ? Settings::kXpRateNormal : settings_.xpRate; }
 
     // Draws the original game with our art or its own, at once and
     // without reloading the map, like a remaster's classic-graphics
@@ -932,15 +934,25 @@ private:
     void buildAreaMapPicture();
     void renderScenery(int camX, int camY);  // ground and objects, no one on them
 
-    // The Settings Menu and Help window (options.cpp).
+    // The Settings Menu and Help window (options.cpp). The menu has two
+    // tabs: the original's settings, and our cheats.
+    enum class OptionsTab { Settings, Cheats, Count };
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
-        EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back
+        EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back,
+        // Cheats tab.
+        XpRate
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
     static const char* optionLabel(OptionRow row);
     static bool optionIsSlider(OptionRow row);
+    // A stepper shows one value and steps it with left and right.
+    static bool optionIsStepper(OptionRow row);
+    std::string optionStepperText(OptionRow row) const;
+    void stepOption(OptionRow row, int by, bool wrap = false);
+    void switchOptionsTab(int by);
+    SDL_Rect optionsTabRect(int tab);
     std::vector<std::string> optionChoices(OptionRow row, int& chosen) const;
     SDL_Rect optionChoiceRect(int row, int choice);
     void setOption(OptionRow row, int index);
@@ -1173,6 +1185,7 @@ private:
     bool optionsOpen_ = false;
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
+    OptionsTab optionsTab_ = OptionsTab::Settings;
     bool helpOpen_ = false;
     int hurtPercent_ = -1;  // --hurt
     bool runMode_ = false;  // R or the RUN button: run instead of walk

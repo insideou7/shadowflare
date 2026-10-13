@@ -884,6 +884,15 @@ void testSettings() {
     const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\n");
     check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume,
           "bad settings are clamped or ignored");
+
+    check(defaults.xpRate == 100, "experience comes at the normal rate by default");
+    sf::Settings fast;
+    fast.xpRate = 250;
+    check(fast.write().find("xp_rate=2.5\n") != std::string::npos && sf::Settings::parse(fast.write()).xpRate == 250,
+          "the experience rate is saved as a multiplier and read back");
+    check(sf::Settings::parse("xp_rate=9\n").xpRate == 500 && sf::Settings::parse("xp_rate=0.1\n").xpRate == 50 &&
+              sf::Settings::parse("xp_rate=1.7\n").xpRate == 150 && sf::Settings::parse("xp_rate=fast\n").xpRate == 100,
+          "experience rates are kept to 0.5x-5.0x in steps of 0.5x");
 }
 
 void testTrapGeometry() {
