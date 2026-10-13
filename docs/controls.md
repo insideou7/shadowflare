@@ -57,7 +57,9 @@ monsters; its people and objects have no names to show.
 | Print Screen | screen shot, saved as a bitmap in `ScreenShot/` next to the saved game | yes |
 | Esc | close the open window, or open the Settings Menu | yes |
 
-Ours, not in the manual: F10 saves the game and F11 loads it; the arrow
+Ours, not in the manual: F10 saves the game and F11 loads it; F12 swaps
+between the original's art and ours (with the original files only, see
+[content.md](content.md#drawing-the-original-game-with-this-art)); the arrow
 keys walk; Page Up / Page Down switch maps, Home goes back to the start
 point and J shows the walkability grid (for testing).
 
@@ -111,6 +113,7 @@ change it, Enter steps through it or does it.
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
 | Eff. Volume, BGM Volume | not in yet (no sound) |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
+| Art | ours: ORIGINAL or OURS, the art the original game is drawn with; F12 swaps it too. Only shown when playing with the original files. |
 | Mission List | opens the mission list |
 | Map | opens the area map, as N does |
 | Help | the keyboard help window |

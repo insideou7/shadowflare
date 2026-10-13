@@ -52,7 +52,9 @@ int facingOf(double dx, double dy);
 class Character {
 public:
     explicit Character(const CharacterModel* model) : model_(model) {}
-    void setModel(const CharacterModel* model) { model_ = model; }
+    // Keeps the chart and frame where the new model has them (another
+    // art's figure for the same character), else goes back to standing.
+    void setModel(const CharacterModel* model);
 
     double x = 0, y = 0;  // world units
     int direction = 0;    // 0 = south, then counter-clockwise: south-east, east, ...

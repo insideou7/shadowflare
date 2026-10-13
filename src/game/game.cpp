@@ -52,8 +52,8 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 
 }  // namespace
 
-Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin)
-    : renderer_(renderer), data_(data), skin_(skin), sprites_(renderer) {
+Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, SkinLoader skinLoader)
+    : renderer_(renderer), data_(data), skinLoader_(std::move(skinLoader)), sprites_(renderer) {
     // Every level has a ground file; use those to enumerate maps. An open
     // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
@@ -61,15 +61,6 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
         for (const auto& file : data_->list("Map")) {
             if (lower(file).ends_with(".txt")) mapNames_.push_back(stem(file));
         }
-    }
-    // Both of the player's figures (0x412806 picks by the hero's sex); a
-    // pack without a heroine draws her as the hero.
-    for (const HeroSex sex : {HeroSex::Male, HeroSex::Female}) {
-        const std::string stem = sex == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
-        auto& model = playerModels_[static_cast<int>(sex)];
-        if (skin_) model = skin_->character(stem);
-        const bool there = data_->exists(stem + ".anim") || data_->exists(stem + ".caf");
-        if (!model && (sex == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
     }
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
@@ -86,7 +77,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadWarpGates();
     loadSounds();
     indexScenarios();
-    if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
+    if (auto& hero = playerModels()[static_cast<int>(HeroSex::Male)]) player_.emplace(&*hero);
     giveStartingKit();
     updateEquipment();
     if (mapNames_.empty()) {
@@ -228,8 +219,76 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
     }
 }
 
+Game::~Game() = default;
+
+std::array<std::optional<CharacterModel>, 2>& Game::playerModels() {
+    const int art = skin_ ? 1 : 0;
+    auto& models = playerModels_[art];
+    if (!playerModelsLoaded_[art]) {
+        playerModelsLoaded_[art] = true;
+        // Both of the player's figures (0x412806 picks by the hero's sex); a
+        // pack without a heroine draws her as the hero.
+        for (const HeroSex sex : {HeroSex::Male, HeroSex::Female}) {
+            const std::string stem = sex == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
+            auto& model = models[static_cast<int>(sex)];
+            if (skin_) model = skin_->character(stem);
+            const bool there = data_->exists(stem + ".anim") || data_->exists(stem + ".caf");
+            if (!model && (sex == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
+        }
+    }
+    return models;
+}
+
+void Game::setOurArt(bool on) {
+    if (on == ourArt()) return;
+    if (on && !ownedSkin_) {
+        if (!skinLoader_) return;
+        ownedSkin_ = skinLoader_();
+        skinLoader_ = nullptr;
+        if (!ownedSkin_) {
+            showMessage("No art of ours to draw the game with");
+            return;
+        }
+    }
+    // Everyone on the map keeps what they are doing and only changes
+    // pictures: each model in use is found again by its stem in the other
+    // art's set.
+    std::map<const CharacterModel*, std::string> stems;
+    for (const auto& [stem, m] : models_[skin_ ? 1 : 0]) {
+        if (m) stems.emplace(m.get(), stem);
+    }
+    skin_ = on ? ownedSkin_.get() : nullptr;
+    auto swap = [&](Character& c) {
+        const auto found = stems.find(c.model());
+        if (found == stems.end()) return;
+        if (const CharacterModel* m = model(found->second)) c.setModel(m);
+    };
+    for (auto& a : actors_) swap(a.character);
+    for (auto& o : sceneObjects_) {
+        if (o.animation) swap(*o.animation);
+    }
+    for (auto& g : groundItems_) {
+        if (g.sprite) swap(*g.sprite);
+    }
+    if (partner_) swap(partner_->character);
+    if (player_) {
+        const auto& heroes = playerModels();
+        const auto& hero = heroes[static_cast<int>(heroSex_)];
+        const auto& fallback = heroes[static_cast<int>(HeroSex::Male)];
+        if (const CharacterModel* m = hero ? &*hero : fallback ? &*fallback : nullptr) player_->setModel(m);
+        updateEquipment();
+    }
+    sprites_.clear();
+    if (skin_) skin_->setMap(map_ ? &*map_ : nullptr);
+    // The area map's picture is drawn again in the new art.
+    mapPicture_.reset();
+    mapPictureFor_.clear();
+    scenarioPictureFor_.clear();
+    log::info("Drawing {} art", on ? "our" : "the original");
+}
+
 const CharacterModel* Game::model(const std::string& stem) {
-    auto [it, inserted] = models_.try_emplace(stem);
+    auto [it, inserted] = models_[skin_ ? 1 : 0].try_emplace(stem);
     if (inserted) {
         auto loaded = skin_ ? skin_->character(stem) : std::nullopt;
         if (!loaded) loaded = CharacterModel::load(*data_, stem);
@@ -495,6 +554,14 @@ void Game::handleEvent(const SDL_Event& event) {
                     break;
                 case SDLK_F10: saveGame(); break;
                 case SDLK_F11: loadGame(); break;
+                case SDLK_F12:
+                    if (canSwapArt()) {
+                        settings_.ourArt = !ourArt();
+                        setOurArt(settings_.ourArt);
+                        showMessage(ourArt() ? "Our art" : "Original art");
+                        saveSettings();
+                    }
+                    break;
                 case SDLK_PRINTSCREEN: screenshotPending_ = true; break;
                 case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
                 case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: {

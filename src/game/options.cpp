@@ -16,7 +16,7 @@ namespace sf {
 
 namespace {
 
-constexpr SDL_Rect kOptionsPanel{100, 60, 440, 350};
+constexpr SDL_Rect kOptionsPanel{100, 52, 440, 370};
 constexpr int kRowHeight = 18;
 constexpr int kFirstRowY = kOptionsPanel.y + 40;
 constexpr int kChoicesX = kOptionsPanel.x + 210;
@@ -46,6 +46,8 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
+    // Only with the original files and our art to draw them with.
+    if (canSwapArt()) rows.push_back(R::Art);
     if (optionsInGame_) {
         rows.insert(rows.end(), {R::MissionList, R::Map, R::Help, R::SaveAndTitle, R::SaveAndExit});
     } else {
@@ -82,6 +84,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::EffectVolume: return "EFF. VOLUME";
         case OptionRow::MusicVolume: return "BGM VOLUME";
         case OptionRow::OriginalMode: return "ORIGINAL MODE";
+        case OptionRow::Art: return "ART";
         case OptionRow::MissionList: return "MISSION LIST";
         case OptionRow::Map: return "MAP";
         case OptionRow::Help: return "HELP";
@@ -109,6 +112,9 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
         case OptionRow::SaveImage: return onOff(settings_.saveImageAtEnd);
         case OptionRow::ClickRange: return onOff(settings_.clickRange);
         case OptionRow::OriginalMode: return onOff(originalMode());
+        case OptionRow::Art:
+            chosen = ourArt() ? 1 : 0;
+            return {"ORIGINAL", "OURS"};
         case OptionRow::ClickSize:
             chosen = settings_.clickSize;
             return {"MINI", "SMAL", "NORM", "LARG", "MAX."};
@@ -144,6 +150,7 @@ void Game::setSettingsFile(std::string path) {
     text << in.rdbuf();
     settings_ = Settings::parse(text.str());
     setOriginalMode(settings_.originalMode);
+    setOurArt(settings_.ourArt);
     applyScreenMode();
     log::info("Options from {}", settingsFile_);
 }
@@ -188,6 +195,10 @@ void Game::setOption(OptionRow row, int index) {
             settings_.originalMode = index == 0;
             setOriginalMode(settings_.originalMode);
             log::info("Original mode {}", originalMode() ? "on" : "off");
+            break;
+        case OptionRow::Art:
+            settings_.ourArt = index == 1;
+            setOurArt(settings_.ourArt);
             break;
         default: return;
     }

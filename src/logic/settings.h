@@ -33,6 +33,9 @@ struct Settings {
     // Ours, not the original's: play by the original's rules, bugs included
     // (logic/rules.h). Used for new games; a saved game keeps its own.
     bool originalMode = false;
+    // Ours: with the original game's files, draw its maps and characters
+    // with the open content's art (F12 swaps while playing).
+    bool ourArt = false;
 
     // Half the side of the square a click reaches, in screen pixels.
     int clickReach() const;

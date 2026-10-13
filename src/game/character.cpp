@@ -48,6 +48,18 @@ std::optional<CharacterModel> CharacterModel::load(const FileSystem& data, const
     }
 }
 
+void Character::setModel(const CharacterModel* model) {
+    model_ = model;
+    if (!model_) return;
+    if (!hasChart(chart_)) {
+        chart_ = chart::kIdle;
+        frame_ = 0;
+        progress_ = 0;
+    }
+    const int count = frameCount();
+    if (frame_ >= count) frame_ = std::max(count - 1, 0);
+}
+
 void Character::play(int chart) {
     if (chart != chart_) restart(chart);
 }
