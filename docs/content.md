@@ -464,13 +464,13 @@ with Pillow and numpy:
     python3 tools/art/build_pack.py /tmp/art content
     python3 tools/art/shrink.py content
 
-`hero_mh` and `goblin_mh` are the hero and the goblin on a MakeHuman
-body (MPFB 2, whose base mesh, targets, rig and weights are CC0) instead
-of simple shapes: same joints and poses, with armour cut from the body
-so it fits. They need a checkout of MPFB, which is run but not copied:
+The hero and the goblin are MakeHuman bodies (MPFB 2, whose base mesh,
+targets, rig and weights are CC0) rather than simple shapes, with armour
+cut from the body so it fits. Rendering them needs a checkout of MPFB,
+which is run but not copied:
 
     git clone --depth 1 https://github.com/makehumancommunity/mpfb2.git
-    MPFB_SRC=$PWD/mpfb2/src/mpfb python tools/art/creatures.py hero_mh /tmp/art/hero_mh
+    export MPFB_SRC=$PWD/mpfb2/src/mpfb
 
 `build_pack.py` lays out the maps and writes the text files;
 `shrink.py` turns the renders into 256-colour pictures, as the original's

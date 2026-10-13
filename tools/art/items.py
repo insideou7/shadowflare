@@ -44,7 +44,7 @@ except ImportError:  # packing only
     bpy = None
 
 CELL = 32
-HERO_SCALE = 1.22  # the hero rig's scale (creatures.build_hero)
+HERO_SCALE = 1.22  # the hero rig's scale (creatures.build_hero_shapes)
 
 # (name, builder, width and height in cells, ground scale relative to the
 # hero, ground angle in degrees). Builders return (objects, kind) where
@@ -203,7 +203,7 @@ def build(spec):
         for o in objects:
             o.parent = handle
         return handle, objects, "thing"
-    rig = creatures.build_hero()
+    rig = creatures.build_hero_shapes()
     for o in [o for o in bpy.data.objects if o.type == "MESH" and o.name != "shadow catcher"]:
         bpy.data.objects.remove(o)
     objects = creatures.build_gear(rig, what)
