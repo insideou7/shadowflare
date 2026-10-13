@@ -31,6 +31,7 @@ struct ScenarioScript {
         kCharacterX = 6,
         kCharacterY = 7,
         kPlayMode = 8,
+        kObjectCheck = 9,  // CCHECK id: whether the player is working object `id`
     };
 
     // Command numbers, with the names RKC_RPG_SCRIPT.dll compiles them from
@@ -83,10 +84,10 @@ struct ScenarioScript {
         kGetTotalGold = 53,     // GETTOTALGOLD var
         kPayGold = 54,          // PAYGOLD amount
         kCheckUnopinionItem = 55,  // CHECKUNOPINIONITEM var: 1 if anything is unidentified
-        kAbsoluteObjectFlag = 56,
+        kAbsoluteObjectFlag = 56,  // ABSOLUTEOBJECTFLAG object shown usable blocks
         kGetPlayerSex = 57,
         kCheckItemExist = 58, kDeleteItem = 59,
-        kSetUnlockSwitch = 60,
+        kSetUnlockSwitch = 60,  // SETUNLOCKSW on: the unlocking glow round the hero this frame
         kGetPlayerLevel = 61,   // GETPLAYERLEVEL var
         kSetQuestFlag = 62,     // SETQUESTFLAG quest state ?: 1 taken, 2 cleared
         kGetPartnerLife = 63,

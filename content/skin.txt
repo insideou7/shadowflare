@@ -1133,3 +1133,43 @@ none=
 7=obelisk@-68,-82
 8=portal_blue@-127,-113
 9=portal_red@-127,-113
+
+# Scenario objects (Character/OBJECT/<kind>/Pattern.njp): chests, crates,
+# doors, floor buttons, levers and pads, from tools/art/objects.py. Their
+# props are anchored on the object's own position.
+[objects object/00000000]
+0=obj_chest_x
+1=obj_chest_open_x
+2=obj_chest_y
+3=obj_chest_open_y
+4=obj_silver_x
+5=obj_silver_open_x
+6=obj_keg
+7=obj_keg_open
+10=obj_crate_y
+11=obj_crate_open_y
+12=obj_crate_x
+13=obj_crate_open_x
+[objects object/00000001]
+0=obj_door_left_x
+1=obj_door_right_x
+2=obj_door_x
+3=obj_door_left_y
+4=obj_door_right_y
+5=obj_door_y
+6=obj_sealed_x
+7=obj_sealed_left_x
+8=obj_sealed_right_x
+9=obj_sealed_y
+10=obj_sealed_left_y
+11=obj_sealed_right_y
+[objects object/00000003]
+0-3=obj_button
+4-5=obj_button_down
+[objects object/00000020]
+0=obj_lever_x
+1=obj_lever_down_x
+2=obj_lever_y
+3=obj_lever_down_y
+7=obj_pad_blue
+8=obj_pad_red

@@ -59,8 +59,11 @@ const CharacterModel* Game::powerModel() { return model("Player/Common/Powerup")
 
 void Game::renderPowerAura(int camX, int camY) {
     if (!player_ || !power_.active()) return;
-    const CharacterModel* m = powerModel();
-    if (!m || m->animations.charts.empty()) return;
+    renderHeroOverlay(powerModel(), powerAuraTicks_, camX, camY);
+}
+
+void Game::renderHeroOverlay(const CharacterModel* m, double ticks, int camX, int camY) {
+    if (!player_ || !m || m->animations.charts.empty()) return;
     const auto& chart = m->animations.charts[0];
     const AnimationSet::Direction* dir = nullptr;
     for (int d : {8, 0}) {
@@ -70,7 +73,7 @@ void Game::renderPowerAura(int camX, int camY) {
         }
     }
     if (!dir) return;
-    const int frame = static_cast<int>(powerAuraTicks_) % dir->frameCount;
+    const int frame = static_cast<int>(ticks) % dir->frameCount;
     int sx, sy;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
     for (const auto& layer : dir->layers) {

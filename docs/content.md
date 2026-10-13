@@ -203,6 +203,16 @@ original, `IF` runs its sentence and then carries on, and closing any of
 a person's message boxes runs their talk-end sentences, so a script keeps
 the question it asked in a flag.
 
+    object=2500,2500,2800,2800,chest1,chest_gold
+    object=2500,2500,2800,2800,chest1_open,chest_open,hidden
+
+An `object` can also be drawn: after its rectangle and name, a prop of
+`Map/props.sheet` drawn at the rectangle's middle. Without a prop it is
+an invisible area to click or walk into; with one it stops the hero.
+`hidden` starts it shown, usable and in the way all off, like the
+original's open chests until the script swaps them (`SETACTIVE` and
+`SETINACTIVE`).
+
 ### missions.txt
 
     [mission 0]              # the number SETQUESTFLAG and DRAWQUESTNAME take
@@ -350,6 +360,17 @@ slides each prop's silhouette over each piece's (keeping their feet close)
 and prints the prop and `@x,y` that overlap best.
 
     python3 tools/content/skin_fit.py game nomal.njp 23-40 conifer_green conifer_gold
+
+The original's scenario objects (`Character/OBJECT/<kind>/Pattern.njp`:
+chests, doors, levers) are skinned the same way, in a section named
+after the kind, but their props are anchored on the object's own
+position, as the original's pictures are, not on the picture's foot:
+
+    [objects object/00000000]    # Character/OBJECT/00000000
+    0=obj_chest_x
+
+`tools/art/objects.py` draws ours to fit: each prop's anchor is set so
+the model's outline sits where the original picture's does.
 
 Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the pits

@@ -54,11 +54,24 @@ public:
     // original piece's footing.
     void renderObject(const MapObject& object, const std::vector<open::Skin::Piece>& pieces, int camX, int camY);
 
+    // The same for a scenario object (a chest, door or lever) drawn with
+    // pattern `pattern` of Character/OBJECT/<kind>/Pattern.njp; skin.txt
+    // names that bank [objects object/<kind, 8 digits>]. Its props are
+    // anchored on the object's own position, as the original's pictures
+    // are, so a pack draws them to fit that anchor (tools/art/objects.py).
+    const std::vector<open::Skin::Piece>* scenarioObject(int kind, int pattern) const;
+    void renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY);
+
 private:
     Skin() = default;
     const MaterialTexture* material(const std::string& name);
     SDL_Texture* groundChunk(int cx, int cy);
     const SpriteBank::Picture* chip(int bank, int pattern);
+    // Draws props with the original piece's foot at (footX, footY), in map pixels.
+    void renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY);
+    // Where an original picture's foot is, from its anchor.
+    static std::pair<int, int> footOf(const SpriteBank& bank, int pattern);
+    SDL_Texture* propTexture(const std::string& prop, int& frame);
 
     std::unique_ptr<FileSystem> pack_;
     SDL_Renderer* renderer_ = nullptr;

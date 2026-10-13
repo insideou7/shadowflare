@@ -1,4 +1,5 @@
 // Tests for the open content pack readers (src/formats/open_content.h).
+#include <array>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -182,6 +183,8 @@ void testScript() {
     sf::open::parseScript(bytes(
                               "person=3,100,200,4,cook    # a comment\n"
                               "object=0,0,64,32,well\n"
+                              "object=100,0,164,32,chest,chest\n"
+                              "object=100,0,164,32,chest-open,chest_open,hidden\n"
                               "temp=1000001,7\n"
                               "[message 5]\nHello there.\n~Yes~ ~No~\n"
                               "[sentence greet]\non=talk smith\nTALK msg:5 temp:1 0 0 -1 -1\n"
@@ -189,8 +192,12 @@ void testScript() {
                               "[sentence shop]\nINITTRADE 0 well\nTRADE 0\n"),
                           s);
     const auto& c = s.control;
-    check(c.placements.size() == 4 && c.placements[2].name == "cook" && c.placements[2].id == 1, "script people follow scenario.txt's");
+    check(c.placements.size() == 6 && c.placements[2].name == "cook" && c.placements[2].id == 1, "script people follow scenario.txt's");
     const auto& well = c.placements[3];
+    check(well.look.prop.empty() && well.states == std::array{1, 1, 0}, "an unseen object is in no one's way");
+    check(c.placements[4].look.prop == "chest" && c.placements[4].states == std::array{1, 1, 1}, "a drawn object stands in the way");
+    check(c.placements[5].look.prop == "chest_open" && c.placements[5].states == std::array{0, 0, 0}, "hidden starts it inactive");
+    check(s.control.placements[1].states[2] == 0, "exits are in no one's way");
     check(well.group == sf::ScenarioControl::Group::Object && well.id == 1 && well.x == 32 && well.rect[0] == -32 && well.rect[3] == 16,
           "script objects are rectangles");
     check(s.script.messages.at(5) == "Hello there.\n~Yes~ ~No~\n", "messages keep their lines");

@@ -79,6 +79,7 @@ add_executable(shadowflare
     src/game/magic_window.cpp
     src/game/darkness.cpp
     src/game/area_map.cpp
+    src/game/objects.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)

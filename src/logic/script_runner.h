@@ -48,6 +48,16 @@ public:
     virtual void stopCharacter(std::int32_t /*id*/, bool /*stop*/) {}
     virtual void faceCharacter(std::int32_t /*id*/, std::int32_t /*towards*/) {}
     virtual void setActive(std::int32_t /*id*/, bool /*active*/) {}
+    // ABSOLUTEOBJECTFLAG id shown usable blocks: from now on the object
+    // keeps these three states and no longer follows its NET activity
+    // flags (0x433a78 sets object + 0xfc to 1 and + 0x100 to + 0x108).
+    virtual void setObjectStates(std::int32_t /*id*/, int /*shown*/, int /*usable*/, int /*blocks*/) {}
+    // CCHECK id: 1 while the player holds the left button on object `id`
+    // and stands within reach of it, as a Brain Globe needs (0x4346b0).
+    virtual bool workingObject(std::int32_t /*id*/) const { return false; }
+    // SETUNLOCKSW on: Player/Common/UnlockSW plays round the hero for the
+    // frame (player + 0x159c, drawn by 0x434ef0, cleared every frame).
+    virtual void setUnlockSwitch(bool /*on*/) {}
     virtual int playerLevel() const { return 1; }
     // GETCLASS: the class on offer, which is the hero's own unless one is
     // waiting to be taken (0 mercenary, 1 warrior, 2 hunter, 3 wizard).

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <format>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
@@ -225,51 +226,77 @@ const std::vector<open::Skin::Piece>* Skin::replacement(const MapObject& object)
 
 void Skin::renderObject(const MapObject& object, const std::vector<open::Skin::Piece>& pieces, int camX, int camY) {
     if (!props_ || pieces.empty()) return;
-    // Our props stand where the original piece's picture ends at the
-    // bottom, in the middle: the foot of a tree, post or building.
     auto [foot, found] = feet_.try_emplace({object.bank, object.pattern}, std::pair{0, 0});
     if (found) {
-        if (const SpriteBank* bank = map_->bank(object.bank)) {
-            const auto pic = bank->render(object.pattern, false);
-            int left = pic.width, right = -1, bottom = -1;
-            for (int y = 0; y < pic.height; ++y) {
-                for (int x = 0; x < pic.width; ++x) {
-                    if (!(pic.argb[static_cast<std::size_t>(y) * pic.width + x] >> 24)) continue;
-                    left = std::min(left, x);
-                    right = std::max(right, x);
-                    bottom = y;
-                }
-            }
-            if (right >= 0) foot->second = {pic.x + (left + right + 1) / 2, pic.y + bottom + 1};
-        }
+        if (const SpriteBank* bank = map_->bank(object.bank)) foot->second = footOf(*bank, object.pattern);
     }
     int footX, footY;
     worldToScreen(object.x, object.y, footX, footY);
-    footX += foot->second.first;
-    footY += foot->second.second;
-    for (const auto& piece : pieces) {
-        const auto frame = propFrames_.find(piece.prop);
-        if (frame == propFrames_.end() || frame->second < 0) continue;
-        auto [it, inserted] = propTextures_.try_emplace(piece.prop, nullptr);
-        if (inserted) {
-            const auto pic = props_->render(frame->second, false);
-            if (!pic.argb.empty()) {
-                it->second = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, pic.width, pic.height);
-                if (it->second) {
-                    SDL_UpdateTexture(it->second, nullptr, pic.argb.data(), pic.width * 4);
-                    SDL_SetTextureBlendMode(it->second, SDL_BLENDMODE_BLEND);
-                }
+    renderPieces(pieces, footX + foot->second.first, footY + foot->second.second, camX, camY);
+}
+
+const std::vector<open::Skin::Piece>* Skin::scenarioObject(int kind, int pattern) const {
+    const auto bank = file_.objects.find(std::format("object/{:08d}", kind));
+    if (bank == file_.objects.end()) return nullptr;
+    const auto rule = bank->second.find(pattern);
+    return rule == bank->second.end() ? nullptr : &rule->second;
+}
+
+void Skin::renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY) {
+    if (!props_ || pieces.empty()) return;
+    int footX, footY;
+    worldToScreen(worldX, worldY, footX, footY);
+    renderPieces(pieces, footX, footY, camX, camY);
+}
+
+// Our props stand where the original piece's picture ends at the bottom,
+// in the middle: the foot of a tree, post or building.
+std::pair<int, int> Skin::footOf(const SpriteBank& bank, int pattern) {
+    const auto pic = bank.render(pattern, false);
+    int left = pic.width, right = -1, bottom = -1;
+    for (int y = 0; y < pic.height; ++y) {
+        for (int x = 0; x < pic.width; ++x) {
+            if (!(pic.argb[static_cast<std::size_t>(y) * pic.width + x] >> 24)) continue;
+            left = std::min(left, x);
+            right = std::max(right, x);
+            bottom = y;
+        }
+    }
+    if (right < 0) return {0, 0};
+    return {pic.x + (left + right + 1) / 2, pic.y + bottom + 1};
+}
+
+SDL_Texture* Skin::propTexture(const std::string& prop, int& frame) {
+    const auto found = propFrames_.find(prop);
+    frame = found == propFrames_.end() ? -1 : found->second;
+    if (frame < 0 || !props_) return nullptr;
+    auto [it, inserted] = propTextures_.try_emplace(prop, nullptr);
+    if (inserted) {
+        const auto pic = props_->render(frame, false);
+        if (!pic.argb.empty()) {
+            it->second = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, pic.width, pic.height);
+            if (it->second) {
+                SDL_UpdateTexture(it->second, nullptr, pic.argb.data(), pic.width * 4);
+                SDL_SetTextureBlendMode(it->second, SDL_BLENDMODE_BLEND);
             }
         }
-        if (!it->second) continue;
+    }
+    return it->second;
+}
+
+void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY) {
+    for (const auto& piece : pieces) {
+        int frame;
+        SDL_Texture* texture = propTexture(piece.prop, frame);
+        if (!texture) continue;
         int w = 0, h = 0, x = 0, y = 0;
-        props_->bounds(props_->patterns[frame->second], x, y, w, h);
+        props_->bounds(props_->patterns[frame], x, y, w, h);
         int dx, dy;
         worldToScreen(piece.dx, piece.dy, dx, dy);
         // Mirrored, the anchor stays put and the picture turns about it.
         SDL_Rect dst{footX + dx + (piece.mirror ? -x - w : x) - camX, footY + dy + y - camY, w, h};
         if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= 640 || dst.y >= 480) continue;
-        SDL_RenderCopyEx(renderer_, it->second, nullptr, &dst, 0, nullptr, piece.mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+        SDL_RenderCopyEx(renderer_, texture, nullptr, &dst, 0, nullptr, piece.mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
     }
 }
 

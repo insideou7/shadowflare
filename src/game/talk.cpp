@@ -140,6 +140,11 @@ public:
     void setActive(std::int32_t id, bool active) override {
         if (auto* a = g_.actorById(id)) a->active = active;
     }
+    void setObjectStates(std::int32_t id, int shown, int usable, int blocks) override {
+        if (auto* o = g_.sceneObject(id)) o->fixed = std::array{shown, usable, blocks};
+    }
+    bool workingObject(std::int32_t id) const override { return g_.workingObject(id); }
+    void setUnlockSwitch(bool on) override { g_.unlockSwitch_ = on; }
     int playerLevel() const override { return g_.playerLevel_; }
     int offeredClass() const override { return static_cast<int>(g_.career_.offered); }
     int playerSex() const override { return static_cast<int>(g_.heroSex_); }
@@ -235,6 +240,9 @@ std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
         if (p.group != ScenarioControl::Group::Object) continue;
         if (wx < p.x + p.rect[0] || wx > p.x + p.rect[2] || wy < p.y + p.rect[1] || wy > p.y + p.rect[3]) continue;
         const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
+        // Only what is shown and usable answers a click (0x45e080).
+        const auto* o = sceneObject(id);
+        if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) continue;
         for (const auto& t : script_->triggers) {
             if (t.event == ScenarioScript::kOnTalk && t.character == id) return i;
         }
