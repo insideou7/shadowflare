@@ -23,6 +23,7 @@
 #include "logic/settings.h"
 #include "logic/shop.h"
 #include "formats/item_data.h"
+#include "formats/warp_gates.h"
 
 namespace {
 
@@ -309,7 +310,49 @@ struct TestHost : sf::ScriptHost {
         return true;
     }
     std::string partnerStatus(int k) const override { return k == 4 ? "Harley\nLevel 1" : ""; }
+    std::vector<int> gatesOpened, gatesClosed;
+    void openWarpGate(int gate) override { gatesOpened.push_back(gate); }
+    void closeWarpGate(int gate) override { gatesClosed.push_back(gate); }
 };
+
+// A town gate's script, as Remote Town's (Scenario/00000000 sentences
+// 150-157): standing on it finds the gate, a click opens the GATE window
+// and walking away closes it.
+void testScriptWarpGates() {
+    using S = sf::ScenarioScript;
+    const Op warp{S::kWarp, 4};
+    S script;
+    script.sentences = {{ifCmd(warp, 0, constant(0), 1)},
+                        {setFlag(warp, constant(1))},
+                        {{S::kWarpGate, {constant(1)}}},
+                        {{S::kDeleteWarpGate, {constant(1)}}}};
+    sf::ScriptFlags flags;
+    TestHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(flags[{S::kWarp, 4}] == 1, "SETFLAG marks a warp gate found");
+    check(sf::ScriptRunner(script, flags).value(warp) == 1, "WARP reads the gate's flag");
+    sf::ScriptRunner(script, flags, &host).run(2);
+    sf::ScriptRunner(script, flags, &host).run(3);
+    check(host.gatesOpened == std::vector<int>{1}, "WARPGATE opens the window for its gate");
+    check(host.gatesClosed == std::vector<int>{1}, "DELETEWARPGATE closes it for its gate");
+    check(sf::ScriptRunner::implemented(S::kWarpGate) && sf::ScriptRunner::implemented(S::kDeleteWarpGate),
+          "the warp gate commands are carried out");
+}
+
+// Table.Tbd table 40: a gate's name, scenario and entry point.
+void testWarpGateTable() {
+    sf::GameTables tables;
+    sf::GameTables::Table t;
+    t.rows = 2;
+    t.cols = 3;
+    t.values = {0, 0, 50, 0, 3900000, 50};
+    t.strings = {"Remote Town", "", "", "South Camp", "", ""};
+    tables.tables[40] = t;
+    const auto gates = sf::WarpGates::fromTables(tables);
+    check(gates.count() == 2 && gates.find(1) && gates.find(1)->name == "South Camp" && gates.find(1)->scenario == 3900000 &&
+              gates.find(1)->entry == 50 && !gates.find(2),
+          "warp gates from table 40");
+}
 
 void testScriptStorageAndLabels() {
     using S = sf::ScenarioScript;
@@ -808,6 +851,8 @@ int main() {
     testScriptStorageAndLabels();
     testScriptRepairAndIdentify();
     testScriptPartners();
+    testScriptWarpGates();
+    testWarpGateTable();
     testScriptQuestChecks();
     testScriptActiveFlagsAndRoutines();
     testScriptObjects();

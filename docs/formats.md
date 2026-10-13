@@ -311,7 +311,8 @@ and the like); the rest have only `Pattern.Njp`/`.Sdw`.
 Entry point ids come in fours, one per party member: entering a
 scenario at entry `e` (see `CHANGESCENARIO` below) puts the player at the
 point with id `e * 4` and the others at `e * 4 + 1` to `+ 3`. Towns also
-have entries 50 and 100 (ids 200 and 400), probably for warp gates.
+have entries 50 and 100 (ids 200 and 400); entry 50 is where a warp gate
+leads (see The GATE window).
 
 ## Scenario scripts: `Scenario/<id>/Scenario.Scs` (`RKC_RPG_SCRIPT::ReadBinary`)
 
@@ -872,6 +873,70 @@ on: MagicIcon 0 at y 382 while chosen (player + 0x1288), else
 MagicBarIcon 2. While a window covers the left of the screen the bar
 starts at 344, while the item window is open at 124, and with both it is
 hidden.
+
+## The GATE window
+
+`WARPGATE n` (0x4334da) opens the warp gate window and `DELETEWARPGATE n`
+(0x433544) closes it. Every town gate's script does the same thing: each
+tick `CALCMYPLAYERDIST` measures from the hero to the ground round the gate
+(object 10000202); at 0 the gate is found (`SETFLAG WARP[n] 1`, n the
+gate's row of table 40), its name floats over it (`MESSAGEBOX`) and a
+sound plays once; further away `DELETEWARPGATE 0` closes the window; and a
+click on the gate (object 10000200, talk event) runs `WARPGATE 0`. The
+operand is the gate's slot in that scenario, not its number: a script
+with two gates (01000004, 02200003) uses 0 and 1.
+
+`WARPGATE` does nothing while the window is open or while 0x48ce44 or
+0x48ce6c is set (two whole-screen windows; the engine counts the shop as
+one); otherwise it closes every other window
+(0x4170f0), sets the window's flag (0x48ce50, the UI's +0xa05c) and keeps
+`-1 - n` in 0x48d72c. `DELETEWARPGATE n` closes it only if that is the
+same n. The other windows' keys (S, I, M, Q, N), Esc and a right click
+left of x = 320 and above y = 412 (0x44acd0) close it too; any other click
+there is used up by the window (0x448490). It is a left-half window
+(0x416fb0), so the magic bar moves right while it is open.
+
+The WARP flags are an array of ints on the player (0x48ceb0, count
+0x48ceac), saved with the game; a new game sets WARP[0] (Remote Town's
+gate, 0x4412dc). Story scripts set some too: Fanann (02200000) sets
+WARP[25], the South Camp of Yugunos, which is how episode 3 opens.
+
+The window (0x40c950, drawn on layer 14) lists Table.Tbd table 40's rows
+whose WARP flag is set, in table order. A row is the gate's name (column
+0), then the scenario (column 1) and entry point (column 2) it leads to:
+
+| Row | Gate | Scenario | Entry |
+|---|---|---|---|
+| 0 | Remote Town | 0 | 50 |
+| 4 | Cold Svalt Town | 1000000 | 50 |
+| 13 | Kanfore, Mining Town | 2100000 | 50 |
+| 25 | South Camp of Yugunos | 3900000 | 50 |
+| 40 | Berini Village | 4900001 | 50 |
+| 50 | Tower of Ordeal, Top Floor | 99000023 | 50 |
+
+(51 rows in all; the first area's gates outside the towns use entries 2
+to 6.)
+
+Status.njp pattern 13 is the window (320 x 416, GATE along the top). Ten
+gates a page (+0xa934, zeroed with the rest of the window state at 0x41d74b; the
+engine does it on each scenario):
+row r's button is pattern 22 at (52, 59 + 30 r), its name at (79, 65 + 30
+r) with a black shadow a pixel down and right, grey 128. With the mouse
+over x 32-288, y 63 + 30 r to 85 + 30 r the name is grey 224 and the
+button pattern 24 (lit), or 23 (pushed) while the left button is held, when
+the button and the name move a pixel down and right. A click there plays
+sound 58, sets the player's scenario change (+0x440 scenario, +0x444 entry,
++0x43c = 1, as `CHANGESCENARIO`) and closes every window. Pattern 11 (the
+previous page, at (45, 368)) shows on every page but the first and takes
+clicks at x 28-92, y 368-386; pattern 12 (the next, at (243, 368)) shows
+while there is a later page, x 224-288. The page number is `"%2d / %2d"`
+(the slash is the full-width one), page and pages, centred on x = 85 + 153
+/ 2 at y 370 in grey 224 with a shadow; it is not drawn when no gate is
+found.
+
+The engine follows this in src/game/warp_gate.cpp. The open content pack
+has `gates.txt` in place of table 40 and its own window picture (see
+content.md).
 
 ## Darkness and the area map
 

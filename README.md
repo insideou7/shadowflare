@@ -108,6 +108,10 @@ Options:
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--quest-flag <id>=<state>` set a mission's flag first (1 taken, 2 cleared)
 - `--missions` start with the mission list open; `--missions=<n>` with mission n's description open
+- `--warp-flag <gate>=<value>` mark a warp gate found (`--warp-flag all` for every gate),
+  `--warp-gate[=<page>]` start with the GATE window open, and `--warp-to <row>` pick that
+  row of it, e.g. `--map 0 --warp-flag all --warp-gate=2 --warp-to 5` to go to the
+  South Camp of Yugunos (episode 3)
 - `--original` play in original mode: the original game's rules, bugs included
   (also in the menu; off by default)
 - `--cast <slot>:<x>,<y>` cast the spell on F1-F8 (slot 1-8) at a point given in

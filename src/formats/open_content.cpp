@@ -570,7 +570,7 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
             if (!opcode) lines.fail(std::format("unknown command '{}'", words[0]));
             S::Command command{*opcode, {}};
             static const std::map<std::string_view, std::int32_t, std::less<>> kKinds = {
-                {"temp", S::kTemp}, {"save", S::kSave}, {"quest", S::kQuest}, {"net", S::kNet}, {"msg", S::kMessage},
+                {"temp", S::kTemp}, {"save", S::kSave}, {"quest", S::kQuest}, {"net", S::kNet}, {"msg", S::kMessage}, {"warp", S::kWarp},
                 {"x", S::kCharacterX}, {"y", S::kCharacterY},
             };
             static const std::map<std::string_view, std::int32_t, std::less<>> kOperators = {
@@ -706,6 +706,37 @@ Missions parseMissions(std::span<const std::uint8_t> text) {
         }
     }
     return missions;
+}
+
+// [gate <number>] sections; see docs/content.md.
+WarpGates parseGates(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    WarpGates gates;
+    WarpGates::Gate* gate = nullptr;
+    while (auto line = lines.next()) {
+        if (isSection(*line)) {
+            const auto words = Lines::split(sectionName(*line), ' ');
+            if (words.size() != 2 || words[0] != "gate") lines.fail("expected [gate <number>]");
+            const int number = lines.toInt(words[1]);
+            if (number < 0 || number > 999) lines.fail("gate numbers go from 0 to 999");
+            if (number < gates.count() && !gates.list[static_cast<std::size_t>(number)].name.empty()) lines.fail("gate defined twice");
+            if (number >= gates.count()) gates.list.resize(static_cast<std::size_t>(number) + 1);
+            gate = &gates.list[static_cast<std::size_t>(number)];
+            continue;
+        }
+        std::string_view key, value;
+        if (!gate || !keyValue(*line, key, value)) lines.fail("expected [gate <number>] then key=value lines");
+        if (key == "name") {
+            gate->name = value;
+        } else if (key == "scenario") {
+            gate->scenario = lines.toInt(value);
+        } else if (key == "entry") {
+            gate->entry = lines.toInt(value);
+        } else {
+            lines.fail(std::format("unknown key '{}'", key));
+        }
+    }
+    return gates;
 }
 
 // [drops <list>] sections; see docs/content.md.

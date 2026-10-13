@@ -118,6 +118,11 @@ public:
     // SETITEMDIRECT class code: hands the player the item, unless they
     // already have one (the original keeps it with the special items).
     virtual void giveItem(int /*cls*/, int /*code*/) {}
+    // WARPGATE n: gate n opens the GATE window, the list of the gates found
+    // (WARP flags), unless it or a shop is open already. DELETEWARPGATE n
+    // closes it again, but only if gate n opened it (0x4334da, 0x433544).
+    virtual void openWarpGate(int /*gate*/) {}
+    virtual void closeWarpGate(int /*gate*/) {}
     // GETEXPERIENCE: `percent` of the experience the hero's level needs.
     virtual void giveExperiencePercent(int /*percent*/) {}
     // A command the engine does not carry out yet ran (sound aside), so a

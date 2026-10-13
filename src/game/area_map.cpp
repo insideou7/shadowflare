@@ -77,6 +77,7 @@ void Game::toggleAreaMap() {
     showStatus_ = false;
     closeMissions();
     closeMagicWindow();
+    closeWarpWindow();
     mapOpen_ = true;
     mapTicks_ = 0;
 }

@@ -1,0 +1,18 @@
+# Cold Svalt Town's warp gate, as the original's: walking up to it finds
+# it (warp:4) and shows its name over it, and a click on it opens the
+# GATE window.
+
+object=2881,4566,3178,4817,gate
+object=1680,3177,3980,5677,gate-ground
+
+[message 1]
+Cold Svalt Town
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:4 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

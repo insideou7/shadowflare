@@ -161,6 +161,7 @@ void Game::toggleMissions() {
     closeMagicWindow();
     helpOpen_ = false;
     closeAreaMap();
+    closeWarpWindow();
     missionsOpen_ = true;
     missionShown_ = -1;
 }
