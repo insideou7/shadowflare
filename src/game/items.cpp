@@ -373,7 +373,18 @@ void Game::loadLevelCurve() {
     if (levels_.needs.empty()) levels_ = LevelCurve::standard();
     magic_ = tables_.tables.empty() ? MagicTables::standard() : MagicTables::fromTables(tables_);
     partnerTables_ = PartnerTables::load(tables_);
-    if (!partnerTables_ && !tables_.tables.empty()) log::warn("No partner tables (60, 800-805); playing without a companion");
+    if (tables_.tables.empty()) {
+        // An open pack's companions.
+        if (auto text = data_->read("partners.txt")) {
+            try {
+                partnerTables_ = PartnerTables::load(open::parsePartners(*text));
+            } catch (const FormatError& e) {
+                log::warn("partners.txt: {}", e.what());
+            }
+        }
+    } else if (!partnerTables_) {
+        log::warn("No partner tables (60, 800-805); playing without a companion");
+    }
 }
 
 void Game::gainExperience(int amount) {

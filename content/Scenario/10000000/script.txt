@@ -185,3 +185,295 @@ MESSAGEBOX gate 0 -160 msg:30 224 224 224 3000
 [sentence gate]
 on=talk gate
 WARPGATE 0
+
+# The kennel, as the original's: three dogs, each offering its status,
+# two boxes about companions and a swap (CHANGEPARTNER), and a small dog
+# off on its own elsewhere in town who does the same. The one that is the
+# hero's companion is not there (it is out with the hero). temp:40 says
+# which of a dog's boxes is showing (0 its menu, 1 the first explanation,
+# 2 the last); temp:41 is the answer.
+
+[message 40]
+Ash
+~See how I'm doing~
+~Tell me about yourself~
+~Swap partners~
+~Leave~
+
+[message 41]
+The more we fight beside you,
+the stronger we grow.
+
+[message 42]
+Each of us is good at something different.
+Pick the one that suits the way you fight.
+
+[sentence ash]
+on=talk ash
+C_STOP ash
+C_SETANGLETO ash 0
+SETFLAG temp:40 0
+TALK msg:40 temp:41 1 3 -1 -1
+
+[sentence ash-end]
+on=talk-end ash
+IF temp:40 = 2 @ash-done
+IF temp:40 = 1 @ash-more
+IF temp:40 = 0 @ash-choice
+
+[sentence ash-done]
+C_MOVABLE ash
+
+[sentence ash-more]
+SETFLAG temp:40 2
+TALK msg:42 temp:41 1 -1 -1 -1
+
+[sentence ash-choice]
+IF temp:41 = 0 @ash-status
+IF temp:41 = 1 @ash-tell
+IF temp:41 = 2 @ash-swap
+IF temp:41 = 3 @ash-done
+
+[sentence ash-status]
+SETFLAG temp:40 2
+TALKPARTNERSTATUS 0 temp:41
+
+[sentence ash-tell]
+SETFLAG temp:40 1
+TALK msg:41 temp:41 1 -1 -1 -1
+
+[sentence ash-swap]
+CHANGEPARTNER 0
+C_MOVABLE ash
+
+# Hidden while it is the hero's companion, back once it is swapped out.
+[sentence ash-tick]
+on=tick
+GETPARTNERKIND temp:42
+IF shown:ash = 1 @ash-hide
+IF shown:ash = 0 @ash-show
+
+[sentence ash-hide]
+IF temp:42 = 0 @ash-off
+
+[sentence ash-off]
+SETINACTIVE ash
+
+[sentence ash-show]
+IF temp:42 ! 0 @ash-on
+
+[sentence ash-on]
+SETACTIVE ash
+
+[message 43]
+Soot
+~See how I'm doing~
+~Tell me about yourself~
+~Swap partners~
+~Leave~
+
+[message 44]
+Hold Tab and click, and we leap and kick whatever is there.
+We can land on a switch or a button, too.
+
+[message 45]
+Press Space and we go after the enemy.
+Press it again and we fall back to you.
+
+[sentence soot]
+on=talk soot
+C_STOP soot
+C_SETANGLETO soot 0
+SETFLAG temp:40 0
+TALK msg:43 temp:41 1 3 -1 -1
+
+[sentence soot-end]
+on=talk-end soot
+IF temp:40 = 2 @soot-done
+IF temp:40 = 1 @soot-more
+IF temp:40 = 0 @soot-choice
+
+[sentence soot-done]
+C_MOVABLE soot
+
+[sentence soot-more]
+SETFLAG temp:40 2
+TALK msg:45 temp:41 1 -1 -1 -1
+
+[sentence soot-choice]
+IF temp:41 = 0 @soot-status
+IF temp:41 = 1 @soot-tell
+IF temp:41 = 2 @soot-swap
+IF temp:41 = 3 @soot-done
+
+[sentence soot-status]
+SETFLAG temp:40 2
+TALKPARTNERSTATUS 1 temp:41
+
+[sentence soot-tell]
+SETFLAG temp:40 1
+TALK msg:44 temp:41 1 -1 -1 -1
+
+[sentence soot-swap]
+CHANGEPARTNER 1
+C_MOVABLE soot
+
+# Hidden while it is the hero's companion, back once it is swapped out.
+[sentence soot-tick]
+on=tick
+GETPARTNERKIND temp:42
+IF shown:soot = 1 @soot-hide
+IF shown:soot = 0 @soot-show
+
+[sentence soot-hide]
+IF temp:42 = 1 @soot-off
+
+[sentence soot-off]
+SETINACTIVE soot
+
+[sentence soot-show]
+IF temp:42 ! 1 @soot-on
+
+[sentence soot-on]
+SETACTIVE soot
+
+[message 46]
+Amber
+~See how I'm doing~
+~Tell me about yourself~
+~Swap partners~
+~Leave~
+
+[message 47]
+Meat is what we like best.
+Feed us some and our wounds close.
+
+[message 48]
+The better the meat, the more it heals us.
+
+[sentence amber]
+on=talk amber
+C_STOP amber
+C_SETANGLETO amber 0
+SETFLAG temp:40 0
+TALK msg:46 temp:41 1 3 -1 -1
+
+[sentence amber-end]
+on=talk-end amber
+IF temp:40 = 2 @amber-done
+IF temp:40 = 1 @amber-more
+IF temp:40 = 0 @amber-choice
+
+[sentence amber-done]
+C_MOVABLE amber
+
+[sentence amber-more]
+SETFLAG temp:40 2
+TALK msg:48 temp:41 1 -1 -1 -1
+
+[sentence amber-choice]
+IF temp:41 = 0 @amber-status
+IF temp:41 = 1 @amber-tell
+IF temp:41 = 2 @amber-swap
+IF temp:41 = 3 @amber-done
+
+[sentence amber-status]
+SETFLAG temp:40 2
+TALKPARTNERSTATUS 2 temp:41
+
+[sentence amber-tell]
+SETFLAG temp:40 1
+TALK msg:47 temp:41 1 -1 -1 -1
+
+[sentence amber-swap]
+CHANGEPARTNER 2
+C_MOVABLE amber
+
+# Hidden while it is the hero's companion, back once it is swapped out.
+[sentence amber-tick]
+on=tick
+GETPARTNERKIND temp:42
+IF shown:amber = 1 @amber-hide
+IF shown:amber = 0 @amber-show
+
+[sentence amber-hide]
+IF temp:42 = 2 @amber-off
+
+[sentence amber-off]
+SETINACTIVE amber
+
+[sentence amber-show]
+IF temp:42 ! 2 @amber-on
+
+[sentence amber-on]
+SETACTIVE amber
+
+[message 49]
+Pip
+~See how I'm doing~
+~Tell me about yourself~
+~Swap partners~
+~Leave~
+
+[message 50]
+So you tracked me down at last.
+
+[message 51]
+Mind you, I was hoping for a lady to look after me.
+
+[sentence pip]
+on=talk pip
+C_STOP pip
+C_SETANGLETO pip 0
+SETFLAG temp:40 0
+TALK msg:49 temp:41 1 3 -1 -1
+
+[sentence pip-end]
+on=talk-end pip
+IF temp:40 = 2 @pip-done
+IF temp:40 = 1 @pip-more
+IF temp:40 = 0 @pip-choice
+
+[sentence pip-done]
+C_MOVABLE pip
+
+[sentence pip-more]
+SETFLAG temp:40 2
+TALK msg:51 temp:41 1 -1 -1 -1
+
+[sentence pip-choice]
+IF temp:41 = 0 @pip-status
+IF temp:41 = 1 @pip-tell
+IF temp:41 = 2 @pip-swap
+IF temp:41 = 3 @pip-done
+
+[sentence pip-status]
+SETFLAG temp:40 2
+TALKPARTNERSTATUS 4 temp:41
+
+[sentence pip-tell]
+SETFLAG temp:40 1
+TALK msg:50 temp:41 1 -1 -1 -1
+
+[sentence pip-swap]
+CHANGEPARTNER 4
+C_MOVABLE pip
+
+# Hidden while it is the hero's companion, back once it is swapped out.
+[sentence pip-tick]
+on=tick
+GETPARTNERKIND temp:42
+IF shown:pip = 1 @pip-hide
+IF shown:pip = 0 @pip-show
+
+[sentence pip-hide]
+IF temp:42 = 4 @pip-off
+
+[sentence pip-off]
+SETINACTIVE pip
+
+[sentence pip-show]
+IF temp:42 ! 4 @pip-on
+
+[sentence pip-on]
+SETACTIVE pip

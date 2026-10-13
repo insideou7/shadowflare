@@ -361,7 +361,12 @@ def nearest_open(open_, tx, ty):
 
 # Names that a scenario's script.txt calls people by, by original scenario
 # and placement id: Remote Town's commander, smith and healer.
-PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer"}
+PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer",
+                # The companions waiting in Remote Town's kennel and
+                # Cold Svalt Town (people of kind 1000000 + their
+                # Character/PARTNER folder).
+                (0, 10000): "ash", (0, 10001): "soot", (0, 10002): "amber", (0, 10003): "pip",
+                (1000000, 10000): "rust"}
 # The warp gates the pack has (content/gates.txt): the object a click on
 # opens the GATE window, which stands on a warp circle.
 GATES = {0: 200, 1000000: 200}
@@ -680,6 +685,8 @@ def main():
             sizes[name] = int(v[2])
     _, rules = read_skin(out / "skin.txt")
     people = {int(p.name) for p in (out / "Character" / "PEOPLE").iterdir()}
+    partners = out / "Character" / "PARTNER"
+    people |= {1000000 + int(p.name) for p in partners.iterdir()} if partners.is_dir() else set()
     enemies = our_stats(out, {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()})
     rng = random.Random(1)
     for number in FIELDS + DUNGEONS:
