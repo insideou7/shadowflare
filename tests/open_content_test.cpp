@@ -313,6 +313,7 @@ void testItems() {
     check(sword && sword->dropWeight == 10 && sword->weight == 180, "item drop weight and load");
     const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
     check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
+    check(potion && potion->weight == 0, "load is 0 when left out");
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item bad class", "[item hat 1]\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item twice", "[item weapon 1]\n[item weapon 1]\n", [](auto& d) { sf::open::parseItems(d); });

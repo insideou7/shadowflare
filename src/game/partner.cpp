@@ -234,6 +234,10 @@ void Game::tickPartner() {
         p.orderCooldown = kOrderCooldown;
         c.faceTowards(p.orderX - c.x, p.orderY - c.y);
         c.restart(kRun);
+        // Only kinds whose table 60 column 6 is set make the dash's cry (0x460a00).
+        if (const auto* t = tables_.find(60); t && partnerRecord_.kind < t->rows && t->cols > 6 && t->value(partnerRecord_.kind, 6) != 0) {
+            playSound(0x5f, c.x, c.y);
+        }
         log::info("The companion dashes");
         return;
     }
@@ -334,6 +338,7 @@ void Game::partnerBites(Actor& enemy) {
     const auto& s = enemy.placement.stats;
     const PartnerStats& st = partner_->stats;
     if (random_.next(100) >= hitChance(st.hit, s.evasion)) return;
+    playSound(0x2c, partner_->character.x, partner_->character.y);  // 0x45fff0
     const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
     hurtEnemy(enemy, damage, false, true);
 }
@@ -347,6 +352,7 @@ void Game::strikePartner(Actor& enemy, int slot) {
     const PartnerStats& st = partner_->stats;
     if (random_.next(100) >= hitChance(s.hits[k], st.evasion)) return;
     hurtPartner(spellDamage(s.attacks[k], s.element, st.element, st.defense, random_.next(3), random_.next(4)));
+    playSound(6, enemy.character.x, enemy.character.y);  // the blow lands (0x45a2f0)
 }
 
 bool Game::partnerInReach(const Actor& enemy) const {
@@ -640,12 +646,16 @@ void Game::tickPartnerJump() {
         c.x = x;
         c.y = y;
         p.landed = true;
+        // Two calls in the same tick, so two copies sound at once (0x460420).
+        playSound(0x2d, c.x, c.y);
+        playSound(0x2d, c.x, c.y);
         log::info("The companion lands at {:.0f},{:.0f}", x, y);
         c.restart(c.hasChart(kJumpDown) ? kJumpDown : chart::kIdle);
         return;
     }
     if (!p.struck && c.frame() >= c.frameCount() / 2) {
         p.struck = true;
+        playSound(0x2e, c.x, c.y);  // the landing, whatever it hits
         if (p.explosion) {
             partnerExplodes();
         } else {
@@ -748,7 +758,10 @@ void Game::partnerLands(double left, double top, double right, double bottom, bo
         log::info("The companion presses object {}", o.id);
         runEvent(ScenarioScript::kOnTalk, ScenarioControl::idBase(o.group) + o.id);
     }
-    if (dash && bit) p.hitPause = kDashHitPause;
+    if (dash && bit) {
+        p.hitPause = kDashHitPause;
+        playSound(6, p.character.x, p.character.y);  // once a tick (0x460a00)
+    }
 }
 
 // The hero's Explosion spell: once it is cast the companion jumps to the
@@ -830,6 +843,7 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
         const int index = static_cast<int>(&enemy - actors_.data());
         const double x = enemy.character.x, y = enemy.character.y;
         spawnEffect(kFreezeStart, x, y).followsActor = index;
+        playSound(0x77, x, y);  // 0x459690
         Effect& ice = spawnEffect(kFreezeHold + random_.next(4), x, y);
         ice.followsActor = index;
         ice.life = ticks;

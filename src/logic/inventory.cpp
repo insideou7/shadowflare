@@ -73,6 +73,22 @@ const std::string& Item::shownName() const {
     return unidentified && !def->unidentifiedName.empty() ? def->unidentifiedName : def->name;
 }
 
+// 0x466110. Gold only counts in the first three events, and an accessory
+// overrides everything else in the first four.
+int itemSound(const ItemDef& def, int event) {
+    int voice = 0;
+    switch (event) {
+        case kItemTake:
+        case kItemPut: voice = def.weight < 60 ? 0x30 : 0x2f; break;
+        case kItemUnused: voice = 0x0f; break;
+        case kItemEquip: voice = 0x31; break;
+        case kItemSwing: return def.weight > 59 ? 2 : 1;
+        default: return -1;
+    }
+    if (event != kItemEquip && def.isGold()) voice = 0x55;
+    return def.cls == ItemDef::Class::Accessory ? 0x5d : voice;
+}
+
 int Item::repairPrice(const ModifierPrices& prices) const {
     const int max = def->durability;
     const int worn = std::min(wear, max);

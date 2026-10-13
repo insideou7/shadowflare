@@ -554,7 +554,10 @@ void Game::dialogueEvent(const SDL_Event& event) {
                     break;
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
-                case SDLK_SPACE: closeDialogue(count ? d.choice : -1); break;
+                case SDLK_SPACE:
+                    playSound(0x39);  // (0x458080)
+                    closeDialogue(count ? d.choice : -1);
+                    break;
                 case SDLK_ESCAPE: closeDialogue(count ? count - 1 : -1); break;
                 default: break;
             }
@@ -566,6 +569,7 @@ void Game::dialogueEvent(const SDL_Event& event) {
             if (!count) {
                 closeDialogue(-1);
             } else if (const int o = dialogueOptionAt(event.button.x, event.button.y); o >= 0) {
+                playSound(0x39);  // (0x457fa0)
                 closeDialogue(o);
             }
             break;
@@ -643,9 +647,13 @@ bool Game::shopClick(int x, int y, bool right) {
             const double left = x - hand_->def->width * kCell / 2.0 - kShopX;
             const double top = y - hand_->def->height * kCell / 2.0 - kShopY;
             const int tx = static_cast<int>(std::lround(left / kCell)), ty = static_cast<int>(std::lround(top / kCell));
-            if (stock.click(hand_, tx, ty) == Inventory::Result::NoRoom) showMessage("No room there");
-        } else if (inside(grid, x, y)) {
-            stock.click(hand_, cx, cy);
+            const ItemDef& held = *hand_->def;
+            const auto result = stock.click(hand_, tx, ty);
+            if (result == Inventory::Result::NoRoom) showMessage("No room there");
+            // Put down in empty cells, or over one item, which is taken up (0x447970).
+            if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
+        } else if (inside(grid, x, y) && stock.click(hand_, cx, cy) == Inventory::Result::Done) {
+            playSound(itemSound(*hand_->def, kItemTake));
         }
         return true;
     }
@@ -661,6 +669,7 @@ bool Game::shopClick(int x, int y, bool right) {
             showMessage("No room in the bag");
             return true;
         }
+        playSound(itemSound(*hand_->def, kItemTake));  // (0x4480c0)
         stock.add(*hand_);
         showMessage(std::format("Sold for {} gold", price));
         hand_.reset();
@@ -684,6 +693,7 @@ bool Game::shopClick(int x, int y, bool right) {
         return true;
     }
     inventory_.addGold(-price);
+    playSound(itemSound(*item.def, kItemTake));  // as the original takes it into the hand (0x4480c0)
     stock.goods.erase(stock.goods.begin() + i);
     return true;
 }

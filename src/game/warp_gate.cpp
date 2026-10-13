@@ -112,6 +112,7 @@ void Game::chooseWarpGate(int row) {
     const auto* gate = warpGates_.find(found[index]);
     if (!gate) return;
     log::info("Warp gate {} \"{}\": to scenario {}, entry {}", found[index], gate->name, gate->scenario, gate->entry);
+    playSound(0x3a);  // (0x40c950)
     closeWarpWindow();
     if (showInventory_) closeInventory();
     showStatus_ = false;
@@ -139,8 +140,10 @@ bool Game::warpGateClick(int x, int y, bool right) {
     }
     if (warpPage_ > 0 && inside(kPrevButton, x, y)) {
         --warpPage_;
+        playSound(0x3a);
     } else if (warpPage_ < pages - 1 && pages > 1 && inside(kNextButton, x, y)) {
         ++warpPage_;
+        playSound(0x3a);
     }
     return true;
 }

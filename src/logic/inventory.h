@@ -62,6 +62,14 @@ struct Item {
     int repairPrice(const ModifierPrices& prices) const;
 };
 
+// The item sounds of 0x466110, as voices of Voice00.Voc, -1 for none.
+// Events: 0 taking an item into the hand (and putting it on the belt, in a
+// shop or over another item), 1 putting it down in a grid, 2 not used by
+// the original, 3 wearing it, 4 the hero's swing with it as a weapon (1
+// light, 2 heavy).
+enum ItemSoundEvent { kItemTake = 0, kItemPut = 1, kItemUnused = 2, kItemEquip = 3, kItemSwing = 4 };
+int itemSound(const ItemDef& def, int event);
+
 // Where worn items go, as in ShadowFlare.exe's item window (slot table
 // built at 0x407170).
 enum class EquipSlot { Helmet, Body, Boots, Weapon, Shield, Accessory1, Accessory2, Accessory3, Accessory4 };

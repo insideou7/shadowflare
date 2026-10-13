@@ -250,6 +250,7 @@ void Game::releaseSpell() {
             const int amount = std::max(1, playerMaxHp() * magic_.power(spell, level) / 100);
             playerHp_ = std::min(playerMaxHp(), playerHp_ + amount);
             spawnEffect(kHealGlow, player_->x, player_->y).followsPlayer = true;
+            playSound(0x11);  // 0x43ca60
             trainSpell(spell);
             break;
         }
@@ -536,6 +537,7 @@ void Game::stepCast(SpellCast& c) {
                 e.diesOnWall = e.diesOnHit = true;
                 hurts(e, 80, true, kAirBurst);
                 e.hitSound = 155;
+                playSound(0x9a, player_->x, player_->y);  // as the cut is made (0x43e5e0)
                 c.done = true;
             }
             break;
@@ -874,10 +876,14 @@ std::vector<Game::BarIcon> Game::spellBarLayout() const {
 bool Game::spellBarClick(int x, int y) {
     for (const BarIcon& icon : spellBarLayout()) {
         if (x < icon.x || x >= icon.x + icon.size || y < icon.y || y >= 408) continue;
+        // The attack icon always clicks; a spell only when it is not the
+        // chosen one already (0x447570).
         if (icon.spell == kAttackIcon) {
+            playSound(0x3a);
             spells_.selected = -1;
             showMessage("Attack");
         } else if (icon.spell >= 0 && !icon.chosen) {
+            playSound(0x3a);
             spells_.selected = icon.spell;
             showMessage(std::format("{} (level {})", magic_.spell(icon.spell).name, castLevel(icon.spell)));
         }

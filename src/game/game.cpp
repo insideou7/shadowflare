@@ -681,6 +681,7 @@ void Game::tick() {
             }
         }
         actor.character.tick();
+        monsterCries(actor);
     }
     if (!player_) return;
     tickPlayer();
@@ -695,6 +696,10 @@ void Game::tick() {
         powerAuraTicks_ += 1.5;
     }
     tickPartner();
+    // The bite's cue (cell flag 0x400 of its chart, 0x45fff0).
+    if (partner_ && (partner_->character.takeCues() & 0x400) && partner_->state == Partner::State::Bite) {
+        playSound(0x5f, partner_->character.x, partner_->character.y);
+    }
     tickSpells();
     tickTransportGate();
     pickUpItems();
@@ -797,10 +802,13 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 void Game::swing() {
     player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
     blowLanded_ = false;
+    shouted_ = false;
+    swingTicks_ = 0;
     bowShot_.reset();
 }
 
 void Game::tickPlayer() {
+    if (player_->chart() != chart::kWalk && player_->chart() != chart::kPlayerRun) heroSteps(false, false);
     // A trap's stun holds the hero in the hit pose (0x435870).
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
@@ -818,6 +826,10 @@ void Game::tickPlayer() {
     }
     if (current == chart::kPlayerHit && !player_->finished()) return;
     if (bowShot_ && (current == chart::kPlayerPunch || current == chart::kPlayerShoot)) {
+        // The string's twang, 6 of the original's ticks in (0x437fe0,
+        // 0x438a90).
+        if (swingTicks_ <= 6 && swingTicks_ + 1.5 > 6) playSound(3, player_->x, player_->y);
+        swingTicks_ += 1.5;
         // A bowgun shoots on its chart's shooting frame (once, as a fast
         // pull can step past it).
         if (!blowLanded_ && player_->frame() >= strikeFrame(current, current == chart::kPlayerShoot ? 3 : 4)) {
@@ -828,6 +840,23 @@ void Game::tickPlayer() {
         bowShot_.reset();
         player_->play(chart::kIdle);
     } else if (current == chart::kPlayerPunch) {
+        const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
+        const int subtype = weapon ? weapon->def->subtype : -1;
+        // Swords, great swords and axes have their own swing, which shouts
+        // as the blow falls, hit or miss (0x435e60); the rest are the plain
+        // attack (0x439140).
+        const bool bladed = subtype == 0 || subtype == 1 || subtype == 3;
+        if (player_->frame() >= 4 && !shouted_) {
+            shouted_ = true;
+            if (bladed) playSound(heroSex_ == HeroSex::Female ? 0x63 : 0x60, player_->x, player_->y);
+        }
+        // The swing's whoosh, 6 of the original's ticks in (5 for the
+        // plain attack): heavy weapons 2, light ones and bare hands 1.
+        const double at = bladed ? 6 : 5;
+        if (swingTicks_ <= at && swingTicks_ + 1.5 > at) {
+            playSound(weapon ? itemSound(*weapon->def, kItemSwing) : 1, player_->x, player_->y);
+        }
+        swingTicks_ += 1.5;
         // The blow lands halfway through the swing (once, as a fast swing
         // can step past the frame).
         if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
@@ -990,6 +1019,7 @@ void Game::tickPlayer() {
         player_->faceTowards(dx, dy);
         if (tryMove(*player_, dx / length * step, dy / length * step)) {
             player_->play(running && player_->hasChart(chart::kPlayerRun) ? chart::kPlayerRun : chart::kWalk);
+            heroSteps(true, running);
             if (walkTarget_ && length <= speed) walkTarget_.reset();
         } else {
             // Ran into a wall: give up rather than pushing against it.
@@ -1057,6 +1087,7 @@ void Game::tickEnemy(Actor& enemy) {
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
     if (random_.next(100) < hitChance(playerHit(), s.evasion)) {
+        playSound(6, player_->x, player_->y);  // the blow lands, at the hero
         // Table 7: the hero's level in the monster's opposite element
         // strengthens the blow (0x412a40).
         hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
@@ -1096,12 +1127,18 @@ void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
     // The blow also catches an ACTIVE companion in front of the monster.
     if (partnerInReach(enemy)) strikePartner(enemy, slot);
     if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
+    // The blow lands: a thud at the monster, unless Counter Burst killed it
+    // first (0x45a2f0).
+    const auto landed = [&] {
+        if (enemy.alive()) playSound(6, enemy.character.x, enemy.character.y);
+    };
     // Table 11: the hero's level in the monster's element strengthens their
     // defence. Energy Shield changes the defence first (0x443cb0).
     int defense = stats[HeroStats::kDefense];
     if (power_.active()) defense = defense * 12 / 10;
     if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
     hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
+    landed();
 }
 
 void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
@@ -1114,6 +1151,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
         enemy.stunTicks = 0;
         enemy.character.held = false;
         enemy.character.restart(chart::kEnemyDeath);
+        monsterDeathCry(enemy);
         log::info("Monster {} defeated", enemy.gameId());
         dropLoot(enemy);
         // The original counts how the hero kills monsters, to offer a class
@@ -1157,6 +1195,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
         if (damage >= 20) trainSpell(kMagicShield);
         chargeShield(kMagicShield);
         spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
+        playSound(0x3c, player_->x, player_->y);
     }
     // Energy Shield takes blows out of MP while there is any.
     if (!magic && spellOn(kEnergyShield) && playerMp_ > 0) {
@@ -1167,6 +1206,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
+        playSound(heroSex_ == HeroSex::Female ? 14 : 13, player_->x, player_->y);  // 0x435b60
         for (auto& actor : actors_) {
             if (actor.alive()) {
                 actor.state = Actor::State::Idle;
@@ -1189,6 +1229,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
         if (damage >= 20) trainSpell(kCounterBurst);
         chargeShield(kCounterBurst);
         spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
+        playSound(0x3c, player_->x, player_->y);
         hurtEnemy(*attacker, std::max(1, back), true);
     }
     // A blow does not interrupt the player's own swing or a flinch already

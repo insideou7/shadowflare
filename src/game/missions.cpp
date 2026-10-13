@@ -188,7 +188,10 @@ bool Game::missionsClick(int x, int y, bool right) {
         return true;
     }
     for (int page = 0; page < 2; ++page) {
-        if (inside(kPageButtons[page], x, y)) missionPage_ = page;
+        if (inside(kPageButtons[page], x, y)) {
+            missionPage_ = page;
+            playSound(0x3a);  // even when that page is showing (0x40cea0)
+        }
     }
     const int first = missionPage_ * kPerPage;
     for (int m = first; m < std::min(first + kPerPage, missions_.count()); ++m) {

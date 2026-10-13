@@ -87,6 +87,15 @@ public:
     void faceTowards(double dx, double dy);
 
     void tick();
+    // The sound cue flags (cell status 0x400, 0x800 and 0x1000) of the
+    // frames reached since the last call, which monsters and companions
+    // play sounds by (0x45a2a0); clears them.
+    int takeCues() {
+        const int cues = cues_;
+        cues_ = 0;
+        return cues;
+    }
+    static constexpr int kCueFlags = 0x400 | 0x800 | 0x1000;
     // `shadowAlpha` is how dark the shadow is drawn. Below 255, `alpha`
     // draws a see-through copy with no shadow.
     void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
@@ -99,6 +108,8 @@ private:
     int chart_ = chart::kIdle;
     int frame_ = 0;
     double speed_ = 1.0, progress_ = 0;
+    int cues_ = 0;
+    void reached(int frame);
 };
 
 }  // namespace sf

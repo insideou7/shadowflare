@@ -358,6 +358,8 @@ armour: the wear they take before they break; none or 0 never wears out)
 `glow` (a second hero layer) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
 (kind 0 stone, 1 arrow, 2 fire arrow, 3 ice arrow; see docs/archery.md). The item window weighs the `load` of
 everything worn against the hero's strength, as the original does.
+An item with a `load` of 60 or more also sounds heavy when it is taken or
+put down, and a weapon that heavy swings with the heavy voice.
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with

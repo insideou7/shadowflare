@@ -72,6 +72,7 @@ void Game::shoot(std::optional<std::size_t> target, double angle) {
     // The open content's hero has no shooting chart yet: it swings instead.
     player_->restart(player_->hasChart(chart::kPlayerShoot) ? chart::kPlayerShoot : chart::kPlayerPunch, speed);
     blowLanded_ = false;
+    swingTicks_ = 0;
 }
 
 // The shooting frame: the shots leave the bow. A bowgun with no durability

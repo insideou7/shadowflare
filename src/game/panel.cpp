@@ -59,16 +59,22 @@ bool Game::panelClick(int x, int y) {
     if (showInventory_ && x >= 320 && y < 416) return false;  // the item window covers the panel's top right
     if (kMenuButton.has(x, y)) {
         panel_.flash[kFlashMenu] = 2;
+        playSound(0x3a);  // (0x445bd0)
         openOptions(true);
         return true;
     }
     if (y < kPanelTop) return false;
+    // The buttons click with 0x3a, and closing a window with 0x39 (0x445bd0).
+    // The keys that do the same are silent.
     if (kRunButton.has(x, y)) {
         runMode_ = true;
+        playSound(0x3a);
     } else if (kWalkButton.has(x, y)) {
         runMode_ = false;
+        playSound(0x3a);
     } else if (kStatusButton.has(x, y) && !openShop_) {
         showStatus_ = !showStatus_;
+        playSound(showStatus_ ? 0x3a : 0x39);
         if (showStatus_) {
             closeMissions();
             closeMagicWindow();
@@ -77,6 +83,7 @@ bool Game::panelClick(int x, int y) {
         }
     } else if (kItemButton.has(x, y) && !openShop_) {
         closeMissions();
+        playSound(showInventory_ ? 0x39 : 0x3a);
         if (showInventory_) {
             closeInventory();
         } else {

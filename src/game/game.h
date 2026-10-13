@@ -658,6 +658,15 @@ private:
     // (0x4275a0).
     void tickMusic();
     void loadMusic(const std::string& path);
+    // The sounds a monster's animation called for this tick, and its death
+    // cry (0x45a2a0, 0x45bec0).
+    void monsterCries(Actor& enemy);
+    void monsterDeathCry(const Actor& enemy);
+    void heroSteps(bool walking, bool running);
+    double stepTicks_ = -1;  // original ticks since the hero set off, -1 standing
+    bool stepRunning_ = false;
+    double swingTicks_ = 0;  // original ticks into the hero's swing
+    bool shouted_ = false;
     std::string musicFile_;   // what bank 500 holds
     int areaMusic_ = -1;      // the area's BGM number, -1 for none
     int musicTicks_ = 0;      // ticks since the area's music started
