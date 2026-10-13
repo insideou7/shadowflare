@@ -846,7 +846,7 @@ them, in Font01 (6 pixels a character) with a black shadow:
   0xRRGGBB). The box behind, from 4 pixels left of the text to 1 right and
   2 above to 13 below, is filled at 500 per mille with (128, 32, 32) as far
   as its hit points (+ 0xd4 out of + 0xe4) go and black after; then a
-  black edge a pixel outside it at 800. StatusIcon.njp pattern element + 3
+  black edge a pixel outside it at 800 (the manual's screenshots show it softer, a dark rim with a lighter line inside, which is how ours draws it). StatusIcon.njp pattern element + 3
   (an orb) sits in the space.
 - a person or object: its name in its colour, on a navy (0, 0, 96) box.
 - an item: its name, or `%d Gold`, on the same navy box, coloured by

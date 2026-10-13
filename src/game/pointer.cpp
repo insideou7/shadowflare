@@ -34,7 +34,12 @@ constexpr int kSquareFaint = 100, kSquareBright = 300;
 constexpr SDL_Color kHealthLeft{0x80, 0x20, 0x20, 128};
 constexpr SDL_Color kHealthLost{0, 0, 0, 128};
 constexpr SDL_Color kNavy{0, 0, 0x60, 128};
-constexpr SDL_Color kEdge{0, 0, 0, 204};
+// The edge: the exe asks for black at 800 (flag 0x400), but the manual's
+// screenshots show a soft dark rim with a lighter line inside along the
+// top and left, so it is drawn that way.
+constexpr SDL_Color kEdge{0, 0, 0, 72};
+constexpr SDL_Color kRimLight{255, 255, 255, 28};
+constexpr SDL_Color kRimDark{0, 0, 0, 40};
 constexpr SDL_Color kShadow{0, 0, 0, 255};
 // Items by quality (the item's + 0x18): normal, magic, unique, quest.
 constexpr SDL_Color kQualityColors[] = {{0xe0, 0xe0, 0xe0, 255}, {0x80, 0x80, 0xc0, 255}, {0xe0, 0xc0, 0x80, 255}, {0xe0, 0x80, 0x5c, 255}};
@@ -232,15 +237,21 @@ void Game::renderHoverName(int camX, int camY) {
         fill(renderer_, left, y - 2, right, y + 13, kNavy);
     }
     edge(renderer_, left - 1, y - 3, right + 1, y + 14, kEdge);
+    fill(renderer_, left, y - 2, right, y - 2, kRimLight);
+    fill(renderer_, left, y - 1, left, y + 13, kRimLight);
+    fill(renderer_, left + 1, y + 13, right, y + 13, kRimDark);
+    fill(renderer_, right, y - 1, right, y + 12, kRimDark);
     const int textX = x - half + (orb ? 2 * kCharWidth : 0);
     windowText(textX, y, name, color);
     if (orb) {
         // StatusIcon.njp patterns 3-10, or a plain dot.
         const SpriteBank* icons = itemBank("System/Game/Pattern/StatusIcon");
         const SpriteTexture* icon = icons && icons->patterns.size() > 10 ? sprites_.get(*icons, element + 3, false) : nullptr;
-        const int ix = x - half - 2, iy = y + 1;
+        // Centred in the box's first 16 pixels, before the name.
+        const int w = icon ? icon->width : 12, h = icon ? icon->height : 11;
+        const int ix = left + (16 - w) / 2, iy = y - 2 + (16 - h + 1) / 2;
         if (icon) {
-            const SDL_Rect dst{ix + icon->originX, iy + icon->originY, icon->width, icon->height};
+            const SDL_Rect dst{ix, iy, icon->width, icon->height};
             SDL_RenderCopy(renderer_, icon->texture, nullptr, &dst);
         } else {
             const SDL_Color c = kElementColors[element];
