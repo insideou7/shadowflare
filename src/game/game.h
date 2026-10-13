@@ -273,6 +273,7 @@ private:
         int event = AiControl::kDecide;
         AiControl::Entry entry;
         bool struck = false;  // the current attack has landed
+        double aim = 0;       // where its spell goes, radians in world space (monster + 0x260)
         double wanderX = 0, wanderY = 0;
         int wanderPause = 0;
         bool active = true;   // SETINACTIVE hides a character
@@ -364,7 +365,7 @@ private:
     void strikeEnemy(Actor& enemy);
     void sayBroken(const std::vector<EquipSlot>& slots);  // a message for each item that broke
     // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
-    void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
+    void strikePlayer(Actor& enemy, int slot = 0);
     // `bySpell` counts the kill as a magic one for the class offer.
     // byPartner: the companion's bite, which the class kill counts skip.
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
@@ -476,6 +477,14 @@ private:
         int hitSound = -1;
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
+        bool pierces = false;  // a missile that flies on through what it hits (table 21)
+        // A monster's spell (the index of its caster in actors_), which
+        // hurts the hero and an ACTIVE companion instead of monsters;
+        // -1 for the hero's own. `targetOnly`: the hero alone, and walls
+        // do not stop it (Dread Deathscythe's blades).
+        int caster = -1;
+        bool targetOnly = false;
+        bool struckHero = false, struckPartner = false;
         // A picture of the OPTION folder's Pattern bank instead of its
         // animation (the mine on the ground), -1 = the animation.
         int pattern = -1;
@@ -528,13 +537,22 @@ private:
         std::vector<std::pair<double, double>> trackedAt;
         std::vector<int> stage, stageTicks;  // Elemental Strike, per orb
         bool done = false;
+        // A monster's cast (castMonsterSpell): its index in actors_, -1
+        // for the hero's; the effect on whoever it hurts, and whether it
+        // goes for the hero alone.
+        int caster = -1;
+        int hitOption = -1;
+        bool targetOnly = false;
     };
+    // A monster's spell leaving its hand (0x45b043).
+    void castMonsterSpell(Actor& enemy, int slot);
+    void monsterSpellHitsPlayer(const Effect& e);
+    void monsterSpellHitsPartner(const Effect& e);
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
-    void showSpellHit(int spell, double x, double y);
     const CharacterModel* effectModel(int option);
     int effectLength(int option, int chart = 0);
     Effect& spawnEffect(int option, double x, double y, int chart = 0);
@@ -646,6 +664,9 @@ private:
     bool tickStun(Character& who, Stun& stun);
     void trapSplash(const Effect& e, double x, double y, bool onHero);
     std::optional<Stun> heroStun_;
+    // The stun a blow or spell gives the hero: held in the hit pose, maybe
+    // pushed back (0x443cb0).
+    void stunHero(const Stun& stun);
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
     int directionFrames(int option, int direction);
     std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too

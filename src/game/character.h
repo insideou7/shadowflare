@@ -100,6 +100,16 @@ public:
         return cues;
     }
     static constexpr int kCueFlags = 0x400 | 0x800 | 0x1000;
+    // How many frames reached since the last call have cell status 0x40
+    // in their first layer: where a monster's blow lands or its spell
+    // leaves the hand (0x45a749, 0x45ac90); clears them.
+    int takeStrikes() {
+        const int strikes = strikes_;
+        strikes_ = 0;
+        return strikes;
+    }
+    // Whether any frame of the chart playing has one.
+    bool hasStrikes() const;
     // `shadowAlpha` is how dark the shadow is drawn. Below 255, `alpha`
     // draws a see-through copy with no shadow.
     void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
@@ -113,6 +123,7 @@ private:
     int frame_ = 0;
     double speed_ = 1.0, progress_ = 0;
     int cues_ = 0;
+    int strikes_ = 0;
     void reached(int frame);
 };
 

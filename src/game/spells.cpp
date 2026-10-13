@@ -9,6 +9,7 @@
 #include <cmath>
 #include <format>
 #include <numbers>
+#include <optional>
 #include <tuple>
 
 #include "core/log.h"
@@ -41,6 +42,7 @@ enum Option {
     kSonicBladeFly = 10000090, kElementOrb = 10000100, kMudFly = 10000110, kMudBurst = 10000111,
     kHitSpark = 11000000, kShock = 11000003, kFrostHit = 11000026, kIceSwirl = 11000027, kWaterBurst = 11000033,
     kStoneHit = 11000050, kHealGlow = 11000060, kGatherSwirl = 11000100, kAirBurst = 11000200, kElementCast = 11000210,
+    kFreezeStart = 11000028, kFreezeHold = 11000029, kFreezeEnd = 11000033,
     kMoonGlow = 11000040, kIdentifyGlow = 11000230, kMagicShieldGlow = 11000241, kCounterBurstGlow = 11000251, kFirePillar = 12000000,
 };
 
@@ -263,9 +265,85 @@ void Game::releaseSpell() {
     }
 }
 
-void Game::showSpellHit(int spell, double x, double y) {
-    const int option = hitOptionOf(spell);
-    if (option >= 0) spawnEffect(option, x, y);
+// A monster's spell leaves its hand (0x45b043): the same controller as
+// the hero's, made at once with the monster as its owner. It aims where
+// the action began, its power is the monster's own (words 35-37), its hit
+// the spell's at the monster's level plus its bonus (words 41-43), and it
+// goes for the hero and an ACTIVE companion. Some spells leave the hand
+// 10 ticks into it (monsterSpell).
+void Game::castMonsterSpell(Actor& enemy, int slot) {
+    const auto& s = enemy.placement.stats;
+    const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
+    const int spell = s.spells[k];
+    if (spell < 0 || spell >= kSpellCount) return;
+    const auto how = monsterSpell(spell, random_.next(4));
+    if (!how) {
+        log::warn("Monster {} has no way to cast {}", enemy.gameId(), magic_.spell(spell).name);
+        return;
+    }
+    SpellCast cast;
+    cast.spell = spell;
+    cast.level = std::clamp(s.spellLevel[k], 1, kSpellColumns);
+    cast.power = s.spellPower[k];
+    cast.hit = magic_.hit(spell, cast.level) + s.spellHit[k];
+    cast.x = enemy.character.x;
+    cast.y = enemy.character.y;
+    cast.aim = enemy.aim;
+    cast.release = how->release;
+    cast.caster = static_cast<int>(&enemy - actors_.data());
+    cast.hitOption = how->hitOption;
+    cast.targetOnly = how->targetOnly;
+    log::info("Monster {} casts {} at level {}", enemy.gameId(), magic_.spell(spell).name, cast.level);
+    casts_.push_back(std::move(cast));
+}
+
+// A monster's spell reaching the hero (0x45e1e0, then 0x443cb0): its hit
+// against their magic evasion; then (9 + r) x power / 10 less their magic
+// defence (table 11 by their level in the spell's element), the hit's
+// effect on them, the sound, and maybe a stun from tables 70-78 that the
+// worn armour and accessories resist. Ice Bolt, Ice Blast and Dread
+// Deathscythe freeze them in ice while it lasts.
+void Game::monsterSpellHitsPlayer(const Effect& e) {
+    const HeroStats stats = playerStats();
+    if (random_.next(100) >= hitChance(e.hit, stats[HeroStats::kMagicEvasion])) return;
+    const int element = magic_.spell(e.spell).element;
+    const int damage = damageToHero(magic_, e.power, element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
+    log::info("{} hits the hero for {}", magic_.spell(e.spell).name, damage);
+    if (e.hitOption >= 0) spawnEffect(e.hitOption, player_->x, player_->y).followsPlayer = true;
+    playSound(e.hitSound, e.x, e.y);
+    Actor* caster = static_cast<std::size_t>(e.caster) < actors_.size() ? &actors_[static_cast<std::size_t>(e.caster)] : nullptr;
+    hurtPlayer(damage, true, caster, false);
+    if (playerHp_ <= 0 || !player_) return;
+    const auto st = heroSpellStun(magic_, e.spell, e.level, playerElements());
+    const auto ticks = stunTicks(st.chance, st.length, st.uncapped, inventory_.guardModifier(ItemDef::kModStunChance),
+                                 inventory_.guardModifier(ItemDef::kModStunLength), random_.next(100));
+    if (!ticks) return;
+    Stun stun;
+    stun.total = *ticks;
+    stun.angle = std::atan2(-(player_->y - e.y), player_->x - e.x);
+    stun.pushed = !st.uncapped && inventory_.guardModifier(ItemDef::kModHighDamage) == 0;
+    stunHero(stun);
+    if (stunKindOf(e.spell) == StunKind::Freeze) {
+        // The same ice as on a monster (the controllers 0x5217-0x521a).
+        spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
+        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
+        ice.followsPlayer = true;
+        ice.life = stun.total;
+        ice.then = kFreezeEnd;
+        playSound(0x77, player_->x, player_->y);
+    }
+}
+
+// The same on an ACTIVE companion: its magic evasion and magic defence,
+// by the damage rule its own blows take (0x45f9f0).
+void Game::monsterSpellHitsPartner(const Effect& e) {
+    const PartnerStats& st = partner_->stats;
+    if (random_.next(100) >= hitChance(e.hit, st.magicEvasion)) return;
+    const int damage = spellDamage(e.power, magic_.spell(e.spell).element, st.element, st.magicDefense, random_.next(3), random_.next(4));
+    log::info("{} hits the companion for {}", magic_.spell(e.spell).name, damage);
+    if (e.hitOption >= 0) spawnEffect(e.hitOption, partner_->character.x, partner_->character.y).followsPartner = true;
+    playSound(e.hitSound, e.x, e.y);
+    hurtPartner(damage);
 }
 
 bool Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption) {
@@ -359,7 +437,13 @@ void Game::stepCast(SpellCast& c) {
         e.box = box;
         e.area = area;
         e.hitOption = hitOption;
+        e.pierces = magic_.pierces(c.spell, c.level);
+        e.caster = c.caster;
+        e.targetOnly = c.targetOnly;
     };
+    // What a monster's spell plays on whoever it hurts comes from its
+    // cast (0x45b043); the hero's from the spell.
+    const int hitOption = c.caster >= 0 ? c.hitOption : hitOptionOf(c.spell);
     // A missile from 180 in front of the caster, flying until it hits
     // something or a wall.
     auto bolt = [&](int option, double angle, double box) -> Effect& {
@@ -369,8 +453,9 @@ void Game::stepCast(SpellCast& c) {
         e.directional = true;
         e.speed = magic_.speed(c.spell, c.level);
         e.life = -1;
-        e.diesOnWall = e.diesOnHit = true;
-        hurts(e, box, false, hitOptionOf(c.spell));
+        e.diesOnWall = !c.targetOnly;
+        e.diesOnHit = true;
+        hurts(e, box, false, hitOption);
         e.hitSound = kMagicHitSound;
         return e;
     };
@@ -446,7 +531,7 @@ void Game::stepCast(SpellCast& c) {
                 const auto [x, y] = along(250 + 300 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
                 if (!c.blocked[0]) {
-                    hurts(spawnEffect(kEarthSpear, x, y), 150, true, -1);
+                    hurts(spawnEffect(kEarthSpear, x, y), 150, true, c.caster >= 0 ? c.hitOption : -1);
                     playSound(0x16, x, y);
                 }
                 if (++c.step >= n) c.done = true;
@@ -648,18 +733,26 @@ void Game::stepEffect(Effect& e) {
         e.y = actors_[static_cast<std::size_t>(e.followsActor)].character.y;
     }
     if (e.turn > 0) {
-        // Home in on the nearest monster.
-        const Actor* nearest = nullptr;
+        // Home in on the nearest monster, or for a monster's spell the
+        // nearest of the hero and an ACTIVE companion.
+        std::optional<std::pair<double, double>> nearest;
         double best = 0;
-        for (const auto& actor : actors_) {
-            if (!actor.active || !actor.hostile() || !actor.alive()) continue;
-            const double d = std::hypot(actor.character.x - e.x, actor.character.y - e.y);
+        auto consider = [&](double x, double y) {
+            const double d = std::hypot(x - e.x, y - e.y);
             if (!nearest || d < best) {
-                nearest = &actor;
+                nearest = {x, y};
                 best = d;
             }
+        };
+        if (e.caster >= 0) {
+            if (player_) consider(player_->x, player_->y);
+            if (partnerAlive() && partnerRecord_.active && !e.targetOnly) consider(partner_->character.x, partner_->character.y);
+        } else {
+            for (const auto& actor : actors_) {
+                if (actor.active && actor.hostile() && actor.alive()) consider(actor.character.x, actor.character.y);
+            }
         }
-        if (nearest) e.angle = turnTowards(e.angle, std::atan2(nearest->character.y - e.y, nearest->character.x - e.x), e.turn);
+        if (nearest) e.angle = turnTowards(e.angle, std::atan2(nearest->second - e.y, nearest->first - e.x), e.turn);
     }
     if (e.speed > 0) {
         e.x += std::cos(e.angle) * e.speed;
@@ -668,7 +761,22 @@ void Game::stepEffect(Effect& e) {
         if (e.diesOnWall && (!map_ || !map_->ground().walkable(e.x, e.y))) e.dead = true;
         if (e.travelled >= kMissileRange) e.dead = true;
     }
-    if (!e.dead && e.spell >= 0) {
+    if (!e.dead && e.spell >= 0 && e.caster >= 0) {
+        // A monster's spell: the hero, then an ACTIVE companion, each once.
+        const double reach = e.box + kTargetHalf;
+        auto within = [&](double x, double y) { return std::abs(x - e.x) <= reach && std::abs(y - e.y) <= reach; };
+        bool struck = false;
+        if (player_ && !e.struckHero && within(player_->x, player_->y)) {
+            e.struckHero = struck = true;
+            monsterSpellHitsPlayer(e);
+        }
+        if ((!struck || e.area) && !e.targetOnly && !e.struckPartner && partnerAlive() && partnerRecord_.active &&
+            within(partner_->character.x, partner_->character.y)) {
+            e.struckPartner = struck = true;
+            monsterSpellHitsPartner(e);
+        }
+        if (struck && e.diesOnHit && !e.pierces) e.dead = true;
+    } else if (!e.dead && e.spell >= 0) {
         bool struck = false, sounded = false;
         for (std::size_t i = 0; i < actors_.size(); ++i) {
             Actor& actor = actors_[i];
@@ -684,7 +792,7 @@ void Game::stepEffect(Effect& e) {
             struck = true;
             if (!e.area) break;
         }
-        if (struck && e.diesOnHit) e.dead = true;
+        if (struck && e.diesOnHit && !e.pierces) e.dead = true;
     }
     ++e.age;
     if (e.life >= 0 && e.age >= e.life) {
@@ -697,7 +805,7 @@ void Game::tickSpells() {
     for (originalTicks_ += kOriginalTicksPerTick; originalTicks_ >= 1.0; originalTicks_ -= 1.0) {
         for (auto& cast : casts_) {
             // A cast cut short before it left the hand makes nothing more.
-            if (cast.release < 0 && !casting_) {
+            if (cast.caster < 0 && cast.release < 0 && !casting_) {
                 for (int id : cast.tracked) {
                     if (Effect* e = findEffect(id)) e->dead = true;
                 }
@@ -805,7 +913,7 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
     }
     std::ranges::stable_sort(cells, [](const auto* a, const auto* b) { return a->priority > b->priority; });
     for (const auto* cell : cells) {
-        const bool shadow = cell->status == AnimationSet::kShadowStatus;
+        const bool shadow = AnimationSet::isShadow(cell->status);
         const SpriteTexture* sprite = sprites_.get(shadow ? model->shadow : model->body, cell->pattern, false);
         if (!sprite) continue;
         // Status 16 adds its light to what is behind (flames, glows).

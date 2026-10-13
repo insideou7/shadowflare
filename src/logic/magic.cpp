@@ -112,6 +112,9 @@ MagicTables MagicTables::fromTables(const GameTables& tables) {
     grid(24, [&](int r, int c, int v) {
         if (r < 10 && c < 2) t.stunBonus[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
     });
+    grid(26, [&](int r, int c, int v) {
+        if (r < 10 && c < 2) t.heroStunBonus[static_cast<std::size_t>(r)][static_cast<std::size_t>(c)] = v;
+    });
     // Three columns a level: chance, length, may run past 15 ticks.
     for (int e = 0; e <= kElementCount; ++e) {
         grid(70 + e, [&](int r, int c, int v) {
@@ -144,6 +147,41 @@ MagicTables::Stun spellStun(const MagicTables& t, int spell, int level, int mons
         s.length += t.stunBonus[static_cast<std::size_t>(elementLevel - 1)][1];
     }
     return s;
+}
+
+MagicTables::Stun heroSpellStun(const MagicTables& t, int spell, int level, const ElementLevels& hero) {
+    const int element = t.spell(spell).element;
+    const int elementLevel = std::clamp(levelIn(hero, element), -10, 10);
+    const int column = elementLevel > 0 ? element : elementLevel < 0 ? oppositeElement(element) : kElementCount;
+    MagicTables::Stun s = t.stun(column, spell, level);
+    if (elementLevel < 0) {
+        s.chance += t.heroStunBonus[static_cast<std::size_t>(elementLevel + 10)][0];
+        s.length += t.heroStunBonus[static_cast<std::size_t>(elementLevel + 10)][1];
+    }
+    return s;
+}
+
+std::optional<MonsterSpell> monsterSpell(int spell, int roll4) {
+    // The hit controllers' effects (0x42b860 by way of 0x42f2f0): 20000
+    // Fire Ball's burst, 20001 Hell Fire's, 20005 the shock, 21000-21003
+    // sparks, 21013 frost, 21019 stone.
+    constexpr int kFireBurst = 10000011, kHellFireBurst = 10000001, kShock = 11000003, kFrost = 11000026, kStone = 11000050;
+    constexpr int kSparks[] = {11000000, 11000001, 11000002, 11000009};
+    switch (spell) {
+        case kFireBall:
+        case kMudJavelin:
+        case kFlameStrike: return MonsterSpell{0, kFireBurst, false};
+        case kIceBolt: return MonsterSpell{0, kFrost, false};
+        case kPlasma:
+        case kLightningStorm: return MonsterSpell{0, kShock, false};
+        case kHellFire: return MonsterSpell{10, kHellFireBurst, false};
+        case kIceBlast: return MonsterSpell{10, kFrost, false};
+        case kEarthSpears: return MonsterSpell{0, kSparks[std::clamp(roll4, 0, 3)], false};
+        case kDreadDeathscythe: return MonsterSpell{10, kFrost, true};
+        case kMedusa: return MonsterSpell{0, kStone, false};
+        case kElementalStrike: return MonsterSpell{0, kSparks[0], false};
+        default: return std::nullopt;
+    }
 }
 
 StunKind stunKindOf(int spell) {

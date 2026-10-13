@@ -359,6 +359,10 @@ Control.aid (see formats.md): the event, the action, then any of
 `pause`, `extra`, `hp=<min>..<max>` (percent) and `range=<min>..<max>`
 (gap to the player in world units; either end may be left out).
 `tools/content/ai.txt` lists the event and action names.
+`magic`, `magic2` and `magic3` cast the monster's spells in slots a, b
+and c (`spells=`). Monsters that know spells follow one of the `mage`
+lists; `python3 tools/content/caster_ai.py content` picks it from their
+spells (run it again after `enemy_stats.py`).
 
 ### items.txt
 

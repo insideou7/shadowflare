@@ -32,6 +32,9 @@ struct AnimationSet {
 
     static constexpr int kDirections = 9;
     static constexpr std::int16_t kShadowStatus = 8;
+    // Shadow cells carry other flags too (0x40 where a blow lands, sound
+    // cues 0x400-0x1000), so only the bit says it is one.
+    static constexpr bool isShadow(int status) { return (status & kShadowStatus) != 0; }
     static constexpr std::int16_t kAdditiveStatus = 16;  // effect glows (OPTION animations)
 
     int version = 0;

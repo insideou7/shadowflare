@@ -58,7 +58,8 @@ spell level (1-30), read through 0x417410:
 | 18 | bonus to hit |
 | 19 | element (column 0) |
 | 20 | casting speed, per mille (column 0) |
-| 21 | a flag, use not known yet |
+| 21 | 1 when the spell's missile flies on through what it hits, hurting each once (Fire Ball from level 15, Ice Bolt from 11, Sonic Blade from 15; the effect's + 0xb0, read at 0x45e1e0) |
+| 26 | by the hero's level -10 to -1 in a monster spell's element: added to its stun's chance and length on the hero |
 | 27 | uses to go up from each level |
 | 35 | missile speed; 0 for spells without a missile |
 | 4 | chant speed / 32 to a step of the casting speed scale |
@@ -162,6 +163,53 @@ each time they soak a blow of 20 or more.
 There is no MP or HP recovery over time of the hero's own; only
 equipment gives it.
 
+## Monster spells (0x45ac90, 0x45b043)
+
+Monsters cast the hero's spells, through the same controllers. Each
+monster has three spell slots (Control.aid actions 5-7), and its enemy
+block says which spell is in each, the power, the level whose Table.Tbd
+columns it uses and what it adds to the spell's hit
+([formats.md](formats.md#scenarios-scenarioidscenariomct)).
+
+- As the action starts the monster turns to its target and takes aim; it
+  plays chart 7 plus the slot's word 67-69 (attacks play chart 4 plus
+  word 64-66).
+- At each frame of that chart whose cell has status 0x40 the spell leaves
+  the hand, so some monsters cast two or three times in one go (blows
+  land at each such frame too).
+- The controller starts at once with the monster as its owner. Hell Fire,
+  Ice Blast and Dread Deathscythe leave the hand 10 ticks later, the rest
+  straight away. Power is the monster's own (no magic attack is added),
+  hit is table 18 at the monster's level plus its bonus, and table 21
+  says whether the missile flies through.
+- Its effects hurt the hero and an ACTIVE companion (the effect's target
+  mask 0x13: players, companions and walls; the hero's spells use 0x14,
+  monsters and walls). Dread Deathscythe's blades go for the one aimed at
+  alone (mask 1) and walls do not stop them. Homing missiles turn towards
+  the nearest of the hero and the companion.
+- A hit must beat magic evasion (hit minus magic evasion, 20-98 percent).
+  On the hero it does (9 + r) x power / 10 less magic defence x table 11
+  / 10, Magic Shield takes its share, and its effect plays on them: Fire
+  Ball's, Mud Javelin's and Flame Strike's burst 10000011, Hell Fire's
+  10000001, Plasma's and Lightning Storm's shock 11000003, frost 11000026
+  for Ice Bolt, Ice Blast and Dread Deathscythe, stone 11000050 for
+  Medusa, and sparks 11000000 for Elemental Strike (Earth Spears one of
+  11000000-11000002 or 11000009, chosen as it is cast). A companion takes
+  its magic evasion and magic defence instead.
+- Then the hero may be stunned (0x443cb0): tables 70-78 for the spell at
+  its level, in the column of the spell's element when the hero's level
+  in it is above 0, its opposite element when below 0 (table 26 adds to
+  both), and no element (78) at 0. The worn armour and accessories resist
+  it as they do traps'. Unless the column lets it run past 15 ticks, it is
+  at most 15 and pushes the hero back. Ice Bolt, Ice Blast and Dread
+  Deathscythe freeze the hero in one of the four blocks of ice while it
+  lasts.
+
+The open content's casters follow the mage lists in its `ai.txt`, which
+`tools/content/caster_ai.py` gives each monster by the spells it knows:
+bursts round the caster (Hell Fire, Ice Blast) close up, the others from
+further off.
+
 ## Increased-power mode (0x4134a0, 0x451a00, 0x4429b0)
 
 Each monster the hero kills themself (not the companion) adds one to a
@@ -261,7 +309,12 @@ Ours rather than the original's, until they are read from the exe:
   original asks its collision map for the whole rectangle, and the hero
   steps into a gate with a ±30 square (the original uses their judge
   rect).
-- Monster spells land halfway through their animation, like blows.
+- A monster's spell, or blow, with no frame marked 0x40 in its chart (the
+  open content's monsters) happens once, halfway through.
+- Monster spells and missiles are not lifted off the ground (the original
+  flies the hero's at height 200 and monsters' at 250), and a monster's
+  spell that misses shows nothing (the original plays 11000011 on the
+  one it missed).
 
 ## Original mode
 

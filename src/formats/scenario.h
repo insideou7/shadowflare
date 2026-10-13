@@ -58,6 +58,10 @@ struct ScenarioControl {
             // they use (words 38-40) and what they add to the spell's hit
             // (words 41-43), as the cast code at 0x45b043 reads them.
             std::array<std::int32_t, 3> spells{-1, -1, -1}, spellPower{}, spellLevel{1, 1, 1}, spellHit{};
+            // The chart each attack plays, less 4 (words 64-66, monster +
+            // 0x11c), and each spell, less 7 (words 67-69, + 0x164), as
+            // 0x45a749 and 0x45ac90 read them.
+            std::array<std::int32_t, 3> attackCharts{0, 1, 2}, spellCharts{};
             std::int32_t magicEvasion = 0;  // word 12; what spells must beat (0x45eb2b)
             // Word 7 (monster + 0xdc), meaning unknown; Counter Burst
             // reflects half as much onto monsters where it is 100.
