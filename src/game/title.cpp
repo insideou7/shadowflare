@@ -72,6 +72,9 @@ void Game::newGame() {
     hand_.reset();
     inventory_.clear();
     flags_.clear();
+    // The first gate, Remote Town's, is known from the start (0x4412dc).
+    flags_[{ScenarioScript::kWarp, 0}] = 1;
+    closeWarpWindow();
     explored_.clear();
     mapOpen_ = false;
     playerLevel_ = 1;

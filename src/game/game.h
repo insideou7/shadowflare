@@ -34,6 +34,7 @@
 #include "formats/missions.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
+#include "formats/warp_gates.h"
 #include "game/map.h"
 #include "render/sprite_cache.h"
 
@@ -191,6 +192,13 @@ public:
     // Opens the mission list (Q), with one mission's description showing
     // when `shown` is not -1 (for testing).
     void openMissions(int shown = -1);
+    // Marks warp gate `gate` found (its WARP flag), for testing.
+    void setWarpFlag(std::int32_t gate, std::int32_t value) { flags_[{ScenarioScript::kWarp, gate}] = value; }
+    int warpGateCount() const { return warpGates_.count(); }
+    // The GATE window, as WARPGATE `gate` opens it, on one of its pages;
+    // and picking the n-th gate listed on the page showing (for testing).
+    void openWarpGate(int gate, int page = 0);
+    void chooseWarpGate(int row);
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
     // a message on screen, when that fails.
@@ -597,6 +605,17 @@ private:
     void renderCompass();
     const CharacterModel* compassModel();
 
+    // The GATE window (warp_gate.cpp), where ShadowFlare.exe draws it and
+    // takes its clicks (0x40c950): the warp gates found, ten a page, in the
+    // left half of the screen; a click on one goes there. A gate's
+    // WARPGATE opens it and its DELETEWARPGATE closes it.
+    void loadWarpGates();
+    std::vector<int> warpGatesFound() const;  // gate numbers, in the window's order
+    void closeWarpGate(int gate);  // closes the window if `gate` opened it
+    void closeWarpWindow() { warpOpen_ = false; }
+    bool warpGateClick(int x, int y, bool right);
+    void renderWarpGate();
+
     // Darkness in dungeons (darkness.cpp), as ShadowFlare.exe draws it in
     // its frame code (0x41e4f0): the screen is lit by an ellipse round the
     // hero and by the lights some characters carry, dimmed by the area's
@@ -758,6 +777,11 @@ private:
     double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
     std::string areaName_;
     double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
+
+    WarpGates warpGates_;
+    bool warpOpen_ = false;     // the GATE window (0xa05c)
+    int warpOpener_ = 0;        // the gate that opened it (0x48d72c keeps -1 - gate)
+    int warpPage_ = 0;          // ten gates a page (0xa934), the first again in each scenario
 
     std::map<std::string, ExploredMap> explored_;  // by exploredKey()
     bool mapOpen_ = false;      // the map window (0xa070)

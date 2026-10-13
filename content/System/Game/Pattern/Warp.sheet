@@ -1,0 +1,9 @@
+# Drawn by tools/art/warp.py (our own art, see content/README.md).
+# The GATE window: window, previous page, next page, button, button pushed, button lit.
+image=Warp.png
+frame=0,0,320,416,0,0
+frame=0,417,33,16,-45,-368
+frame=35,417,33,16,-243,-368
+frame=70,417,20,20,-2,-2
+frame=92,417,20,20,-2,-2
+frame=114,417,20,20,-2,-2

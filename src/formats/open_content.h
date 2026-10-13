@@ -12,6 +12,7 @@
 #include "formats/item_data.h"
 #include "formats/map_layers.h"
 #include "formats/missions.h"
+#include "formats/warp_gates.h"
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "formats/sprite_bank.h"
@@ -98,6 +99,10 @@ DropTables parseDrops(std::span<const std::uint8_t> text);
 // missions.txt: each mission's title and description, standing in for
 // Table.Tbd table 41 and tables 700 on.
 Missions parseMissions(std::span<const std::uint8_t> text);
+
+// gates.txt: each warp gate's name and the scenario and entry it leads
+// to, standing in for Table.Tbd table 40.
+WarpGates parseGates(std::span<const std::uint8_t> text);
 
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);

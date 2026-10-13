@@ -75,6 +75,9 @@ struct Options {
     int powerCharge = -1;     // --power-charge n: kills towards power mode
     bool power = false;       // start power mode
     std::optional<int> magicWindow;  // open the magic window on this page
+    std::vector<std::pair<int, int>> warpFlags;  // WARP[gate] = value; gate -1 for every gate
+    std::optional<int> warpGate;  // open the GATE window on this page
+    int warpTo = -1;              // then pick this row of it
 };
 
 Options parseArgs(int argc, char** argv) {
@@ -168,6 +171,22 @@ Options parseArgs(int argc, char** argv) {
             options.magicWindow = 0;
         } else if (arg.starts_with("--magic-window=")) {
             options.magicWindow = static_cast<int>(std::strtol(argv[i] + 15, nullptr, 10));
+        } else if (arg == "--warp-flag" && i + 1 < argc) {
+            // n=v, or "all" for every gate found.
+            int id = 0, value = 0;
+            if (std::string_view(argv[i + 1]) == "all") {
+                options.warpFlags.emplace_back(-1, 1);
+                ++i;
+            } else if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) {
+                options.warpFlags.emplace_back(id, value);
+            }
+        } else if (arg == "--warp-gate") {
+            // Opens the GATE window; --warp-gate=<page> on that page.
+            options.warpGate = 0;
+        } else if (arg.starts_with("--warp-gate=")) {
+            options.warpGate = static_cast<int>(std::strtol(argv[i] + 12, nullptr, 10));
+        } else if (arg == "--warp-to" && i + 1 < argc) {
+            options.warpTo = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--options") {
             options.options = true;
         } else if (arg == "--options-file" && i + 1 < argc) {
@@ -462,6 +481,15 @@ int main(int argc, char** argv) {
         app.game->startPower();
     }
     if (options.magicWindow) app.game->openMagicWindow(*options.magicWindow);
+    for (const auto& [gate, value] : options.warpFlags) {
+        if (gate >= 0) {
+            app.game->setWarpFlag(gate, value);
+        } else {
+            for (int g = 0; g < app.game->warpGateCount(); ++g) app.game->setWarpFlag(g, value);
+        }
+    }
+    if (options.warpGate) app.game->openWarpGate(0, *options.warpGate);
+    if (options.warpTo >= 0) app.game->chooseWarpGate(options.warpTo);
     app.lastCounter = SDL_GetPerformanceCounter();
 
 #ifdef __EMSCRIPTEN__

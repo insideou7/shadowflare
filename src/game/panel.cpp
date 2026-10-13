@@ -72,6 +72,7 @@ bool Game::panelClick(int x, int y) {
         if (showStatus_) {
             closeMissions();
             closeMagicWindow();
+            closeWarpWindow();
             panel_.flash[kFlashStatus] = 2;
         }
     } else if (kItemButton.has(x, y) && !openShop_) {
@@ -80,6 +81,7 @@ bool Game::panelClick(int x, int y) {
             closeInventory();
         } else {
             showInventory_ = true;
+            closeWarpWindow();
             panel_.flash[kFlashItem] = 2;
         }
     }

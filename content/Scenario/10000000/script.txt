@@ -7,6 +7,13 @@
 # temp:2 holds which of the commander's boxes is showing, so that closing
 # it shows the next one; save:4 and save:5 remember that the hero has met
 # the commander and the healer.
+#
+# The warp gate north-east of the square, as the original's: walking up
+# to it finds it (warp:0, which a new game already has) and shows its
+# name over it, and a click on it opens the GATE window.
+
+object=10001,2726,10298,2977,gate
+object=8800,1337,11100,3837,gate-ground
 
 [message 1]
 So the army did send someone. I command what is left of the
@@ -166,3 +173,15 @@ IF temp:20 ! 0 @healer-done
 HEALLIFE
 HEALMENTAL
 TALK msg:23 temp:20 0 0 -1 -1
+
+[message 30]
+Remote Town
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:0 1
+MESSAGEBOX gate 0 -160 msg:30 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

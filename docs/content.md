@@ -27,6 +27,8 @@ original format.
 | `System/Game/Pattern/Status.njp` (mission list parts) | `System/Game/Pattern/Missions.sheet` |
 | `Player/Common/compasses.Caf/.Njp`    | `Player/Common/compasses.anim` + `.sheet`|
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
+| `Table.Tbd` table 40                  | `gates.txt`                              |
+| `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
 falls back to `content/`.
@@ -195,8 +197,8 @@ worked example.
 A message is the lines under `[message <id>]`, each ending in a line
 break; options go between `~` marks. A sentence is a list of commands, one
 per line, and `on=` lines that start it. Operands are separated by spaces:
-a number, `temp:<id>`, `save:<id>`, `quest:<id>` or `net:<id>` for a
-flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
+a number, `temp:<id>`, `save:<id>`, `quest:<id>`, `net:<id>` or
+`warp:<gate>` (a warp gate found, see gates.txt) for a flag, `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
 someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
 sentence to run, and a person's or object's name for their id. As in the
 original, `IF` runs its sentence and then carries on, and closing any of
@@ -218,6 +220,36 @@ characters so it fits the box. The list has room for 48 missions.
 An open pack's area names come from each scenario's `title=`, shown by the
 compass as the player arrives; a script can still name an area with
 `SETCOMPASSES msg:<id>`, as the original's do.
+
+### gates.txt
+
+    [gate 4]                 # the number the warp:<gate> flag goes with
+    name=Cold Svalt Town     # what the GATE window lists
+    scenario=11000000        # where picking it leads
+    entry=50
+
+The warp gates, standing in for the original's Table.Tbd table 40 (see
+formats.md, The GATE window). The window lists every gate whose `warp:`
+flag is set, in number order. A gate is a pair of objects in its town's
+`script.txt`, as in Remote Town's:
+
+    object=10001,2726,10298,2977,gate
+    object=8800,1337,11100,3837,gate-ground
+
+    [sentence gate-found]
+    on=judge gate-ground
+    SETFLAG warp:0 1
+    MESSAGEBOX gate 0 -160 msg:30 224 224 224 3000
+
+    [sentence gate]
+    on=talk gate
+    WARPGATE 0
+
+Walking onto the ground round it finds the gate and floats its name over
+it; a click on it opens the window. The window's picture is
+`System/Game/Pattern/Warp.sheet`, drawn by `tools/art/warp.py`. The
+pack's two towns have gates (gate 0 Remote Town, 4 Cold Svalt Town), at
+the original's places, with the props sheet's warp circle under them.
 
 ### shops.txt
 
@@ -401,6 +433,7 @@ font) are kept in content/ and rebuilt on their own:
     python3 tools/art/ui.py content          # or just some: ui.py content map
     python3 tools/art/panel.py content    # the game panel along the bottom
     python3 tools/art/magic_icons.py content    # the magic/attack bar's icons
+    python3 tools/art/warp.py content    # the GATE window (after ui.py: it uses the font)
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.
