@@ -140,7 +140,7 @@ none=
 # units. - draws nothing. Pieces not listed are drawn as in the original.
 # The first area: the village, the forest round it and the ruins.
 [objects 00f_obj00.njp]
-0=copper_tank
+0=copper_tank@-570,-650
 1=pipe_corner_s@-95,-75
 2=pipe_stand_y@-118,-112
 3=pipe_stand_y@-168,-82
@@ -164,7 +164,7 @@ none=
 23-24=wall_y@-117,-190 wall_y@-117,-43
 25-26=pillar_broken
 27-28=mossy_post
-29=engine
+29=engine@-295,-375
 [objects 00f_obj01.njp]
 0-14=stone_small
 15,18=log
@@ -178,16 +178,20 @@ none=
 7=tree3
 8=tree1
 9=shrine
+# The pictures of the houses, stalls, the well and the carts stand on
+# their front corner; ours stand on their middle, so they are moved back
+# onto the ground the original blocks for them.
 [objects 00f_city00.njp]
-0=well
-1=hall
-2=cottage
-3-4=stall
+0=well@-200,-300
+1=hall@-485,-450
+2=cottage@-790,-960
+3=stall@-180,-260
+4=stall@-220,-280
 5=crate_yellow
 6=crate_red
 7=signpost
 8=oak
-9=cart
+9=cart@-180,-180
 [objects 00f_city01.njp]
 0=barrel
 1-2=sacks
