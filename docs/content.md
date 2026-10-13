@@ -150,7 +150,11 @@ Combat follows the original: a blow lands with a chance of hit minus
 evasion (20 to 98 percent) and does 90-110% of the attack minus the
 defence, at least 1, changed by elements as described in docs/magic.md. `tools/content/balance.py` sets these numbers for our
 maps from the level the player should be at on each; the `# base` comment
-on each line is the monster's strength it starts from. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
+on each line is the monster's strength it starts from (it keeps the magic
+defence and element). Every monster in the pack has an element, shown as
+the orb in its name label: `tools/content/enemy_elements.py` gives each one
+the element of the original placement it stands for, and the demo maps'
+monsters the element the original gives that kind most often. `item` places an item from `items.txt` on the ground. `exit` is a world rectangle and the scenario and entry it
 leads to; entry 0 is where the game starts on that map. The scenario
 number is the folder name.
 
