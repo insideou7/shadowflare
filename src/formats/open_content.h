@@ -110,6 +110,16 @@ WarpGates parseGates(std::span<const std::uint8_t> text);
 // 800-805 (stats, one column per level).
 GameTables parsePartners(std::span<const std::uint8_t> text);
 
+// enemies.txt: what the name over each kind of monster says with the
+// mouse on it, how high it floats and its colour, standing in for the
+// name, height and colour each original placement carries.
+struct EnemyName {
+    std::string name;
+    std::int32_t height = 70;          // pixels above the feet, before the label's 24
+    std::uint32_t color = 0xe0e0e0;    // 0xRRGGBB
+};
+std::map<int, EnemyName> parseEnemyNames(std::span<const std::uint8_t> text);
+
 // The monster behaviour lists, standing in for Control.aid.
 AiControl parseAi(std::span<const std::uint8_t> text);
 

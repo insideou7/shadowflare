@@ -798,6 +798,8 @@ void testMagic() {
     check(!sf::Rules::original().shieldsCostTheirOwnMp && sf::Rules::original().originalMode(), "original mode turns them off");
     check(sf::Rules::ours().explosionUsesItsOwnLevel && !sf::Rules::original().explosionUsesItsOwnLevel,
           "Explosion's level is a switchable fix");
+    check(sf::Rules::ours().healthBarsOverMonsters && !sf::Rules::original().healthBarsOverMonsters,
+          "health bars over monsters are ours alone");
 }
 
 void testPowerMode() {

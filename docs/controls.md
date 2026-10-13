@@ -19,6 +19,19 @@ and are dimmed in the Help window and the Settings Menu.
 What a click picks when things overlap is set by Click Priority in the
 Settings Menu, and how far from the cursor it reaches by Click Range.
 
+The pointer is the original's (`System/Common/Pattern/System.njp`
+pattern 0, or 1 with a question mark while Identify waits for an item),
+or the open pack's own (`tools/art/pointer.py`). With Click Range on, a
+faint square round it shows the range (MINI none, then 12, 16, 24 and 48
+pixels either side); it brightens when something is under it, red on a
+monster and yellow on an item. The one under it is drawn brighter, with
+its name over it: a monster's name sits in a box that is its health (dark
+red for what it has left, black for what it has lost) behind its
+element's orb; people, objects and items have a navy box, items in their
+quality's colour. Neither shows over the panel or a window, as in the
+original (0x416bb0, 0x40ee70). In the open pack, `enemies.txt` names the
+monsters; its people and objects have no names to show.
+
 ## Keys
 
 | Key | | In yet |
@@ -94,7 +107,7 @@ change it, Enter steps through it or does it.
 | Display Darkness | ON darkens ruins, caves and towers beyond the light round the hero, lamps and glowing monsters, as the original does |
 | Save Image at Game End | not in yet (no load-screen pictures) |
 | Click Range | ON: a click reaches things in a square around the cursor; OFF: only right at it |
-| Click Range size | MINI, SMAL, NORM, LARG, MAX. The original's sizes in pixels are not decoded yet; ours are 12, 20, 32, 44 and 60 pixels either side. |
+| Click Range size | MINI, SMAL, NORM, LARG, MAX. The square drawn round the pointer is the original's: none, 12, 16, 24 and 48 pixels either side (0x416bb0). The original picks what a sprite overlapping it is; ours aims at each character's middle, so it reaches further: 12, 20, 32, 44 and 60 pixels. |
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
 | Eff. Volume, BGM Volume | not in yet (no sound) |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |

@@ -224,8 +224,11 @@ i32  id                 plus 10,000,000 (objects), 12,000,000 (people),
 i32  kind               Character/<OBJECT|PEOPLE|ENEMY>/<kind as %08d>;
                         people with kind >= 1,000,000 are PARTNER/<kind-1000000>;
                         -1 = no sprite (spawners, trigger areas)
-i32  nameLength; if > 0: char name[nameLength], u32 nameColour (0x00BBGGRR)
-i32  unknown
+i32  nameLength; if > 0: char name[nameLength], u32 nameColour (0xRRGGBB;
+                        the top byte is noise)
+i32  nameHeight         how far above the feet the name floats with the
+                        mouse on them (70 goblins, 60 bats, 120 golems,
+                        80 people; see "The pointer" below)
 i32  x, y               world position
 i32  rect[4]            left, top, right, bottom around (x, y)
 i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
@@ -814,6 +817,44 @@ last frame.
 
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
+
+## The pointer (ShadowFlare.exe 0x4087b0, 0x416bb0, 0x40ee70)
+
+The pointer is `System/Common/Pattern/System.njp` (UPD bank 3, loaded with
+the fonts from the table at 0x47d158): pattern 0, a 20 x 20 arrow, or 1,
+the arrow with a question mark, while the player's + 0x1624 is set (an
+animation cell with status 0x40, Identify's cast, sets it and opens the
+item window). It is drawn with its top left on the mouse, over a held
+item, after the frame is saved for a screenshot (as is the square below;
+the name is drawn before, at layer 17, over the windows).
+
+With Click Range on (+ 0xa944) and the mouse on the world (not over the
+panel, y < 408, nor the half a window covers: 0x416fb0 counts the item
+window as the right half and status, magic, GATE, the map and shops as
+the left), 0x416bb0 draws a square round the mouse, half as wide as the
+size (+ 0xa940) picks from {0, 12, 16, 24, 48}, the same table the pick at
+0x4165d0 uses. Its four lines (flags 0x204) are white at 100 per mille,
+or 300 when anything is in it: then red (255, 0, 0) when the first thing
+there is a monster, or an object that stands for one (+ 0xec), and
+yellow (224, 224, 0) for an item.
+
+0x40ee70 names the first thing in the square, 24 pixels over its feet
+less the placement's name height (+ 0x34), centred two pixels right of
+them, in Font01 (6 pixels a character) with a black shadow:
+
+- a monster: a full-width space and its name, in its colour (+ 0xbc,
+  0xRRGGBB). The box behind, from 4 pixels left of the text to 1 right and
+  2 above to 13 below, is filled at 500 per mille with (128, 32, 32) as far
+  as its hit points (+ 0xd4 out of + 0xe4) go and black after; then a
+  black edge a pixel outside it at 800. StatusIcon.njp pattern element + 3
+  (an orb) sits in the space.
+- a person or object: its name in its colour, on a navy (0, 0, 96) box.
+- an item: its name, or `%d Gold`, on the same navy box, coloured by
+  quality (+ 0x18): 0 (224, 224, 224), 1 (128, 128, 192), 2 (224, 192,
+  128), 3 (224, 128, 92).
+
+The character named is drawn brighter (its red, green and blue strengths
++ 300).
 
 ## The game panel (ShadowFlare.exe 0x4039f0)
 

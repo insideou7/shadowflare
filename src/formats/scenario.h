@@ -22,6 +22,12 @@ struct ScenarioControl {
         // (spawners, trigger areas).
         std::int32_t kind = -1;
         std::string name;  // Shift-JIS in the Japanese release, ASCII here
+        // How the name shows over them with the mouse on them (0x40ee70):
+        // its colour as 0xRRGGBB (the top byte is noise), and how many
+        // pixels above their feet it floats, before the label's own 24
+        // (70 for goblins, 60 for bats, 120 for golems, 80 for people).
+        std::uint32_t nameColor = 0xe0e0e0;
+        std::int32_t nameHeight = 0;
         std::int32_t x = 0, y = 0;  // world units
         std::int32_t direction = 0;  // 0 = south, counter-clockwise; 8 = none
         std::int32_t rect[4] = {};   // left, top, right, bottom around (x, y)

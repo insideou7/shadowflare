@@ -172,6 +172,13 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         }
         SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
         SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
+        if (!item.shadow && glow > 0) {
+            // A second copy added on top brightens it.
+            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(std::min(1000, glow) * 255 / 1000 * alpha / 255 * tint.a / 255));
+            SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
+            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+        }
         if (!item.shadow) {
             SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
             SDL_SetTextureAlphaMod(sprite->texture, 255);

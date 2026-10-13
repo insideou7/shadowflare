@@ -1,0 +1,5 @@
+# Drawn by tools/art/pointer.py (our own art, see content/README.md).
+# The mouse pointer (hot spot at the top left), then with Identify's question mark.
+image=System.png
+frame=0,0,22,20,0,0
+frame=22,0,22,20,0,0

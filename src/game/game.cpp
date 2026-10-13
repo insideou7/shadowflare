@@ -262,6 +262,7 @@ void Game::spawnActors() {
         actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
         actor.hp = actor.maxHp = std::max(1, p.stats.hp);
         if (ai_ && actor.hostile()) actor.aiList = ai_->find(p.stats.ai);
+        nameOpenEnemy(actor);
         // Non-player characters wear what their animation file shows.
         actor.character.visibleLayers.clear();
         if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
@@ -1241,6 +1242,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
 }
 
 void Game::render(double interpolation) {
+    hoverOn_ = false;
     if (visual_ && !menuOpen_ && !optionsOpen_) {
         // A story picture covers the game while it shows (0x417bd0).
         renderVisual();
@@ -1256,7 +1258,14 @@ void Game::render(double interpolation) {
     } else if (menuOpen_) {
         renderMenu();
     }
+    // The name under the pointer is over the windows (layer 17) and in a
+    // screenshot; the frame (0x41e4f0) saves that before it draws the
+    // pointer's square and the pointer (0x416bb0, 0x4087b0).
+    const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !menuOpen_;
+    if (hovering) renderHoverName(static_cast<int>(std::floor(cameraX_)), static_cast<int>(std::floor(cameraY_)));
     if (screenshotPending_) takeScreenshot();
+    if (hovering) renderClickSquare();
+    renderPointer();
     SDL_RenderPresent(renderer_);
 }
 
@@ -1276,6 +1285,12 @@ void Game::renderMap() {
         renderChips(camX, camY);
     }
     renderGroundItems(camX, camY);
+
+    // The one under the pointer is drawn brighter (0x40ee70 adds 300 to
+    // its red, green and blue).
+    updateHover();
+    for (auto& a : actors_) a.character.glow = 0;
+    if (const Actor* lit = hoveredActor()) actors_[static_cast<std::size_t>(lit - actors_.data())].character.glow = kHoverGlow;
 
     // Objects and characters, back to front. Shadows go first so nothing
     // stands under one; characters draw their own shadows.
@@ -1481,8 +1496,11 @@ void Game::renderIsoGround(int camX, int camY) {
 
 // A bar over each wounded monster; the hero's are on the panel (panel.cpp).
 void Game::renderHealthBars(int camX, int camY) {
+    if (!rules_.healthBarsOverMonsters) return;
+    // The one under the pointer shows its health in its name instead.
+    const Actor* named = hoverOn_ ? hoveredActor() : nullptr;
     for (const auto& a : actors_) {
-        if (!a.hostile() || !a.alive() || !a.active || a.hp == a.maxHp) continue;
+        if (!a.hostile() || !a.alive() || !a.active || a.hp == a.maxHp || &a == named) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
         SDL_Rect back{sx - camX - 20, sy - camY - 100, 40, 5};

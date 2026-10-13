@@ -27,9 +27,9 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
     p.kind = in.i32();
     if (const std::int32_t nameLength = count(in)) {
         p.name = std::string(in.chars(nameLength));
-        in.skip(4);  // name colour
+        p.nameColor = static_cast<std::uint32_t>(in.i32()) & 0xffffff;
     }
-    in.skip(4);
+    p.nameHeight = in.i32();
     p.x = in.i32();
     p.y = in.i32();
     for (auto& v : p.rect) v = in.i32();

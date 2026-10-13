@@ -30,10 +30,14 @@ struct Rules {
     // it is given, until the game is loaded again. Ours clears a taken
     // mission every time.
     bool missionsClearOnlyWhenTaken = true;
+    // A hurt monster shows a small health bar over its head. The original
+    // shows a monster's health only in its name under the pointer
+    // (0x40ee70).
+    bool healthBarsOverMonsters = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
-               !dropQualityPerRoll && !missionsClearOnlyWhenTaken;
+               !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -43,6 +47,7 @@ struct Rules {
         r.explosionUsesItsOwnLevel = false;
         r.dropQualityPerRoll = false;
         r.missionsClearOnlyWhenTaken = false;
+        r.healthBarsOverMonsters = false;
         return r;
     }
 };
