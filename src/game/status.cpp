@@ -6,6 +6,7 @@
 
 #include "core/log.h"
 #include "game/game.h"
+#include "logic/magic.h"
 #include "render/tiny_font.h"
 
 namespace sf {
@@ -19,6 +20,7 @@ constexpr SDL_Rect kStatusPanel{0, 0, 320, 416};
 constexpr SDL_Rect kChangeButton{17, 64, 96, 16};
 constexpr SDL_Color kWhite{235, 230, 215, 255};
 constexpr SDL_Color kGold{255, 210, 80, 255};
+constexpr SDL_Color kPlainText{224, 224, 224, 255};
 
 bool inside(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
 
@@ -101,38 +103,64 @@ void Game::renderStatus() {
         drawText(renderer_, 16, 16, "STATUS", kGold);
     }
 
-    const HeroStats stats = playerStats();
-    std::string values[kFieldCount];
-    values[kLevel] = std::format("{}", playerLevel_);
-    values[kExperience] = std::format("{}", playerExperience_);
-    values[kHp] = std::format("{}/{}", playerHp_, stats[HeroStats::kHp]);
-    values[kStrength] = std::format("{}", stats[HeroStats::kStrength]);
-    values[kAttack] = std::format("{}", stats[HeroStats::kAttack]);
-    values[kDefense] = std::format("{}", stats[HeroStats::kDefense]);
-    values[kHit] = std::format("{}", stats[HeroStats::kHit]);
-    values[kEvasion] = std::format("{}", stats[HeroStats::kEvasion]);
-    values[kWalkSpeed] = std::format("{}", stats[HeroStats::kWalkSpeed]);
-    values[kAttackSpeed] = std::format("{}", stats[HeroStats::kAttackSpeed]);
-    values[kMp] = std::format("{}/{}", playerMp_, stats[HeroStats::kMp]);
-    values[kMagicAttack] = std::format("{}", stats[HeroStats::kMagicAttack]);
-    values[kMagicDefense] = std::format("{}", stats[HeroStats::kMagicDefense]);
-    values[kMagicHit] = std::format("{}", stats[HeroStats::kMagicHit]);
-    values[kMagicEvasion] = std::format("{}", stats[HeroStats::kMagicEvasion]);
-    for (int f = 0; f < kFieldCount; ++f) {
-        const SDL_Rect& r = kFields[f].box;
-        if (!window) {
-            frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
-            drawText(renderer_, r.x + 3, r.y + 3, kFields[f].label, kWhite, 1);
+    // The numbers where ShadowFlare.exe writes them (0x405750): each ends
+    // at x, tan when what is worn raises it above the hero's own, red when
+    // it lowers it. HP and MP are now / most.
+    const HeroStats stats = playerStats(), own = heroStats();
+    struct Number {
+        int x, y, value, base;
+    };
+    auto stat = [&](HeroStats::Stat s, int x, int y) { return Number{x, y, stats[s], own[s]}; };
+    const Number numbers[] = {
+        {303, 41, playerLevel_, playerLevel_}, {303, 65, static_cast<int>(playerExperience_), static_cast<int>(playerExperience_)},
+        stat(HeroStats::kHp, 124, 89),          {81, 89, playerHp_, playerHp_ - stats[HeroStats::kHp] + own[HeroStats::kHp]},
+        stat(HeroStats::kStrength, 95, 113),    stat(HeroStats::kAttack, 198, 113),
+        stat(HeroStats::kDefense, 303, 113),    stat(HeroStats::kHit, 150, 137),
+        stat(HeroStats::kEvasion, 303, 137),    stat(HeroStats::kWalkSpeed, 150, 161),
+        stat(HeroStats::kAttackSpeed, 303, 161), stat(HeroStats::kMp, 124, 192),
+        {81, 192, playerMp_, playerMp_ - stats[HeroStats::kMp] + own[HeroStats::kMp]},
+        stat(HeroStats::kMagicAttack, 150, 217), stat(HeroStats::kMagicDefense, 303, 217),
+        stat(HeroStats::kMagicHit, 150, 241),   stat(HeroStats::kMagicEvasion, 303, 241),
+    };
+    if (!window) {
+        for (const auto& field : kFields) {
+            frame(renderer_, field.box, {45, 40, 50, 255}, {110, 100, 80, 255});
+            drawText(renderer_, field.box.x + 3, field.box.y + 3, field.label, kWhite, 1);
         }
-        if (f == kClass) continue;
-        drawText(renderer_, r.x + r.w - 4 - textWidth(values[f]), r.y + 3, values[f], kWhite);
     }
-    drawText(renderer_, kFields[kClass].box.x + 2, kFields[kClass].box.y + 3, className(career_.current, heroSex_), kWhite);
-    // The hero's name, in the long box beside the class (where it goes is
-    // inferred from the window's layout).
+    for (const auto& n : numbers) windowNumber(n.x, n.y, n.value, toneOf(n.value, n.base));
+    // The slashes of HP and MP; the current HP and MP take the tone of the most.
+    windowText(83, 91, "/", kPlainText);
+    windowText(83, 194, "/", kPlainText);
+    // The class and the hero's name, in the boxes along the top.
+    windowText(22, 42, className(career_.current, heroSex_), kPlainText);
     constexpr SDL_Rect kNameBox{88, 40, 136, 16};
     if (!window && !heroName_.empty()) frame(renderer_, kNameBox, {45, 40, 50, 255}, {110, 100, 80, 255});
-    uiText(kNameBox.x + 4, kNameBox.y + 2, heroName_, kWhite);
+    windowText(92, 42, heroName_, kPlainText);
+
+    // The element levels as bars, Status.njp 0x24 (level -10) to 0x38 (+10)
+    // a row of 16 pixels apart, and the hero's place on the attribute disc,
+    // pattern 0x39, pulsing. A new hero stands in the middle (see
+    // playerElements).
+    if (window) {
+        const ElementLevels levels = playerElements();
+        for (int i = 0; i < kElementCount; ++i) {
+            const int pattern = 0x24 + std::clamp(levels[static_cast<std::size_t>(i)] + 10, 0, 20);
+            if (const SpriteTexture* bar = sprites_.get(*bank, pattern, false)) {
+                const SDL_Rect dst{bar->originX, bar->originY + i * 16, bar->width, bar->height};
+                SDL_RenderCopy(renderer_, bar->texture, nullptr, &dst);
+            }
+        }
+        if (const SpriteTexture* dot = sprites_.get(*bank, 0x39, false)) {
+            // Up over 25 of the original's frames and down over 25.
+            const int phase = static_cast<int>(ticks_ * 30 / kTicksPerSecond % 50);
+            const int alpha = phase < 25 ? phase * 255 / 25 : (50 - phase) * 255 / 25;
+            SDL_SetTextureAlphaMod(dot->texture, static_cast<Uint8>(alpha));
+            const SDL_Rect dst{dot->originX + 80, dot->originY + 330, dot->width, dot->height};
+            SDL_RenderCopy(renderer_, dot->texture, nullptr, &dst);
+            SDL_SetTextureAlphaMod(dot->texture, 255);
+        }
+    }
 
     // The button only shows while another class is on offer.
     if (career_.canChange()) {

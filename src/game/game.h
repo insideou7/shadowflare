@@ -381,6 +381,10 @@ private:
     void renderInventory();
     void renderItemTotals();
     void renderItemPopup(const Item& item, int mx, int my);
+    // The colours the item and status windows write numbers in (0x405590):
+    // plain, lowered by what is worn (red) and raised by it (tan).
+    enum Tone { kPlain, kLowered, kRaised };
+    static Tone toneOf(int value, int base) { return value < base ? kLowered : value > base ? kRaised : kPlain; }
     void windowText(int x, int y, std::string_view text, SDL_Color color);
     void windowNumber(int x, int y, int value, int tone);
     // The status window and its Change Career button (status.cpp).

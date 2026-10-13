@@ -903,6 +903,22 @@ way, and on the first frame of a change the full marks are pattern 0x15,
 white. Holding an item over the book at (336, 140)-(391, 211) fades in
 pattern 4 over it.
 
+The status window (Status.njp pattern 5, 0x405750) writes its numbers the
+same way, with Font01 like the item window: level (303, 41), experience
+(303, 65), HP now and most ending at 81 and 124 with the slash at (83, 91)
+(y = 89), strength (95, 113), attack (198, 113), defense (303, 113), hit
+rate (150, 137), evasion rate (303, 137), walking speed (150, 161), attack
+speed (303, 161), MP like HP at y = 192, magic attack (150, 217), magic
+defense (303, 217), magic hit rate (150, 241) and magic evasion rate
+(303, 241). Each is tan when what is worn raises it above the hero's own
+and red when it lowers it; HP and MP take the tone of their most. The
+class goes at (22, 42) and the hero's name at (92, 42). The element
+levels are bars, patterns 0x24 (level -10 or less) to 0x38 (+10 or more)
+at their own position, each row 16 pixels below the last; pattern 0x39
+marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
+330 - y x 48 / 20000), fading in and out over 50 frames. Not done yet: a
+bowgun's attack shown scaled for anyone but a hunter, and Max at level 100.
+
 An item under the mouse is described in a box centred under the pointer,
 8 pixels below it and kept on the screen, edged in white at half strength
 (0x409160).

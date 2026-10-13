@@ -546,13 +546,10 @@ void Game::renderGroundItems(int camX, int camY) {
 
 namespace {
 
-// The three colours the item window writes numbers in (0x405590): plain,
-// lowered by what is worn (red) and raised by it (tan).
-enum Tone { kPlain, kLowered, kRaised };
+// The colours of Game::Tone.
 constexpr SDL_Color kTones[] = {{224, 224, 224, 255}, {224, 64, 64, 255}, {224, 192, 128, 255}};
 constexpr SDL_Color kShadow{0, 0, 0, 255};
 
-Tone toneOf(int value, int base) { return value < base ? kLowered : value > base ? kRaised : kPlain; }
 
 // The weight gauge: 33 marks four pixels apart from (338, 239), tan up to
 // x = 437, darker to 457 and red after that (0x4074e0).
@@ -561,11 +558,29 @@ constexpr SDL_Color kGaugeColours[] = {{214, 182, 134, 255}, {176, 144, 90, 255}
 
 }  // namespace
 
-// Text as the item window writes it: in the original's font with a black
-// shadow one pixel down and to the right.
+// Text as the item and status windows write it: in the original's second
+// font (Font01, with lowercase; the open pack's Font00 stands in when it
+// has none) over a black copy one pixel down and to the right.
 void Game::windowText(int x, int y, std::string_view text, SDL_Color color) {
-    uiText(x + 1, y + 1, text, kShadow);
-    uiText(x, y, text, color);
+    const SpriteBank* bank = itemBank("System/Common/Pattern/Font01");
+    const SpriteTexture* font = bank && !bank->patterns.empty() ? sprites_.get(*bank, 0, false) : nullptr;
+    if (!font || font->width < 96 || font->height < 192) {
+        uiText(x + 1, y + 1, text, kShadow);
+        uiText(x, y, text, color);
+        return;
+    }
+    for (const auto& [dx, colour] : {std::pair{1, kShadow}, std::pair{0, color}}) {
+        SDL_SetTextureColorMod(font->texture, colour.r, colour.g, colour.b);
+        int cx = x + dx;
+        for (const char ch : text) {
+            const auto c = static_cast<unsigned char>(ch);
+            const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
+            const SDL_Rect dst{cx, y + dx, 6, 12};
+            SDL_RenderCopy(renderer_, font->texture, &src, &dst);
+            cx += 6;
+        }
+    }
+    SDL_SetTextureColorMod(font->texture, 255, 255, 255);
 }
 
 // A number as the item window writes it (0x405590): its last digit ends at
