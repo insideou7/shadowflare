@@ -233,7 +233,8 @@ Animation parseAnimation(std::span<const std::uint8_t> text) {
         auto& dir = chart->directions[direction];
         AnimationSet::Layer layer;
         // Each frame is a sheet frame, "-" for nothing, optionally followed
-        // by "%<opacity per mille>" and "@<priority>".
+        // by "!" (the blow lands on this frame), "%<opacity per mille>" and
+        // "@<priority>".
         for (auto field : Lines::split(value, ',')) {
             AnimationSet::Cell cell;
             cell.status = lineStatus;
@@ -247,6 +248,10 @@ Animation parseAnimation(std::span<const std::uint8_t> text) {
                 if (trans < 0 || trans > 1000) lines.fail("opacity is 0 to 1000");
                 cell.trans = static_cast<std::int16_t>(trans);
                 field = trim(field.substr(0, pc));
+            }
+            if (field.ends_with('!')) {
+                cell.status |= AnimationSet::kStrikeStatus;
+                field = trim(field.substr(0, field.size() - 1));
             }
             cell.pattern = field == "-" ? -1 : lines.toInt(field);
             layer.push_back(cell);

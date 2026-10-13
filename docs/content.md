@@ -100,6 +100,14 @@ the original (see `layer=` in items.txt). A line is then
     0.5@10=4,5,6,7           # direction 0, layer 5 (cloth armour)
     0.9=8@3,9@3,-,10@15      # layer 9 (a shield): per-frame priorities
 
+A `!` right after a frame number marks the frame a blow lands on (the
+original's 0x40 flag): the player's melee hit, or a monster's strike, is
+dealt when the body layer reaches it. Without one the player strikes on
+frame 4 (frame 3 for a shot) and a monster halfway through its attack.
+
+    [chart 5 once]
+    0@20=0,1,2,3,4,5,6,7!,8,9   # the hero's sword thrust lands on frame 7
+
 Spell effects (`Character/OPTION/<number>/Animation.anim`, drawn by
 `tools/art/effects.py`) use two more marks. Direction `8` is an effect
 with no direction (a glow or a burst); the engine uses it whenever the

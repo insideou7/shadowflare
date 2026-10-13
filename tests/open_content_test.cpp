@@ -103,6 +103,13 @@ void testAnimation() {
     check(layered.set.charts[0].directions[4].layers.size() == 10, "layered direction borrowed");
     check(charts[0].directions[0].layers.size() == 1 && charts[0].directions[0].layers[0][0].priority == 0,
           "single-layer files are unchanged");
+    // "!" marks the frame a blow lands on, as the original's 0x40.
+    const auto struck = sf::open::parseAnimation(bytes("sheet=a\n[chart 5 once]\n0@20=0,1,2!,3\n0.12=4,5,6!@7,7\n"));
+    const auto& sd = struck.set.charts[5].directions[0];
+    check(sd.layers[0][2].pattern == 2 && (sd.layers[0][2].status & 0x40) && !(sd.layers[0][1].status & 0x40),
+          "strike frame mark");
+    check(sd.layers[12][2].pattern == 6 && sd.layers[12][2].priority == 7 && (sd.layers[12][2].status & 0x40),
+          "strike mark with a priority");
     expectRejected("layer 32", "sheet=a\n[chart 0 loop]\n0.32=1\n", [](auto& d) { sf::open::parseAnimation(d); });
     expectRejected("bad priority", "sheet=a\n[chart 0 loop]\n0=1@x\n", [](auto& d) { sf::open::parseAnimation(d); });
     expectRejected("direction 9", "sheet=a\n[chart 0 loop]\n9=1\n", [](auto& d) { sf::open::parseAnimation(d); });

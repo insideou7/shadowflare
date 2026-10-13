@@ -36,6 +36,7 @@ struct AnimationSet {
     // cues 0x400-0x1000), so only the bit says it is one.
     static constexpr bool isShadow(int status) { return (status & kShadowStatus) != 0; }
     static constexpr std::int16_t kAdditiveStatus = 16;  // effect glows (OPTION animations)
+    static constexpr std::int16_t kStrikeStatus = 0x40;  // the frame a blow lands on
 
     int version = 0;
     std::vector<Chart> charts;

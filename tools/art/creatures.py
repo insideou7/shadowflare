@@ -12,8 +12,8 @@ simple shapes hung on joints and posed in code (the hero and the goblin are
 MakeHuman bodies driven by the same joints: see mpfb_body.py, which needs
 $MPFB_SRC), then rendered from the
 eight directions the engine uses for every frame of every animation.
-Writes <animation>_<direction>_<frame>.png and frames.txt (anchor point and
-the animation list).
+Writes <animation>_<direction>_<frame>.png and frames.txt (anchor point, the
+animation list and the frame each blow lands on).
 
 The hero is drawn in layers, like the original's player: the body into
 the output folder and each piece of equipment in GEAR into layerNN/
@@ -132,6 +132,11 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
         rig.attach(shape(end, end_size, end_mat), joint, (end_size[0] * 0.4 if end == "box" else 0, 0, -length))
 
 
+# The player's attack is ten frames like the original's, with the blow landing
+# on frame 7 (HERO_STRIKE): see HERO_ATTACK.
+HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False))
+HERO_STRIKE = {"attack": 7}
+
 # The original's player stands about 15% taller on screen than our first
 # hero did (measured over the eight directions of its stance and walk).
 SCALE_MH = 1.15
@@ -173,6 +178,8 @@ def build_hero():
     mpfb_body.shell(body, lambda centre, part, normal: (leather, 0.035) if centre.z / height < 0.20 else None,
                     "boots")
     rig.kind = "hero"
+    rig.animations = HERO_ANIMATIONS
+    rig.strikes = HERO_STRIKE
     rig.body = body
     rig.height = height
     return rig
@@ -210,6 +217,7 @@ def build_goblin():
     scale = 1.4
     mpfb_body.bind(rig, body, armature, scale)
     rig.kind = "hero"
+    rig.goblin = True
     rig.height = height
 
     def pick(centre, part, normal):
@@ -338,6 +346,8 @@ def build_heroine():
     mpfb_body.shell(body, gear, "hair and sandals")
     rig.kind = "hero"
     rig.heroine = True
+    rig.animations = HERO_ANIMATIONS
+    rig.strikes = HERO_STRIKE
     rig.body = body
     rig.height = height
     return rig
@@ -2261,7 +2271,7 @@ def pose(rig, animation, t, frames):
     if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
         k = min(1.0, t * frames / max(1, frames - 1))
         if animation == "attack":
-            r = keyframes(HERO_ATTACK, k)
+            r = keyframes(GOBLIN_ATTACK if getattr(rig, "goblin", False) else HERO_ATTACK, k)
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
         elif animation == "idle" and getattr(rig, "heroine", False):
@@ -2407,9 +2417,9 @@ def hero_key(base, **joints):
 
 
 GUARD = hero_guard("idle", 0.0, 1.0)
-# A slash like the original's: the sword drawn back with the shield raised,
-# swung up over the head, then down and forward in a deep lunge.
-HERO_ATTACK = [
+# The goblin's club swing: drawn back with the shield arm raised, swung up
+# over the head, then down and forward in a deep lunge.
+GOBLIN_ATTACK = [
     (0.0, GUARD),
     (0.25, hero_key(GUARD, spine=(0, 0.15, 0.40), head=(0, -0.10, -0.35), arm_r=(-0.45, 1.5, 0),
                     elbow_r=(0, 0, 0), weapon=(0, math.radians(90), 0), arm_l=(0.45, -2.6, 0), elbow_l=(-0.5, 0, 0))),
@@ -2423,6 +2433,45 @@ HERO_ATTACK = [
                    elbow_r=(0, -0.1, 0), weapon=(0, math.radians(65), 0), arm_l=(0.45, -2.4, 0),
                    elbow_l=(-0.5, 0, 0), leg_l=(0.12, -1.35, 0.1), knee_l=(0, 1.55, 0),
                    leg_r=(-0.12, 1.05, -0.1), knee_r=(0, 0.10, 0))),
+]
+# The hero's attack, timed like the original's ten frames: a beat in the
+# stance, the sword drawn back low behind him with the shield thrust out in
+# front as he sinks onto his front knee, then swung up behind his head as he
+# springs up, and over into a long lunge, body flat out over the front knee,
+# the sword thrust straight at the target and the shield flung up behind.
+# Arm angles past pi keep each swing going the way it travels (back and up,
+# then over the top and forward) instead of through the hips.
+HERO_ATTACK = [
+    (0.0, GUARD),
+    (0.11, GUARD),
+    (0.22, hero_key(GUARD, spine=(0, 0.10, 0.45), head=(0, -0.05, -0.40), arm_r=(-0.15, 1.40, 0),
+                    elbow_r=(0, -0.2, 0), weapon=(0, math.radians(135), 0), arm_l=(0.30, -1.35, 0),
+                    elbow_l=(-1.2, 0.4, 0), leg_l=(0.32, -0.95, 0.2), knee_l=(0, 1.2, 0),
+                    leg_r=(-0.32, 0.45, -0.2), knee_r=(0, 0.55, 0))),
+    (0.33, hero_key(GUARD, spine=(0, 0.10, 0.45), head=(0, -0.05, -0.40), arm_r=(-0.15, 1.40, 0),
+                    elbow_r=(0, -0.2, 0), weapon=(0, math.radians(135), 0), arm_l=(0.30, -1.35, 0),
+                    elbow_l=(-1.2, 0.4, 0), leg_l=(0.32, -0.95, 0.2), knee_l=(0, 1.2, 0),
+                    leg_r=(-0.32, 0.45, -0.2), knee_r=(0, 0.55, 0))),
+    (0.44, hero_key(GUARD, spine=(0, -0.05, 0.30), head=(0, 0.0, -0.25), arm_r=(-0.30, 2.8, 0),
+                    elbow_r=(0, -0.2, 0), weapon=(0, math.radians(105), 0), arm_l=(0.35, -1.6, 0),
+                    elbow_l=(-1.0, 0.2, 0), leg_l=(0.20, -0.90, 0.1), knee_l=(0, 0.5, 0),
+                    leg_r=(-0.20, 0.50, -0.1), knee_r=(0, 0.4, 0))),
+    (0.556, hero_key(GUARD, spine=(0, -0.10, 0.15), head=(0, 0.05, -0.10), arm_r=(-0.25, 2.95, 0),
+                    elbow_r=(0, -1.0, 0), weapon=(0, math.radians(90), 0), arm_l=(0.35, -1.8, 0),
+                    elbow_l=(-1.0, 0, 0), leg_l=(0.12, -1.00, 0.1), knee_l=(0, 0.4, 0),
+                    leg_r=(-0.12, 0.60, -0.1), knee_r=(0, 0.9, 0))),
+    (0.67, hero_key(GUARD, spine=(0, 0.70, -0.15), head=(0, -0.55, 0.05), arm_r=(-0.15, 4.18, 0),
+                    elbow_r=(0, -0.2, 0), weapon=(0, math.radians(86), 0), arm_l=(0.20, -3.6, 0),
+                    elbow_l=(-0.7, 0.8, 0.2), leg_l=(0.12, -1.25, 0.1), knee_l=(0, 1.3, 0),
+                    leg_r=(-0.12, 1.00, -0.1), knee_r=(0, 0.2, 0))),
+    (0.778, hero_key(GUARD, spine=(0, 1.20, -0.20), head=(0, -0.90, 0.10), arm_r=(-0.10, 4.33, 0),
+                    elbow_r=(0, 0, 0), weapon=(0, math.radians(55), 0), arm_l=(0.0, -4.2, 0),
+                    elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
+                    leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
+    (1.0, hero_key(GUARD, spine=(0, 1.15, -0.20), head=(0, -0.85, 0.10), arm_r=(-0.10, 4.30, 0),
+                   elbow_r=(0, -0.05, 0), weapon=(0, math.radians(58), 0), arm_l=(0.0, -4.1, 0),
+                   elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
+                   leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
 ]
 # Struck: doubled over, then thrown back with the shield arm flung up, and
 # back into the stance.
@@ -2464,6 +2513,8 @@ def render_frames(scene, rig, kind, out, preview, skip=()):
         if name in skip:
             continue
         lines.append(f"animation {name} {frames} {'loop' if loop else 'once'}")
+        if name in getattr(rig, "strikes", {}):
+            lines.append(f"strike {name} {rig.strikes[name]}")  # the frame the blow lands on
         # An animation with no direction is drawn once, from the direction
         # it names, as direction 8.
         for d in ([8] if directional else range(8)):
@@ -2485,7 +2536,7 @@ def depth(scene, objects):
     return (middle - cam.translation).dot(forward)
 
 
-def render_hero(scene, rig, out, preview, layers):
+def render_hero(scene, rig, out, preview, layers, only=None):
     """The hero's body (layer 0, into out) and each piece of equipment
     (into out/layerNN). An equipment layer is rendered with the body held
     out, so it shows only where it is in front of the body, and with every
@@ -2511,7 +2562,7 @@ def render_hero(scene, rig, out, preview, layers):
         catcher.hide_render = layer != 0 and GEAR[layer][2]
         priorities = []
         lines = []
-        skip = () if layer == 0 else ("death",)
+        skip = [name for name in ANIMATIONS if (only and name not in only) or (layer and name == "death")]
         for lines, name, d, f in render_frames(scene, rig, "hero", folder, preview, skip):
             if layer:
                 delta = depth(scene, gear[layer]) - depth(scene, chest)
@@ -2546,7 +2597,7 @@ def main():
         # The model in its rest pose; frames are posed from code.
         studio.save_blend(out / f"{kind}.blend")
     if kind in ("hero", "heroine"):
-        render_hero(scene, rig, out, preview, layers or [0, *sorted(GEAR)])
+        render_hero(scene, rig, out, preview, layers or [0, *sorted(GEAR)], only)
         return
     lines = []
     animations = getattr(rig, "animations", ANIMATIONS)
