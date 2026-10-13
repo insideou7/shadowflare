@@ -394,7 +394,7 @@ private:
     // per engine tick.
     struct Effect {
         int id = 0;
-        int option = 0, chart = 0;
+        int option = -1, chart = 0;  // Character/OPTION folder, -1 for none
         double x = 0, y = 0;
         int age = 0, life = 0;  // life -1: until it hits something or a wall
         double speed = 0, angle = 0;  // world units a tick; radians, in world space

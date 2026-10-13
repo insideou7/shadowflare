@@ -265,7 +265,7 @@ void Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int
 }
 
 const CharacterModel* Game::effectModel(int option) {
-    if (option <= 0) return nullptr;
+    if (option < 0) return nullptr;  // -1: an unseen area that only hurts; 0 is the trap arrow
     auto it = effectModels_.find(option);
     if (it == effectModels_.end()) {
         auto model = CharacterModel::load(*data_, std::format("Character/OPTION/{:08d}/Animation", option));
@@ -385,7 +385,7 @@ void Game::stepCast(SpellCast& c) {
                 glow(kFireSpray);
                 spawnEffect(kFireSpray, c.x, c.y, 1);
                 // Everything within 150 of the caster's own square, once.
-                Effect& area = spawnEffect(0, c.x, c.y);
+                Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, kTargetHalf + 150, true, kHellFireBurst);
             }
@@ -397,7 +397,7 @@ void Game::stepCast(SpellCast& c) {
             if (t == 3) glow(kIceGather);
             if (t == l) spawnEffect(kIceCrystals, c.x, c.y);
             if (t == l + 4) {
-                Effect& area = spawnEffect(0, c.x, c.y);
+                Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, kTargetHalf + 150, true, kFrostHit);
             }
