@@ -61,7 +61,7 @@ struct Options {
     sf::HeroClass heroClass = sf::HeroClass::Warrior;  // the class --level gives from level 5
     int hpPercent = -1, experiencePercent = -1;  // --hurt, --experience: for screenshots of the panel
     std::optional<std::filesystem::path> skin;  // open content drawn over the original game
-    bool ourArt = false;  // draw the original game with content/'s art
+    std::optional<bool> ourArt;  // draw the original game with content/'s art; default: options.txt, else no
     int talk = -1;            // speak to this character (in-game id) at the start
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<int> use;  // objects to use from where the player stands
@@ -139,11 +139,11 @@ Options parseArgs(int argc, char** argv) {
             else sf::log::warn("--class expects warrior, hunter or wizard");
         } else if (arg == "--skin" && i + 1 < argc) {
             options.skin = argv[++i];
+            options.ourArt = true;
         } else if (arg == "--our-art") {
             options.ourArt = true;
         } else if (arg == "--original-art") {
-            options.ourArt = false;  // the default; kept for older scripts
-            options.skin.reset();
+            options.ourArt = false;
         } else if (arg == "--talk" && i + 1 < argc) {
             options.talk = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--answers" && i + 1 < argc) {
@@ -473,27 +473,33 @@ int main(int argc, char** argv) {
             sf::log::warn("content.txt: {}", e.what());
         }
     }
-    // The original game is drawn with its own art, unless --our-art (or
-    // --skin <pack>) asks for the open content's maps, characters and hero.
-    std::unique_ptr<sf::Skin> skin;
-    if (!app.data->exists("content.txt") && (options.ourArt || options.skin)) {
+    // The original game is drawn with its own art. Our art (content/'s, or
+    // --skin <pack>'s) can be swapped in while playing (F12, or --our-art
+    // from the start); it is loaded the first time it is asked for.
+    sf::Game::SkinLoader skinLoader;
+    if (!app.data->exists("content.txt")) {
         std::vector<std::filesystem::path> packs;
         if (options.skin) {
             packs.push_back(*options.skin);
         } else {
             for (const auto& base : bases) packs.push_back(base == "." ? "content" : base / "content");
         }
-        for (const auto& pack : packs) {
-            if (!std::filesystem::exists(pack / "skin.txt")) continue;
-            skin = sf::Skin::load(std::make_unique<sf::DirectoryFileSystem>(pack), app.renderer);
-            if (skin) {
-                sf::log::info("Drawing the game with the art in {}", pack.string());
-                break;
-            }
+        std::erase_if(packs, [](const auto& pack) { return !std::filesystem::exists(pack / "skin.txt"); });
+        if (!packs.empty()) {
+            skinLoader = [packs, renderer = app.renderer]() -> std::unique_ptr<sf::Skin> {
+                for (const auto& pack : packs) {
+                    if (auto skin = sf::Skin::load(std::make_unique<sf::DirectoryFileSystem>(pack), renderer)) {
+                        sf::log::info("Our art is from {}", pack.string());
+                        return skin;
+                    }
+                }
+                return nullptr;
+            };
+        } else if (options.skin) {
+            sf::log::warn("No skin.txt in {}", options.skin->string());
         }
-        if (!skin && options.skin) sf::log::warn("No usable skin.txt in {}", options.skin->string());
     }
-    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, skin.get());
+    app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, std::move(skinLoader));
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
     if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
@@ -521,6 +527,7 @@ int main(int argc, char** argv) {
             SDL_free(prefs);
         }
     }
+    if (options.ourArt) app.game->setOurArt(*options.ourArt);
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level, options.heroClass);
     if (options.original) app.game->setOriginalMode(true);
@@ -596,7 +603,6 @@ int main(int argc, char** argv) {
     sf::log::info("Exited after {} frames, {} ticks", app.frames, app.game->tickCount());
     app.audio.reset();
     app.game.reset();
-    skin.reset();
     SDL_DestroyRenderer(app.renderer);
     SDL_DestroyWindow(app.window);
     SDL_Quit();

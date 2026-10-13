@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
 #include <optional>
@@ -81,9 +82,14 @@ inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBe
 // from the original data and lets you walk around it.
 class Game {
 public:
-    // With a skin, the original's maps and characters are drawn with an
-    // open content pack's art where it has some.
-    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, Skin* skin = nullptr);
+    // Loads a skin: the original's maps and characters drawn with an open
+    // content pack's art where it has some. Called the first time our art
+    // is asked for; null when there is none.
+    using SkinLoader = std::function<std::unique_ptr<Skin>()>;
+    Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, SkinLoader skinLoader = {});
+    ~Game();
+    Game(const Game&) = delete;
+    Game& operator=(const Game&) = delete;
 
     void handleEvent(const SDL_Event& event);
     void tick();
@@ -145,6 +151,15 @@ public:
     // (logic/rules.h). Off by default.
     void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
     bool originalMode() const { return rules_.originalMode(); }
+
+    // Draws the original game with our art or its own, at once and
+    // without reloading the map, like a remaster's classic-graphics
+    // button (F12, or Art in the Settings Menu). Only with the original
+    // files and a pack that has a skin.txt; otherwise there is nothing to
+    // swap and this does nothing.
+    bool canSwapArt() const { return skinLoader_ || ownedSkin_; }
+    bool ourArt() const { return skin_ != nullptr; }
+    void setOurArt(bool on);
 
     // Chooses the spell on F1-F8 (slot 0-7).
     void selectSpellSlot(int slot);
@@ -319,6 +334,8 @@ private:
     void goToStart();
     void checkTriggers(bool fire = true);
     const CharacterModel* model(const std::string& stem);
+    // Both of the player's figures in the art being drawn, by HeroSex.
+    std::array<std::optional<CharacterModel>, 2>& playerModels();
     void placePlayer();
     void updateCamera();
     bool tryMove(Character& who, double dx, double dy);
@@ -864,7 +881,7 @@ private:
     // The Settings Menu and Help window (options.cpp).
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
-        EffectVolume, MusicVolume, OriginalMode, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back
+        EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
@@ -897,7 +914,9 @@ private:
 
     SDL_Renderer* renderer_;
     const FileSystem* data_;
-    Skin* skin_ = nullptr;
+    SkinLoader skinLoader_;          // until the skin is first loaded
+    std::unique_ptr<Skin> ownedSkin_;
+    Skin* skin_ = nullptr;           // the skin being drawn: ownedSkin_ with our art, else null
     SpriteCache sprites_;
     std::vector<std::string> mapNames_;
     std::size_t mapIndex_ = 0;
@@ -905,7 +924,8 @@ private:
     std::vector<std::size_t> drawOrder_;  // objects sorted back to front
 
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
-    std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
+    // By path stem (null = failed): [0] the original's, [1] the skin's.
+    std::array<std::map<std::string, std::unique_ptr<CharacterModel>>, 2> models_;
     std::vector<Actor> actors_;
     std::vector<SceneObject> sceneObjects_;
     std::map<std::string, std::unique_ptr<SpriteBank>> objectShadows_;  // by path stem; null = missing
@@ -922,7 +942,8 @@ private:
     ScriptFlags flags_;
     std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
 
-    std::array<std::optional<CharacterModel>, 2> playerModels_;  // by HeroSex
+    std::array<std::array<std::optional<CharacterModel>, 2>, 2> playerModels_;  // [art][HeroSex], as models_
+    std::array<bool, 2> playerModelsLoaded_{};
     HeroSex heroSex_ = HeroSex::Male;
     std::string heroName_;
     std::optional<NewCharacter> newCharacter_;

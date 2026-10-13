@@ -425,8 +425,11 @@ items land around it.
 ## Drawing the original game with this art
 
 A player who has the original game sees it with its own art by default.
-With `--our-art` they see its own maps, people and monsters drawn with
-the pack's art instead: the engine reads the maps, scripts and characters
+F12 (or the Art row of the Settings Menu, kept in `options.txt`) swaps to
+the pack's art and back while playing, without reloading the map: everyone
+keeps their place and what they are doing. `--our-art` starts with the
+pack's art, `--original-art` with the original's. With it on they see the
+game's own maps, people and monsters drawn with the pack's art: the engine reads the maps, scripts and characters
 from their copy and draws them with content/'s ground textures, props,
 characters and hero. `skin.txt` at the pack's root says how; whatever it
 does not cover (and any character the pack has no `.anim` for) is drawn
