@@ -99,6 +99,15 @@ Orders on the ground wait out a 45-tick pause after the last one.
   gaining 8 a tick until tick 27. From tick 12, every fourth tick it hits
   what is in its box grown 1.9 times, stunning with chance 100 and
   length 10 (at most 15), and pauses 5 ticks after a hit (0x460a00).
+  From tick 18 it trails a **speed streak**: the run chart's third layer
+  (Animation.Caf chart 2, layer 2), long grey pictures drawn additively
+  (cell status 16) at opacity 800 and 700 on alternate frames, in front of
+  the body and not recoloured by the coat tint (only layer 1 gets it,
+  0x45ff50). The partner's layer switches (+0x3c) have layer 2 off; the dash
+  turns it on for the ticks it is flat out (`+0x158 > 0x11`, not while a
+  hit holds it) and 0x45ff50 turns it off again after every tick, so an
+  ordinary run never shows it. The open pack paints its own streak
+  (tools/art/streak.py) as layer 2 of chart 2.
 
 **The hero's Explosion spell** (spell 20) sends the partner to the point
 cast at, if it is up, not jumping or dashing and past its 45-tick pause
