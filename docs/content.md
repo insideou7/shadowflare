@@ -31,6 +31,8 @@ original format.
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 | `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
+| names, heights and colours in `Scenario.Mct` enemy placements | `enemies.txt` (by monster kind) |
+| `System/Common/Pattern/System.njp` (the pointer) | `System/Common/Pattern/System.sheet` |
 | `Character/PARTNER/%08d/Animation.*`  | `Character/PARTNER/%08d/Animation.anim` + `.sheet` |
 
 With no `--data`, the engine looks for the original game in `game/` and
@@ -271,6 +273,20 @@ it; a click on it opens the window. The window's picture is
 `System/Game/Pattern/Warp.sheet`, drawn by `tools/art/warp.py`. The
 pack's two towns have gates (gate 0 Remote Town, 4 Cold Svalt Town), at
 the original's places, with the props sheet's warp circle under them.
+
+### enemies.txt
+
+The name shown over a monster with the mouse on it, by its kind (the
+`Character/ENEMY/<kind>` folder its `enemy=` lines name), standing in for
+the name, height and colour each of the original's placements carries:
+
+    1=Goblin,55               # kind=name,height
+    12=Dragon,147,224,160,96  # with a colour: red, green, blue
+
+The height is how many pixels above its feet the name floats (the label's
+own 24 come on top); the colour is light grey (224, 224, 224) unless
+given. The pack's numbers sit the name a little over the top of each
+picture.
 
 ### partners.txt
 

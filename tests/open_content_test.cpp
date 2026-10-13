@@ -267,6 +267,13 @@ void testScript() {
     expectRejected("gate twice", "[gate 1]\nname=a\n[gate 1]\nname=b\n", [](auto& d) { sf::open::parseGates(d); });
     expectRejected("unknown gate key", "[gate 1]\nplace=a\n", [](auto& d) { sf::open::parseGates(d); });
 
+    const auto names = sf::open::parseEnemyNames(bytes("# monsters\n1=Goblin,55\n12=Red Dragon,147,224,160,96\n"));
+    check(names.size() == 2 && names.at(1).name == "Goblin" && names.at(1).height == 55 && names.at(1).color == 0xe0e0e0 &&
+              names.at(12).name == "Red Dragon" && names.at(12).color == 0xe0a060,
+          "monster names");
+    expectRejected("monster named twice", "1=a,5\n1=b,5\n", [](auto& d) { sf::open::parseEnemyNames(d); });
+    expectRejected("monster name without a height", "1=a\n", [](auto& d) { sf::open::parseEnemyNames(d); });
+
     const auto drops = sf::open::parseDrops(
         bytes("[drops 2]\nrolls=2\nchance=15\ngold=10,4,12\npick=consumable,0\npick=any,any,1,3\npick=nothing\n"));
     const auto* list = drops.list(2);

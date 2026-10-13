@@ -65,6 +65,8 @@ public:
     SDL_Color tint{255, 255, 255, 255};
     // Drawn without colour (turned to stone by Medusa).
     bool grey = false;
+    // Drawn brighter by this much, per mille (the one under the pointer).
+    int glow = 0;
     // The animation stands still on its frame (stone).
     bool held = false;
 

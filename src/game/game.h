@@ -72,6 +72,9 @@ inline constexpr int kPartnerGaugeY = 395;
 // The belt pocket's cells on the screen, as the original's clicks find them
 // (0x445bd0, 0x44a5f0): the top row's left edge, and the bottom row's,
 // which sits a cell and a half further right.
+// How much brighter the character under the pointer is drawn, per mille
+// (0x40ee70).
+inline constexpr int kHoverGlow = 300;
 inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBeltCell = 32;
 
 // For now the game is a map viewer with a walking player: it loads a level
@@ -101,6 +104,10 @@ public:
     // Makes the player attack the nearest monster on their own (for
     // scripted smoke tests of combat).
     void setAutoFight(bool on) { autoFight_ = on; }
+    // Puts the pointer at a screen spot, or with `onKind` (a
+    // Settings::Target) on the nearest monster, person or item, instead of
+    // where the mouse is (for screenshots).
+    void setPointer(std::optional<SDL_FPoint> at, int onKind = -1);
     // Swaps in a kind of companion and sets it ACTIVE (for scripted tests).
     void bringPartner(int kind);
 
@@ -1041,6 +1048,24 @@ private:
     std::optional<std::pair<double, double>> transportGateHere() const;
     std::vector<Effect> transportGateParts() const;  // its pieces and animation, to draw
     void renderTransportGateName(int camX, int camY);
+
+    // The pointer, its Click Range square and the name of what it is on
+    // (pointer.cpp).
+    std::optional<SDL_FPoint> pointerPosition() const;  // logical, none while the mouse is outside
+    bool pointerOnWorld(const SDL_FPoint& p) const;
+    void followPointerTarget();
+    void updateHover();
+    const Actor* hoveredActor() const;
+    void renderClickSquare();
+    void renderHoverName(int camX, int camY);
+    void renderPointer();
+    void nameOpenEnemy(Actor& actor);
+    std::optional<SDL_FPoint> forcedPointer_;
+    int pointerOnKind_ = -1;
+    bool pointerHidden_ = false;  // the system's pointer, while ours is drawn
+    bool hoverOn_ = false;        // the pointer is on the uncovered world
+    ClickTarget hover_;           // what a click there would go for
+    std::optional<std::map<int, open::EnemyName>> enemyNames_;
 
     WarpGates warpGates_;
     bool warpOpen_ = false;     // the GATE window (0xa05c)

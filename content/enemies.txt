@@ -1,0 +1,33 @@
+# What the name over each kind of monster (Character/ENEMY/<kind>) says
+# with the mouse on it, standing in for the names the original's
+# placements carry: see docs/content.md.
+#
+# kind=name,height[,red,green,blue]: the height is how many pixels above
+# its feet the name floats (a little over the top of its picture); the
+# colour is light grey unless given.
+
+0=Giant Fly,44
+1=Goblin,55
+2=Ghoul,52
+3=Demon,123
+4=Golem,99
+5=Goblin Shaman,59
+6=Spider,43
+7=Great Spider,60
+8=Boar Rider,136
+9=Wild Boar,75
+10=Goblin Archer,57
+11=Swordsman,57
+12=Dragon,147
+13=Ogre,68
+14=Skeleton,55
+15=Fire Spirit,115
+16=Barbarian,86
+17=Bone Beast,233
+18=Lizardman,113
+19=Scorpion,62
+20=Giant Scorpion,109
+21=Vampire,64
+22=Raptor,98
+23=Bone Warrior,87
+24=Fallen Angel,199

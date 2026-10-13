@@ -34,6 +34,9 @@ struct Options {
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
+    // --pointer x,y or enemy|person|item: where the pointer is (for screenshots)
+    std::optional<SDL_FPoint> pointer;
+    int pointerOn = -1;
     int partner = -1;        // a companion kind to bring, ACTIVE
     std::optional<std::pair<int, int>> at;  // start position in map pixels
     struct Gift {
@@ -239,6 +242,14 @@ Options parseArgs(int argc, char** argv) {
             options.saveAtEnd = true;
         } else if (arg == "--partner" && i + 1 < argc) {
             options.partner = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--pointer" && i + 1 < argc) {
+            const std::string_view on = argv[++i];
+            SDL_FPoint p{};
+            if (on == "enemy") options.pointerOn = sf::Settings::kEnemy;
+            else if (on == "person") options.pointerOn = sf::Settings::kPerson;
+            else if (on == "item") options.pointerOn = sf::Settings::kItem;
+            else if (std::sscanf(argv[i], "%f,%f", &p.x, &p.y) == 2) options.pointer = p;
+            else sf::log::warn("--pointer expects x,y, enemy, person or item");
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -485,6 +496,7 @@ int main(int argc, char** argv) {
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, skin.get());
     app.game->setShowJudge(options.showJudge);
     app.game->setAutoFight(options.autoFight);
+    if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
     app.game->setInventoryOpen(options.inventory);
     app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {

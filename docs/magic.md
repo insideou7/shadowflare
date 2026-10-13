@@ -261,7 +261,6 @@ Ours rather than the original's, until they are read from the exe:
   original asks its collision map for the whole rectangle, and the hero
   steps into a gate with a ±30 square (the original uses their judge
   rect).
-- The mouse pointer is the system's: Identify's pointer is not shown.
 - Monster spells land halfway through their animation, like blows.
 
 ## Original mode

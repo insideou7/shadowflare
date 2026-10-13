@@ -691,6 +691,28 @@ ShopLists parseShops(std::span<const std::uint8_t> text) {
     return lists;
 }
 
+// kind=name,height[,red,green,blue] lines; see docs/content.md.
+std::map<int, EnemyName> parseEnemyNames(std::span<const std::uint8_t> text) {
+    Lines lines(text);
+    std::map<int, EnemyName> names;
+    while (auto line = lines.next()) {
+        std::string_view key, value;
+        if (!keyValue(*line, key, value)) lines.fail("expected <kind>=<name>,<height>[,<red>,<green>,<blue>]");
+        const auto f = Lines::split(value, ',');
+        if ((f.size() != 2 && f.size() != 5) || f[0].empty()) lines.fail("expected <kind>=<name>,<height>[,<red>,<green>,<blue>]");
+        EnemyName n;
+        n.name = f[0];
+        n.height = lines.toInt(f[1]);
+        if (f.size() == 5) {
+            std::uint32_t color = 0;
+            for (std::size_t i = 2; i < 5; ++i) color = color << 8 | static_cast<std::uint32_t>(std::clamp(lines.toInt(f[i]), 0, 255));
+            n.color = color;
+        }
+        if (!names.emplace(lines.toInt(key), std::move(n)).second) lines.fail("monster kind named twice");
+    }
+    return names;
+}
+
 // [mission <number>] sections; see docs/content.md.
 Missions parseMissions(std::span<const std::uint8_t> text) {
     Lines lines(text);
