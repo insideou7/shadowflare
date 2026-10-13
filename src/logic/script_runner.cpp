@@ -16,10 +16,10 @@ using S = ScenarioScript;
 constexpr double kRadiansPerDegree = 0.01745328888888889;
 
 // Operand types that hold a value the script can change.
-// 10 is WARP (the warp gates found) and 13 EXSTRG (a word list on the
+// WARP holds the warp gates found; 13 is EXSTRG (a word list on the
 // player, + 0x55c, its use not traced).
 bool writable(std::int32_t type) {
-    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == 10 || type == 13;
+    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == S::kWarp || type == 13;
 }
 
 }  // namespace
@@ -38,7 +38,7 @@ bool ScriptRunner::implemented(std::int32_t opcode) {
         case S::kGetPartnerLife: case S::kEnableClassChange: case S::kGetClass:
         case S::kRoutine: case S::kCheckEnemyLive: case S::kCheckEnemyDead: case S::kCheckItemExist:
         case S::kDeleteItem: case S::kGetPlayerLife: case S::kGetPlayerMental: case S::kGetExperience:
-        case S::kSetItemDirect:
+        case S::kSetItemDirect: case S::kWarpGate: case S::kDeleteWarpGate:
         case S::kCreateOptionAngle: case S::kCreateEffect: case S::kCreateEffectChar: case S::kGetNearPlayerPos:
         case S::kCalcMyPlayerDist: case S::kCalcAngle: case S::kResurrect: case S::kSetCharTrans:
         case S::kGetCharTrans: case S::kStartVisual: case S::kSettingRain: case S::kGetMyPlayerNo:
@@ -362,6 +362,8 @@ void ScriptRunner::run(std::int32_t index, int depth) {
                 if (ops.size() >= 2) store(ops[1], host_->knowsSpell(arg(0)) ? 1 : 0);
                 break;
             case S::kDrawQuestName: host_->showQuestName(arg(0)); break;
+            case S::kWarpGate: host_->openWarpGate(arg(0)); break;
+            case S::kDeleteWarpGate: host_->closeWarpGate(arg(0)); break;
             case S::kSetCompasses:
                 if (ops.empty()) break;
                 if (const auto msg = script_.messages.find(value(ops[0])); msg != script_.messages.end()) {

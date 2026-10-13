@@ -83,6 +83,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadItems();
     loadLevelCurve();
     loadMissions();
+    loadWarpGates();
     indexScenarios();
     if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
     giveStartingKit();
@@ -148,6 +149,7 @@ void Game::loadScenario(const std::string& dir) {
     // TEMP flags last for one visit, and out of network play so do NET
     // ones (0x4300e0); the others persist.
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
+    warpPage_ = 0;
     if (!dir.empty()) readScenario(dir, control_, &script_);
     // The NET flags start as the script lists them, then each character's
     // and object's activity flags join them.
@@ -396,6 +398,8 @@ void Game::handleEvent(const SDL_Event& event) {
                     // none is open.
                     if (helpOpen_) {
                         helpOpen_ = false;
+                    } else if (warpOpen_) {
+                        closeWarpWindow();
                     } else if (missionsOpen_) {
                         closeMissions();
                     } else if (mapOpen_) {
@@ -428,6 +432,7 @@ void Game::handleEvent(const SDL_Event& event) {
                             closeMissions();
                             closeMagicWindow();
                             closeAreaMap();
+                            closeWarpWindow();
                         }
                     }
                     break;
@@ -439,6 +444,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         closeInventory();
                     } else {
                         showInventory_ = true;
+                        closeWarpWindow();
                     }
                     break;
                 case SDLK_h: helpOpen_ = !helpOpen_; break;
@@ -492,6 +498,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 helpOpen_ = false;
                 break;
             }
+            if (warpGateClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (missionsClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (event.button.button == SDL_BUTTON_LEFT && missionHudClick(event.button.x, event.button.y)) break;
             if (shopClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
@@ -1212,6 +1219,7 @@ void Game::renderMap() {
     renderInventory();
     renderMissions();
     renderAreaMap();
+    renderWarpGate();
     renderHud();
     renderMissionHud();
     renderPartnerGauge();

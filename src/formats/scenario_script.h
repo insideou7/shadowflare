@@ -26,11 +26,12 @@ struct ScenarioScript {
         kSave = 11,     // SAVE: flags kept in the save game
         kQuest = 12,    // QUEST
         // Read-only values (ShadowFlare.exe 0x4346b0): 3 ELIV, 6 CPOSX and
-        // 7 CPOSY (a character's position), 8 PLAYMODE, 9 CCHECK, 10 WARP,
-        // 13 EXSTRG.
+        // 7 CPOSY (a character's position), 8 PLAYMODE, 9 CCHECK. 10 WARP
+        // (saved with the game) and 13 EXSTRG are variables.
         kCharacterX = 6,
         kCharacterY = 7,
         kPlayMode = 8,
+        kWarp = 10,     // WARP n: 1 once warp gate n (Table.Tbd table 40 row n) has been found
     };
 
     // Command numbers, with the names RKC_RPG_SCRIPT.dll compiles them from
@@ -68,7 +69,8 @@ struct ScenarioScript {
         kCalcMyPlayerDist = 34,
         kCalcAngle = 35,
         kCreateEffect = 36,
-        kWarpGate = 37, kDeleteWarpGate = 38,
+        kWarpGate = 37,         // WARPGATE n: gate n opens the GATE window (ShadowFlare.exe 0x4334da)
+        kDeleteWarpGate = 38,   // DELETEWARPGATE n: closes it, if gate n opened it
         kGetRandom = 39,        // GETRANDAM min max var
         kCreateEffectChar = 40,
         kStorage = 41,

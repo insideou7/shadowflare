@@ -88,6 +88,7 @@ void Game::toggleMagicWindow() {
     showStatus_ = false;
     closeMissions();
     closeAreaMap();
+    closeWarpWindow();
     helpOpen_ = false;
     magicOpen_ = true;
 }

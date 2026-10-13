@@ -23,6 +23,7 @@ add_library(sf_formats STATIC
     src/formats/open_content.cpp
     src/formats/ground_skin.cpp
     src/formats/missions.cpp
+    src/formats/warp_gates.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -76,6 +77,7 @@ add_executable(shadowflare
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
+    src/game/warp_gate.cpp
     src/game/panel.cpp
     src/game/power.cpp
     src/game/magic_window.cpp

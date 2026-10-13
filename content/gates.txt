@@ -1,0 +1,15 @@
+# The warp gates: the name the GATE window lists for each gate number
+# (the warp flags the scenario scripts set) and the scenario and entry
+# point it leads to, standing in for the original's Table.Tbd table 40.
+# The numbers are the original's, so a gate keeps its number in both.
+# See docs/content.md.
+
+[gate 0]
+name=Remote Town
+scenario=10000000
+entry=50
+
+[gate 4]
+name=Cold Svalt Town
+scenario=11000000
+entry=50

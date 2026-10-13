@@ -104,6 +104,7 @@ bool Game::loadGame() {
     spells_ = save.spells ? *save.spells : SpellBook::replay(magic_, career_.history);
     power_ = {};  // the charge is not saved
     closeMagicWindow();
+    closeWarpWindow();
     spellOn_ = save.spells ? save.spellsOn : std::array<bool, kSpellCount>{};
     for (int s = 0; s < kSpellCount; ++s) {
         if (!isToggleSpell(s) || !spells_.knows(s)) setSpellOn(s, false);
