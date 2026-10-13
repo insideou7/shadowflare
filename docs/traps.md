@@ -92,6 +92,9 @@ fill hit words 0x29, 0x2b, 0x28 and 0x48.
   - **Not copied.** The original also reads some of the hero's own states,
     which can make a stun certain or impossible. The engine does not have
     those states.
+- **Layers.** A trap's arrow (kind 0) is drawn plain: its flame (layer 2)
+  and frost (layer 3) are hidden, as bowguns hide them for plain arrows
+  (see [archery.md](archery.md)).
 - **Sound.** An arrow plays voice 7 where it is when its blow lands. Fire
   jets have no sound. See [sound.md](sound.md).
 - **Splash.** A shot with the splash word set shows 11000024 or 11000025 on

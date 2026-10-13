@@ -363,6 +363,18 @@ std::vector<EquipSlot> Inventory::wearFromAttacking(Random& random) {
     return {EquipSlot::Weapon};
 }
 
+bool Inventory::canShoot() const {
+    const auto& weapon = equipped_[static_cast<int>(EquipSlot::Weapon)];
+    return weapon && !weapon->broken();
+}
+
+std::vector<EquipSlot> Inventory::wearFromShot() {
+    auto& weapon = equipped_[static_cast<int>(EquipSlot::Weapon)];
+    if (!weapon || weapon->def->durability <= 0 || weapon->broken()) return {};
+    if (++weapon->wear < weapon->def->durability) return {};
+    return {EquipSlot::Weapon};
+}
+
 std::vector<EquipSlot> Inventory::wearFromBlow(Random& random) {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();

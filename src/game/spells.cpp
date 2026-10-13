@@ -628,6 +628,10 @@ void Game::stepEffect(Effect& e) {
         stepTrap(e);
         return;
     }
+    if (e.shot) {
+        stepShot(e);
+        return;
+    }
     if (e.followsPlayer && player_) {
         e.x = player_->x;
         e.y = player_->y;
@@ -766,6 +770,8 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
         SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         return;
     }
+    // A volley's arrow is not seen until it starts to fall.
+    if (e.shot && e.shot->target >= 0 && e.shot->fall < 0) return;
     const CharacterModel* model = effectModel(e.option);
     if (!model) return;
     const auto& charts = model->animations.charts;
@@ -790,7 +796,9 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
     // the original passes it to its renderer, whose scale is not read yet).
     sy -= camY + static_cast<int>(e.height * projection.y / 100);
     std::vector<const AnimationSet::Cell*> cells;
-    for (const auto& layer : dir->layers) {
+    for (std::size_t l = 0; l < dir->layers.size(); ++l) {
+        const auto& layer = dir->layers[l];
+        if (l < 32 && (e.hiddenLayers >> l & 1u)) continue;
         if (frame < static_cast<int>(layer.size()) && layer[static_cast<std::size_t>(frame)].pattern >= 0) {
             cells.push_back(&layer[static_cast<std::size_t>(frame)]);
         }

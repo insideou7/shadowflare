@@ -804,6 +804,7 @@ void Game::swing() {
     blowLanded_ = false;
     shouted_ = false;
     swingTicks_ = 0;
+    bowShot_.reset();
 }
 
 void Game::tickPlayer() {
@@ -824,7 +825,21 @@ void Game::tickPlayer() {
         player_->play(chart::kIdle);
     }
     if (current == chart::kPlayerHit && !player_->finished()) return;
-    if (current == chart::kPlayerPunch) {
+    if (bowShot_ && (current == chart::kPlayerPunch || current == chart::kPlayerShoot)) {
+        // The string's twang, 6 of the original's ticks in (0x437fe0,
+        // 0x438a90).
+        if (swingTicks_ <= 6 && swingTicks_ + 1.5 > 6) playSound(3, player_->x, player_->y);
+        swingTicks_ += 1.5;
+        // A bowgun shoots on its chart's shooting frame (once, as a fast
+        // pull can step past it).
+        if (!blowLanded_ && player_->frame() >= strikeFrame(current, current == chart::kPlayerShoot ? 3 : 4)) {
+            blowLanded_ = true;
+            loose();
+        }
+        if (!player_->finished()) return;
+        bowShot_.reset();
+        player_->play(chart::kIdle);
+    } else if (current == chart::kPlayerPunch) {
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
         const int subtype = weapon ? weapon->def->subtype : -1;
         // Swords, great swords and axes have their own swing, which shouts
@@ -874,7 +889,11 @@ void Game::tickPlayer() {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
             player_->faceTowards(wx - player_->x, wy - player_->y);
-            swing();
+            if (bowInHand()) {
+                shoot(attackTarget_, std::atan2(wy - player_->y, wx - player_->x));
+            } else {
+                swing();
+            }
             return;
         }
         if (target.kind == Settings::kEnemy && !identifying_) {
@@ -970,6 +989,13 @@ void Game::tickPlayer() {
         const Character& enemy = actors_[*attackTarget_].character;
         dx = enemy.x - player_->x;
         dy = enemy.y - player_->y;
+        // A bowgun shoots from wherever the hero stands (0x449240).
+        if (bowInHand()) {
+            player_->faceTowards(dx, dy);
+            shoot(attackTarget_, std::atan2(dy, dx));
+            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            return;
+        }
         if (std::hypot(dx, dy) <= kMeleeRange) {
             player_->faceTowards(dx, dy);
             swing();

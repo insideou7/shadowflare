@@ -36,6 +36,7 @@ inline constexpr int kWalk = 1;
 inline constexpr int kPlayerRun = 2;
 inline constexpr int kPlayerHit = 3;
 inline constexpr int kPlayerPunch = 5;
+inline constexpr int kPlayerShoot = 10;  // a bowgun's shot, and the hunter's volley
 inline constexpr int kPlayerHeal = 11;  // Heal's own casting (the spell's controller)
 inline constexpr int kPlayerCast = 13;
 inline constexpr int kEnemyHit = 2;
@@ -80,6 +81,7 @@ public:
     int frameCount() const;
     bool finished() const;  // a non-looping chart reached its last frame
     bool hasChart(int chart) const;
+    const CharacterModel* model() const { return model_; }
 
     // Face towards a world-space movement vector.
     void faceTowards(double dx, double dy);

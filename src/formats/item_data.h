@@ -84,6 +84,13 @@ struct ItemDef {
     std::int32_t heroLayer = -1;
     std::int32_t glowLayer = -1;  // a second layer some weapons add (fire glow, aura)
     bool twoHandedFlag = false;   // weapons that are two-handed whatever their subtype
+    // Bowguns (subtype 5; see docs/archery.md): what they shoot (0xfc: 0 a
+    // stone, 1 an arrow, 2 a fire arrow, 3 an ice arrow), how many at once
+    // (0x100: 0 one, 1 two, 3, 5 or 7 in a fan), how fast in world units a
+    // tick (0x104), how far a shot may turn a tick in degrees (0x108; 0 on
+    // every item) and whether a shot flies on through what it hits (0x10c).
+    std::int32_t shotKind = 0, shotSpread = 0, shotSpeed = 0, shotTurn = 0;
+    bool shotPierces = false;
     // Consumables: word 0 = 1 if it may go in the belt, 1 = health restored,
     // 2 = mental power restored; the rest are not understood yet.
     std::array<std::int32_t, 9> effect{};

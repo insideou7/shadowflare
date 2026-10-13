@@ -325,6 +325,14 @@ double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode) 
     return kSteps[step];
 }
 
+double volleySpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode) {
+    static constexpr double kSteps[10] = {0.6, 0.9, 1.2, 1.3, 1.5, 1.7, 1.9, 2.2, 2.7, 3.0};
+    const auto column = static_cast<std::size_t>(std::clamp(attackSpeed, 0, 255) / 32);
+    int step = std::clamp(t.chantSteps[std::min(column, t.chantSteps.size() - 1)] + 1, 0, 9);
+    if (powerMode) step = 9;
+    return kSteps[step];
+}
+
 int regenerate(int maximum, int rate, int& carry) {
     if (rate == 0) {
         carry = 0;
