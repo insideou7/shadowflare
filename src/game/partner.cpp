@@ -50,7 +50,9 @@ constexpr int kStunCap = 15;  // ticks, unless the blow or the monster says othe
 constexpr double kExplosionReach = 320;
 constexpr int kExplosionPower = 1;
 constexpr int kExplosionSpray = 10000000;  // Character/OPTION
-constexpr int kStunTables = 70;  // Table.Tbd 70-78: a spell's stun on a monster of each element (0x4174b0)
+// A freezing stun's ice (Character/OPTION): closing in, the four blocks
+// (one chosen at random) and breaking away.
+constexpr int kFreezeStart = 11000028, kFreezeHold = 11000029, kFreezeEnd = 11000033;
 
 // r is the enemy's box around (ex, ey).
 template <class Rect>
@@ -70,6 +72,8 @@ double Game::partnerSpeed(int stat) const { return kPlayerWalkSpeed * stat / kHe
 PartnerStats Game::partnerStats() const {
     PartnerStats s = partnerTables_->stats(partnerRecord_.kind, partnerRecord_.level());
     addItemBonuses(s, inventory_);
+    // Moon raises them by table 200 (0x4138b0).
+    if (spellOn(kMoon)) applyMoon(s, magic_, moonLevel_);
     return s;
 }
 
@@ -786,11 +790,8 @@ void Game::partnerExplodes() {
         const int damage = spellDamage(kExplosionPower, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
         log::info("The companion's explosion hits {} for {}", enemy.gameId(), damage);
         hurtEnemy(enemy, damage, true);
-        const int table = kStunTables + (s.element >= 0 && s.element < 8 ? s.element : 8);
-        const auto* t = tables_.find(table);
-        const int col = (level - 1) * 3;
-        if (!t || t->rows <= kExplosion || t->cols < col + 3) continue;
-        stunEnemy(enemy, t->value(kExplosion, col), t->value(kExplosion, col + 1), t->value(kExplosion, col + 2) != 0, element);
+        const auto& stun = magic_.stun(s.element, kExplosion, level);
+        stunEnemy(enemy, stun.chance, stun.length, stun.uncapped, element);
     }
 }
 
@@ -798,9 +799,10 @@ void Game::partnerExplodes() {
 // percent, for `length` less its resistance in ticks, at least 1 and at
 // most 15 unless the blow or the monster lifts that. A companion of the
 // monster's opposite element stuns more readily and for longer (Table.Tbd
-// table 24 row 5).
-void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement) {
-    if (!enemy.alive()) return;
+// table 24 row 5). A monster turned to stone can't be stunned again until
+// it wakes.
+void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement, StunKind kind) {
+    if (!enemy.alive() || enemy.stoned()) return;
     const auto& s = enemy.placement.stats;
     if (attackerElement >= 0 && s.element >= 0 && attackerElement == (s.element ^ 1)) {
         if (const auto* t = tables_.find(24); t && t->rows > 5 && t->cols > 1) {
@@ -812,11 +814,31 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
     int ticks = std::max(1, length - s.stunLengthResist);
     if (!uncapped && !s.stunUncapped) ticks = std::min(ticks, kStunCap);
     enemy.stunTicks = ticks;
+    enemy.stunKind = kind;
     log::info("{} is stunned for {} ticks", enemy.gameId(), ticks);
     enemy.state = Actor::State::Hit;
     enemy.character.restart(chart::kEnemyHit);
     enemy.action = -1;
     enemy.event = AiControl::kHit;
+    // Stone: grey, and held still on the hit pose's first frame.
+    enemy.character.grey = enemy.character.held = kind == StunKind::Stone;
+    if (kind == StunKind::Freeze) {
+        // Ice closes round it, one of four blocks holds it and it breaks
+        // away when the stun ends (the controller at 0x42d380).
+        const int index = static_cast<int>(&enemy - actors_.data());
+        const double x = enemy.character.x, y = enemy.character.y;
+        spawnEffect(kFreezeStart, x, y).followsActor = index;
+        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), x, y);
+        ice.followsActor = index;
+        ice.life = ticks;
+        ice.then = kFreezeEnd;
+    }
+}
+
+void Game::endStun(Actor& enemy) {
+    enemy.stunTicks = 0;
+    if (enemy.stunKind == StunKind::Stone) enemy.character.grey = enemy.character.held = false;
+    enemy.stunKind = StunKind::Plain;
 }
 
 // Running to an item it was sent for, then handing it to the hero

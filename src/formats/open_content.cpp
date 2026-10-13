@@ -445,6 +445,7 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             area.rect[1] = v[1];
             area.rect[2] = v[2];
             area.rect[3] = v[3];
+            area.states = {1, 1, 0};  // never in the way
             const auto sentence = static_cast<std::int32_t>(s.script.sentences.size());
             ScenarioScript::Command change;
             change.opcode = ScenarioScript::kChangeScenario;
@@ -452,6 +453,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             s.script.sentences.push_back({change});
             s.script.triggers.push_back({0, ScenarioScript::kOnJudge, ScenarioControl::idBase(Group::Object) + area.id, sentence});
             c.placements.push_back(std::move(area));
+        } else if (key == "town") {
+            // town=scenario: the town this area belongs to, where a Transport
+            // gate cast here leads.
+            c.town = lines.ints(value, 1)[0];
+        } else if (key == "transport") {
+            // transport=1: Transport can be cast here (fields and dungeons).
+            c.transport = lines.ints(value, 1)[0] != 0;
         } else if (key == "light") {
             // light=level: how light the area is, 2000 fully lit (the
             // default), 1000 dark beyond the hero's own light.
@@ -468,6 +476,7 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             lamp.y = v[1];
             lamp.direction = 8;
             lamp.light = v[2];
+            lamp.states = {1, 1, 0};
             c.placements.push_back(std::move(lamp));
         } else if (key == "glow") {
             // glow=size: the enemy or person on the line before carries a
@@ -608,9 +617,12 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
                 p.rect[2] = p.rect[3] = 60;
                 place(std::move(p));
             } else if (key == "object") {
-                // object=left,top,right,bottom,name: an unseen thing to click on
+                // object=left,top,right,bottom,name[,prop[,hidden]]: something
+                // to click on, unseen or drawn as a prop of Map/props.sheet,
+                // which then stands in the way; `hidden` starts it inactive.
                 const auto f = Lines::split(value, ',');
-                if (f.size() != 5) lines.fail("object needs left, top, right, bottom and name");
+                if (f.size() < 5 || f.size() > 7) lines.fail("object needs left, top, right, bottom and name");
+                if (f.size() == 7 && f[6] != "hidden") lines.fail("object's last field must be 'hidden'");
                 const int l = lines.toInt(f[0]), t = lines.toInt(f[1]), r = lines.toInt(f[2]), b = lines.toInt(f[3]);
                 ScenarioControl::Placement p;
                 p.group = Group::Object;
@@ -622,6 +634,12 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
                 p.rect[3] = b - p.y;
                 p.direction = 8;
                 p.name = f[4];
+                p.states = {1, 1, 0};
+                if (f.size() >= 6) {
+                    p.look.prop = f[5];
+                    p.states = {1, 1, 1};
+                }
+                if (f.size() == 7) p.states = {0, 0, 0};
                 place(std::move(p));
             } else if (key == "temp") {
                 // temp=id,value: a TEMP flag's value when the scenario starts

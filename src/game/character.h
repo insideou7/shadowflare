@@ -62,6 +62,10 @@ public:
     // Colour and opacity the body is drawn with (partner dogs are recoloured
     // per kind, and fade out when they die).
     SDL_Color tint{255, 255, 255, 255};
+    // Drawn without colour (turned to stone by Medusa).
+    bool grey = false;
+    // The animation stands still on its frame (stone).
+    bool held = false;
 
     void setAction(Action action) { play(static_cast<int>(action)); }
 

@@ -103,6 +103,7 @@ const AnimationSet::Direction* Character::currentDirection() const {
 }
 
 void Character::tick() {
+    if (held) return;
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return;
     for (progress_ += speed_; progress_ >= 1.0; progress_ -= 1.0) {
@@ -146,7 +147,7 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
 
     for (const auto& item : items) {
         const SpriteBank& bank = item.shadow ? model_->shadow : model_->body;
-        const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false);
+        const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false, grey && !item.shadow);
         if (!sprite) continue;
         // Textures are shared: set their colour for this draw and put it
         // back after.

@@ -348,6 +348,14 @@ void Inventory::identifyAll() {
     }
 }
 
+bool Inventory::identify(int index) {
+    if (index < 0 || static_cast<std::size_t>(index) >= bag_.size()) return false;
+    auto& item = bag_[static_cast<std::size_t>(index)].item;
+    if (!item.unidentified) return false;
+    item.unidentified = false;
+    return true;
+}
+
 int Inventory::repairPrice(int part, const ModifierPrices& prices) const {
     if (const auto slot = partSlot(part)) {
         const auto& worn = equipped(*slot);
@@ -413,14 +421,14 @@ int Inventory::guardModifier(ItemDef::Modifier which) const {
     return total;
 }
 
-int Inventory::goldBonus() const {
+int Inventory::modifierEvenBroken(ItemDef::Modifier which) const {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();
     int total = 0;
     for (int s = 0; s < kEquipSlotCount; ++s) {
         const auto& worn = equipped_[static_cast<std::size_t>(s)];
         if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
-        total += worn->modifiers[ItemDef::kModGold];
+        total += worn->modifiers[static_cast<std::size_t>(which)];
     }
     return total;
 }

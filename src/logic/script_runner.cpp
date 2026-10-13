@@ -43,6 +43,7 @@ bool ScriptRunner::implemented(std::int32_t opcode) {
         case S::kCalcMyPlayerDist: case S::kCalcAngle: case S::kResurrect: case S::kSetCharTrans:
         case S::kGetCharTrans: case S::kStartVisual: case S::kSettingRain: case S::kGetMyPlayerNo:
         case S::kMemorizeMagic: case S::kCheckMemorizedMagic:
+        case S::kAbsoluteObjectFlag: case S::kSetUnlockSwitch:
         // Network play only: single play never reaches them.
         case S::kRoutineNet:
             return true;
@@ -64,6 +65,7 @@ std::int32_t ScriptRunner::value(const ScenarioScript::Operand& op) const {
         case S::kCharacterX: return host_ ? host_->characterX(op.value) : 0;
         case S::kCharacterY: return host_ ? host_->characterY(op.value) : 0;
         case S::kPlayMode: return 0;  // single player
+        case S::kObjectCheck: return host_ && host_->workingObject(op.value) ? 1 : 0;
         case S::kEnemyAlive: {
             // ELIV n: 1 while enemy 14,000,000 + n is alive, 0 once dead;
             // 0 too for one the scenario does not have (0x4346b0).
@@ -261,6 +263,8 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kMovable: host_->stopCharacter(arg(0), false); break;
             case S::kSetAngleTo: host_->faceCharacter(arg(0), arg(1)); break;
             case S::kSetActive: host_->setActive(arg(0), true); break;
+            case S::kAbsoluteObjectFlag: host_->setObjectStates(arg(0), arg(1), arg(2), arg(3)); break;
+            case S::kSetUnlockSwitch: host_->setUnlockSwitch(arg(0) != 0); break;
             case S::kSetInactive: host_->setActive(arg(0), false); break;
             case S::kCheckEnemyLive:
             case S::kCheckEnemyDead: {

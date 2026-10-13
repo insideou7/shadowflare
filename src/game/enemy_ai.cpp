@@ -47,7 +47,7 @@ void Game::tickEnemyAi(Actor& enemy) {
     if (enemy.state == State::Dead) return;
     if (enemy.state == State::Hit) {
         // A stun holds it there (the companion's jump and dash).
-        if (enemy.stunTicks > 0) --enemy.stunTicks;
+        if (enemy.stunTicks > 0 && (enemy.stunTicks -= kOriginalTicksPerTick) <= 0) endStun(enemy);
         if (!enemy.character.finished() || enemy.stunTicks > 0) return;
         enemy.state = State::Idle;
         enemy.character.play(chart::kIdle);

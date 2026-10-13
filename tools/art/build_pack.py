@@ -167,7 +167,7 @@ def main():
     anchors = {}
     for folder, listing in (("props", "props.txt"), ("town", "town.txt"), ("dungeon", "dungeon.txt"),
                             ("cave", "cave.txt"), ("fort", "fort.txt"), ("wilds", "wilds.txt"),
-                            ("deep", "deep.txt"), ("castle", "castle.txt")):
+                            ("deep", "deep.txt"), ("castle", "castle.txt"), ("objects", "objects.txt")):
         if not (art / folder / listing).exists():
             continue
         for line in (art / folder / listing).read_text().split("\n"):

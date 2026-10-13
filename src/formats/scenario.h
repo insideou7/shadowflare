@@ -82,6 +82,29 @@ struct ScenarioControl {
         // that is there.
         std::int32_t linkedEnemy = -1;
 
+        // Objects: how they look, from the record's 0x34-byte block (the
+        // loader at 0x428296 copies it to the object from + 0xc4 on, and
+        // 0x45ddd0 draws it). Word 0 is 1 for a still picture, pattern
+        // `pattern` (word 1) of Character/OBJECT/<kind>/Pattern.njp, and
+        // anything else for chart `chart` (word 2) of its Animation.caf,
+        // which plays on from the scenario's start; -1 = nothing drawn
+        // (trigger areas, exits). Then the height it stands at (word 4),
+        // its draw flags (word 7, with 0x80 when word 3 is 1), its opacity
+        // (word 8, per mille; 0 hides it unless flag 4 is set) and its
+        // tint (words 10-12, per mille).
+        struct ObjectLook {
+            std::int32_t pattern = -1, chart = -1;
+            std::int32_t height = 0;
+            std::int32_t flags = 0;
+            std::int32_t opacity = 1000;
+            std::int32_t r = 1000, g = 1000, b = 1000;
+            // Open content: a named frame of the pack's Map/props.sheet.
+            std::string prop;
+            bool drawn() const {
+                return (pattern >= 0 || chart >= 0 || !prop.empty()) && ((flags & 4) != 0 || opacity != 0);
+            }
+        } look;
+
         // Items lying on the map: which one, as an Item.Ibn (class, code).
         std::int32_t itemClass = -1, itemCode = 0;
 
@@ -127,6 +150,13 @@ struct ScenarioControl {
     // Caravan and two towns, 3 a boss room, 4 ruins, towers and forts,
     // 5 caves, 6 shrines (named from which areas have which).
     std::int32_t areaKind = 0;
+    // The header's first word (scenario + 0x60): the scenario number of the
+    // area's town, where the hero's Transport gate leads (0x420020).
+    std::int32_t town = 0;
+    // The second of the three closing words (scenario + 0x70): 1 where
+    // Transport may be cast (fields and dungeons), 0 in towns and the
+    // Caravan (0x441c00).
+    bool transport = false;
     // How light the area is (the file's last word, scenario + 0x68, which
     // 0x426200 copies to the game at + 0xa9f8): 2000 fully lit, so no
     // darkness; 1000 Dark.njp's light as drawn; in between, lighter. The

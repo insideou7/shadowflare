@@ -62,6 +62,8 @@ inline constexpr int kScreenHeight = 480;
 // Simulation runs at a fixed rate, separate from rendering, so game logic
 // can later be matched tick-for-tick against the original executable.
 inline constexpr int kTicksPerSecond = 20;
+// The original runs 30 ticks a second, so each engine tick is 1.5 of them.
+inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 
 // The hero's step in world units per tick. Not yet taken from the original.
 inline constexpr double kPlayerWalkSpeed = 70.0;
@@ -191,6 +193,10 @@ public:
     void talkToId(std::int32_t id);
     void setAnswers(std::vector<int> answers) { answers_ = std::move(answers); }
     // Sets a SAVE story flag, for testing scripts part way through the story.
+    // Uses a scenario object as a click on it does, from wherever the
+    // player is, or holds the left button on one (for scripted tests).
+    void useObject(std::int32_t id) { runEvent(ScenarioScript::kOnTalk, id); }
+    void holdObject(std::int32_t id) { heldObject_ = id; }
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
     // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
     void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
@@ -220,7 +226,11 @@ private:
         Character character;
         State state = State::Idle;
         int hp = 0, maxHp = 0;
-        int stunTicks = 0;  // a stun holds it in its hit pose this long
+        // A stun holds it in its hit pose this many of the original's ticks;
+        // Freeze and Stone are what the spell's stun does besides.
+        double stunTicks = 0;
+        StunKind stunKind = StunKind::Plain;
+        bool stoned() const { return stunTicks > 0 && stunKind == StunKind::Stone; }
 
         // Control.aid state; aiList -1 = no list, use the simple chase.
         int aiList = -1;
@@ -357,6 +367,7 @@ private:
     HeroStats heroStats() const { return sf::heroStats(career_.history, heroSex_); }
     // Everything counted: equipment, element levels and Berserker.
     HeroStats playerStats() const;
+    HeroStats playerStats(int& chantSpeed) const;  // and the chant speed with them
     ElementLevels playerElements() const;
     int playerAttack() const { return playerStats()[HeroStats::kAttack]; }
     int playerDefense() const { return playerStats()[HeroStats::kDefense]; }
@@ -406,6 +417,9 @@ private:
         int animSpeed = 1000;         // animation frames per 1000 ticks
         bool directional = false;     // drawn facing its angle
         bool followsPlayer = false;
+        int followsActor = -1;  // an index into actors_ (a freeze's ice)
+        bool followsPartner = false;
+        int then = -1;          // played where it stands when its life runs out
         // Hurting: spell < 0 for effects that only show.
         int spell = -1, level = 1, power = 0, hit = 0;
         double box = 0;            // half the side of the square it hurts in
@@ -418,6 +432,7 @@ private:
         // A picture of the OPTION folder's Pattern bank instead of its
         // animation (the mine on the ground), -1 = the animation.
         int pattern = -1;
+        int light = 1000;   // how bright a Pattern picture is drawn, 0-1000
         double height = 0;  // above the ground, as the original's objects (+0x124)
         int facing = -1;    // a fixed direction 0-8 to draw it in; -1: see `directional`
         std::int32_t follows = -1;  // a character it stays on (CREATEEFFECTCHAR), 0-3 the players
@@ -461,8 +476,18 @@ private:
     void stepEffect(Effect& effect);
     void clearSpells();
     void trainSpell(int spell);
-    // The level a spell is cast at: its own, two higher in power mode.
-    int castLevel(int spell) const { return spells_.castLevel(spell, power_.active()); }
+    // The level a spell is cast at: its own, two higher in power mode, plus
+    // the Magic Level modifiers worn (0x451e60).
+    int castLevel(int spell) const {
+        return spells_.castLevel(spell, power_.active(), inventory_.modifier(ItemDef::kModMagicLevel));
+    }
+    // A spell's MP cost, less the Mental Cost modifiers worn (0x44f610).
+    int mpCost(int spell, int level) const {
+        return spellMpCost(magic_, spell, level, inventory_.modifierEvenBroken(ItemDef::kModMentalCost));
+    }
+    // The hero's chant speed (player + 0x16c): 80, the Chant Speed
+    // modifiers worn, element pairs and Berserker (0x44ea60).
+    int playerChantSpeed() const;
     bool hasSpiritStone() const { return inventory_.carries(ItemDef::Class::Special, PowerMode::kSpiritStone); }
     // The power button on the panel (power.cpp) and the glow round the hero
     // while the mode runs.
@@ -470,6 +495,41 @@ private:
     bool powerButtonClick(int x, int y);
     const CharacterModel* powerModel();
     void renderPowerAura(int camX, int camY);
+    // An effect animation's first chart, looping, drawn round the hero.
+    void renderHeroOverlay(const CharacterModel* model, double ticks, int camX, int camY);
+
+    // Scenario objects: the chests, doors, levers and gates a scenario
+    // places (objects.cpp). Each has three states, kept in the NET flags
+    // 100,000,000, 300,000,000 and 200,000,000 + its id until
+    // ABSOLUTEOBJECTFLAG fixes them: whether it is shown, whether it can
+    // be used (clicked), and whether its rectangle stands in the way
+    // (0x45e080).
+    struct SceneObject {
+        std::size_t placement = 0;  // into control_.placements
+        std::optional<std::array<int, 3>> fixed;  // set by ABSOLUTEOBJECTFLAG
+        std::optional<Character> animation;       // for a chart rather than a still picture
+        const SpriteBank* body = nullptr;
+        const SpriteBank* shadow = nullptr;
+        int prop = -1;  // open content: frame of Map/props.sheet
+    };
+    enum ObjectState { kShown = 0, kUsable = 1, kBlocks = 2 };
+    void spawnObjects();
+    void tickObjects();
+    bool objectState(const SceneObject& o, ObjectState which) const;
+    SceneObject* sceneObject(std::int32_t id);
+    const SceneObject* sceneObject(std::int32_t id) const;
+    const ScenarioControl::Placement& placementOf(const SceneObject& o) const { return control_.placements[o.placement]; }
+    // Whether a step from one world position to another walks into an
+    // object that stands in the way (0x414990); starting inside one does
+    // not trap anyone.
+    bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
+    // Whether a box at a spot meets an object that stands in the way, as a
+    // shot's does (0x45e1e0: status bit 0, which is that state).
+    bool boxMeetsObject(double x, double y, const JudgeRect& box) const;
+    // Where the object sorts among the map's pieces, as MapObject::depth.
+    MapObject objectFootprint(const SceneObject& o) const;
+    void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
+    bool workingObject(std::int32_t id) const;
     // The magic window (magic_window.cpp), the STATUS window's other tab:
     // the spells learned, six to a page, and the eight places of the
     // magic/attack bar that spells are dragged to.
@@ -535,7 +595,6 @@ private:
     void tickVisual();
     bool visualEvent(const SDL_Event& event);
     void renderVisual();
-    std::map<std::int32_t, int> objectOpacity_;  // SETCHARTRANS, by object id
 
     // Sound (sound.cpp): Voice00.Voc's effects in bank 0 and one piece of
     // music in bank 500, as the original keeps them.
@@ -636,7 +695,9 @@ private:
     void orderPartnerExplosion(double x, double y);
     std::vector<std::size_t> monstersIn(double left, double top, double right, double bottom) const;
     bool partnerCanStand(double x, double y) const;
-    void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1);
+    void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1,
+                   StunKind kind = StunKind::Plain);
+    void endStun(Actor& enemy);
     void renderPartnerGauge();
     bool partnerGaugeClick(int x, int y);
     // The game panel along the bottom of the screen (panel.cpp).
@@ -784,6 +845,11 @@ private:
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
     std::map<std::string, std::unique_ptr<CharacterModel>> models_;  // by path stem; null = failed
     std::vector<Actor> actors_;
+    std::vector<SceneObject> sceneObjects_;
+    std::map<std::string, std::unique_ptr<SpriteBank>> objectShadows_;  // by path stem; null = missing
+    bool unlockSwitch_ = false;  // SETUNLOCKSW this frame
+    std::int32_t heldObject_ = -1;  // --hold
+    double unlockTicks_ = 0;
     std::optional<AiControl> ai_;
     Random random_;
     std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
@@ -816,6 +882,9 @@ private:
     int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
     int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)
     int berserkerCarry_ = 0;
+    int moonLevel_ = 0;  // the level Moon was cast at (+0x15e8)
+    int moonCarry_ = 0;
+    int moonGlow_ = 0;   // the effect id of the glow on the companion
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units
     bool castReleased_ = false;
@@ -843,6 +912,9 @@ private:
     std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
+    // Identify was cast: the next item clicked in the bag is identified
+    // (player + 0x1624).
+    bool identifying_ = false;
     int playerLevel_ = 1;
     std::string saveFile_ = "save.txt";
     std::int64_t playerExperience_ = 0;
@@ -871,6 +943,33 @@ private:
     double missionBannerTicks_ = 0;  // original ticks left to show it (0xa90c)
     std::string areaName_;
     double compassAge_ = -1;   // original ticks since SETCOMPASSES (0xa800); -1 hidden
+
+    // Transport (transport.cpp): the gate the spell opens between a field
+    // or dungeon and its town (0x420020), the hero's only one. Ends are 0
+    // the field's and 1 the town's.
+    struct TransportGate {
+        int field = 0;        // the scenario it was cast in (+8)
+        double x = 0, y = 0;  // where it stands there (+0xc)
+        int town = 0;         // the scenario of that area's town (+0x14)
+        int age = 0;          // the original's ticks since it was cast (+0x20)
+        // Its four pieces drop into place 7 ticks apart (+0x24, +0x34).
+        std::array<int, 4> height{300, 300, 300, 300}, light{};
+        std::array<int, 2> wait{}, frame{};  // its animation at each end (+0x54, +0x5c)
+        std::array<bool, 2> standing{true, false};  // the hero is on that end (+0x64)
+        bool assembled() const { return height[3] == 0; }
+    };
+    std::optional<TransportGate> transportGate_;
+    double transportTicks_ = 0;
+    // Where a scenario change puts the hero instead of an entry point.
+    std::optional<std::pair<double, double>> pendingPosition_;
+    int scenarioNumber() const;  // of the current area, -1 without one
+    bool transportAllowed() const;
+    void openTransportGate();
+    void tickTransportGate();
+    // The gate's end in this area, if it has one here.
+    std::optional<std::pair<double, double>> transportGateHere() const;
+    std::vector<Effect> transportGateParts() const;  // its pieces and animation, to draw
+    void renderTransportGateName(int camX, int camY);
 
     WarpGates warpGates_;
     bool warpOpen_ = false;     // the GATE window (0xa05c)

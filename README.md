@@ -103,6 +103,9 @@ Options:
   `--experience <percent>` start with the EXP gauge that full (screenshots of the panel)
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
 - `--answers <a,b,...>` answer the next messages with these options (-1 = none)
+- `--use <id>` use a scenario object (a chest, lever or door) from where the
+  player stands, as clicking it does; `--hold <id>` holds the left button on
+  one (a Brain Globe counts down while the hero is within reach)
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--quest-flag <id>=<state>` set a mission's flag first (1 taken, 2 cleared)
 - `--missions` start with the mission list open; `--missions=<n>` with mission n's description open

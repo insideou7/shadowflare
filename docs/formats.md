@@ -199,14 +199,18 @@ ShadowFlare.exe at 0x427b50. All 209 files parse to their last byte.
 char magic[16]          "MCED DATA v0000\x1a"
 char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
 char mapPath[0x104]     e.g. Map\c02_00.map
-i32  unknown[2]
+i32  town               the area's town (scenario + 0x60): 0 for Remote Town's
+                        areas, 1000000 for Cold Svalt's, ...; where Transport leads
+i32  unknown            scenario + 0x64
 i32  areaKind          0 town, 1 field, 2 caravan, 3 boss room, 4 ruins/tower/fort,
                         5 cave, 6 shrine (scenario + 0x6c)
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"
 3x { i32 n; i32 kinds[n] }   character types used: objects, people, enemies
 4 groups (objects, people, enemies, items), each { i32 n; Record[n] }
 i32  n; EntryPoint[n]   where the party appears: i32 id, x, y, direction
-i32  flags[2]           scenario + 0x2c and + 0x70, use not traced
+i32  unknown            scenario + 0x2c, use not traced
+i32  transport          scenario + 0x70: 1 where Transport may be cast (fields,
+                        dungeons), 0 in towns and the Caravan (0x441c00)
 i32  light              how light the area is: 2000 lit (towns, fields), 1000
                         dark beyond the lights, 1200-1600 dim (see Darkness)
 ```
@@ -225,8 +229,9 @@ i32  unknown
 i32  x, y               world position
 i32  rect[4]            left, top, right, bottom around (x, y)
 i32  direction          0 = south, counter-clockwise as in .caf; 8 = none
-i32  n; i32 states[n]   copied to the character at + 0x4c on: [0] starts
-                        active, [1] and [2] use not traced; each scenario
+i32  n; i32 states[n]   copied to the character at + 0x4c on: [0] shown
+                        (there), [1] usable (clicked, talked to), [2] in
+                        the way (objects: blocks movement); each scenario
                         load makes them NET flags 100,000,000 + id,
                         300,000,000 + id and 200,000,000 + id (0x4300e0)
 i32  hasTable; if 1: i32 m; i32 a[m]; i16 b[m], c[m], d[m]
@@ -274,7 +279,38 @@ weak.
 The item block (0x10 bytes) is the item's class and code in Item.Ibn
 (see Items below) and two zeros.
 
-Object kinds have only `Pattern.Njp`/`.Sdw`, no animation file.
+The object block (0x34 bytes, 13 words) is how a scenario object (a chest,
+door, lever or gate; kind = folder `Character/OBJECT/<kind as 8 digits>`)
+looks. The loader (0x428296) copies it to the object (vtable 0x476de8) at
++ 0xc4 on, and its draw function (0x45ddd0) reads it there:
+
+| word | meaning |
+|---|---|
+| 0 | 1: a still picture, pattern word 1 of `Pattern.Njp` (shadow from `Pattern.Sdw`); else an animation, chart word 2 of `Animation.Caf`, drawn facing 8 (none), looping when the chart's status has bit 1, else holding its last frame |
+| 3 | 1 sets flag 0x80 (use not traced) |
+| 4 | height |
+| 5 | 1: a partner's switch (see Partner dogs) |
+| 6 | a linked enemy |
+| 7 | flags; 4 draws it even at opacity 0 |
+| 8 | opacity, per mille |
+| 10-12 | red, green and blue, per mille |
+
+Most objects come in sets at one place that the script swaps with
+`SETACTIVE` and `SETINACTIVE`: a closed chest that is shown and usable
+and an open one that is neither; a closed door and its two open halves;
+a lever up and down. An object is drawn while its shown flag is set (a
+missing flag counts as set, 0x4541c0), can be clicked while usable, and
+stops the hero while in the way: the movement sweep (0x414990, through
+`RKC_RPGSCRN_OBJECTBLOCK::SetJudgementObject`) keeps only those objects
+as obstacles, using their rectangle. Pictures change only with these
+states; an animation counts its frames only while shown.
+`ABSOLUTEOBJECTFLAG id shown usable blocks` (case 56, 0x433a78) sets
+the three for good (+ 0xfc = 1, + 0x100 on), so the object no longer
+follows its NET flags. All 513 trigger areas (`ONJUDGE` objects with
+no picture) are never in the way.
+
+Object kinds 10, 11, 15 and 27 also have `Animation.Caf` (glowing globes
+and the like); the rest have only `Pattern.Njp`/`.Sdw`.
 
 Entry point ids come in fours, one per party member: entering a
 scenario at entry `e` (see `CHANGESCENARIO` below) puts the player at the
@@ -316,8 +352,10 @@ Operand values (ShadowFlare.exe 0x4346b0): types 0-2 are the value
 itself; `TEMP`, `NET`, `WARP`, `SAVE` and `QUEST` are variables; `CPOSX`
 and `CPOSY` are a character's world position; `PLAYMODE` is single or
 network play (2 is network play); `ELIV n` is 1 while enemy 14,000,000 + n
-is alive and 0 once it is dead; `CCHECK id` is 1 while object `id` is within
-the hero's reach (inferred; not carried out yet); `EXSTRG n` is a word list on the
+is alive and 0 once it is dead; `CCHECK id` is 1 while the left button is held
+on object `id`, which is shown and usable, and the hero stands within
+reach of its rectangle (the "Brain Globe" a player holds down until its
+countdown ends); `EXSTRG n` is a word list on the
 player (+ 0x55c, use not traced).
 
 Command numbers come from the keyword table in RKC_RPG_SCRIPT.dll (each
@@ -408,6 +446,12 @@ Record above). Each scenario load puts them in the NET flags, as
 like TEMP ones. `SETACTIVE id` sets all three to 1 and `SETINACTIVE id`
 to 0; scripts also read and set them directly, such as a
 lever's `NET[110040000]`.
+
+`SETUNLOCKSW on` (case 60, 0x433edf) sets player + 0x159c, which the
+player clears every frame (0x443490); while it is set the hero is drawn
+with `Player/Common/UnlockSW` over them (animation 502 at 0x434ef0), the
+glow while working a Brain Globe, so a script sets it on every frame it
+wants it shown.
 
 `CHECKENEMYLIVE first last var` puts in `var` the first enemy id in
 first..last that is still alive, or -1 when none is; `CHECKENEMYDEAD`

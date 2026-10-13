@@ -49,6 +49,11 @@ fill hit words 0x29, 0x2b, 0x28 and 0x48.
   happens if its path meets one while it moves, and it stops there (0x4145b0,
   0x414990). Cells with bit 1 set are low walls that shots fly over. The engine
   checks the path in steps of 40 units or less.
+- **Objects.** A scenario object that stands in the way (its third state,
+  which the exe keeps as status bit 0 at 0x45e080) stops an arrow the same
+  way when its rectangle meets the shot's box. The exe also skips objects
+  whose word at + 0xf8 is set; that word is not traced, and the engine
+  takes it as clear.
 
 | Kind | What it is | Box | Hurts | Lasts |
 |---|---|---|---|---|
@@ -113,9 +118,10 @@ The command does nothing if the enemy is alive.
 ## `SETCHARTRANS` and `GETCHARTRANS`
 
 These read and write a scenario object's opacity, 0-1000, at object +0xf4.
-They work on objects only. `GETCHARTRANS` leaves its variable alone for
-anything else. The engine keeps the value per map for scripts to read
-back; drawing scenario objects with it waits on the object work.
+It is the same opacity the object is drawn with (0x45ddd0), so a script can
+fade a door or a wall out. They work on objects only. `GETCHARTRANS` leaves
+its variable alone for anything else. The opacity starts again from the
+scenario file each time the scenario is entered.
 
 ## `STARTVISUAL picture`
 
@@ -157,11 +163,3 @@ way. For example, scenario 04100000 teaches Identify (17).
 
 **`CHECKMEMORIZEDMAGIC`** stores 1 when the spell is known, and 0 when it is
 not.
-
-## Not done yet
-
-- Blocking scenario objects do not stop arrows yet. In the original, an object
-  with status bit 0 set and +0xf8 clear ends the shot. This waits on the
-  scenario objects work.
-- Scenario objects are not drawn with their SETCHARTRANS opacity yet. This
-  also waits on that work.

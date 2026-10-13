@@ -484,6 +484,37 @@ void testScriptActiveFlagsAndRoutines() {
           "SETINACTIVE clears the three NET flags");
 }
 
+struct ObjectHost : sf::ScriptHost {
+    std::int32_t fixedId = 0;
+    int states[3] = {-1, -1, -1};
+    void setObjectStates(std::int32_t id, int shown, int usable, int blocks) override {
+        fixedId = id;
+        states[0] = shown, states[1] = usable, states[2] = blocks;
+    }
+    bool workingObject(std::int32_t id) const override { return id == 10041000; }
+    bool unlock = false;
+    void setUnlockSwitch(bool on) override { unlock = on; }
+};
+
+void testScriptObjects() {
+    using S = sf::ScenarioScript;
+    S script;
+    // A Brain Globe's frame (Scenario 00000004): CCHECK the globe, and
+    // SETUNLOCKSW while it is held; then a gate fixed open.
+    script.sentences = {{{S::kSetFlag, {{S::kTemp, 1}, {S::kObjectCheck, 10041000}}},
+                         {S::kSetFlag, {{S::kTemp, 2}, {S::kObjectCheck, 10041001}}},
+                         {S::kSetUnlockSwitch, {constant(1)}},
+                         {S::kAbsoluteObjectFlag, {constant(10010001), constant(1), constant(0), constant(1)}}}};
+    sf::ScriptFlags flags;
+    ObjectHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(flags[{S::kTemp, 1}] == 1 && flags[{S::kTemp, 2}] == 0, "CCHECK reads whether the object is being worked");
+    check(host.unlock, "SETUNLOCKSW");
+    check(host.fixedId == 10010001 && host.states[0] == 1 && host.states[1] == 0 && host.states[2] == 1, "ABSOLUTEOBJECTFLAG");
+    check(sf::ScriptRunner::implemented(S::kAbsoluteObjectFlag) && sf::ScriptRunner::implemented(S::kSetUnlockSwitch),
+          "object commands are carried out");
+}
+
 void testPartners() {
     sf::GameTables tables;
     auto& kinds = tables.tables[60];
@@ -717,6 +748,34 @@ void testMagic() {
     for (int k = 1; k < need; ++k) book.train(t, sf::kPlasma);
     check(book.castLevel(sf::kPlasma) == 1 && book.train(t, sf::kPlasma) && book.castLevel(sf::kPlasma) == 2, "training");
     check(sf::spellMpCost(t, sf::kFireBall, 1) == 30 && sf::spellMpCost(t, sf::kFireBall, 1, 50) == 1, "MP cost");
+
+    check(book.castLevel(sf::kPlasma, false, 3) == 5 && book.castLevel(sf::kPlasma, true, 40) == 30,
+          "Magic Level modifiers raise the cast level, up to 30");
+
+    // Moon (tables 200 and 0x4138b0): its drain, and what it adds to the
+    // companion in percent, at the level it was cast at.
+    check(t.moon[0][sf::MagicTables::column(1)] == -30 && t.moon[0][sf::MagicTables::column(11)] == -25, "Moon's drain");
+    sf::PartnerStats dog;
+    dog.attackSpeed = 250;
+    dog.maxHp = 100;
+    dog.attack = 50;
+    dog.defense = 0;
+    sf::applyMoon(dog, t, 6);
+    check(dog.attackSpeed == 255 && dog.maxHp == 112 && dog.attack == 53 && dog.defense == 1, "Moon raises the companion");
+
+    // Stuns (tables 70-78 and 24, 0x459690).
+    const auto medusa = t.stun(-1, sf::kMedusa, 10);
+    check(medusa.chance == 100 && medusa.length == 76 && medusa.uncapped, "Medusa's stone");
+    check(t.stun(sf::kFire, sf::kIceBolt, 1).length == 20, "Ice Bolt's freeze");
+    L water3{};
+    water3[sf::kWater] = 3;
+    const auto bonus = sf::spellStun(t, sf::kIceBolt, 1, sf::kFire, water3);
+    check(bonus.chance == t.stun(sf::kFire, sf::kIceBolt, 1).chance + 10 && bonus.length == 26,
+          "the hero's level in the monster's opposite element adds to a stun");
+    check(sf::spellStun(t, sf::kIceBolt, 1, -1, water3).length == 20, "no bonus on a monster without an element");
+    check(sf::stunKindOf(sf::kMedusa) == sf::StunKind::Stone && sf::stunKindOf(sf::kDreadDeathscythe) == sf::StunKind::Freeze &&
+              sf::stunKindOf(sf::kFireBall) == sf::StunKind::Plain,
+          "what each spell's stun does");
 
     // MP drain in hundredths of a point, the fraction carried over.
     int carry = 0, total = 0;
@@ -992,6 +1051,7 @@ int main() {
     testWarpGateTable();
     testScriptQuestChecks();
     testScriptActiveFlagsAndRoutines();
+    testScriptObjects();
     testPartners();
     testCareer();
     testScriptExit();

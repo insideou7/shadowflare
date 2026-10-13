@@ -93,7 +93,10 @@ void Game::stepTrap(Effect& e) {
     // 0x414990): one whose box already meets a wall is spent; otherwise
     // it moves on and is spent where its path first meets one.
     const bool walls = shot.diesOnWall && map_;
-    if (walls && shotMeetsWall(map_->ground(), static_cast<int>(e.x), static_cast<int>(e.y), shot.box)) e.dead = true;
+    const auto blocked = [&](double x, double y) {
+        return shotMeetsWall(map_->ground(), static_cast<int>(x), static_cast<int>(y), shot.box) || boxMeetsObject(x, y, shot.box);
+    };
+    if (walls && blocked(e.x, e.y)) e.dead = true;
     if (e.speed > 0) {
         const double dx = std::cos(e.angle) * e.speed, dy = std::sin(e.angle) * e.speed;
         // Steps no longer than a quarter of a judge cell, so a thin wall is
@@ -101,7 +104,7 @@ void Game::stepTrap(Effect& e) {
         const int steps = walls ? std::max(1, static_cast<int>(std::ceil(e.speed / 40.0))) : 1;
         for (int i = 1; i <= steps; ++i) {
             const double nx = e.x + dx / steps, ny = e.y + dy / steps;
-            if (walls && !e.dead && shotMeetsWall(map_->ground(), static_cast<int>(nx), static_cast<int>(ny), shot.box)) {
+            if (walls && !e.dead && blocked(nx, ny)) {
                 e.dead = true;
                 break;
             }

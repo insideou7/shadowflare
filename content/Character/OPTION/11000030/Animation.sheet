@@ -1,0 +1,14 @@
+# Drawn by tools/art/effects.py (our own art, see content/README.md).
+image=Animation.png
+frame=0,0,47,85,20,56
+frame=48,0,47,85,20,56
+frame=96,0,47,85,20,56
+frame=144,0,47,85,20,56
+frame=192,0,47,85,20,56
+frame=240,0,47,85,20,56
+frame=288,0,47,85,20,56
+frame=336,0,47,85,20,56
+frame=384,0,47,85,20,56
+frame=432,0,47,85,20,56
+frame=480,0,47,85,20,56
+frame=528,0,47,85,20,56

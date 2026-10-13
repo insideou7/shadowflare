@@ -4,6 +4,7 @@
 
 #include "formats/table_data.h"
 #include "logic/inventory.h"
+#include "logic/magic.h"
 
 namespace sf {
 
@@ -71,6 +72,20 @@ void addItemBonuses(PartnerStats& s, const Inventory& worn) {
     add(s.magicHit, ItemDef::kModCompanionMagicHit);
     add(s.magicDefense, ItemDef::kModCompanionMagicDefense);
     add(s.magicEvasion, ItemDef::kModCompanionMagicEvasion);
+}
+
+void applyMoon(PartnerStats& s, const MagicTables& t, int level) {
+    const std::size_t col = MagicTables::column(level);
+    // Table 200 row r changes the stat of the companion's table row r - 1;
+    // row 4 (row 5 here) is a stat the companion does not use.
+    int unused = 1;
+    int* const stats[13] = {&s.attackSpeed, &s.walkSpeed, &s.runSpeed, &s.maxHp, &unused, &s.attack, &s.hit,
+                            &s.defense, &s.evasion, &s.magicAttack, &s.magicDefense, &s.magicHit, &s.magicEvasion};
+    for (std::size_t r = 0; r < 13; ++r) {
+        int& v = *stats[r];
+        v += t.moon[r + 1][col] * v / 100;
+        v = r < 3 ? std::clamp(v, 0, 255) : std::max(v, 1);
+    }
 }
 
 int PartnerTables::need(int kind, int level) const {

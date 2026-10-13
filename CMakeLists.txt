@@ -80,6 +80,7 @@ add_executable(shadowflare
     src/game/options.cpp
     src/game/partner.cpp
     src/game/missions.cpp
+    src/game/transport.cpp
     src/game/warp_gate.cpp
     src/game/panel.cpp
     src/game/power.cpp
@@ -87,6 +88,7 @@ add_executable(shadowflare
     src/game/darkness.cpp
     src/game/area_map.cpp
     src/game/sound.cpp
+    src/game/objects.cpp
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
