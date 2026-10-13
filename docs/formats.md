@@ -919,6 +919,12 @@ marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
 330 - y x 48 / 20000), fading in and out over 50 frames. Not done yet: a
 bowgun's attack shown scaled for anyone but a hunter, and Max at level 100.
 
+While a window covers half the screen the view keeps the hero in the
+middle of the other half (0x41e8f0; the open windows are counted at
+0x416fb0): the item window on the right puts the hero at x = 160, a window
+on the left (status, magic, GATE, map, a shop) at x = 480. With both halves
+covered (or the mission list) the world is not drawn at all.
+
 An item under the mouse is described in a box centred under the pointer,
 8 pixels below it and kept on the screen, edged in white at half strength
 (0x409160).

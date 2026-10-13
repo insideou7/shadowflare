@@ -376,11 +376,20 @@ void Game::walkBy(int screenDx, int screenDy) {
     walkTarget_.emplace(player_->x + dx, player_->y + dy);
 }
 
+// The hero stays in the middle of what the windows leave of the screen
+// (0x41e8f0, with the windows counted at 0x416fb0): with the item window
+// open on the right, the middle of the left half; with a window open on
+// the left (status, magic, GATE, map, a shop), the middle of the right
+// half. When both halves are covered the view stays where it is centred.
 void Game::updateCamera() {
     if (!player_) return;
     int sx, sy;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
-    cameraX_ = sx - kScreenWidth / 2.0;
+    const bool left = showStatus_ || magicOpen_ || warpOpen_ || mapOpen_ || openShop_.has_value();
+    const bool right = showInventory_;
+    double centre = kScreenWidth / 2.0;
+    if (!missionsOpen_ && left != right) centre = right ? kScreenWidth / 4.0 : kScreenWidth * 3 / 4.0;
+    cameraX_ = sx - centre;
     cameraY_ = sy - kScreenHeight / 2.0;
 }
 
