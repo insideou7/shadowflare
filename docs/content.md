@@ -339,14 +339,18 @@ items land around it.
 
 ## Drawing the original game with this art
 
-A player who has the original game sees its own maps, people and monsters,
-but drawn with the pack's art: the engine reads the maps, scripts and
-characters from their copy and draws them with content/'s ground
-textures, props, characters and hero. `skin.txt` at the pack's root says
-how; whatever it does not cover (and any character the pack has no
-`.anim` for) is drawn from the original files as before. This is the
-default when both are found; `--original-art` turns it off and
-`--skin <pack>` uses another pack.
+A player who has the original game sees its own maps drawn with the
+pack's art: the engine reads the maps, scripts and characters from their
+copy and draws them with content/'s ground textures and props. `skin.txt`
+at the pack's root says how; whatever it does not cover is drawn from the
+original files as before. This is the default when both are found;
+`--original-art` turns it off and `--skin <pack>` uses another pack.
+
+The original's monsters, people and hero keep their own art, as do the
+hero's effects from `Player/Common` (the area compass, the power-up glow).
+`--skin-characters` draws them with the pack's characters and hero
+instead, where the pack has an `.anim` for them (any it lacks stay
+original).
 
     props=Map/props.sheet        # the sheet whose named frames [objects] uses
 

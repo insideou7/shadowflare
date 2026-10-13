@@ -79,7 +79,7 @@ Skin::~Skin() {
 }
 
 std::optional<CharacterModel> Skin::character(const std::string& stem) const {
-    if (!pack_->exists(stem + ".anim")) return std::nullopt;
+    if (!characters_ || !pack_->exists(stem + ".anim")) return std::nullopt;
     return CharacterModel::load(*pack_, stem);
 }
 
