@@ -139,27 +139,36 @@ void Game::runAiAction(Actor& enemy) {
             moveTowards(enemy.placement.x, enemy.placement.y, list.walkSpeed * scale);
             enemy.event = enemy.actionTicks > 90 ? AiControl::kDecide : -1;
             break;
-        default:
+        default: {
             if (!isAttack(enemy.action)) break;
+            const bool magic = enemy.action >= AiControl::kMagic;
+            const int slot = enemy.action - (magic ? AiControl::kMagic : AiControl::kAttack);
+            const auto k = static_cast<std::size_t>(slot);
+            const auto& s = enemy.placement.stats;
             if (enemy.actionTicks == 1) {
-                // Melee uses chart 4; spells and the other attacks the
-                // special charts where a monster has them.
-                const int variant = enemy.action - (enemy.action >= AiControl::kMagic ? AiControl::kMagic : AiControl::kAttack);
-                int wanted = chart::kEnemyAttack;
-                if (enemy.action >= AiControl::kMagic || variant > 0) wanted = variant == 2 ? 8 : 7;
+                // Attacks play chart 4 plus their slot's word 64-66 and
+                // spells chart 7 plus word 67-69 (0x45a749, 0x45ac90),
+                // aimed at the player as the action starts.
+                const int wanted = magic ? 7 + s.spellCharts[k] : chart::kEnemyAttack + s.attackCharts[k];
                 c.faceTowards(player_->x - c.x, player_->y - c.y);
+                enemy.aim = std::atan2(player_->y - c.y, player_->x - c.x);
                 c.restart(c.hasChart(wanted) ? wanted : chart::kEnemyAttack);
-                break;
             }
-            // Spells have no projectiles yet: they land halfway through,
-            // like blows, if the player is still in range. Attacks 2-4 and
-            // spells 5-7 each use their own slot of the monster's stats.
-            if (!enemy.struck && c.frame() >= c.frameCount() / 2) {
+            // A blow lands, or a spell leaves the hand, at each frame whose
+            // cell has status 0x40, so some do it two or three times.
+            // Charts without one (the open content's) do it once, halfway
+            // through.
+            int strikes = c.takeStrikes();
+            if (!c.hasStrikes() && !enemy.struck && c.frame() >= c.frameCount() / 2) {
                 enemy.struck = true;
-                const double reach = enemy.entry.cond[3] == 1 && enemy.entry.cond[5] > 0 ? enemy.entry.cond[5] + 60.0 : 100.0;
-                const bool magic = enemy.action >= AiControl::kMagic;
-                if (gapToPlayer(enemy) <= reach) {
-                    strikePlayer(enemy, enemy.action - (magic ? AiControl::kMagic : AiControl::kAttack), magic);
+                strikes = 1;
+            }
+            for (; strikes > 0; --strikes) {
+                if (magic) {
+                    castMonsterSpell(enemy, slot);
+                } else {
+                    const double reach = enemy.entry.cond[3] == 1 && enemy.entry.cond[5] > 0 ? enemy.entry.cond[5] + 60.0 : 100.0;
+                    if (gapToPlayer(enemy) <= reach) strikePlayer(enemy, slot);
                 }
             }
             if (c.finished()) {
@@ -168,6 +177,7 @@ void Game::runAiAction(Actor& enemy) {
                 enemy.event = AiControl::kAnimationDone;
             }
             break;
+        }
     }
 }
 

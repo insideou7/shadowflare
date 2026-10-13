@@ -196,7 +196,7 @@ void testScenario() {
     i32(0);  // no table
     i32(-1);
     for (int w = 0; w < 0x13c / 4; ++w) {
-        i32(w == 8 ? 40 : w == 9 ? 10 : w == 10 ? 50 : w == 11 ? 6 : w == 14 ? 3 : w == 23 ? 12 : w == 29 ? 170 : w == 32 ? 1 : w == 33 || w == 34 ? -1 : w == 35 ? 30 : w == 6 ? 5 : w == 15 ? 0x0041474f : w == 77 ? 1100 : w == 49 ? 10 : w == 51 ? 25 : 0);
+        i32(w == 8 ? 40 : w == 9 ? 10 : w == 10 ? 50 : w == 11 ? 6 : w == 14 ? 3 : w == 23 ? 12 : w == 29 ? 170 : w == 32 ? 1 : w == 33 || w == 34 ? -1 : w == 35 ? 30 : w == 6 ? 5 : w == 15 ? 0x0041474f : w == 77 ? 1100 : w == 49 ? 10 : w == 51 ? 25 : w == 65 ? 4 : w == 67 ? 1 : 0);
     }
     i32(1);  // items
     i32(0);
@@ -227,6 +227,7 @@ void testScenario() {
           "scenario enemy stats");
     check(e.stats.element == 5 && e.stats.attack() == 12 && e.stats.hit() == 170, "scenario enemy element and attack");
     check(e.stats.spells[0] == 1 && e.stats.spells[1] == -1 && e.stats.spellPower[0] == 30, "scenario enemy spells");
+    check(e.stats.attackCharts[1] == 4 && e.stats.spellCharts[0] == 1 && e.stats.spellCharts[1] == 0, "scenario enemy charts");
     check(e.stats.ai == "OGA" && e.stats.speed == 1100, "scenario enemy AI");
     check(e.stats.goldChance == 10 && e.stats.goldMax == 25, "scenario enemy gold");
     const auto& item = s.placements[2];

@@ -213,6 +213,9 @@ const Rows kMoonTable = {
 };
 // Table 24.
 constexpr int kStunBonus[10][2] = {{10, 3}, {10, 6}, {10, 6}, {10, 8}, {13, 8}, {15, 9}, {15, 11}, {15, 13}, {15, 15}, {16, 15}};
+// Table 26: what the hero's level -10 to -1 in a monster spell's element
+// adds to its stun's chance and length.
+constexpr int kHeroStunBonus[10][2] = {{25, 15}, {25, 12}, {25, 9}, {25, 6}, {25, 6}, {25, 3}, {20, 3}, {15, 1}, {10, 1}, {10, 1}};
 
 struct StunRow {
     int element, spell;
@@ -386,6 +389,7 @@ MagicTables MagicTables::standard() {
     for (std::size_t r = 0; r < t.berserker.size(); ++r) t.berserker[r] = expand<kSpellColumns>(kBerserkerTable[r]);
     for (std::size_t r = 0; r < t.moon.size(); ++r) t.moon[r] = expand<kSpellColumns>(kMoonTable[r]);
     for (std::size_t r = 0; r < t.stunBonus.size(); ++r) t.stunBonus[r] = {kStunBonus[r][0], kStunBonus[r][1]};
+    for (std::size_t r = 0; r < t.heroStunBonus.size(); ++r) t.heroStunBonus[r] = {kHeroStunBonus[r][0], kHeroStunBonus[r][1]};
     for (const StunRow& row : kStunRows) {
         const auto chance = expand<kSpellColumns>(row.chance), length = expand<kSpellColumns>(row.length),
                    uncapped = expand<kSpellColumns>(row.uncapped);

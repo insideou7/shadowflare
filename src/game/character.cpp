@@ -70,6 +70,7 @@ void Character::restart(int chart, double speed) {
     speed_ = speed;
     progress_ = 0;
     cues_ = 0;
+    strikes_ = 0;
     reached(0);
 }
 
@@ -79,6 +80,14 @@ void Character::reached(int frame) {
     for (const auto& layer : dir->layers) {
         if (frame < static_cast<int>(layer.size())) cues_ |= layer[static_cast<std::size_t>(frame)].status & kCueFlags;
     }
+    if (!dir->layers.empty() && frame < static_cast<int>(dir->layers[0].size()) && (dir->layers[0][static_cast<std::size_t>(frame)].status & 0x40)) {
+        ++strikes_;
+    }
+}
+
+bool Character::hasStrikes() const {
+    const auto* dir = currentDirection();
+    return dir && !dir->layers.empty() && std::ranges::any_of(dir->layers[0], [](const auto& cell) { return (cell.status & 0x40) != 0; });
 }
 
 bool Character::hasChart(int chart) const {
@@ -157,7 +166,7 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         const auto& layer = dir->layers[i];
         if (frame_ >= static_cast<int>(layer.size())) continue;
         const auto& cell = layer[frame_];
-        const bool shadow = cell.status == AnimationSet::kShadowStatus;
+        const bool shadow = AnimationSet::isShadow(cell.status);
         if (shadow && alpha < 255) continue;
         if (!shadow && std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
         items.push_back({&cell, shadow});

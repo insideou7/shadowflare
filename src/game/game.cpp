@@ -1235,23 +1235,10 @@ void Game::sayBroken(const std::vector<EquipSlot>& slots) {
     if (!slots.empty()) refreshPartnerStats();
 }
 
-void Game::strikePlayer(Actor& enemy, int slot, bool magic) {
+void Game::strikePlayer(Actor& enemy, int slot) {
     const auto& s = enemy.placement.stats;
     const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
     const HeroStats stats = playerStats();
-    if (magic && s.spells[k] >= 0 && s.spells[k] < kSpellCount) {
-        // A monster's spell, as the cast code at 0x45b043 sets it up: the
-        // spell's element and hit at the monster's spell level, its own
-        // power, and its bonus to hit.
-        const int spell = s.spells[k];
-        const int hit = magic_.hit(spell, s.spellLevel[k]) + s.spellHit[k];
-        if (random_.next(100) >= hitChance(hit, stats[HeroStats::kMagicEvasion])) return;
-        const int element = magic_.spell(spell).element;
-        const int damage = damageToHero(magic_, s.spellPower[k], element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
-        showSpellHit(spell, player_->x, player_->y);
-        hurtPlayer(damage, true, &enemy);
-        return;
-    }
     // The blow also catches an ACTIVE companion in front of the monster.
     if (partnerInReach(enemy)) strikePartner(enemy, slot);
     if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
