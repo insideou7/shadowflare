@@ -50,7 +50,7 @@ struct Options {
     std::optional<sf::HeroSex> hero;  // --hero male|female: who plays
     std::string heroName;             // --name
     bool newCharacter = false;        // open the Create New Character screen
-    std::vector<std::string> presses;  // --press left,enter,text:Ada,...: keys queued at the start
+    std::vector<std::string> presses;  // --press left,enter,text:Ada,wheeldown,...: keys queued at the start
     bool options = false;     // open the Settings Menu at the start (for screenshots)
     bool help = false;        // open the Help window at the start
     std::string optionsFile;  // default: options.txt in the user's settings folder
@@ -554,6 +554,9 @@ int main(int argc, char** argv) {
         if (press.starts_with("text:")) {
             e.type = SDL_TEXTINPUT;
             std::snprintf(e.text.text, sizeof e.text.text, "%s", press.c_str() + 5);
+        } else if (press == "wheelup" || press == "wheeldown") {
+            e.type = SDL_MOUSEWHEEL;
+            e.wheel.y = press == "wheelup" ? 1 : -1;
         } else {
             e.type = SDL_KEYDOWN;
             e.key.keysym.sym = press == "enter" ? SDLK_RETURN : press == "esc" ? SDLK_ESCAPE : SDL_GetKeyFromName(press.c_str());

@@ -39,7 +39,18 @@ const LightMap* Game::darkPart(int part) {
 void Game::renderDarkness(int camX, int camY) {
     const LightMap* screenLight = darkPart(0);
     if (!screenLight || screenLight->width != lighting::kWidth || screenLight->height != lighting::kHeight) return;
-    LightMap light = *screenLight;
+    // Zoomed out the world, darkness and all, is drawn bigger and shrunk,
+    // so the light round the hero covers as much of the map as at full
+    // size, and the screen's ellipse keeps its place about the middle of
+    // the view (at full size it covers 640 x 420, the panel below).
+    const int w = viewWidth(), h = viewHeight() - (kScreenHeight - lighting::kHeight);
+    LightMap light;
+    if (w == lighting::kWidth && h == lighting::kHeight) {
+        light = *screenLight;
+    } else {
+        light = LightMap{w, h, std::vector<std::uint8_t>(static_cast<std::size_t>(w) * static_cast<std::size_t>(h))};
+        lighting::add(light, *screenLight, w / 2, h / 2);
+    }
     auto addAt = [&](int part, double worldX, double worldY) {
         const LightMap* l = darkPart(part);
         if (!l) return;
@@ -61,10 +72,12 @@ void Game::renderDarkness(int camX, int camY) {
     }
 
     const auto levels = lighting::levels(control_.light);
-    if (!darkTexture_) {
-        darkTexture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, lighting::kWidth, lighting::kHeight));
+    if (!darkTexture_ || darkTextureW_ != w || darkTextureH_ != h) {
+        darkTexture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, w, h));
         if (!darkTexture_) return;
         SDL_SetTextureBlendMode(darkTexture_.get(), SDL_BLENDMODE_MOD);
+        darkTextureW_ = w;
+        darkTextureH_ = h;
     }
     void* pixels = nullptr;
     int pitch = 0;
@@ -77,7 +90,7 @@ void Game::renderDarkness(int camX, int camY) {
         }
     }
     SDL_UnlockTexture(darkTexture_.get());
-    const SDL_Rect dst{0, 0, lighting::kWidth, lighting::kHeight};
+    const SDL_Rect dst{0, 0, w, h};
     SDL_RenderCopy(renderer_, darkTexture_.get(), nullptr, &dst);
 }
 

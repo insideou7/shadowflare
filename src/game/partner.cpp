@@ -503,7 +503,8 @@ bool Game::partnerAt(float screenX, float screenY) const {
     if (!partner_ || partner_->state == Partner::State::Dead) return false;
     int sx, sy;
     worldToScreen(static_cast<int>(partner_->character.x), static_cast<int>(partner_->character.y), sx, sy);
-    return inClickRange(sx - cameraX_ - screenX, sy - 20 - cameraY_ - screenY);
+    const SDL_FPoint at = onScreen(sx, sy - 20);
+    return inClickRange(at.x - screenX, at.y - screenY);
 }
 
 bool Game::partnerCanStand(double x, double y) const { return map_ && map_->ground().walkable(x, y); }
@@ -520,7 +521,7 @@ bool Game::partnerOrder(float screenX, float screenY, bool right) {
     const bool alive = p.state != State::Dead;
     const bool leaping = p.state == State::Jump || p.state == State::Dash;
     double wx, wy;
-    screenToWorld(cameraX_ + screenX, cameraY_ + screenY, wx, wy);
+    screenToWorld(pixelX(screenX), pixelY(screenY), wx, wy);
     const auto target = clickTarget(screenX, screenY, ~0u);
     auto order = [&](Order o, double x, double y) {
         p.order = o;

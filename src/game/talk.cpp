@@ -302,7 +302,7 @@ const ScenarioControl::Placement* Game::placementById(std::int32_t id) const {
 std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
     if (!script_) return std::nullopt;
     double wx, wy;
-    screenToWorld(cameraX_ + screenX, cameraY_ + screenY, wx, wy);
+    screenToWorld(pixelX(screenX), pixelY(screenY), wx, wy);
     for (std::size_t i = 0; i < control_.placements.size(); ++i) {
         const auto& p = control_.placements[i];
         if (p.group != ScenarioControl::Group::Object) continue;
@@ -324,7 +324,7 @@ void Game::showLabel(const ScriptHost::Label& label) {
     labels_.push_back({label, std::max(1, label.duration * kTicksPerSecond / 1000)});
 }
 
-void Game::renderLabels(int camX, int camY) {
+void Game::renderLabels() {
     for (const auto& l : labels_) {
         const auto at = positionOf(l.label.character);
         if (!at) continue;
@@ -340,9 +340,10 @@ void Game::renderLabels(int camX, int camY) {
                 lines.push_back(std::exchange(line, {}));
             }
         }
-        int y = sy - camY + l.label.dy;
+        const SDL_FPoint p = onScreen(sx + l.label.dx, sy + l.label.dy);
+        int y = static_cast<int>(p.y);
         for (const auto& text : lines) {
-            const int x = sx - camX + l.label.dx - uiTextWidth(text) / 2;
+            const int x = static_cast<int>(p.x) - uiTextWidth(text) / 2;
             uiText(x + 1, y + 1, text, {0, 0, 0, 255});  // a shadow, as the exe draws text
             uiText(x, y, text, {l.label.r, l.label.g, l.label.b, 255});
             y += kLineHeight;
@@ -376,7 +377,8 @@ std::optional<std::size_t> Game::personAt(float screenX, float screenY) const {
         if (a.hostile() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
-        const double dx = sx - cameraX_ - screenX, dy = sy - 40 - cameraY_ - screenY;
+        const SDL_FPoint at = onScreen(sx, sy - 40);
+        const double dx = at.x - screenX, dy = at.y - screenY;
         const double d = std::hypot(dx, dy);
         if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
@@ -508,8 +510,9 @@ SDL_Rect Game::dialogueBox() {
     int ax = kScreenWidth / 2, ay = kScreenHeight / 2;
     if (const auto* a = actorById(d.speaker)) {
         worldToScreen(static_cast<int>(a->character.x), static_cast<int>(a->character.y), ax, ay);
-        ax -= static_cast<int>(cameraX_);
-        ay -= static_cast<int>(cameraY_) + 110;
+        const SDL_FPoint at = onScreen(ax, ay - 110);
+        ax = static_cast<int>(at.x);
+        ay = static_cast<int>(at.y);
     }
     int w = 0;
     for (const auto& l : d.lines) w = std::max(w, uiTextWidth(l));

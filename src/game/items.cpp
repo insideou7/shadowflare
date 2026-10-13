@@ -504,7 +504,8 @@ std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) cons
     for (std::size_t i = 0; i < groundItems_.size(); ++i) {
         int sx, sy;
         worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
-        const double dx = sx - cameraX_ - screenX, dy = sy - 8 - cameraY_ - screenY;
+        const SDL_FPoint at = onScreen(sx, sy - 8);
+        const double dx = at.x - screenX, dy = at.y - screenY;
         const double d = std::hypot(dx, dy);
         if (inClickRange(dx, dy) && d < bestDistance) {
             bestDistance = d;
@@ -576,7 +577,7 @@ void Game::renderGroundItems(int camX, int camY) {
         worldToScreen(static_cast<int>(g->x), static_cast<int>(g->y), sx, sy);
         sx -= camX;
         sy -= camY;
-        if (sx < -128 || sy < -128 || sx > kScreenWidth + 128 || sy > kScreenHeight + 128) continue;
+        if (sx < -128 || sy < -128 || sx > viewWidth() + 128 || sy > viewHeight() + 128) continue;
         if (g->sprite) {
             g->sprite->draw(renderer_, sprites_, camX, camY);
             continue;
