@@ -29,6 +29,7 @@ original format.
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
+| `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 | `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
 | `Character/PARTNER/%08d/Animation.*`  | `Character/PARTNER/%08d/Animation.anim` + `.sheet` |
 
@@ -354,7 +355,8 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-and `glow` (a second hero layer). The item window weighs the `load` of
+`glow` (a second hero layer) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
+(kind 0 stone, 1 arrow, 2 fire arrow, 3 ice arrow; see docs/archery.md). The item window weighs the `load` of
 everything worn against the hero's strength, as the original does.
 
 Codes follow the original where an item stands in for one, so the
@@ -514,6 +516,8 @@ font) are kept in content/ and rebuilt on their own:
     python3 tools/art/panel.py content    # the game panel along the bottom
     python3 tools/art/magic_icons.py content    # the magic/attack bar's icons
     python3 tools/art/warp.py content    # the GATE window (after ui.py: it uses the font)
+    python3 tools/art/story.py content    # the story pages STARTVISUAL shows
+    python3 tools/art/effects.py content    # spell, trap and script effects (or some: effects.py content 0 2)
 
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.

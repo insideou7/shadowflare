@@ -4,12 +4,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
+#include <map>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "logic/ai_select.h"
+#include "logic/archery.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "formats/table_data.h"
@@ -22,6 +24,8 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "audio/mixer.h"
+#include "logic/traps.h"
 #include "formats/item_data.h"
 #include "formats/warp_gates.h"
 
@@ -867,7 +871,208 @@ void testSettings() {
           "bad settings are clamped or ignored");
 }
 
+void testTrapGeometry() {
+    check(sf::calcAngleDegrees(10, 0) == 0 && sf::calcAngleDegrees(0, -10) == 90 && sf::calcAngleDegrees(0, 10) == -90,
+          "CALCANGLE turns world y up");
+    check(sf::calcAngleDegrees(-10, 1) == -174, "CALCANGLE cuts towards zero");
+    constexpr double deg = 0.01745328888888889;
+    check(sf::directionOfAngle(0) == 1 && sf::directionOfAngle(45 * deg) == 2 && sf::directionOfAngle(90 * deg) == 3 &&
+              sf::directionOfAngle(180 * deg) == 5 && sf::directionOfAngle(270 * deg) == 7 && sf::directionOfAngle(-90 * deg) == 7,
+          "angles face the exe's eight directions");
+    check(sf::directionOfAngle(300 * deg) == 0 && sf::directionOfAngle(350 * deg) == 1, "0 lies between 7 and 1");
+    const sf::JudgeRect r = sf::kHeroJudge;
+    check(sf::rectGap(0, 0, r, 100, 100, r) == 0, "overlapping rectangles have no gap");
+    check(sf::rectGap(0, 0, r, 200, 0, r) == 40, "side by side: the nearest edges less one");
+    check(sf::rectGap(0, 0, r, 300, 300, r) == static_cast<int>(std::hypot(141.0, 141.0)) - 1, "apart both ways: the corners");
+}
+
+void testArchery() {
+    using sf::HeroClass;
+    check(sf::bowAttackPercent(HeroClass::Hunter, {}) == 100, "a hunter shoots with the whole attack");
+    check(sf::bowAttackPercent(HeroClass::Warrior, {HeroClass::Mercenary, HeroClass::Warrior}) == 40, "no hunter levels: 40%");
+    std::vector<HeroClass> once(4, HeroClass::Mercenary);
+    once.push_back(HeroClass::Hunter);
+    once.push_back(HeroClass::Hunter);
+    once.push_back(HeroClass::Warrior);
+    check(sf::hunterLevels(once) == 2 && sf::bowAttackPercent(HeroClass::Warrior, once) == 43, "two hunter levels: 40 + 100/30");
+    check(sf::bowAttackPercent(HeroClass::Wizard, std::vector<HeroClass>(40, HeroClass::Hunter)) == 90, "at most 90%");
+
+    constexpr double deg = 3.141592653589793 / 180;
+    const auto one = sf::bowVolley(1, 0, 90 * deg);
+    check(one.option == 0 && one.arrows.size() == 1 && one.arrows[0].facing == 3 && !one.flame && !one.frost,
+          "a plain bowgun looses one arrow facing its way");
+    const auto stones = sf::bowVolley(0, 3, 0);
+    check(stones.option == 1 && stones.arrows.size() == 3 && stones.arrows[1].facing == 8 &&
+              std::abs(stones.arrows[2].angle - 15 * deg) < 1e-9,
+          "a triple sling throws three stones 15 degrees apart");
+    const auto fire = sf::bowVolley(2, 7, 0);
+    check(fire.flame && !fire.frost && fire.arrows.size() == 7 && std::abs(fire.arrows[6].angle - 0.41887902047863906) < 1e-12,
+          "seven fire arrows 8 degrees apart, 24 at the edge");
+    check(sf::bowVolley(3, 5, 0).frost && sf::bowVolley(3, 5, 0).arrows.size() == 5, "ice bowguns light the frost layer");
+    // Odd spreads keep the centre's facing; the second of two faces itself.
+    const auto fan = sf::bowVolley(1, 3, 22 * deg);
+    check(fan.arrows[2].facing == 1 && sf::directionOfAngle(fan.arrows[2].angle) == 2, "a fan keeps the centre's direction");
+    const auto two = sf::bowVolley(1, 1, 20 * deg);
+    check(two.arrows.size() == 2 && two.arrows[0].facing == 1 && two.arrows[1].facing == 2, "two arrows: the second faces itself");
+
+    check(sf::bowHitOption(0, 3) == 11000009 && sf::bowHitOption(1, 2) == 11000022, "the sparks of stones and arrows");
+    const auto start = sf::fallingArrow(0), mid = sf::fallingArrow(5), land = sf::fallingArrow(10);
+    check(start.dx == 1001 && start.dy == -999 && start.height == 4000, "the volley's arrow starts high up and to the right");
+    check(mid.dx == 501 && mid.dy == -499 && mid.height == 2000 && land.dx == 1 && land.dy == 1 && land.height == 0,
+          "it falls onto its target over ten ticks");
+}
+
+void testTrapShots() {
+    const auto arrow = sf::trapShot(0, -1, 3.141592);
+    check(arrow && arrow->direction == 5 && arrow->diesOnHit && arrow->diesOnWall && !arrow->hitsAll && arrow->box.left == -30,
+          "an arrow faces where it flies and stops at the first hit");
+    const auto jet = sf::trapShot(2, 3, 0);
+    check(jet && jet->hitsAll && jet->lastsItsAnimation && jet->hitFrom == 5 && jet->hitTo == 30 && jet->box.top == -360,
+          "a fire jet burns its whole length from tick 5 to 30");
+    check(sf::trapShot(1, 4, 0)->direction == 8 && !sf::trapShot(5, 0, 0), "kind 1 has no facing; kinds 4-7 are not fired");
+    check(sf::scriptEffectOption(21003) == 11000009 && sf::scriptEffectOption(22000) == 12000000 && sf::scriptEffectOption(1) == 0,
+          "effect numbers name OPTION folders");
+    check(sf::trapHitOption(0, 1) == 11000021 && sf::trapHitOption(2, 3) == 11000009, "the sparks of a trap's hit");
+
+    check(sf::stunTicks(30, 20, false, 10, 3, 19) == 15 && !sf::stunTicks(30, 20, false, 10, 3, 20), "a stun's chance less resistance, capped at 15");
+    check(sf::stunTicks(30, 20, true, 0, 0, 0) == 20 && sf::stunTicks(100, 2, false, 0, 9, 0) == 1, "a steady stun runs long; at least 1 tick");
+    check(sf::stunPush(0, 5) == 120 && sf::stunPush(4, 5) == 24 && sf::stunPush(5, 5) == 0, "a stun's push shrinks each tick");
+
+    // A 4 x 3 judge grid of 160-unit cells from cell (0, 0): (1, 1) is a
+    // wall, (2, 1) a low wall shots fly over.
+    sf::GroundLayer g;
+    g.judgeWidth = 4;
+    g.judgeHeight = 3;
+    g.judge.assign(12, 0);
+    g.judge[5] = 1;
+    g.judge[6] = 3;
+    const sf::JudgeRect box{-30, -30, 30, 30};
+    check(!sf::shotMeetsWall(g, 80, 80, box) && sf::shotMeetsWall(g, 140, 200, box), "a shot meets a wall under any part of its box");
+    check(!sf::shotMeetsWall(g, 400, 240, box), "shots fly over low walls");
+    check(!sf::shotMeetsWall(g, -500, -500, box), "off the grid is not a wall");
+}
+
+struct TrapHost : sf::ScriptHost {
+    std::vector<TrapFire> fired;
+    std::vector<std::vector<int>> effects;
+    std::vector<int> learned, pictures;
+    std::map<int, int> opacity{{10010000, 1000}};
+    void fireTrap(const TrapFire& f) override { fired.push_back(f); }
+    void createEffect(int n, int x, int y, int h, int d) override { effects.push_back({n, x, y, h, d}); }
+    void createEffectOn(int n, std::int32_t c) override { effects.push_back({n, c}); }
+    bool nearestPlayer(std::int32_t c, int, int, int& p, int& x, int& y) const override {
+        if (c != 12000000) return false;
+        p = 0, x = 500, y = 600;
+        return true;
+    }
+    int playerDistance(std::int32_t c) const override { return c == 12000000 ? 220 : -1; }
+    void setObjectOpacity(std::int32_t o, int v) override { opacity[o] = v; }
+    std::optional<int> objectOpacity(std::int32_t o) const override {
+        const auto found = opacity.find(o);
+        return found == opacity.end() ? std::nullopt : std::optional(found->second);
+    }
+    void startVisual(int n) override { pictures.push_back(n); }
+    std::vector<std::vector<int>> sounds;
+    void playSound(int voice, bool everywhere, int x, int y) override { sounds.push_back({voice, everywhere ? 1 : 0, x, y}); }
+    void memorizeSpell(int n) override { learned.push_back(n); }
+    bool knowsSpell(int n) const override { return std::ranges::find(learned, n) != learned.end(); }
+};
+
+void testScriptTrapsAndEffects() {
+    using S = sf::ScenarioScript;
+    S script;
+    const Op t1{S::kTemp, 1}, t2{S::kTemp, 2}, t3{S::kTemp, 3}, t4{S::kTemp, 4}, t5{S::kTemp, 5}, t6{S::kTemp, 6},
+        t7{S::kTemp, 7}, t8{S::kTemp, 8}, t9{S::kTemp, 9}, t10{S::kTemp, 10};
+    script.sentences = {{{S::kCreateOptionAngle, {constant(1000), constant(2000), constant(0), constant(90), constant(40),
+                                                  constant(25), constant(50), constant(100), constant(-1), constant(1),
+                                                  constant(40), constant(6), constant(0), constant(1)}},
+                         {S::kCreateEffect, {constant(21003), constant(5), constant(6), constant(7), constant(-1)}},
+                         {S::kCreateEffectChar, {constant(21000), constant(0)}},
+                         {S::kGetNearPlayerPos, {constant(12000000), constant(-1), constant(-1), t1, t2, t3}},
+                         {S::kGetNearPlayerPos, {constant(12000001), constant(-1), constant(-1), t4, t5, t6}},
+                         {S::kCalcMyPlayerDist, {constant(12000000), t7}},
+                         {S::kCalcAngle, {constant(0), constant(-5), t8}},
+                         {S::kSetCharTrans, {constant(10010000), constant(400)}},
+                         {S::kGetCharTrans, {constant(10010000), t9}},
+                         {S::kStartVisual, {constant(3)}},
+                         {S::kCheckMemorizedMagic, {constant(17), t10}},
+                         {S::kMemorizeMagic, {constant(17)}},
+                         {S::kCheckMemorizedMagic, {constant(17), {S::kTemp, 11}}},
+                         {S::kPlaySound, {constant(7), constant(0), constant(300), constant(400)}},
+                         {S::kPlaySound, {constant(20), constant(5), constant(-1), constant(9)}}}};
+    sf::ScriptFlags flags;
+    flags[{S::kTemp, 5}] = 77;
+    TrapHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    // The exe's degree is a shade short, so 100 out at 90 degrees cuts to 99.
+    check(host.fired.size() == 1 && host.fired[0].x == 1000 && host.fired[0].y == 1901 && host.fired[0].fixedDamage &&
+              host.fired[0].power == 25 && host.fired[0].direction == -1 && host.fired[0].stun.chance == 40 &&
+              host.fired[0].stun.length == 6 && !host.fired[0].stun.steady && host.fired[0].stun.splash,
+          "CREATEOPTIONANGLE starts its distance out along the angle");
+    check(host.effects.size() == 2 && host.effects[0] == std::vector{21003, 5, 6, 7, 8} && host.effects[1] == std::vector{21000, 0},
+          "CREATEEFFECT (no direction is 8) and CREATEEFFECTCHAR");
+    check(flags[{S::kTemp, 1}] == 0 && flags[{S::kTemp, 2}] == 500 && flags[{S::kTemp, 3}] == 600, "GETNEARPLAYERPOS finds the player");
+    check(flags[{S::kTemp, 4}] == -1 && flags[{S::kTemp, 5}] == 77, "GETNEARPLAYERPOS gives -1 and leaves x and y with none");
+    check(flags[{S::kTemp, 7}] == 220 && flags[{S::kTemp, 8}] == 90, "CALCMYPLAYERDIST and CALCANGLE");
+    check(flags[{S::kTemp, 9}] == 400, "SETCHARTRANS and GETCHARTRANS");
+    check(host.pictures == std::vector{3}, "STARTVISUAL shows a story picture");
+    check(flags[{S::kTemp, 10}] == 0 && flags[{S::kTemp, 11}] == 1, "MEMORIZEMAGIC teaches a spell CHECKMEMORIZEDMAGIC sees");
+    check(host.sounds == std::vector<std::vector<int>>{{7, 0, 300, 400}, {20, 1, -1, -1}},
+          "PLAYSOUND: voice, heard everywhere when not 0, at x y or at the player for x -1");
+    check(sf::trapShot(0, 8, 0)->hitSound == 7 && sf::trapShot(2, 1, 0)->hitSound == -1, "arrows sound when they hit, jets do not");
+}
+
+// A voice of 8-bit mono samples at the mixer's own rate.
+sf::VoiceBank oneVoice(std::vector<std::uint8_t> pcm, int copies = 0) {
+    sf::VoiceBank bank;
+    bank.copies = copies;
+    sf::VoiceBank::Voice v;
+    v.sampleRate = sf::Mixer::kRate;
+    v.pcm = std::move(pcm);
+    bank.voices.push_back(std::move(v));
+    return bank;
+}
+
+void testMixer() {
+    check(sf::Mixer::attenuation(0) == sf::Mixer::kSilent && sf::Mixer::attenuation(10) == 0 && sf::Mixer::attenuation(5) == -1500,
+          "volume sliders: 0 silent, then -3000 + 300 a step");
+    check(sf::Mixer::gain(sf::Mixer::kSilent) == 0 && sf::Mixer::gain(0) == 1 && std::abs(sf::Mixer::gain(-2000) - 0.1) < 1e-9,
+          "attenuation is hundredths of a decibel");
+
+    sf::Mixer m;
+    m.load(0, oneVoice({255, 255, 128}));
+    std::vector<std::int16_t> out(8);
+    check(!m.play(0, 1, false, 0) && !m.play(3, 0, false, 0), "voices that are not loaded do not play");
+    check(m.play(0, 0, false, 0) && m.playing(0, 0), "a voice plays");
+    m.mix(out);
+    check(out[0] > 32000 && out[1] == out[0] && out[4] == 0 && out[6] == 0 && !m.playing(0, 0),
+          "mono goes to both sides, and a voice stops at its end");
+
+    m.play(0, 0, true, 0);
+    m.mix(out);
+    check(out[6] > 32000 && m.playing(0, 0), "a looping voice starts again");
+    m.stop(0, 0);
+    check(!m.playing(0, 0), "stop");
+
+    // Two at once clip; with no spare copy the second play restarts it.
+    m.load(1, oneVoice({192, 192, 192, 192}, 1));
+    m.play(1, 0, false, 0);
+    m.play(1, 0, false, 0);
+    m.mix(out);
+    check(out[0] > 32000, "a voice's copies play together");
+    m.load(2, oneVoice({192, 192, 192, 192}));
+    m.release(1);
+    m.play(2, 0, false, 0);
+    m.play(2, 0, false, 0);
+    m.mix(out);
+    check(out[0] > 16000 && out[0] < 17000, "with every copy busy, the oldest starts again");
+    m.play(2, 0, false, -2000);
+    m.mix(out);
+    check(out[0] > 1600 && out[0] < 1700, "quieter by its attenuation");
+}
+
 int main() {
+    testMixer();
     testLighting();
     testExploredMap();
     testSettings();
@@ -897,6 +1102,10 @@ int main() {
     testAiSameSeedSameChoices();
     testMovement();
     testLevels();
+    testTrapGeometry();
+    testTrapShots();
+    testArchery();
+    testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

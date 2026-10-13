@@ -24,6 +24,7 @@ add_library(sf_formats STATIC
     src/formats/ground_skin.cpp
     src/formats/missions.cpp
     src/formats/warp_gates.cpp
+    src/formats/voice_bank.cpp
 )
 target_include_directories(sf_formats PUBLIC src)
 
@@ -36,6 +37,8 @@ target_link_libraries(sf_formats PRIVATE sf_stb)
 # Game rules that need no window: scripts, AI choice, movement.
 add_library(sf_logic STATIC
     src/logic/script_runner.cpp
+    src/logic/traps.cpp
+    src/logic/archery.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
@@ -50,6 +53,7 @@ add_library(sf_logic STATIC
     src/logic/partner.cpp
     src/logic/lighting.cpp
     src/logic/explored_map.cpp
+    src/audio/mixer.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
 
@@ -57,6 +61,7 @@ add_executable(shadowflare
     src/main.cpp
     src/core/log.cpp
     src/platform/filesystem.cpp
+    src/platform/audio.cpp
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
@@ -71,6 +76,8 @@ add_executable(shadowflare
     src/game/talk.cpp
     src/game/status.cpp
     src/game/spells.cpp
+    src/game/traps.cpp
+    src/game/archery.cpp
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
@@ -82,6 +89,7 @@ add_executable(shadowflare
     src/game/magic_window.cpp
     src/game/darkness.cpp
     src/game/area_map.cpp
+    src/game/sound.cpp
     src/game/objects.cpp
     src/render/tiny_font.cpp
 )

@@ -165,6 +165,12 @@ public:
     // wearing. Return the slots of what broke.
     std::vector<EquipSlot> wearFromAttacking(Random& random);
     std::vector<EquipSlot> wearFromBlow(Random& random);
+    // A bowgun's shots are its durability: each pull of the trigger uses
+    // one point, however many shots fly (0x437fe0, 0x438a90 by way of
+    // 0x467550), and one with none left shoots nothing. Items with no
+    // durability (the open content's, left out) never run out.
+    bool canShoot() const;
+    std::vector<EquipSlot> wearFromShot();
 
     bool hasUnidentified() const;
     bool carries(ItemDef::Class cls, std::int32_t code) const;  // in the bag  // CHECKUNOPINIONITEM (0x43397d)
@@ -193,6 +199,10 @@ public:
     // count them: broken weapons and armour don't count, nor a shield
     // hidden by a two-handed weapon.
     int modifier(ItemDef::Modifier which) const;
+    // One modifier of the armour and accessories worn, as a blow on the
+    // hero counts them (0x450d90): broken items count, the weapon and a
+    // shield hidden by a two-handed weapon do not.
+    int guardModifier(ItemDef::Modifier which) const;
     // One modifier of everything worn, broken items included; a shield
     // hidden by a two-handed weapon does not count. The gold drop adds
     // Amount of Gold this way (0x44f8b0), the MP cost Mental Cost

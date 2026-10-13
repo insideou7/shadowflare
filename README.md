@@ -84,6 +84,7 @@ Options:
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
@@ -99,6 +100,7 @@ Options:
 - `--save-file <path>` save to and load from this file instead
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
 - `--level <n>` start the hero at level n
+- `--class <warrior|hunter|wizard>` the class `--level` gives the hero from level 5 on
 - `--hurt <percent>` drop the hero's HP to that share four seconds in, and
   `--experience <percent>` start with the EXP gauge that full (screenshots of the panel)
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)

@@ -1,0 +1,4 @@
+# Drawn by tools/art/story.py (our own art, see content/README.md).
+# The arrow that steps along while a story page waits for a click.
+image=WaitIcon.png
+frame=0,0,22,22,0,0

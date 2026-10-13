@@ -206,6 +206,64 @@ public:
             log::warn("Script command {} ({}) in {} is not carried out yet", ScenarioScript::commandName(opcode), opcode, g_.scenarioDir_);
         }
     }
+    void fireTrap(const TrapFire& f) override { g_.fireTrap(f); }
+    void createEffect(int number, int x, int y, int height, int direction) override { g_.createScriptEffect(number, x, y, height, direction, -1); }
+    void createEffectOn(int number, std::int32_t character) override {
+        // It stands where the character is and stays on them (0x433409).
+        if (const auto at = g_.characterAt(character)) g_.createScriptEffect(number, at->first, at->second, 0, 8, character);
+    }
+    bool nearestPlayer(std::int32_t character, int min, int max, int& player, int& x, int& y) const override {
+        // Single play: the hero is the only player (0x430b30).
+        const auto p = g_.placementById(character);
+        const auto at = g_.positionOf(character);
+        if (!p || !at || !g_.player_ || g_.playerHp_ <= 0) return false;
+        const JudgeRect rect{p->rect[0], p->rect[1], p->rect[2], p->rect[3]};
+        const int gap = rectGap(static_cast<int>(g_.player_->x), static_cast<int>(g_.player_->y), kHeroJudge, static_cast<int>(at->first),
+                                static_cast<int>(at->second), rect);
+        if ((min != -1 && gap < min) || (max != -1 && gap > max)) return false;
+        player = 0;
+        x = static_cast<int>(g_.player_->x);
+        y = static_cast<int>(g_.player_->y);
+        return true;
+    }
+    int playerDistance(std::int32_t character) const override {
+        const auto p = g_.placementById(character);
+        const auto at = g_.positionOf(character);
+        if (!p || !at || !g_.player_) return -1;
+        const JudgeRect rect{p->rect[0], p->rect[1], p->rect[2], p->rect[3]};
+        return rectGap(static_cast<int>(g_.player_->x), static_cast<int>(g_.player_->y), kHeroJudge, static_cast<int>(at->first),
+                       static_cast<int>(at->second), rect);
+    }
+    void resurrect(std::int32_t enemy, int x, int y, int direction) override { g_.resurrect(enemy, x, y, direction); }
+    // The object's opacity at + 0xf4, which 0x45ddd0 draws it with.
+    void setObjectOpacity(std::int32_t object, int opacity) override {
+        for (auto& p : g_.control_.placements) {
+            if (p.group == ScenarioControl::Group::Object && ScenarioControl::idBase(p.group) + p.id == object) p.look.opacity = opacity;
+        }
+    }
+    std::optional<int> objectOpacity(std::int32_t object) const override {
+        const auto p = g_.placementById(object);
+        if (!p || p->group != ScenarioControl::Group::Object) return std::nullopt;
+        return p->look.opacity;
+    }
+    void startVisual(int picture) override { g_.startVisual(picture); }
+    void rain(int r, int g, int b, int count) override { g_.addRain(r, g, b, count); }
+    void playSound(int voice, bool everywhere, int x, int y) override {
+        if (!g_.player_) return;
+        if (x == -1) {
+            g_.playSound(voice, g_.player_->x, g_.player_->y, everywhere);
+        } else {
+            g_.playSound(voice, x, y, everywhere);
+        }
+    }
+    void memorizeSpell(int spell) override {
+        // The original only marks it known (player + 0x1440 = 3) and casts
+        // it at level 1 at the least; ours records it as level 1.
+        if (spell < 0 || spell >= kSpellCount || g_.spells_.knows(spell)) return;
+        g_.spells_.level[static_cast<std::size_t>(spell)] = 1;
+        log::info("{} memorized", g_.magic_.spell(spell).name);
+    }
+    bool knowsSpell(int spell) const override { return g_.spells_.knows(spell); }
     void openWarpGate(int gate) override { g_.openWarpGate(gate); }
     void closeWarpGate(int gate) override { g_.closeWarpGate(gate); }
     void offerClass(int cls) override {
@@ -232,6 +290,13 @@ std::optional<std::pair<double, double>> Game::positionOf(std::int32_t id) const
         if (ScenarioControl::idBase(p.group) + p.id == id) return std::pair(double(p.x), double(p.y));
     }
     return std::nullopt;
+}
+
+const ScenarioControl::Placement* Game::placementById(std::int32_t id) const {
+    for (const auto& p : control_.placements) {
+        if (ScenarioControl::idBase(p.group) + p.id == id) return &p;
+    }
+    return nullptr;
 }
 
 std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {

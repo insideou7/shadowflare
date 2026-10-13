@@ -84,6 +84,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadLevelCurve();
     loadMissions();
     loadWarpGates();
+    loadSounds();
     indexScenarios();
     if (playerModels_[static_cast<int>(HeroSex::Male)]) player_.emplace(&*playerModels_[static_cast<int>(HeroSex::Male)]);
     giveStartingKit();
@@ -149,7 +150,10 @@ void Game::loadScenario(const std::string& dir) {
     // ones (0x4300e0); the others persist.
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
     warpPage_ = 0;
-    if (!dir.empty()) readScenario(dir, control_, &script_);
+    if (!dir.empty()) {
+        readScenario(dir, control_, &script_);
+        startAreaMusic(control_.areaKind);
+    }
     // The NET flags start as the script lists them, then each character's
     // and object's activity flags join them.
     if (script_) {
@@ -303,6 +307,7 @@ void Game::placePlayer() {
 }
 
 void Game::placePlayerAt(double screenX, double screenY) {
+    heroStun_.reset();
     const auto& g = map_->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
     int left, top, right, bottom;
@@ -407,6 +412,7 @@ void Game::handleEvent(const SDL_Event& event) {
         menuEvent(event);
         return;
     }
+    if (visual_ && visualEvent(event)) return;
     if (dialogue_ && event.type != SDL_QUIT) {
         dialogueEvent(event);
         return;
@@ -630,6 +636,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 
 void Game::tick() {
     ++ticks_;
+    tickMusic();
     if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
     if (newCharacter_) tickNewCharacter();
     if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_) return;  // the world waits while a menu is open
@@ -650,8 +657,14 @@ void Game::tick() {
         closeDialogue(answer);
     }
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
+    tickVisual();
+    tickRain();
     unlockSwitch_ = false;  // SETUNLOCKSW lasts the frame a script sets it (0x443490)
-    runEvent(ScenarioScript::kEveryTick);
+    // Event 5 runs every one of the original's ticks, 30 a second, so
+    // traps fire and script counters count at its pace.
+    for (everyTickCarry_ += 30.0 / kTicksPerSecond; everyTickCarry_ >= 1.0 && !pendingScenario_; everyTickCarry_ -= 1.0) {
+        runEvent(ScenarioScript::kEveryTick);
+    }
     tickObjects();
     for (auto& actor : actors_) {
         // Scripts show and hide characters through their NET flag, by
@@ -673,6 +686,11 @@ void Game::tick() {
     tickPlayer();
     player_->tick();
     if (power_.active()) {
+        // A hum at the hero every 15 of the original's ticks, the first as
+        // it starts: 60 in all (0x443490).
+        if (const double hum = std::floor(power_.left / 15) * 15; hum > 0 && hum > power_.left - 1.5) {
+            playSound(0x4c, player_->x, player_->y);
+        }
         power_.tick(1.5);  // the original's ticks, 30 a second
         powerAuraTicks_ += 1.5;
     }
@@ -779,9 +797,16 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 void Game::swing() {
     player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
     blowLanded_ = false;
+    bowShot_.reset();
 }
 
 void Game::tickPlayer() {
+    // A trap's stun holds the hero in the hit pose (0x435870).
+    if (heroStun_) {
+        if (tickStun(*player_, *heroStun_)) return;
+        heroStun_.reset();
+        player_->play(chart::kIdle);
+    }
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
     if (casting_) {
@@ -792,7 +817,17 @@ void Game::tickPlayer() {
         player_->play(chart::kIdle);
     }
     if (current == chart::kPlayerHit && !player_->finished()) return;
-    if (current == chart::kPlayerPunch) {
+    if (bowShot_ && (current == chart::kPlayerPunch || current == chart::kPlayerShoot)) {
+        // A bowgun shoots on its chart's shooting frame (once, as a fast
+        // pull can step past it).
+        if (!blowLanded_ && player_->frame() >= strikeFrame(current, current == chart::kPlayerShoot ? 3 : 4)) {
+            blowLanded_ = true;
+            loose();
+        }
+        if (!player_->finished()) return;
+        bowShot_.reset();
+        player_->play(chart::kIdle);
+    } else if (current == chart::kPlayerPunch) {
         // The blow lands halfway through the swing (once, as a fast swing
         // can step past the frame).
         if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
@@ -825,7 +860,11 @@ void Game::tickPlayer() {
             double wx, wy;
             screenToWorld(cameraX_ + lx, cameraY_ + ly, wx, wy);
             player_->faceTowards(wx - player_->x, wy - player_->y);
-            swing();
+            if (bowInHand()) {
+                shoot(attackTarget_, std::atan2(wy - player_->y, wx - player_->x));
+            } else {
+                swing();
+            }
             return;
         }
         if (target.kind == Settings::kEnemy && !identifying_) {
@@ -921,6 +960,13 @@ void Game::tickPlayer() {
         const Character& enemy = actors_[*attackTarget_].character;
         dx = enemy.x - player_->x;
         dy = enemy.y - player_->y;
+        // A bowgun shoots from wherever the hero stands (0x449240).
+        if (bowInHand()) {
+            player_->faceTowards(dx, dy);
+            shoot(attackTarget_, std::atan2(dy, dx));
+            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            return;
+        }
         if (std::hypot(dx, dy) <= kMeleeRange) {
             player_->faceTowards(dx, dy);
             swing();
@@ -1095,7 +1141,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
 }
 
 // What happens to a blow or spell that got through (0x443cb0).
-void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
+void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     // Shields charge MP each time they work. The original charges the
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
@@ -1147,14 +1193,17 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker) {
     }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.
-    if (!casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+    if (flinch && !casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
         player_->restart(chart::kPlayerHit);
         walkTarget_.reset();
     }
 }
 
 void Game::render(double interpolation) {
-    if (map_) {
+    if (visual_ && !menuOpen_ && !optionsOpen_) {
+        // A story picture covers the game while it shows (0x417bd0).
+        renderVisual();
+    } else if (map_) {
         renderMap();
     } else {
         renderPlaceholder(interpolation);
@@ -1271,6 +1320,7 @@ void Game::renderMap() {
     if (showJudge_) renderJudge(camX, camY);
     renderHealthBars(camX, camY);
     renderLabels(camX, camY);
+    renderRain();
     renderTransportGateName(camX, camY);
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).

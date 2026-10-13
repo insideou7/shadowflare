@@ -347,6 +347,18 @@ std::vector<EquipSlot> Inventory::wearFromAttacking(Random& random) {
     return {EquipSlot::Weapon};
 }
 
+bool Inventory::canShoot() const {
+    const auto& weapon = equipped_[static_cast<int>(EquipSlot::Weapon)];
+    return weapon && !weapon->broken();
+}
+
+std::vector<EquipSlot> Inventory::wearFromShot() {
+    auto& weapon = equipped_[static_cast<int>(EquipSlot::Weapon)];
+    if (!weapon || weapon->def->durability <= 0 || weapon->broken()) return {};
+    if (++weapon->wear < weapon->def->durability) return {};
+    return {EquipSlot::Weapon};
+}
+
 std::vector<EquipSlot> Inventory::wearFromBlow(Random& random) {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();
@@ -471,6 +483,19 @@ int Inventory::modifier(ItemDef::Modifier which) const {
         const auto& worn = equipped_[static_cast<std::size_t>(s)];
         if (!worn || worn->broken()) continue;
         if (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden) continue;
+        total += worn->modifiers[static_cast<std::size_t>(which)];
+    }
+    return total;
+}
+
+int Inventory::guardModifier(ItemDef::Modifier which) const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int total = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto slot = static_cast<EquipSlot>(s);
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || slot == EquipSlot::Weapon || (slot == EquipSlot::Shield && shieldHidden)) continue;
         total += worn->modifiers[static_cast<std::size_t>(which)];
     }
     return total;
