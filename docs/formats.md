@@ -923,6 +923,11 @@ marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
 330 - y x 48 / 20000), fading in and out over 50 frames. Not done yet: a
 bowgun's attack shown scaled for anyone but a hunter, and Max at level 100.
 
+The open pack draws its own status window in the same layout
+(content/System/Game/Pattern/StatusWindow.sheet, from tools/art/magic.py):
+frame 0 is the window, frames 1 to 21 the bars for levels -10 to +10, and
+frame 22 the disc mark, so the numbers land in the same places.
+
 Gold is not a counter: it is carried in the bag as Gold items (special
 0, 1 x 1, Item0000.njp pattern 270) holding up to 10000 each in the
 item's word at 0x40, and Total Gold adds them up (0x466d70). Gold coming

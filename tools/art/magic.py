@@ -13,6 +13,13 @@ Draws, in the style of the original but from scratch:
   spells are dragged to, where the engine puts them
   (src/game/magic_window.cpp, after ShadowFlare.exe's).
   System/Game/Pattern/Magic: window, icon box, previous page, next page.
+- the status window: the MAGIC window's other tab, the same stone, with
+  STATUS lit, a plate for each stat with its name cut in, where the
+  engine writes the numbers (src/game/status.cpp, after ShadowFlare.exe's),
+  the element names with the grooves their bars fill, and the attribute
+  disc with its eight element gems. System/Game/Pattern/StatusWindow:
+  window, the element bar at levels -10 to +10, the hero's mark on the
+  disc.
 - the increased-power glow around the hero: a cage of blue lightning in
   an egg shape that turns over 30 frames, on black so it can be added to
   what is behind. Player/Common/Powerup (.anim and .sheet).
@@ -123,6 +130,130 @@ def magic_window(out):
     ui.canvas(320, 416)
 
 
+# The status window's plates (x0, y0, x1, y1) and the names cut into
+# them, as status.cpp lays the fields out; values end at the right.
+STAT_PLATES = [
+    ((16, 40, 80, 56), ""), ((88, 40, 224, 56), ""), ((232, 40, 304, 56), "Lv"),
+    ((176, 64, 304, 80), "Experience"), ((16, 88, 128, 104), "HP"),
+    ((16, 112, 96, 128), "Strength"), ((104, 112, 200, 128), "Attack"), ((208, 112, 304, 128), "Defense"),
+    ((16, 136, 152, 152), "Hit Rate"), ((168, 136, 304, 152), "Evasion Rate"),
+    ((16, 160, 152, 176), "Walking Speed"), ((168, 160, 304, 176), "Attack Speed"),
+    ((16, 192, 128, 208), "MP"), ((16, 216, 152, 232), "M.Attack"), ((168, 216, 304, 232), "M.Defense"),
+    ((16, 240, 152, 256), "M.Hit Rate"), ((168, 240, 304, 256), "M.Evasion Rate"),
+]
+# The elements in the order of their bars, with the colour of each gem
+# and its letter on the disc, clockwise from the top.
+ELEMENTS = [("Fire", (220, 60, 40), "F"), ("Water", (60, 130, 230), "W"), ("Earth", (170, 110, 60), "E"),
+            ("Thunder", (235, 205, 50), "T"), ("Holy", (90, 160, 240), "H"), ("Dark", (160, 90, 200), "D"),
+            ("Gel", (170, 170, 175), "G"), ("Metal", (120, 120, 130), "M")]
+DISC_ORDER = ["F", "M", "T", "H", "W", "G", "E", "D"]  # clockwise from the top
+DISC = (80, 330, 44)  # centre and radius of the attribute disc
+BARS = (239, 269)  # the first bar's left and top; rows are 16 apart, 63 x 9 at most
+
+
+def gem(p, cx, cy, colour, r=4.5):
+    """A round coloured stone set in bronze."""
+    d = np.hypot(ui.xx - cx, ui.yy - cy)
+    ring = (d >= r) & (d < r + 1.5)
+    p.bronze(ring, 1.2)
+    stone = np.clip(1 - (d / r) ** 2, 0, 1)
+    p.height += 2.5 * np.sqrt(stone)
+    shine = np.clip(1.3 - np.hypot(ui.xx - cx + 1.5, ui.yy - cy + 1.5) / r, 0.5, 1.4)
+    p.colour = np.where((stone > 0)[..., None], np.array(colour)[None, None, :] * shine[..., None], p.colour)
+
+
+def status_window(font):
+    ui.canvas(320, 416)
+    p = ui.Panel(63)
+    for (x0, y0, x1, y1), name in STAT_PLATES:
+        p.sunken(x0, y0, x1, y1, depth=2, floor=ui.STONE * 0.55)
+        if name:
+            ui.engrave(p, name, x0 + 3, y0 + 4)
+    ui.engrave(p, "BODY", 276, 94, ui.BRONZE * 0.55)
+    ui.engrave(p, "MENTAL", 264, 198, ui.BRONZE * 0.55)
+    # The elements: a gem and the name on a plate, then the bar's groove.
+    for i, (name, colour, _) in enumerate(ELEMENTS):
+        y = BARS[1] + 16 * i
+        p.sunken(166, y - 3, 230, y + 11, depth=1.5, rim=False, floor=ui.STONE * 0.6)
+        gem(p, 173, y + 4, colour, 3.5)
+        ui.engrave(p, name, 180, y)
+        p.sunken(BARS[0] - 2, y - 2, BARS[0] + 65, y + 11, depth=2.5, floor=ui.HOLLOW)
+    # The attribute disc: a dark octagon sunk in the stone, crossed by
+    # four lines, its eight element gems round the edge.
+    cx, cy, r = DISC
+    ang = np.arctan2(ui.yy - cy, ui.xx - cx)
+    rad = np.hypot(ui.xx - cx, ui.yy - cy)
+    octagon = rad * np.cos((ang + np.pi / 8) % (np.pi / 4) - np.pi / 8) < r
+    p.height -= 3 * octagon
+    p.colour = np.where(octagon[..., None], np.array([22, 30, 52]) * (0.85 + 0.3 * p.noise(12, 2))[..., None], p.colour)
+    rim = (rad * np.cos((ang + np.pi / 8) % (np.pi / 4) - np.pi / 8) < r + 2) & ~octagon
+    p.bronze(rim, 1.5)
+    for k in range(4):
+        a = k * np.pi / 4
+        line = (np.abs((ui.xx - cx) * np.sin(a) - (ui.yy - cy) * np.cos(a)) < 0.6) & (rad < r + 12)
+        p.colour[line] = ui.BRONZE * 0.7
+    letters = []
+    colours = {letter: colour for _, colour, letter in ELEMENTS}
+    for k, letter in enumerate(DISC_ORDER):
+        a = -np.pi / 2 + k * np.pi / 4
+        gx, gy = cx + (r + 16) * np.cos(a), cy + (r + 16) * np.sin(a)
+        gem(p, gx - 4, gy, colours[letter], 4.5)
+        letters.append((letter, int(gx + 3), int(gy - 4)))
+    # The tabs: STATUS raised and lit, MAGIC sunk and dim (the magic
+    # window's, the other way round).
+    p.bronze(ui.inside(10, 8, 154, 34) & ~ui.inside(12, 10, 152, 32), 2.5)
+    p.sunken(166, 8, 310, 34, depth=2, rim=True, floor=ui.STONE * 0.55)
+    p.boss((160, 21), 5, 4)
+    img = p.image()
+    for letter, x, y in letters:
+        lettering(img, x, y, letter, (230, 220, 200, 255), font, scale=1)
+    lettering(img, 82 - 36, 9, "STATUS", (236, 210, 140, 255), font)
+    lettering(img, 238 - 30, 9, "MAGIC", (120, 104, 72, 255), font)
+    return img
+
+
+def element_bar(level):
+    """The bar of an element level from -10 to +10: 3 pixels wide at -10,
+    3 more a level, green, lit along its top."""
+    w = 3 + 3 * (level + 10)
+    a = np.zeros((9, w, 4), np.uint8)
+    shade = np.array([1.35, 1.2, 1.05, 1.0, 0.95, 0.9, 0.85, 0.75, 0.6])
+    a[..., :3] = np.clip(np.array([60, 190, 80])[None, None, :] * shade[:, None, None], 0, 255)
+    a[..., 3] = 255
+    return Image.fromarray(a, "RGBA")
+
+
+def disc_mark():
+    """The hero's place on the disc: a small bright green spark."""
+    yy, xx = np.mgrid[0:11, 0:11].astype(float)
+    d = np.hypot(xx - 5, yy - 5)
+    glow = np.clip(1 - d / 5.5, 0, 1)
+    a = np.zeros((11, 11, 4), np.uint8)
+    a[..., 0] = np.clip(120 + 135 * glow, 0, 255)
+    a[..., 1] = 255
+    a[..., 2] = np.clip(120 + 100 * glow, 0, 255)
+    a[..., 3] = np.clip(255 * glow ** 0.7, 0, 255)
+    return Image.fromarray(a, "RGBA")
+
+
+def status_sheet(out):
+    font = Image.open(out / "System/Common/Pattern/Font00.png").convert("RGBA")
+    window_img = status_window(font)
+    bars = [element_bar(level) for level in range(-10, 11)]
+    sheet = Image.new("RGBA", (320, 416 + 2 + 21 * 10 + 12), (0, 0, 0, 0))
+    sheet.paste(window_img, (0, 0))
+    frames = [(0, 0, 320, 416, 0, 0)]
+    for k, bar in enumerate(bars):
+        sheet.paste(bar, (0, 418 + 10 * k))
+        frames.append((0, 418 + 10 * k, bar.width, 9, -BARS[0], -BARS[1]))
+    mark = disc_mark()
+    sheet.paste(mark, (70, 418))
+    frames.append((70, 418, 11, 11, 5, 5))
+    write_sheet(out / "System/Game/Pattern", "StatusWindow", sheet, frames,
+                "The status window: window, the element bar at levels -10 to +10, the hero's mark on the disc.")
+    ui.canvas(320, 416)
+
+
 def powerup(out):
     """30 frames of a lightning cage turning around the hero, 96 x 128,
     anchored at the hero's feet 92 pixels down."""
@@ -180,11 +311,21 @@ def powerup(out):
 
 def main():
     out = Path(sys.argv[1])
-    magic_window(out)
-    powerup(out)
-    for name in ("System/Game/Pattern/Magic.png", "Player/Common/Powerup.png"):
+    only = set(sys.argv[2:])  # magic, status, powerup: to redraw just those
+    if not only or "magic" in only:
+        magic_window(out)
+    if not only or "status" in only:
+        status_sheet(out)
+    if not only or "powerup" in only:
+        powerup(out)
+    # The status window stays full colour: 256 colours turn its small
+    # element gems all bronze.
+    names = {"magic": "System/Game/Pattern/Magic.png", "powerup": "Player/Common/Powerup.png"}
+    for key, name in names.items():
+        if only and key not in only:
+            continue
         shrink.shrink(out / name)
-    print("wrote the magic window and the power-mode glow")
+    print("wrote " + ", ".join(k for k in ("magic", "status", "powerup") if not only or k in only))
 
 
 if __name__ == "__main__":

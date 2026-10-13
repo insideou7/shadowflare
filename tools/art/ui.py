@@ -194,14 +194,17 @@ def write_sheet(folder, name, image, frames, comment):
             f.write("frame=" + ",".join(str(v) for v in fr) + "\n")
 
 
-def engrave(p, text, x0, y0):
-    """Cuts `text` in the capitals into the panel, filled with bronze."""
+def engrave(p, text, x0, y0, colour=None):
+    """Cuts `text` into the panel in our font (lowercase as small
+    capitals on the same baseline), filled with bronze."""
+    colour = BRONZE * 0.8 if colour is None else colour
     for i, ch in enumerate(text):
-        for y, row in enumerate(CAPS[ch]):
+        rows, top = (CAPS[ch], 0) if ch in CAPS else (SMALL[ch], 2) if ch in SMALL else ([], 0)
+        for y, row in enumerate(rows):
             for x, bit in enumerate(row):
                 if bit == "#":
-                    p.colour[y0 + y, x0 + i * 6 + x] = BRONZE * 0.8
-                    p.height[y0 + y, x0 + i * 6 + x] -= 1.5
+                    p.colour[y0 + top + y, x0 + i * 6 + x] = colour
+                    p.height[y0 + top + y, x0 + i * 6 + x] -= 1.5
 
 
 def mine_picture():

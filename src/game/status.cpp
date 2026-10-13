@@ -91,10 +91,17 @@ void Game::renderStatus() {
         mx = static_cast<int>(lx);
         my = static_cast<int>(ly);
     }
-    // The original's window has the labels drawn in; without it, plain
-    // boxes and our own labels stand in.
+    // The original's window has the labels drawn in, and so does the open
+    // pack's StatusWindow.sheet (window, then the 21 bars, then the disc
+    // mark); without either, plain boxes and our own labels stand in.
     const SpriteBank* bank = itemBank("System/Game/Pattern/Status");
-    const SpriteTexture* window = bank ? sprites_.get(*bank, 5, false) : nullptr;
+    int windowPattern = 5, barPattern = 0x24, dotPattern = 0x39;
+    const SpriteTexture* window = bank ? sprites_.get(*bank, windowPattern, false) : nullptr;
+    if (!window) {
+        bank = itemBank("System/Game/Pattern/StatusWindow");
+        windowPattern = 0, barPattern = 1, dotPattern = 22;
+        window = bank ? sprites_.get(*bank, windowPattern, false) : nullptr;
+    }
     if (window) {
         const SDL_Rect dst{window->originX, window->originY, window->width, window->height};
         SDL_RenderCopy(renderer_, window->texture, nullptr, &dst);
@@ -145,13 +152,13 @@ void Game::renderStatus() {
     if (window) {
         const ElementLevels levels = playerElements();
         for (int i = 0; i < kElementCount; ++i) {
-            const int pattern = 0x24 + std::clamp(levels[static_cast<std::size_t>(i)] + 10, 0, 20);
+            const int pattern = barPattern + std::clamp(levels[static_cast<std::size_t>(i)] + 10, 0, 20);
             if (const SpriteTexture* bar = sprites_.get(*bank, pattern, false)) {
                 const SDL_Rect dst{bar->originX, bar->originY + i * 16, bar->width, bar->height};
                 SDL_RenderCopy(renderer_, bar->texture, nullptr, &dst);
             }
         }
-        if (const SpriteTexture* dot = sprites_.get(*bank, 0x39, false)) {
+        if (const SpriteTexture* dot = sprites_.get(*bank, dotPattern, false)) {
             // Up over 25 of the original's frames and down over 25.
             const int phase = static_cast<int>(ticks_ * 30 / kTicksPerSecond % 50);
             const int alpha = phase < 25 ? phase * 255 / 25 : (50 - phase) * 255 / 25;
