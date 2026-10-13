@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -55,8 +56,10 @@ struct MagicTables {
         int element = 0;       // table 19
         int castSpeed = 1000;  // table 20, per mille of the casting animation's speed
         // By level - 1: MP cost (16), power (17), bonus to hit (18), the
-        // speed of its missile, 0 for spells with none (35), and table 21,
-        // a flag whose use is not known yet.
+        // speed of its missile, 0 for spells with none (35), and table 21:
+        // 1 when its missile flies on through what it hits, hurting each
+        // once (the controller hands it to the effect at + 0xb0, which
+        // 0x45e1e0 reads).
         std::array<int, kSpellColumns> mpCost{}, power{}, hit{}, speed{}, flag21{};
         // Table 27: uses to go from level n + 1 to n + 2.
         std::array<int, kMaxSpellLevel> usesToLevel{};
@@ -100,6 +103,10 @@ struct MagicTables {
     // Table 24, by the attacker's level in the monster's opposite element
     // - 1: what that adds to a stun's chance and length (0x459690).
     std::array<std::array<int, 2>, 10> stunBonus{};
+    // Table 26, by the hero's level in a monster spell's element + 10
+    // (-10 to -1): what that adds to the spell's stun on the hero
+    // (0x443cb0).
+    std::array<std::array<int, 2>, 10> heroStunBonus{};
     // Tables 204-207, by level - 1: how many of something a spell makes.
     // 204: Flame Strike's fireballs, Dread Deathscythe's blades and
     // Lightning Storm's rays; 205: Plasma's bursts; 206: Earth Spears'
@@ -121,6 +128,7 @@ struct MagicTables {
     int power(int s, int level) const { return spell(s).power[column(level)]; }
     int hit(int s, int level) const { return spell(s).hit[column(level)]; }
     int speed(int s, int level) const { return spell(s).speed[column(level)]; }
+    bool pierces(int s, int level) const { return spell(s).flag21[column(level)] != 0; }
     static std::size_t column(int level) { return static_cast<std::size_t>(std::clamp(level, 1, kSpellColumns) - 1); }
 };
 
@@ -143,6 +151,23 @@ void applyBerserker(HeroStats& stats, int& chantSpeed, const MagicTables& tables
 // (0x459690): tables 70-78, plus table 24's row for the hero's level in
 // the monster's opposite element when that is 1-10.
 MagicTables::Stun spellStun(const MagicTables& t, int spell, int level, int monsterElement, const ElementLevels& hero);
+// The stun a monster's spell at `level` gives the hero (0x443cb0): tables
+// 70-78 in the column of the spell's element when the hero's level in it
+// is above 0, of its opposite element when below 0 (plus table 26's row
+// for that level), and of no element (78) at 0.
+MagicTables::Stun heroSpellStun(const MagicTables& t, int spell, int level, const ElementLevels& hero);
+// How a monster casts each spell, as its cast code (0x45b043) sets up the
+// spell's controller: the controller ticks before the spell leaves the
+// hand, the OPTION effect played on whoever it hurts (the damage block's
+// word 34, a controller of its own; `roll4` 0-3 picks Earth Spears' one),
+// and whether it goes for its target only, through walls (Dread
+// Deathscythe). Empty for spells monsters have no case for.
+struct MonsterSpell {
+    int release = 0;
+    int hitOption = -1;
+    bool targetOnly = false;
+};
+std::optional<MonsterSpell> monsterSpell(int spell, int roll4);
 // What a stun does besides holding the monster in its hit pose: the
 // damage block's word 3 (Ice Bolt, Ice Blast and Dread Deathscythe
 // freeze, Medusa turns to stone).

@@ -59,6 +59,7 @@ std::string Settings::write() const {
     out += std::format("original={}\n", originalMode ? 1 : 0);
     out += std::format("our_art={}\n", ourArt ? 1 : 0);
     out += std::format("xp_rate={}.{}\n", xpRate / 100, xpRate % 100 / 10);
+    out += std::format("zoom={}\n", zoom);
     return out;
 }
 
@@ -115,6 +116,7 @@ Settings Settings::parse(std::string_view text) {
         else if (key == "music_volume") s.musicVolume = std::clamp(v, 0, kMaxVolume);
         else if (key == "original") s.originalMode = v != 0;
         else if (key == "our_art") s.ourArt = v != 0;
+        else if (key == "zoom") s.zoom = std::clamp(v, kMinZoom, kMaxZoom);
     }
     return s;
 }

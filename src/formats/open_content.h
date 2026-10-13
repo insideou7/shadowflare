@@ -17,6 +17,7 @@
 #include "formats/scenario_script.h"
 #include "formats/sprite_bank.h"
 #include "formats/table_data.h"
+#include "formats/voice_bank.h"
 
 // Readers for the open content pack: PNG images and small text files that
 // stand in for the original game's data, so the engine can run without it.
@@ -164,5 +165,10 @@ struct PackInfo {
     Projection projection{20, 10};
 };
 PackInfo parsePackInfo(std::span<const std::uint8_t> text);
+
+// A sound of the pack: an Ogg Vorbis file, mono or stereo, decoded to
+// 16-bit samples at its own rate. The pack keeps one file a voice where
+// the original keeps a .Voc bank (docs/content.md). Throws FormatError.
+VoiceBank::Voice decodeSound(std::span<const std::uint8_t> data);
 
 }  // namespace sf::open

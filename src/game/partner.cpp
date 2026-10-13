@@ -20,6 +20,11 @@ namespace {
 // Partner charts (Character/PARTNER/*/Animation.Caf).
 constexpr int kRun = 2, kHit = 3, kDeath = 4, kBite = 5, kJumpUp = 6, kJumpDown = 7;
 constexpr int kNoDirection = 8;  // the death and jump charts' only direction
+// The run chart's third layer is a speed streak, drawn additively. It is
+// hidden (+0x3c layer 2, cleared every tick by 0x45ff50) except during a
+// dash once it is going flat out (0x460a00).
+constexpr int kStreakLayer = 2;
+constexpr int kDashStreakFrom = 18;  // dash tick (+0x158 > 0x11)
 
 constexpr double kSeekRange = 1200;   // looks for monsters this close to the hero
 constexpr double kLeashRange = 1500;  // stops fighting this far from the hero
@@ -62,6 +67,13 @@ double boxGap(const Character& c, const Rect& r, double ex, double ey) {
     return std::max(gx, gy);
 }
 
+void showStreak(Character& c, bool on) {
+    auto& v = c.visibleLayers;
+    const auto at = std::ranges::find(v, kStreakLayer);
+    if (on && at == v.end()) v.push_back(kStreakLayer);
+    if (!on && at != v.end()) v.erase(at);
+}
+
 }  // namespace
 
 // The original moves both at stat / 5 a tick (0x454210), so the partner
@@ -93,7 +105,7 @@ void Game::spawnPartner() {
     p.character.visibleLayers.clear();
     if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
         for (std::size_t i = 0; i < m->animations.charts[0].directions[0].layers.size(); ++i)
-            p.character.visibleLayers.push_back(static_cast<int>(i));
+            if (static_cast<int>(i) != kStreakLayer) p.character.visibleLayers.push_back(static_cast<int>(i));
     }
     auto tint = [](int perMille) { return static_cast<Uint8>(std::clamp(perMille * 255 / 1000, 0, 255)); };
     p.character.tint = {tint(k.tint[0]), tint(k.tint[1]), tint(k.tint[2]), 255};
@@ -148,6 +160,7 @@ void Game::tickPartner() {
     Partner& p = *partner_;
     Character& c = p.character;
     using State = Partner::State;
+    showStreak(c, false);  // only a dash shows it, for the tick it draws
 
     if (p.state == State::Dead) {
         // Fade out, then come back at the hero when the countdown ends.
@@ -490,7 +503,8 @@ bool Game::partnerAt(float screenX, float screenY) const {
     if (!partner_ || partner_->state == Partner::State::Dead) return false;
     int sx, sy;
     worldToScreen(static_cast<int>(partner_->character.x), static_cast<int>(partner_->character.y), sx, sy);
-    return inClickRange(sx - cameraX_ - screenX, sy - 20 - cameraY_ - screenY);
+    const SDL_FPoint at = onScreen(sx, sy - 20);
+    return inClickRange(at.x - screenX, at.y - screenY);
 }
 
 bool Game::partnerCanStand(double x, double y) const { return map_ && map_->ground().walkable(x, y); }
@@ -507,7 +521,7 @@ bool Game::partnerOrder(float screenX, float screenY, bool right) {
     const bool alive = p.state != State::Dead;
     const bool leaping = p.state == State::Jump || p.state == State::Dash;
     double wx, wy;
-    screenToWorld(cameraX_ + screenX, cameraY_ + screenY, wx, wy);
+    screenToWorld(pixelX(screenX), pixelY(screenY), wx, wy);
     const auto target = clickTarget(screenX, screenY, ~0u);
     auto order = [&](Order o, double x, double y) {
         p.order = o;
@@ -677,6 +691,8 @@ void Game::tickPartnerJump() {
 void Game::tickPartnerDash() {
     Partner& p = *partner_;
     Character& c = p.character;
+    // Flat out, it trails a streak, but not while a bite holds it.
+    showStreak(c, p.hitPause == 0 && p.skillTick >= kDashStreakFrom);
     if (p.hitPause == 0) {
         if (p.skillTick >= kDashWindUp) {
             const double step = partnerSpeed(static_cast<int>(p.dashSpeed * 5));

@@ -275,6 +275,7 @@ private:
         int event = AiControl::kDecide;
         AiControl::Entry entry;
         bool struck = false;  // the current attack has landed
+        double aim = 0;       // where its spell goes, radians in world space (monster + 0x260)
         double wanderX = 0, wanderY = 0;
         int wanderPause = 0;
         bool active = true;   // SETINACTIVE hides a character
@@ -323,7 +324,7 @@ private:
         int ticks = 0;  // left to show
     };
     void showLabel(const ScriptHost::Label& label);
-    void renderLabels(int camX, int camY);
+    void renderLabels();
     // Where a character or a map object is, in world units.
     std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
     const ScenarioControl::Placement* placementById(std::int32_t id) const;
@@ -352,6 +353,23 @@ private:
     std::array<std::optional<CharacterModel>, 2>& playerModels();
     void placePlayer();
     void updateCamera();
+    // The world's zoom (Settings::zoom, the scroll wheel): 1 draws it as
+    // the original does, 0.5 at half size, showing twice as much of the
+    // map each way. The panel, the windows and the pointer keep their size.
+    // Original mode keeps it at 1, as do the save's picture and the area
+    // map's (fullSize_).
+    double zoom() const;
+    void zoomBy(int notches);
+    // How much of the map the screen shows at that zoom, in map pixels.
+    int viewWidth() const;
+    int viewHeight() const;
+    // The map pixel (as worldToScreen gives it) under a point on the
+    // screen, and where a map pixel is on the screen.
+    double pixelX(double screenX) const { return cameraX_ + screenX / zoom(); }
+    double pixelY(double screenY) const { return cameraY_ + screenY / zoom(); }
+    SDL_FPoint onScreen(double px, double py) const;
+    // worldTexture_, made the size of the view; null if it cannot be.
+    SDL_Texture* worldTexture();
     bool tryMove(Character& who, double dx, double dy);
     void tickPlayer();
     void swing();
@@ -366,7 +384,7 @@ private:
     void strikeEnemy(Actor& enemy);
     void sayBroken(const std::vector<EquipSlot>& slots);  // a message for each item that broke
     // A monster's attack (slot 0-2) or spell (slot 0-2, `magic`).
-    void strikePlayer(Actor& enemy, int slot = 0, bool magic = false);
+    void strikePlayer(Actor& enemy, int slot = 0);
     // `bySpell` counts the kill as a magic one for the class offer.
     // byPartner: the companion's bite, which the class kill counts skip.
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
@@ -375,7 +393,7 @@ private:
     // docs/traps.md).
     void hurtPlayer(int damage, bool magic = false, Actor* attacker = nullptr, bool flinch = true);
     std::optional<std::size_t> enemyAt(float screenX, float screenY) const;
-    void renderHealthBars(int camX, int camY);
+    void renderHealthBars();
     void renderMap();
     void renderChips(int camX, int camY);
     void drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -478,6 +496,14 @@ private:
         int hitSound = -1;
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
+        bool pierces = false;  // a missile that flies on through what it hits (table 21)
+        // A monster's spell (the index of its caster in actors_), which
+        // hurts the hero and an ACTIVE companion instead of monsters;
+        // -1 for the hero's own. `targetOnly`: the hero alone, and walls
+        // do not stop it (Dread Deathscythe's blades).
+        int caster = -1;
+        bool targetOnly = false;
+        bool struckHero = false, struckPartner = false;
         // A picture of the OPTION folder's Pattern bank instead of its
         // animation (the mine on the ground), -1 = the animation.
         int pattern = -1;
@@ -530,13 +556,22 @@ private:
         std::vector<std::pair<double, double>> trackedAt;
         std::vector<int> stage, stageTicks;  // Elemental Strike, per orb
         bool done = false;
+        // A monster's cast (castMonsterSpell): its index in actors_, -1
+        // for the hero's; the effect on whoever it hurts, and whether it
+        // goes for the hero alone.
+        int caster = -1;
+        int hitOption = -1;
+        bool targetOnly = false;
     };
+    // A monster's spell leaving its hand (0x45b043).
+    void castMonsterSpell(Actor& enemy, int slot);
+    void monsterSpellHitsPlayer(const Effect& e);
+    void monsterSpellHitsPartner(const Effect& e);
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
-    void showSpellHit(int spell, double x, double y);
     const CharacterModel* effectModel(int option);
     int effectLength(int option, int chart = 0);
     Effect& spawnEffect(int option, double x, double y, int chart = 0);
@@ -648,6 +683,9 @@ private:
     bool tickStun(Character& who, Stun& stun);
     void trapSplash(const Effect& e, double x, double y, bool onHero);
     std::optional<Stun> heroStun_;
+    // The stun a blow or spell gives the hero: held in the hit pose, maybe
+    // pushed back (0x443cb0).
+    void stunHero(const Stun& stun);
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
     int directionFrames(int option, int direction);
     std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
@@ -1137,7 +1175,7 @@ private:
     // The gate's end in this area, if it has one here.
     std::optional<std::pair<double, double>> transportGateHere() const;
     std::vector<Effect> transportGateParts() const;  // its pieces and animation, to draw
-    void renderTransportGateName(int camX, int camY);
+    void renderTransportGateName();
 
     // The pointer, its Click Range square and the name of what it is on
     // (pointer.cpp).
@@ -1147,7 +1185,7 @@ private:
     void updateHover();
     const Actor* hoveredActor() const;
     void renderClickSquare();
-    void renderHoverName(int camX, int camY);
+    void renderHoverName();
     void renderPointer();
     void nameOpenEnemy(Actor& actor);
     std::optional<SDL_FPoint> forcedPointer_;
@@ -1175,6 +1213,12 @@ private:
     std::string scenarioPictureFor_;
     std::array<std::optional<LightMap>, 7> darkParts_;
     TexturePtr darkTexture_;
+    int darkTextureW_ = 0, darkTextureH_ = 0;
+    // Zoomed out, the world is drawn at full size to this, then shrunk
+    // onto the screen.
+    TexturePtr worldTexture_;
+    int worldTextureW_ = 0, worldTextureH_ = 0;
+    bool fullSize_ = false;
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;
@@ -1186,6 +1230,8 @@ private:
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
     OptionsTab optionsTab_ = OptionsTab::Settings;
+    // The volume slider row being dragged with the mouse, or -1.
+    int optionsDrag_ = -1;
     bool helpOpen_ = false;
     int hurtPercent_ = -1;  // --hurt
     bool runMode_ = false;  // R or the RUN button: run instead of walk

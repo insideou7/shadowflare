@@ -82,7 +82,7 @@ void Game::renderHeroOverlay(const CharacterModel* m, double ticks, int camX, in
     for (const auto& layer : dir->layers) {
         if (frame >= static_cast<int>(layer.size())) continue;
         const auto& cell = layer[static_cast<std::size_t>(frame)];
-        if (cell.pattern < 0 || cell.status == AnimationSet::kShadowStatus) continue;
+        if (cell.pattern < 0 || AnimationSet::isShadow(cell.status)) continue;
         const SpriteTexture* t = sprites_.get(m->body, cell.pattern, false);
         if (!t) continue;
         SDL_SetTextureBlendMode(t->texture, cell.status & AnimationSet::kAdditiveStatus ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);

@@ -370,6 +370,34 @@ void testPackInfo() {
     expectRejected("pack bad projection", "projection=0,10\n", [](auto& d) { sf::open::parsePackInfo(d); });
 }
 
+// The pack's own sounds decode: a short mono effect and a stereo piece of
+// music (content/, made by tools/sound/build.py).
+void testSounds() {
+    const auto read = [](const char* path) {
+        std::vector<std::uint8_t> data;
+        if (std::FILE* f = std::fopen(path, "rb")) {
+            int c;
+            while ((c = std::fgetc(f)) != EOF) data.push_back(static_cast<std::uint8_t>(c));
+            std::fclose(f);
+        }
+        return data;
+    };
+    const auto hit = read(SF_CONTENT_DIR "/System/Game/Voice/006.ogg");
+    check(!hit.empty(), "content/System/Game/Voice/006.ogg is there");
+    if (!hit.empty()) {
+        const sf::VoiceBank::Voice v = sf::open::decodeSound(hit);
+        check(v.channels == 1 && v.bits == 16 && v.sampleRate == 22050, "an effect is 16-bit mono at 22,050 Hz");
+        check(v.frames() > 22050 / 20 && v.frames() < 22050, "the blow's sound is under a second");
+    }
+    const auto town = read(SF_CONTENT_DIR "/System/Game/Music/BGM00.ogg");
+    check(!town.empty(), "content/System/Game/Music/BGM00.ogg is there");
+    if (!town.empty()) {
+        const sf::VoiceBank::Voice v = sf::open::decodeSound(town);
+        check(v.channels == 2 && v.frames() > 22050 * 30, "the town music is stereo and over half a minute");
+    }
+    expectRejected("a sound that is not Ogg Vorbis", "OggS but not really", [](auto& d) { sf::open::decodeSound(d); });
+}
+
 void testSkin() {
     const auto skin = sf::open::parseSkin(bytes(
         "props=Map/props.sheet\n"
@@ -413,6 +441,7 @@ int main() {
     testAi();
     testPackInfo();
     testSkin();
+    testSounds();
     if (failures == 0) std::puts("all open content tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

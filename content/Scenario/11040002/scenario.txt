@@ -23,10 +23,10 @@ enemy=1,14562,6218,3,1200,360,640,goblin,2,10,200,400,600,100,300,50,240,2,attac
 glow=1
 enemy=1,17272,6508,3,1200,360,640,goblin,2,10,200,400,600,100,300,50,240,2,attacks=360/0/0,hits=300/0/0,speed=1300,word7=100
 glow=1
-enemy=5,17195,7696,3,1000,300,320,goblin,2,10,200,400,700,90,300,50,260,1,attacks=300/0/0,hits=300/0/0,spells=5/2/-1,spell_power=290/300/0,spell_level=10/10/10,spell_hit=210/210/0,word7=100
+enemy=5,17195,7696,3,1000,300,320,mage-near-far,2,10,200,400,700,90,300,50,260,1,attacks=300/0/0,hits=300/0/0,spells=5/2/-1,spell_power=290/300/0,spell_level=10/10/10,spell_hit=210/210/0,word7=100
 glow=1
-enemy=5,14566,7374,3,1000,300,320,goblin,2,10,200,400,700,90,300,50,260,0,attacks=300/0/0,hits=300/0/0,spells=4/1/-1,spell_power=290/300/0,spell_level=10/10/10,spell_hit=210/210/0,word7=100
+enemy=5,14566,7374,3,1000,300,320,mage-near-far,2,10,200,400,700,90,300,50,260,0,attacks=300/0/0,hits=300/0/0,spells=4/1/-1,spell_power=290/300/0,spell_level=10/10/10,spell_hit=210/210/0,word7=100
 glow=1
-enemy=5,15667,5141,3,1000,300,320,goblin,2,10,200,400,700,90,300,50,260,3,attacks=300/0/0,hits=300/0/0,spells=3/3/-1,spell_power=260/260/0,spell_level=20/20/10,spell_hit=210/210/0,word7=100
+enemy=5,15667,5141,3,1000,300,320,mage-two,2,10,200,400,700,90,300,50,260,3,attacks=300/0/0,hits=300/0/0,spells=3/3/-1,spell_power=260/260/0,spell_level=20/20/10,spell_hit=210/210/0,word7=100
 glow=1
 light=1000

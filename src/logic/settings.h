@@ -22,6 +22,10 @@ struct Settings {
     // Cheats tab: the experience rate in percent, 0.5x to 5.0x in steps of
     // 0.5x; 100 is the game as it comes.
     static constexpr int kXpRateMin = 50, kXpRateMax = 500, kXpRateStep = 50, kXpRateNormal = 100;
+    // Ours: how big the world is drawn, in percent. Each notch of the
+    // scroll wheel moves it kZoomStep, from 100 (the original's view)
+    // out to kMinZoom.
+    static constexpr int kMinZoom = 50, kMaxZoom = 100, kZoomStep = 10;
 
     bool fullScreen = false;          // Screen Mode at Start: FULL, else WINDOW
     bool seeThroughPlayer = true;     // Semi-transparent Player: seen through walls
@@ -42,6 +46,8 @@ struct Settings {
     // Ours, on the Cheats tab: hero experience is multiplied by this, in
     // percent. Original mode always plays at 100.
     int xpRate = kXpRateNormal;
+    // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
+    int zoom = kMaxZoom;
 
     // Half the side of the square a click reaches, in screen pixels.
     int clickReach() const;

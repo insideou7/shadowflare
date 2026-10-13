@@ -125,16 +125,18 @@ void Game::trapHitsPlayer(const Effect& e) {
     const auto stun = trapStun(e, player_->x, player_->y, inventory_.guardModifier(ItemDef::kModStunChance),
                                inventory_.guardModifier(ItemDef::kModStunLength), inventory_.guardModifier(ItemDef::kModHighDamage) != 0,
                                damage, playerMaxHp());
-    if (stun) {
-        log::info("The hero is stunned for {} ticks{}", stun->total, stun->pushed ? " and pushed back" : "");
-        heroStun_ = stun;
-        casting_.reset();
-        walkTarget_.reset();
-        attackTarget_.reset();
-        if (stun->pushed) player_->direction = directionOfAngle(stun->angle - 3.141592);
-        player_->restart(chart::kPlayerHit, static_cast<double>(std::max(1, player_->frameCount())) / stun->total * 30 / kTicksPerSecond);
-    }
+    if (stun) stunHero(*stun);
     trapSplash(e, player_->x, player_->y, true);
+}
+
+void Game::stunHero(const Stun& stun) {
+    log::info("The hero is stunned for {} ticks{}", stun.total, stun.pushed ? " and pushed back" : "");
+    heroStun_ = stun;
+    casting_.reset();
+    walkTarget_.reset();
+    attackTarget_.reset();
+    if (stun.pushed) player_->direction = directionOfAngle(stun.angle - 3.141592);
+    player_->restart(chart::kPlayerHit, static_cast<double>(std::max(1, player_->frameCount())) / stun.total * 30 / kTicksPerSecond);
 }
 
 // The same blow on an ACTIVE companion (its own hit code, 0x45f9f0): the

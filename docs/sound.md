@@ -187,5 +187,28 @@ These sounds belong to things the engine does not have yet:
   (17), life absorption (0x459690, 61) and the companion's idle animation
   (0x461230, 88).
 
-The open content pack has no sounds of its own yet. It needs its own banks
-before the game can be played with sound without the original files.
+## The open pack's sounds and music
+
+The open content pack has its own sounds and music, made for this project
+by `tools/sound` (docs/content.md says how they are stored). Nothing in
+them is taken from the original: every sound is synthesized from
+oscillators, noise and filters by our own scripts, and the music is our
+own, written as scores in `tools/sound/pieces.py`.
+
+- **Effects.** `tools/sound/sfx.py` lists every voice number the game
+  plays, with a name, what it is for and how it is made: 154 of the
+  original's 160 (70-75 are empty in the original too). Each was made to
+  do the same job as the original's voice, at a fitting length: a click
+  for a button, a cry for a death. Voices the engine does not play yet
+  (marked so in the list) were made from where the original's scenario
+  scripts play them, such as doors, chests, levers and tower gates, or
+  else as the kind of sound their neighbours suggest.
+- **Music.** Eight pieces, each a loop of about a minute (the title's
+  half that): the title screen in D minor, a country dance for towns,
+  a wandering tune over harp for the fields, a desert road song for the
+  Caravan, a driving fight for boss rooms, a slow march for ruins, towers
+  and forts, a drone with dripping water for caves, and a hymn for shrines.
+- **Making them.** `python3 tools/sound/build.py` writes them all into
+  `content/` (it needs numpy and ffmpeg with libvorbis), and gives the
+  same files on every run. `--sfx 6 29` or `--music town` makes only
+  those, and `--wav <folder>` keeps WAV copies to listen to.

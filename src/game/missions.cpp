@@ -338,7 +338,7 @@ void Game::renderCompass() {
         for (const auto& layer : dir->layers) {
             if (frame >= static_cast<int>(layer.size()) || layer[static_cast<std::size_t>(frame)].pattern < 0) continue;
             const auto& cell = layer[static_cast<std::size_t>(frame)];
-            if (cell.status == AnimationSet::kShadowStatus) continue;
+            if (AnimationSet::isShadow(cell.status)) continue;
             const SpriteTexture* t = sprites_.get(m->body, cell.pattern, false);
             if (!t) continue;
             SDL_SetTextureBlendMode(t->texture, cell.status & AnimationSet::kAdditiveStatus ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);

@@ -789,6 +789,33 @@ void testMagic() {
               sf::stunKindOf(sf::kFireBall) == sf::StunKind::Plain,
           "what each spell's stun does");
 
+    // A monster's spell on the hero (0x443cb0): the column of the spell's
+    // element, its opposite or none by the hero's level in it, table 26 for
+    // a level below 0.
+    const int fbElement = t.spell(sf::kFireBall).element;
+    L none{}, fb2{}, fbMinus2{};
+    fb2[static_cast<std::size_t>(fbElement)] = 2;
+    fbMinus2[static_cast<std::size_t>(fbElement)] = -2;
+    check(sf::heroSpellStun(t, sf::kFireBall, 10, none).chance == t.stun(-1, sf::kFireBall, 10).chance, "a hero at 0 takes the no-element stun");
+    check(sf::heroSpellStun(t, sf::kFireBall, 10, fb2).length == t.stun(fbElement, sf::kFireBall, 10).length,
+          "a hero above 0 takes the stun of the spell's own element");
+    const auto weak = sf::heroSpellStun(t, sf::kFireBall, 10, fbMinus2);
+    check(weak.chance == t.stun(fbElement ^ 1, sf::kFireBall, 10).chance + 10 && weak.length == t.stun(fbElement ^ 1, sf::kFireBall, 10).length + 1,
+          "a hero below 0 takes the opposite element's stun and table 26");
+    check(t.heroStunBonus[0][0] == 25 && t.heroStunBonus[0][1] == 15, "table 26 at -10");
+
+    // How monsters cast (0x45b043).
+    check(sf::monsterSpell(sf::kFireBall, 0)->release == 0 && sf::monsterSpell(sf::kFireBall, 0)->hitOption == 10000011,
+          "a monster's Fire Ball leaves at once and bursts");
+    check(sf::monsterSpell(sf::kHellFire, 0)->release == 10 && sf::monsterSpell(sf::kIceBlast, 0)->release == 10,
+          "Hell Fire and Ice Blast leave 10 ticks in");
+    check(sf::monsterSpell(sf::kEarthSpears, 3)->hitOption == 11000009, "Earth Spears' sparks by roll");
+    check(sf::monsterSpell(sf::kDreadDeathscythe, 0)->targetOnly && !sf::monsterSpell(sf::kMedusa, 0)->targetOnly,
+          "Dread Deathscythe goes for its target alone");
+    check(!sf::monsterSpell(sf::kHeal, 0) && !sf::monsterSpell(sf::kSonicBlade, 0), "monsters have no Heal or Sonic Blade");
+    check(t.pierces(sf::kFireBall, 15) && !t.pierces(sf::kFireBall, 14) && t.pierces(sf::kIceBolt, 11) && !t.pierces(sf::kPlasma, 30),
+          "table 21: Fire Ball from 15 and Ice Bolt from 11 fly through");
+
     // MP drain in hundredths of a point, the fraction carried over.
     int carry = 0, total = 0;
     for (int k = 0; k < 10; ++k) total += sf::regenerate(100, -30, carry);
@@ -800,6 +827,7 @@ void testMagic() {
           "Explosion's level is a switchable fix");
     check(sf::Rules::ours().healthBarsOverMonsters && !sf::Rules::original().healthBarsOverMonsters,
           "health bars over monsters are ours alone");
+    check(sf::Rules::ours().zoomOut && !sf::Rules::original().zoomOut, "original mode keeps the world at full size");
 }
 
 void testPowerMode() {
@@ -863,6 +891,7 @@ void testSettings() {
     check(!defaults.fullScreen && defaults.seeThroughPlayer && defaults.clickSize == 2 && !defaults.originalMode,
           "settings default to a window, see-through player, NORM click range and our rules");
     check(!defaults.ourArt, "the original game is drawn with its own art by default");
+    check(defaults.zoom == 100, "the world is drawn at full size by default");
     check(defaults.clickPriority[0] == sf::Settings::kEnemy, "enemies come first by default");
 
     sf::Settings s;
@@ -873,16 +902,18 @@ void testSettings() {
     s.musicVolume = 3;
     s.originalMode = true;
     s.ourArt = true;
+    s.zoom = 70;
     s.putFirst(sf::Settings::kPerson);
     check(s.clickPriority[0] == sf::Settings::kPerson && s.rank(sf::Settings::kEnemy) == 1, "putFirst moves a target to the front");
     const auto back = sf::Settings::parse(s.write());
     check(back.fullScreen && !back.seeThroughShadows && !back.clickRange && back.clickSize == 4 && back.musicVolume == 3 &&
-              back.originalMode && back.ourArt && back.clickPriority == s.clickPriority,
+              back.originalMode && back.ourArt && back.zoom == 70 && back.clickPriority == s.clickPriority,
           "settings survive a write and a parse");
     check(back.clickReach() < defaults.clickReach(), "click range off reaches less than NORM");
 
-    const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\n");
-    check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume,
+    const auto bad = sf::Settings::parse("click_size=9\nclick_priority=enemy,enemy,item,object,person\nnonsense\nmusic_volume=x\nzoom=10\n");
+    check(bad.clickSize == 4 && bad.clickPriority == defaults.clickPriority && bad.musicVolume == sf::Settings::kMaxVolume &&
+              bad.zoom == sf::Settings::kMinZoom,
           "bad settings are clamped or ignored");
 
     check(defaults.xpRate == 100, "experience comes at the normal rate by default");

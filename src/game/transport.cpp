@@ -200,25 +200,27 @@ std::vector<Game::Effect> Game::transportGateParts() const {
 }
 
 // With the mouse on a standing gate, its owner's name over it, in a dark box.
-void Game::renderTransportGateName(int camX, int camY) {
+void Game::renderTransportGateName() {
     const auto at = transportGateHere();
     if (!at || !transportGate_->assembled() || heroName_.empty()) return;
-    int sx, sy;
-    worldToScreen(static_cast<int>(at->first), static_cast<int>(at->second), sx, sy);
-    sx -= camX;
-    sy -= camY;
+    int px, py;
+    worldToScreen(static_cast<int>(at->first), static_cast<int>(at->second), px, py);
+    const SDL_FPoint gate = onScreen(px, py);
+    const int sx = static_cast<int>(gate.x), sy = static_cast<int>(gate.y);
     int mx, my;
     SDL_GetMouseState(&mx, &my);
     float lx, ly;
     SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
-    if (std::abs(lx - sx) > 32 || std::abs(ly - sy) > 32) return;
+    const double reach = 32 * zoom();
+    if (std::abs(lx - sx) > reach || std::abs(ly - sy) > reach) return;
     const int w = uiTextWidth(heroName_);
-    const SDL_Rect box{sx - w / 2 - 4, sy - 34, w + 6, 15};
+    const int top = sy - static_cast<int>(34 * zoom());
+    const SDL_Rect box{sx - w / 2 - 4, top, w + 6, 15};
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 204);
     SDL_RenderFillRect(renderer_, &box);
-    uiText(sx - w / 2 + 1, sy - 31, heroName_, {0, 0, 0, 255});
-    uiText(sx - w / 2, sy - 32, heroName_,
+    uiText(sx - w / 2 + 1, top + 3, heroName_, {0, 0, 0, 255});
+    uiText(sx - w / 2, top + 2, heroName_,
            {static_cast<Uint8>(kNameColor[0]), static_cast<Uint8>(kNameColor[1]), static_cast<Uint8>(kNameColor[2]), 255});
 }
 

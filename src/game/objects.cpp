@@ -158,7 +158,7 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
     int sx, sy;
     worldToScreen(p.x, p.y, sx, sy);
     const SDL_Rect dst{sx - camX + sprite->originX, sy - camY + sprite->originY, sprite->width, sprite->height};
-    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= kScreenWidth || dst.y >= kScreenHeight) return;
+    if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= viewWidth() || dst.y >= viewHeight()) return;
     if (shadows) {
         SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
         SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
@@ -181,8 +181,10 @@ bool Game::workingObject(std::int32_t id) const {
     if (heldObject_ != id) {
         int mx, my;
         SDL_GetMouseState(&mx, &my);
+        float lx, ly;
+        SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
         double wx, wy;
-        screenToWorld(cameraX_ + mx, cameraY_ + my, wx, wy);
+        screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
         if (!inside(p, wx, wy)) return false;
     }
     const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));

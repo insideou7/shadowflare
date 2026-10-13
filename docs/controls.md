@@ -63,6 +63,15 @@ between the original's art and ours (with the original files only, see
 keys walk; Page Up / Page Down switch maps, Home goes back to the start
 point and J shows the walkability grid (for testing).
 
+Also ours: the scroll wheel zooms the world, 10% a notch, from 100% (the
+original's 640 x 480 view) out to 50%, which shows twice as much of the
+map each way; scrolling towards you zooms out and away zooms back in. The
+panel, the windows, the pointer and the names over characters keep their
+size. Darkness shrinks with the world, so zooming out does not let you
+see further in the dark. The zoom is kept in `options.txt` (`zoom=`).
+Original mode keeps the world at 100% and the wheel does nothing. The
+original has nothing on the wheel, and no window here uses it.
+
 Changed from before: F9 used to load (now F11), N and P used to switch
 maps (now Page Down / Page Up only), and WASD no longer walks (S is the
 status window).
@@ -111,7 +120,7 @@ change it, Enter steps through it or does it.
 | Click Range | ON: a click reaches things in a square around the cursor; OFF: only right at it |
 | Click Range size | MINI, SMAL, NORM, LARG, MAX. The square drawn round the pointer is the original's: none, 12, 16, 24 and 48 pixels either side (0x416bb0). The original picks what a sprite overlapping it is; ours aims at each character's middle, so it reaches further: 12, 20, 32, 44 and 60 pixels. |
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
-| Eff. Volume, BGM Volume | not in yet (no sound) |
+| Eff. Volume, BGM Volume | sliders from 0 (silent) to 10, as the original's. Left/Right move a step; click or drag along the bar. The music changes as it plays; effects take the new volume from the next one. Saved in options.txt. |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
 | Art | ours: ORIGINAL or OURS, the art the original game is drawn with; F12 swaps it too. Only shown when playing with the original files. |
 | Mission List | opens the mission list |
