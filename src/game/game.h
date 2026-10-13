@@ -427,6 +427,9 @@ private:
         bool diesOnHit = false;
         bool diesOnWall = false;
         int hitOption = -1;        // played on whoever it hurts
+        // The Voice00.Voc sound where it is when a hit lands (struct words
+        // 0x76 and 0x77), at most once a tick; -1 for none.
+        int hitSound = -1;
         double travelled = 0;
         std::vector<std::size_t> struck;  // actors already hurt
         // A picture of the OPTION folder's Pattern bank instead of its
@@ -466,7 +469,8 @@ private:
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
-    void spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
+    // Whether the spell beat the monster's magic evasion.
+    bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
     void showSpellHit(int spell, double x, double y);
     const CharacterModel* effectModel(int option);
     int effectLength(int option, int chart = 0);

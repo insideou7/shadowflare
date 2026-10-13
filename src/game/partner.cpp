@@ -781,6 +781,8 @@ void Game::partnerExplodes() {
     // Its controller (21031, 0x42f890) plays the fire spray, both charts.
     spawnEffect(kExplosionSpray, c.x, c.y);
     spawnEffect(kExplosionSpray, c.x, c.y, 1);
+    playSound(0x1d, c.x, c.y);
+    playSound(0x17, c.x, c.y);
     for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
         Actor& enemy = actors_[i];
         if (!enemy.alive()) continue;

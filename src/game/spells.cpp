@@ -20,6 +20,9 @@ namespace sf {
 namespace {
 
 constexpr double kTau = 2 * std::numbers::pi;
+// The sound most spells' shots make when they land (their struct's words
+// 0x76 and 0x77 set to bank 0, voice 20).
+constexpr int kMagicHitSound = 20;
 // Half the side of the square a hero or monster can be hit in. The
 // original reads each one's judge rect; this is ours.
 constexpr double kTargetHalf = 50.0;
@@ -264,12 +267,12 @@ void Game::showSpellHit(int spell, double x, double y) {
     if (option >= 0) spawnEffect(option, x, y);
 }
 
-void Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption) {
+bool Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption) {
     const auto& s = enemy.placement.stats;
     const int element = magic_.spell(spell).element;
     if (hitOption >= 0) spawnEffect(hitOption, enemy.character.x, enemy.character.y);
     // Spells must beat the monster's magic evasion (0x45eb2b).
-    if (random_.next(100) >= hitChance(hit, s.magicEvasion)) return;
+    if (random_.next(100) >= hitChance(hit, s.magicEvasion)) return false;
     // Every monster hit is one use towards the spell's next level.
     trainSpell(spell);
     const int damage = spellDamage(power, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
@@ -279,6 +282,7 @@ void Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int
     // element (0x459690).
     const auto stun = spellStun(magic_, spell, level, s.element, playerElements());
     stunEnemy(enemy, stun.chance, stun.length, stun.uncapped, -1, stunKindOf(spell));
+    return true;
 }
 
 const CharacterModel* Game::effectModel(int option) {
@@ -366,6 +370,7 @@ void Game::stepCast(SpellCast& c) {
         e.life = -1;
         e.diesOnWall = e.diesOnHit = true;
         hurts(e, box, false, hitOptionOf(c.spell));
+        e.hitSound = kMagicHitSound;
         return e;
     };
     auto blockedAt = [&](double x, double y) { return !map_ || !map_->ground().walkable(x, y); };
@@ -382,7 +387,8 @@ void Game::stepCast(SpellCast& c) {
         case kIceBolt:
             if (t == 0) glow(c.spell == kFireBall ? kCastFlame : kIceSwirl);
             if (r == 0) {
-                bolt(c.spell == kFireBall ? kFireBallFly : kIceBoltFly, c.aim, 50);
+                const Effect& e = bolt(c.spell == kFireBall ? kFireBallFly : kIceBoltFly, c.aim, 50);
+                playSound(c.spell == kFireBall ? 0x13 : 0x5e, e.x, e.y);
                 c.done = true;
             }
             break;
@@ -392,7 +398,10 @@ void Game::stepCast(SpellCast& c) {
             if (r >= 0 && r % 4 == 0) {
                 const auto [x, y] = along(250 + 200 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
-                if (!c.blocked[0]) plasma(x, y, random_.next(4));
+                if (!c.blocked[0]) {
+                    plasma(x, y, random_.next(4));
+                    playSound(0x15, x, y);
+                }
                 if (++c.step >= n) c.done = true;
             }
             break;
@@ -406,6 +415,9 @@ void Game::stepCast(SpellCast& c) {
                 Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, kTargetHalf + 150, true, kHellFireBurst);
+                area.hitSound = kMagicHitSound;
+                playSound(0x1d, c.x, c.y);
+                playSound(0x17, c.x, c.y);
             }
             if (t >= 3 && r >= 0) c.done = true;
             break;
@@ -418,7 +430,10 @@ void Game::stepCast(SpellCast& c) {
                 Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, kTargetHalf + 150, true, kFrostHit);
+                area.hitSound = kMagicHitSound;
             }
+            // Six times, every 3 ticks from L + 6 to L + 21.
+            if (t >= l + 6 && t <= l + 21 && (t - l - 6) % 3 == 0) playSound(0x16, c.x, c.y);
             if (t == l + 15) spawnEffect(kIceMist, c.x, c.y);
             if (t >= std::max(l + 21, 3)) c.done = true;
             break;
@@ -429,7 +444,10 @@ void Game::stepCast(SpellCast& c) {
             if (r >= 0 && r % 8 == 0) {
                 const auto [x, y] = along(250 + 300 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
-                if (!c.blocked[0]) hurts(spawnEffect(kEarthSpear, x, y), 150, true, -1);
+                if (!c.blocked[0]) {
+                    hurts(spawnEffect(kEarthSpear, x, y), 150, true, -1);
+                    playSound(0x16, x, y);
+                }
                 if (++c.step >= n) c.done = true;
             }
             break;
@@ -444,6 +462,9 @@ void Game::stepCast(SpellCast& c) {
                     e.turn = 20 * std::numbers::pi / 180;
                     e.life = 90;
                 }
+                // Once, where the last fireball starts.
+                const auto [x, y] = along(180, c.aim - (n - 1) * kTau / n);
+                playSound(0x13, x, y);
                 c.done = true;
             }
             break;
@@ -473,6 +494,8 @@ void Game::stepCast(SpellCast& c) {
                     if (Effect* e = findEffect(id)) e->dead = true;
                 }
                 for (int i = 0; i < n; ++i) bolt(kBladeFly, angle(i), 50).life = 90;
+                const auto [x, y] = along(180, angle(n - 1));
+                playSound(0x5e, x, y);
                 c.done = true;
             }
             break;
@@ -486,6 +509,9 @@ void Game::stepCast(SpellCast& c) {
                     if (!c.blocked[static_cast<std::size_t>(i)] && blockedAt(x, y)) c.blocked[static_cast<std::size_t>(i)] = true;
                     if (!c.blocked[static_cast<std::size_t>(i)]) plasma(x, y, random_.next(4));
                 }
+                // Once a ring, at its last ray, even when every ray is blocked.
+                const auto [x, y] = along(350 + 200 * c.step, c.aim + (n - 1) * kTau / n);
+                playSound(0x15, x, y);
                 if (++c.step >= 4) c.done = true;
             }
             break;
@@ -493,7 +519,8 @@ void Game::stepCast(SpellCast& c) {
         case kMedusa:
             // A missile that turns what it hits to stone (its stun).
             if (r == 0) {
-                bolt(kMedusaFly, c.aim, 50);
+                const Effect& e = bolt(kMedusaFly, c.aim, 50);
+                playSound(0x16, e.x, e.y);
                 c.done = true;
             }
             break;
@@ -508,12 +535,14 @@ void Game::stepCast(SpellCast& c) {
                 e.life = 7;
                 e.diesOnWall = e.diesOnHit = true;
                 hurts(e, 80, true, kAirBurst);
+                e.hitSound = 155;
                 c.done = true;
             }
             break;
         case kMudJavelin:
             if (r == 0) {
                 Effect& e = bolt(kMudFly, c.aim, 80);
+                playSound(0x13, e.x, e.y);
                 c.tracked = {e.id};
                 c.trackedAt = {{e.x, e.y}};
             } else if (r > 0) {
@@ -521,7 +550,10 @@ void Game::stepCast(SpellCast& c) {
                 if (const Effect* e = findEffect(c.tracked[0])) {
                     c.trackedAt[0] = {e->x, e->y};
                 } else {
-                    hurts(spawnEffect(kMudBurst, c.trackedAt[0].first, c.trackedAt[0].second), 240, true, -1);
+                    Effect& burst = spawnEffect(kMudBurst, c.trackedAt[0].first, c.trackedAt[0].second);
+                    hurts(burst, 240, true, -1);
+                    burst.hitSound = kMagicHitSound;
+                    playSound(0x16, burst.x, burst.y);
                     c.done = true;
                 }
             }
@@ -544,6 +576,10 @@ void Game::stepCast(SpellCast& c) {
                     c.tracked.push_back(e.id);
                     c.trackedAt.emplace_back(e.x, e.y);
                 }
+                if (n > 0) {
+                    const auto [x, y] = along(180, c.aim - (n - 1) * kTau / n);
+                    playSound(0x13, x, y);
+                }
                 c.stage.assign(static_cast<std::size_t>(n), 0);
                 c.stageTicks.assign(static_cast<std::size_t>(n), 0);
                 if (n == 0) c.done = true;
@@ -561,7 +597,11 @@ void Game::stepCast(SpellCast& c) {
                         if (c.stageTicks[i] % 4 == 0 && c.stage[i] != 5) {
                             const int stage = c.stage[i];
                             const auto [x, y] = c.trackedAt[i];
-                            hurts(spawnEffect(kStageOption[stage], x, y), 240, true, kStageHit[stage]);
+                            Effect& burst = spawnEffect(kStageOption[stage], x, y);
+                            hurts(burst, 240, true, kStageHit[stage]);
+                            burst.hitSound = kMagicHitSound;
+                            if (stage == 4) playSound(0x16, x, y);
+                            playSound(0x13, x, y);
                             if (stage == 3) {
                                 spawnEffect(kLightningSplash, x, y);
                                 spawnEffect(kLightningGlitter, x, y);
@@ -623,7 +663,7 @@ void Game::stepEffect(Effect& e) {
         if (e.travelled >= kMissileRange) e.dead = true;
     }
     if (!e.dead && e.spell >= 0) {
-        bool struck = false;
+        bool struck = false, sounded = false;
         for (std::size_t i = 0; i < actors_.size(); ++i) {
             Actor& actor = actors_[i];
             if (!actor.active || !actor.hostile() || !actor.alive()) continue;
@@ -631,7 +671,10 @@ void Game::stepEffect(Effect& e) {
             const double reach = e.box + kTargetHalf;
             if (std::abs(actor.character.x - e.x) > reach || std::abs(actor.character.y - e.y) > reach) continue;
             e.struck.push_back(i);
-            spellHits(actor, e.spell, e.level, e.power, e.hit, e.hitOption);
+            if (spellHits(actor, e.spell, e.level, e.power, e.hit, e.hitOption) && !sounded) {
+                playSound(e.hitSound, e.x, e.y);
+                sounded = true;
+            }
             struck = true;
             if (!e.area) break;
         }

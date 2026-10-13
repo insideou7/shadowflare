@@ -677,6 +677,11 @@ void Game::tick() {
     tickPlayer();
     player_->tick();
     if (power_.active()) {
+        // A hum at the hero every 15 of the original's ticks, the first as
+        // it starts: 60 in all (0x443490).
+        if (const double hum = std::floor(power_.left / 15) * 15; hum > 0 && hum > power_.left - 1.5) {
+            playSound(0x4c, player_->x, player_->y);
+        }
         power_.tick(1.5);  // the original's ticks, 30 a second
         powerAuraTicks_ += 1.5;
     }
