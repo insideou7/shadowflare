@@ -55,24 +55,27 @@ BODY_PRIORITY = 20  # the body is drawn first; equipment priorities are lower (n
 
 
 def read_frames(folder):
-    """frames.txt: the anchor, the animations and any frame priorities."""
+    """frames.txt: the anchor, the animations, the frame each blow lands on
+    and any frame priorities."""
     lines = (folder / "frames.txt").read_text().split("\n")
     anchor = tuple(map(int, lines[0].split()[1:]))
-    anims, priorities = {}, {}
+    anims, priorities, strikes = {}, {}, {}
     for line in lines[1:]:
         words = line.split()
         if words and words[0] == "animation":
             anims[words[1]] = (int(words[2]), words[3] == "loop")
+        elif words and words[0] == "strike":
+            strikes[words[1]] = int(words[2])
         elif words and words[0] == "priority":
             priorities[(words[1], int(words[2]), int(words[3]))] = int(words[4])
-    return anchor, anims, priorities
+    return anchor, anims, priorities, strikes
 
 
 def character(src, dst, charts):
     """Writes a character's .sheet and returns its .anim text. A folder with
     layerNN/ subfolders (the hero's equipment, see creatures.py) becomes a
     layered animation: the body as layer 0, each subfolder as layer NN."""
-    (ax, ay), anims, _ = read_frames(src)
+    (ax, ay), anims, _, strikes = read_frames(src)
     layers = sorted((int(p.name[5:]), p) for p in src.glob("layer[0-9][0-9]") if (p / "frames.txt").exists())
     dst.mkdir(parents=True, exist_ok=True)
     atlas = Atlas(width=8192)  # big characters (the golem, the winged bosses) overflow a narrower sheet
@@ -82,9 +85,11 @@ def character(src, dst, charts):
         out.append(f"\n[chart {chart} {'loop' if loop else 'once'}]")
         for d in ([8] if (src / f"{name}_8_0.png").exists() else range(8)):
             idx = [atlas.add((name, d, f), cropped(src / f"{name}_{d}_{f}.png", ax, ay)) for f in range(frames)]
-            out.append(f"{d}{f'@{BODY_PRIORITY}' if layers else ''}=" + ",".join(map(str, idx)))
+            # "!" marks the frame the blow lands on.
+            marks = [f"{i}!" if f == strikes.get(name) else str(i) for f, i in enumerate(idx)]
+            out.append(f"{d}{f'@{BODY_PRIORITY}' if layers else ''}=" + ",".join(marks))
             for number, folder in layers:
-                (lx, ly), _, priorities = read_frames(folder)
+                (lx, ly), _, priorities, _ = read_frames(folder)
                 cells = []
                 for f in range(frames):
                     im, cx, cy = cropped(folder / f"{name}_{d}_{f}.png", lx, ly)
