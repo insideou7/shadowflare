@@ -436,6 +436,7 @@ private:
     int playerMaxMp() const { return playerStats()[HeroStats::kMp]; }
     void loadLevelCurve();
     void gainExperience(int amount);
+    void levelUp();  // one level up, with its sounds, spells and message
     void useItem(int index);
     // A consumable's effect on the hero or companion; false when it would
     // do nothing, so it is not used up.

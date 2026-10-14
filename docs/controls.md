@@ -137,7 +137,7 @@ mode turns every cheat off and dims its row.
 
 | Row | What it does here |
 |---|---|
-| Experience Rate | multiplies the hero's experience from kills and quest rewards: 0.5x to 5.0x in steps of 0.5x, 1.0x by default. Saved as `xp_rate` in `options.txt`. Levels still come one at a time, as in the original, so a big kill near a level's end does not carry over into the next. |
+| Experience Rate | multiplies the hero's experience from kills and quest rewards: 0.5x to 5.0x in steps of 0.5x, 1.0x by default. Saved as `xp_rate` in `options.txt`. The original goes up one level at a time and drops whatever is over; above 1.0x the extra carries over instead, through as many levels as it fills, so a 100% quest reward at 2.0x is two levels. |
 
 To add a cheat: give it an `OptionRow` on the Cheats tab in
 `src/game/options.cpp`, a field in `Settings` (`src/logic/settings.h`), and

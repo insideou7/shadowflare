@@ -392,14 +392,25 @@ void Game::loadLevelCurve() {
 void Game::gainExperience(int amount) {
     if (playerLevel_ >= levels_.maxLevel()) return;
     // The Cheats tab's experience rate; original mode plays at 1.0x.
-    if (const int rate = xpRate(); rate != Settings::kXpRateNormal && amount > 0) {
+    const int rate = xpRate();
+    if (rate != Settings::kXpRateNormal && amount > 0) {
         amount = std::max(1, static_cast<int>(static_cast<std::int64_t>(amount) * rate / 100));
     }
     playerExperience_ += amount;
-    if (playerExperience_ < levels_.need(playerLevel_)) return;
-    // As in the original: one level at a time, counting again from 0.
+    // The original goes up one level at a time and counts again from 0,
+    // dropping whatever was over. With the rate raised that would throw
+    // the extra away (a 100% quest reward at 2.0x would still be one
+    // level), so then what is over carries on into the next levels.
+    const bool carryOver = rate > Settings::kXpRateNormal;
+    while (playerLevel_ < levels_.maxLevel() && playerExperience_ >= levels_.need(playerLevel_)) {
+        playerExperience_ = carryOver ? playerExperience_ - levels_.need(playerLevel_) : 0;
+        levelUp();
+        if (!carryOver) break;
+    }
+}
+
+void Game::levelUp() {
     ++playerLevel_;
-    playerExperience_ = 0;
     // Level 5 sets the first class, with its own sound first (0x412fb0).
     if (player_ && playerLevel_ == 5) playSound(0x40, player_->x, player_->y);
     if (player_) playSound(0x3f, player_->x, player_->y);
