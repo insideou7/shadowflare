@@ -873,6 +873,8 @@ void testMagic() {
           "the names of items on the ground are ours alone");
     check(sf::Rules::ours().noEmptyGoldInWarehouse && !sf::Rules::original().noEmptyGoldInWarehouse,
           "original mode leaves empty gold in the warehouse");
+    check(sf::Rules::ours().absorptionHeals && !sf::Rules::original().absorptionHeals,
+          "absorption heals the hero only outside original mode");
 }
 
 void testPowerMode() {
@@ -909,6 +911,21 @@ void testLighting() {
     const sf::LightMap lamp{2, 2, {100, 0, 30, 60}};
     sf::lighting::add(screen, lamp, 0, 0);  // its middle at (0, 0): only its bottom right lands
     check(screen.at(0, 0) == 255 && screen.at(1, 0) == 200 && screen.at(0, 1) == 200, "lights add, saturating, clipped to the screen");
+    // Lights hanging off any edge, or wholly off the screen, as torches in
+    // the Dusty Ruins do when the hero walks away from them (a Debug build
+    // stopped with "vector subscript out of range").
+    sf::LightMap wide{8, 6, std::vector<std::uint8_t>(48, 0)};
+    const sf::LightMap glow{4, 4, std::vector<std::uint8_t>(16, 10)};
+    for (int cy = -10; cy <= 16; ++cy) {
+        for (int cx = -10; cx <= 18; ++cx) sf::lighting::add(wide, glow, cx, cy);
+    }
+    check(wide.at(0, 0) > 0 && wide.at(7, 5) > 0 && wide.at(7, 0) == wide.at(0, 5), "lights off the edges add only what lands");
+    sf::LightMap untouched{8, 6, std::vector<std::uint8_t>(48, 0)};
+    sf::lighting::add(untouched, glow, -300, 2);
+    sf::lighting::add(untouched, glow, 300, 2);
+    sf::lighting::add(untouched, glow, 2, -300);
+    sf::lighting::add(untouched, glow, 2, 300);
+    check(std::all_of(untouched.level.begin(), untouched.level.end(), [](std::uint8_t v) { return v == 0; }), "lights off the screen add nothing");
     const auto e = sf::lighting::ellipse(160, 110);
     check(e.at(80, 55) >= 250 && e.at(0, 0) == 0 && e.at(80, 0) < 10, "our light is brightest in the middle");
 }

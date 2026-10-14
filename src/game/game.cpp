@@ -27,6 +27,9 @@ constexpr double kRunSpeed = 140.0;
 // Monsters take their health, attack and defense from the scenario file.
 // Blows follow the original's rules (see strikeEnemy and strikePlayer).
 constexpr double kEnemySpeed = 35.0;
+// OPTION animations: the flash of Reflection (option 20014) and the orbs of
+// Absorption (option 20013).
+constexpr int kReflectGlow = 11000013, kAbsorbOrb = 11000012;
 constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
 constexpr double kTalkRange = 320.0;      // close enough to speak to someone
 constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
@@ -1320,10 +1323,36 @@ void Game::strikeEnemy(Actor& enemy) {
         playSound(6, player_->x, player_->y);  // the blow lands, at the hero
         // Table 7: the hero's level in the monster's opposite element
         // strengthens the blow (0x412a40).
-        hurtEnemy(enemy, heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3)));
+        const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3));
+        absorbFrom(enemy, damage);
+        hurtEnemy(enemy, damage);
     }
     // Every blow wears the weapon a little, hit or miss.
     sayBroken(inventory_.wearFromAttacking(random_));
+}
+
+// Absorption, rolled with each of the hero's blows and shots (0x44f990):
+// when the modifiers' chance comes up, the monster hit sends five orbs
+// back to the hero (0x459690, option 20013) with a sound. We found nothing
+// in the original that gives the hero anything for them; ours gives back
+// the Absorption Rate's share of the blow as health (Rules::absorptionHeals).
+void Game::absorbFrom(const Actor& enemy, int damage) {
+    if (!enemy.alive() || !player_) return;
+    const int rate = inventory_.chanceModifier(ItemDef::kModAbsorptionChance, ItemDef::kModAbsorptionRate, random_.next(100));
+    if (rate == 0) return;
+    const double toHero = std::atan2(player_->y - enemy.character.y, player_->x - enemy.character.x);
+    for (int i = 0; i < 5; ++i) {
+        Effect& orb = spawnEffect(kAbsorbOrb, enemy.character.x, enemy.character.y);
+        orb.angle = toHero + (random_.next(3000) - 1500) / 1000.0;
+        orb.speed = 30;
+        orb.turn = 15 * std::numbers::pi / 180;
+        orb.homesOnPlayer = true;
+        orb.life = 90;
+    }
+    playSound(0x3d, enemy.character.x, enemy.character.y);
+    if (rules_.absorptionHeals && rate > 0 && playerHp_ > 0) {
+        playerHp_ = std::min(playerMaxHp(), playerHp_ + std::max(1, damage * rate / 100));
+    }
 }
 
 void Game::sayBroken(const std::vector<EquipSlot>& slots) {
@@ -1438,16 +1467,31 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     }
     // Blows that get through wear out the armour (0x443fa8).
     sayBroken(inventory_.wearFromBlow(random_));
-    // Counter Burst sends part of a monster's blow back (0x444150): half
-    // as much to monsters whose word 7 is 100, at least 1.
-    if (!magic && attacker && attacker->alive() && spellOn(kCounterBurst)) {
-        int back = damage * magic_.power(kCounterBurst, castLevel(kCounterBurst)) / 100;
-        if (attacker->placement.stats.word7 == 100) back /= 2;
-        if (damage >= 20) trainSpell(kCounterBurst);
-        chargeShield(kCounterBurst);
-        spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
-        playSound(0x3c, player_->x, player_->y);
-        hurtEnemy(*attacker, std::max(1, back), true);
+    // Reflection sends part of a monster's blow back (0x444150): the
+    // Reflection modifiers worn, when their chance comes up, and Counter
+    // Burst's power while it is on. Half as much to monsters whose word 7
+    // is 100, at least 1.
+    if (!magic && attacker) {
+        int reflect = inventory_.chanceModifier(ItemDef::kModReflectionChance, ItemDef::kModReflectionRate, random_.next(100));
+        const bool burst = spellOn(kCounterBurst);
+        if (burst) reflect += magic_.power(kCounterBurst, castLevel(kCounterBurst));
+        if (reflect != 0 || burst) {
+            int back = 0;
+            if (attacker->alive()) {
+                back = damage * reflect / 100;
+                if (attacker->placement.stats.word7 == 100) back /= 2;
+            }
+            playSound(0x3c, player_->x, player_->y);
+            if (burst) {
+                if (damage >= 20) trainSpell(kCounterBurst);
+                chargeShield(kCounterBurst);
+                spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
+            } else {
+                // Option 20014, towards the monster.
+                spawnEffect(effectModel(kReflectGlow) ? kReflectGlow : 11000251, player_->x, player_->y).followsPlayer = true;
+            }
+            if (attacker->alive()) hurtEnemy(*attacker, std::max(1, back), true);
+        }
     }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.

@@ -11,12 +11,17 @@ void add(LightMap& screen, const LightMap& light, int cx, int cy) {
     const int left = cx - light.width / 2, top = cy - light.height / 2;
     const int x0 = std::max(0, -left), y0 = std::max(0, -top);
     const int x1 = std::min(light.width, screen.width - left), y1 = std::min(light.height, screen.height - top);
+    // A light wholly off the screen adds nothing. Rows are found from the
+    // vectors' data() so a light hanging off the left edge never indexes
+    // the screen before its first pixel (a Debug build's vector checks
+    // stop on that even though no pixel outside is touched).
+    if (x0 >= x1 || y0 >= y1) return;
     for (int y = y0; y < y1; ++y) {
-        const std::uint8_t* src = &light.level[static_cast<std::size_t>(y) * static_cast<std::size_t>(light.width)];
-        std::uint8_t* dst = &screen.level[static_cast<std::size_t>(top + y) * static_cast<std::size_t>(screen.width) + static_cast<std::size_t>(left)];
+        const std::uint8_t* src = light.level.data() + static_cast<std::ptrdiff_t>(y) * light.width;
+        std::uint8_t* dst = screen.level.data() + static_cast<std::ptrdiff_t>(top + y) * screen.width;
         for (int x = x0; x < x1; ++x) {
             if (src[x] == 0) continue;
-            dst[x] = static_cast<std::uint8_t>(std::min(255, dst[x] + src[x]));
+            dst[left + x] = static_cast<std::uint8_t>(std::min(255, dst[left + x] + src[x]));
         }
     }
 }
