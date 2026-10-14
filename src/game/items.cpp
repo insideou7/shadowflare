@@ -46,6 +46,22 @@ constexpr SlotBox kSlots[] = {
 // accessories: an item put there goes to the town warehouse (0x447290
 // answers 10 for it).
 constexpr SDL_Rect kTransferBox{336, 140, 56, 72};
+// The mine picture above it (0x447290 answers 11).
+constexpr SDL_Rect kMineSlot{336, 88, 46, 46};
+
+// The weapon set tabs I and II under the weapon slot and the shield slot
+// (0x406aa0): drawn 21 x 7 at these places, answering clicks a pixel in
+// from the left of tab I.
+struct SetTab {
+    int part, set;
+    SDL_Rect drawn, hit;
+};
+constexpr SetTab kSetTabs[] = {
+    {Inventory::kSetWeapon, 0, {490, 145, 21, 7}, {491, 145, 20, 7}},
+    {Inventory::kSetWeapon, 1, {513, 145, 21, 7}, {513, 145, 21, 7}},
+    {Inventory::kSetShield, 0, {490, 257, 21, 7}, {491, 257, 20, 7}},
+    {Inventory::kSetShield, 1, {513, 257, 21, 7}, {513, 257, 21, 7}},
+};
 
 bool inside(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
 
@@ -483,13 +499,18 @@ bool Game::inventoryClick(int x, int y, bool right) {
         if (!right) dropHand();
         return true;
     }
+    // The tabs answer first, whatever is in the hand.
+    if (weaponSetTabClick(x, y, right)) return true;
     const SDL_Rect bag{kBagX, kBagY, Inventory::kBagWidth * kCell, Inventory::kBagHeight * kCell};
     if (inside(bag, x, y)) {
         const int cx = (x - kBagX) / kCell, cy = (y - kBagY) / kCell;
         if (right) {
             if (hand_) return true;
             const int index = inventory_.indexAt(cx, cy);
-            if (rules_.rightClickSells && openShop_ && *openShop_ != kStorage) {
+            if (index >= 0 && inventory_.bag()[static_cast<std::size_t>(index)].item.def->isGold()) {
+                const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
+                openGoldSplit(GoldSplit::From::Bag, placed.x, placed.y, x, y);
+            } else if (rules_.rightClickSells && openShop_ && !storageOpen()) {
                 sellFromBag(index);
             } else if (rules_.rightClickEquips && index >= 0 &&
                        inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) {
@@ -518,6 +539,10 @@ bool Game::inventoryClick(int x, int y, bool right) {
         if (!right) putInWarehouse();
         return true;
     }
+    if (inside(kMineSlot, x, y)) {
+        if (!right) mineSlotClick();
+        return true;
+    }
     for (const auto& box : kSlots) {
         if (!inside(box.rect(), x, y)) continue;
         if (right) {
@@ -538,6 +563,141 @@ bool Game::inventoryClick(int x, int y, bool right) {
         return true;
     }
     return true;
+}
+
+bool Game::weaponSetTabClick(int x, int y, bool right) {
+    for (const auto& tab : kSetTabs) {
+        if (!inside(tab.hit, x, y)) continue;
+        if (right) {
+            // Only the tab in use answers: sharing its empty slot with the
+            // other set, or ending that. Silent.
+            if (inventory_.toggleShared(tab.part, tab.set)) updateEquipment();
+        } else if (inventory_.chooseWeaponSet(tab.set)) {
+            playSound(0x3a);
+            updateEquipment();
+        }
+        return true;
+    }
+    return false;
+}
+
+// Each tab: red while its set is in use, blue otherwise, and a bar in place
+// of its number while that set's slot is shared (Status.njp patterns
+// 0x5f-0x64, or the open pack's Tabs.sheet frames 22-27).
+void Game::renderWeaponSetTabs() {
+    const SpriteBank* open = itemBank("System/Game/Pattern/Tabs");
+    const SpriteBank* bank = open ? open : itemBank("System/Game/Pattern/Status");
+    for (const auto& tab : kSetTabs) {
+        const bool inUse = inventory_.weaponSet() == tab.set;
+        const bool shared = inventory_.shared(tab.part, tab.set);
+        const int pattern = (inUse ? 0x5f : 0x62) + (shared ? 2 : tab.set);
+        const SpriteTexture* sprite = bank ? sprites_.get(*bank, open ? pattern - 0x5f + 22 : pattern, false) : nullptr;
+        if (sprite) {
+            const SDL_Rect dst{tab.drawn.x + sprite->originX, tab.drawn.y + sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+        } else {
+            frame(renderer_, tab.drawn, inUse ? SDL_Color{150, 60, 40, 255} : SDL_Color{60, 60, 110, 255}, {200, 180, 130, 255});
+        }
+    }
+}
+
+void Game::mineSlotClick() {
+    if (!hand_) {
+        const ItemDef* mine = items_.find(ItemDef::Class::Special, 1);
+        if (mineCount_ <= 0 || !mine) return;
+        hand_ = Item::make(mine);
+        --mineCount_;
+        return;
+    }
+    if (!hand_->def->isMine() || mineCount_ >= mostMines()) return;
+    playSound(itemSound(*hand_->def, kItemPut));
+    hand_.reset();
+    ++mineCount_;
+}
+
+void Game::openGoldSplit(GoldSplit::From from, int cellX, int cellY, int mouseX, int mouseY) {
+    if (hand_) return;
+    int amount = 0;
+    if (from == GoldSplit::From::Bag) {
+        const int i = inventory_.indexAt(cellX, cellY);
+        if (i >= 0) amount = inventory_.bag()[static_cast<std::size_t>(i)].item.count;
+    } else {
+        const ShopStock& stock = from == GoldSplit::From::Storage ? shops_[kStorage] : openStock();
+        const int i = stock.indexAt(cellX, cellY);
+        if (i >= 0) amount = stock.goods[static_cast<std::size_t>(i)].item.count;
+    }
+    goldSplit_ = GoldSplit{from, cellX, cellY, mouseX - 24, mouseY - 24, std::to_string(amount), true};
+    SDL_StartTextInput();
+}
+
+// Digits, Backspace, Enter to take the gold and Esc or a click to leave it.
+bool Game::goldSplitEvent(const SDL_Event& event) {
+    if (!goldSplit_) return false;
+    auto& box = *goldSplit_;
+    switch (event.type) {
+        case SDL_TEXTINPUT:
+            for (const char* c = event.text.text; *c; ++c) {
+                if (*c < '0' || *c > '9') continue;
+                if (box.fresh) box.text.clear();
+                box.fresh = false;
+                if (box.text.size() < 6) box.text += *c;
+            }
+            return true;
+        case SDL_KEYDOWN:
+            switch (event.key.keysym.sym) {
+                case SDLK_BACKSPACE:
+                    box.fresh = false;
+                    if (!box.text.empty()) box.text.pop_back();
+                    break;
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER: finishGoldSplit(); break;
+                case SDLK_ESCAPE:
+                    goldSplit_.reset();
+                    SDL_StopTextInput();
+                    break;
+                default: break;
+            }
+            return true;
+        case SDL_MOUSEBUTTONDOWN:
+            goldSplit_.reset();
+            SDL_StopTextInput();
+            return true;
+        case SDL_KEYUP:
+        case SDL_MOUSEBUTTONUP: return true;
+        default: return false;
+    }
+}
+
+void Game::finishGoldSplit() {
+    const GoldSplit box = *goldSplit_;
+    goldSplit_.reset();
+    SDL_StopTextInput();
+    if (box.text.empty() || box.text.size() > 6) return;
+    const int amount = std::stoi(box.text);
+    const ItemDef* gold = items_.find(ItemDef::Class::Special, 0);
+    bool taken = false;
+    if (box.from == GoldSplit::From::Bag) {
+        taken = inventory_.splitGold(inventory_.indexAt(box.x, box.y), amount, hand_);
+    } else {
+        ShopStock& stock = box.from == GoldSplit::From::Storage ? shops_[kStorage] : openStock();
+        taken = splitGold(stock.goods, stock.indexAt(box.x, box.y), amount, gold, hand_);
+    }
+    if (taken) playSound(itemSound(*hand_->def, kItemTake));
+}
+
+// A small box where the right click was, the amount in it (0x441ab0).
+void Game::renderGoldSplit() {
+    if (!goldSplit_) return;
+    const SDL_Rect r{goldSplit_->boxX, goldSplit_->boxY, 48, 12 + 8};
+    frame(renderer_, r, {0, 0, 0, 230}, {224, 224, 224, 255});
+    const std::string& text = goldSplit_->text;
+    if (goldSplit_->fresh) frame(renderer_, {r.x + 3, r.y + 3, uiTextWidth(text) + 2, 12 + 2}, {64, 64, 160, 255}, {64, 64, 160, 255});
+    uiText(r.x + 4, r.y + 5, text, kWhite);
+    // The caret blinks.
+    if (!goldSplit_->fresh && (ticks_ / (kTicksPerSecond / 2)) % 2 == 0) {
+        const int cx = r.x + 5 + uiTextWidth(text);
+        frame(renderer_, {cx, r.y + 4, 1, 12}, kWhite, kWhite);
+    }
 }
 
 // A right click on a weapon, armour or accessory in the bag wears it, and
@@ -957,6 +1117,7 @@ void Game::renderInventory() {
                 if (inside(r, mx, my)) hover = &*worn;
             }
         }
+        renderWeaponSetTabs();
         // A shield shown but not drawn on the hero is greyed out.
         const auto& weapon = inventory_.equipped(EquipSlot::Weapon);
         if (inventory_.equipped(EquipSlot::Shield) && weapon && weapon->def->twoHanded()) {

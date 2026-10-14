@@ -607,6 +607,27 @@ back to event 0. Distances are gaps between the two collision boxes.
 | 11 | walk home |
 
 Speeds are multiplied by the monster's speed (word 77) / 1000.
+Durations and speeds count the original's ticks, 30 a second: walking
+home (0x45c900) hands the path mover (0x454210) the list's walk speed x
+word 77 / 1000 as the distance to cover each tick, and gives up after 90
+ticks. Most lists approach at 15 to 25 a tick, golems at 5 and dragons
+up to 70.
+
+### How fast the hero moves
+
+The path mover (0x454930) steps `speed` world units a tick along the line
+to the target. The hero's speed is set whenever the stats change
+(0x450080): walking speed / 32 + 1, kept to 0-9, picks a step (0x450d40)
+of the scale {2/3, 3/4, 4/5, 5/6, 6/7, 1, 7/6, 6/5, 5/4, 4/3}; the walk
+is 20 (0x475200) x that step, cut to a whole number, and the run twice the
+walk. A new hero's 128 is step 5: 20 walking and 40 running. Wearing more
+than strength can carry (0x445630, the weight of the worn items) makes it
+step 0, 13 and 26; the swing (0x450c60) and the chant (0x450cd0) drop to
+step 0 the same way. In power mode (+0x1554) the walk and run code
+(0x4351f0, 0x435530) use step 9 instead, 20 or 40 (0x475208) x 4/3: 26
+and 53, and so do the swing and the chant. The walking setting (+0x494)
+is 0 walk, 1 run, 2 run only when the target is 1000 or more away
+(0x443490). The companion moves at its stat / 5 a tick (0x454210).
 
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
 
@@ -1041,6 +1062,69 @@ it to the town warehouse, wherever the hero is:
   place on that page instead, unless one like it is there already, and
   never to the warehouse. With no special items window yet, ours keeps it
   in the hand.
+
+The mine picture above it, (336, 88)-(381, 133), answers 11: a click with
+an empty hand takes one mine off the count into the hand (silently), and
+one with a mine in the hand puts it back while the count has room, with
+the item's put-down sound.
+
+## Weapon sets, the Giant Warehouse and the gold split box
+
+**Weapon sets** (0x406aa0, 0x451930). The item window has two small tabs,
+I and II, under the weapon slot at (490, 145) and (513, 145) and the same
+under the shield slot at y = 257 (Status.njp patterns 0x5f-0x64: I, II
+and a bar, red for the set in use, then blue for the other). The set not
+in use keeps its weapon and shield aside (player +0x50c and +0x510). A
+left click on the other set's tab, on either row, or Caps Lock (between
+blows and spells: 0x4429b0 waits for the attack to end, flag 0x48d7d0)
+changes sets: the weapon and the shield trade places with the ones kept
+aside. The tab plays 0x3a; Caps Lock is silent.
+
+A right click on the tab in use while its slot is empty shares that slot
+(flags 0x48d7c0-0x48d7cc: set I weapon, set II weapon, set I shield, set II
+shield): the other set's item comes over, and changing sets leaves the
+slot alone, so both sets use it. Its tab shows the bar. While its own
+flag is set the slot can't be changed (0x446320 cases 3 and 4); the other
+set's flag doesn't lock it, so from that set the slot can still be used.
+Another right click on the sharing set's tab ends it and sends what is in
+the slot to the other set. The set in use and the four flags are saved
+with the game (0x44b580).
+
+**The Giant Warehouse** (0x447ca0, drawn by 0x404760). STORAGE takes a
+number: 0 opens the town warehouse (player +0x51c, the one the Warehouse
+Transfer Box fills), anything else the Giant Warehouse, used only by the
+Tower of Ordeal's 12th floor (Scenario/99000013). It has ten pages of 9 x
+10 (player +0x520), chosen by tabs I-X at (24 + 24n, 41), and a close
+button at (272, 40)-(295, 55). Status.njp pattern 0x49 is its header over
+the warehouse window (patterns 14 and 15); each tab is 0x55 + n for the
+page in view, 0x4b + n for another open page and 0x4a for a page not open
+yet. Pages I and II are open from the start (0x440f70); the others open
+when a script sets EXSTRG n (operand type 13, player +0x55c) to 1: pages
+III, V, VI, VII, VIII and IX by quests in areas 3 and 4 (Scenario/03900001,
+99000018, 04900001, 04900002, 99000023) and IV and X in Scenario/02200000
+and 03900003. Choosing a page or closing plays 0x3a.
+
+In either warehouse a right click off the cells closes it. On the cells,
+a right click on gold opens the gold split box and one on a consumable
+uses it (0x44a240), as in the bag.
+
+**The gold split box** (0x441ab0; settled at 0x4429b0). A right click on a
+stack of gold in the bag or a warehouse with an empty hand opens a small
+number box 24 pixels up and left of the pointer, showing the stack's
+amount. Enter takes the amount typed: less than the stack makes a new
+Gold item of that much in the hand and leaves the rest; exactly the stack
+takes the stack; anything else (more, nothing, not a number) takes
+nothing. Taking gold plays its item sound, 0x55.
+
+**Saving** (0x4103c0). SAVE AND RETURN TO TITLE and SAVE AND EXIT ask
+"Return to the Title Screen?" or "Is it O.K. to exit the game?" with YES
+at (336, 202) and NO at (384, 202) in place of the menu's rows, lit blue
+under the pointer. YES plays 0x38 and saves; NO plays 0x37 and goes back
+to the menu.
+
+**The magic window's bar** (0x44a8f0). A right click on one of its eight
+slots empties it, with 0x39 (nothing for an empty one); a right click
+anywhere else on the window closes it.
 
 The open pack draws its own box, an iron-strapped oak strongbox, as part
 of the panel, and frame 6 of Inventory.sheet is the same box lit up.

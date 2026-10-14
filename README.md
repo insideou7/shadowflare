@@ -99,6 +99,7 @@ Options:
   does this for the files in game/)
 - `--map-pictures <folder>` where those are kept (default: `maps/` in the settings folder)
 - `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
+- `--crash-test` crash on purpose, to check that `crash.txt` is written next to the program
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
@@ -141,6 +142,8 @@ Options:
   screen pixels from the player, e.g. `--level 3 --cast 1:120,0`
 - `--spell <n>[:<level>]` teach spell n (0-21, the original's numbering) at
   that level and put it on F1, e.g. `--spell 3:10 --cast 1:200,60` for Plasma
+- `--combo <x>,<y>` a Warrior's combo (sword or great sword) or spin (axe or mace) towards
+  a point in screen pixels from the player, e.g. `--level 6 --class warrior --equip 0:0 --combo 120,0`
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 - `--options` / `--help-window` start with the Settings Menu or the Help window open
 - `--options-file <path>` read and write the options there instead of `options.txt`
@@ -155,6 +158,20 @@ The main loop runs one frame per call, so the same code builds with Emscripten:
     cmake --build build-web
 
 Players will still need to supply their own game files.
+
+### Crashes
+
+When the game crashes, or a Debug build's check fails ("vector subscript out
+of range"), it writes `crash.txt` next to the program: what went wrong, the
+call stack and the last 40 log lines. Debug and RelWithDebInfo builds name the
+functions and lines in the stack. `--crash-test` crashes on purpose to try it.
+
+Crashes can also go to [Sentry](https://sentry.io). Configure with
+`-DSFE_SENTRY=ON`, which downloads and builds sentry-native, and give it your
+project's DSN with `-DSFE_SENTRY_DSN=<dsn>` or the `SHADOWFLARE_SENTRY_DSN`
+environment variable. Without a DSN nothing is sent. A crash is uploaded the
+next time the game starts, with the last log lines as breadcrumbs; a failed
+Debug check is sent at once.
 
 ## Layout
 

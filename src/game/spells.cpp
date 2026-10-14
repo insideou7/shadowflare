@@ -203,7 +203,7 @@ void Game::startCast(double worldX, double worldY) {
     // with it too (0x43d290, 0x43a260).
     int chart = spell == kHeal || spell == kMoon || spell == kTransport ? chart::kPlayerHeal : chart::kPlayerCast;
     if (!player_->hasChart(chart)) chart = player_->hasChart(chart::kPlayerCast) ? chart::kPlayerCast : chart::kPlayerPunch;
-    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active()));
+    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active(), overloaded(playerStats())));
     // Transport's gate appears as the cast begins.
     if (kind == Kind::Transport) openTransportGate();
     if (kind == Kind::Cast) {
@@ -325,15 +325,18 @@ void Game::monsterSpellHitsPlayer(const Effect& e) {
     stun.angle = std::atan2(-(player_->y - e.y), player_->x - e.x);
     stun.pushed = !st.uncapped && inventory_.guardModifier(ItemDef::kModHighDamage) == 0;
     stunHero(stun);
-    if (stunKindOf(e.spell) == StunKind::Freeze) {
-        // The same ice as on a monster (the controllers 0x5217-0x521a).
-        spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
-        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
-        ice.followsPlayer = true;
-        ice.life = stun.total;
-        ice.then = kFreezeEnd;
-        playSound(0x77, player_->x, player_->y);
-    }
+    if (stunKindOf(e.spell) == StunKind::Freeze) iceOnHero(stun.total);
+}
+
+// The hero frozen in ice for `ticks`: the same ice as on a monster (the
+// controllers 0x5217-0x521a) and its crackle.
+void Game::iceOnHero(int ticks) {
+    spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
+    Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
+    ice.followsPlayer = true;
+    ice.life = ticks;
+    ice.then = kFreezeEnd;
+    playSound(0x77, player_->x, player_->y);
 }
 
 // The same on an ACTIVE companion: its magic evasion and magic defence,

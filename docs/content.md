@@ -18,6 +18,7 @@ original format.
 | `Player/Male/Animation00.caf/.njp`    | `Player/Male/Animation00.anim` + `.sheet`|
 | `Player/Female/Animation00.caf/.njp`  | `Player/Female/Animation00.anim` + `.sheet`|
 | `System/Title/Pattern/Title.njp`      | `System/Title/Pattern/Title.sheet` (pattern 0) |
+| `System/Title/Pattern/Smoke00-09.Caf/.Njp` (title steam) | `System/Title/Pattern/Smoke00-09.anim` + `.sheet` |
 | `System/Select/Pattern/Select.njp`    | `System/Select/Pattern/Select.sheet`     |
 | `Scenario/<n>/Scenario.Mct` + `.Scs`  | `Scenario/<n>/scenario.txt`              |
 | `System/Game/Parameter/Control.aid`   | `ai.txt`                                 |
@@ -30,6 +31,7 @@ original format.
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
+| `System/Game/Pattern/Status.njp` (Giant Warehouse header and tabs 0x49-0x5e, weapon set tabs 0x5f-0x64) | `System/Game/Pattern/Tabs.sheet` (frames 0-21, then 22-27) |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 | `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
 | names, heights and colours in `Scenario.Mct` enemy placements | `enemies.txt` (by monster kind) |
@@ -385,13 +387,14 @@ them, as in Remote Town's kennel:
 ### ai.txt
 
     [list goblin]
-    walk=40                  # speed when walking home
+    walk=20                  # speed when walking home
     on=decide attack priority=2 range=..60
-    on=decide approach weight=4 duration=30 speed=45 range=..1800
+    on=decide approach weight=4 duration=45 speed=15 range=..1800
 
 Each `on=` line is one choice for an event, as in the original's
 Control.aid (see formats.md): the event, the action, then any of
-`priority`, `weight`, `duration` (ticks), `speed` (world units a tick),
+`priority`, `weight`, `duration` (ticks), `speed` (world units a tick;
+ticks are the original's, 30 a second, and the hero walks 20 a tick),
 `pause`, `extra`, `hp=<min>..<max>` (percent) and `range=<min>..<max>`
 (gap to the player in world units; either end may be left out).
 `tools/content/ai.txt` lists the event and action names.
