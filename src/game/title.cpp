@@ -82,6 +82,7 @@ void Game::chooseMenuItem(MenuItem item) {
 }
 
 void Game::newGame() {
+    forgetVisitedScenarios();
     hand_.reset();
     inventory_.clear();
     flags_.clear();

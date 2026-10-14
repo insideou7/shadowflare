@@ -345,6 +345,10 @@ private:
 
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadScenario(const std::string& dir);
+    // Puts the scenario being left in visited_, unless the game is being
+    // started or loaded (forgetVisitedScenarios).
+    void keepScenario();
+    void forgetVisitedScenarios();
     void indexScenarios();
     bool readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const;
     void spawnActors();
@@ -1058,6 +1062,21 @@ private:
     std::vector<TriggerArea> triggers_;
     ScriptFlags flags_;
     std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
+    // Every scenario entered since the game was started or loaded, as it
+    // was left. The original loads each scenario once (0x426000 skips one
+    // already loaded, 0x427b50) and keeps it until the game is started
+    // again (0x41d3f0): its characters, dead monsters included, its items
+    // on the ground and its TEMP and NET flags stay as they were, so
+    // nothing comes back by leaving and returning.
+    struct ScenarioVisit {
+        ScenarioControl control;
+        std::vector<Actor> actors;
+        std::vector<std::optional<std::array<int, 3>>> objectsFixed;  // each SceneObject's
+        std::vector<GroundItem> groundItems;
+        ScriptFlags flags;  // its TEMP and NET ones
+    };
+    std::map<std::string, ScenarioVisit> visited_;  // by Scenario/<dir>
+    bool forgetCurrent_ = false;
 
     std::array<std::array<std::optional<CharacterModel>, 2>, 2> playerModels_;  // [art][HeroSex], as models_
     std::array<bool, 2> playerModelsLoaded_{};

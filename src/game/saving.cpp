@@ -218,6 +218,7 @@ bool Game::loadGameFrom(const std::string& path) {
         return false;
     }
 
+    forgetVisitedScenarios();
     hand_.reset();
     flags_ = save.flags;
     explored_ = save.explored;

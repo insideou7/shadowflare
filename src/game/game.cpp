@@ -131,33 +131,49 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
 }
 
 void Game::loadScenario(const std::string& dir) {
+    keepScenario();
+    auto visit = visited_.extract(dir);
+    const bool back = !visit.empty();
     scenarioDir_ = dir;
     skippedCommands_.clear();
     control_ = {};
     script_.reset();
     triggers_.clear();
     pendingScenario_.reset();
-    // TEMP flags last for one visit, and out of network play so do NET
-    // ones (0x4300e0); the others persist.
+    // TEMP and NET flags (out of network play) belong to the scenario
+    // (0x4300e0); the others persist.
     std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
     warpPage_ = 0;
     if (!dir.empty()) {
-        readScenario(dir, control_, &script_);
+        ScenarioControl fresh;
+        readScenario(dir, back ? fresh : control_, &script_);
+        if (back) control_ = std::move(visit.mapped().control);
         startAreaMusic(control_.areaKind);
     }
-    // The NET flags start as the script lists them, then each character's
-    // and object's activity flags join them.
-    if (script_) {
-        for (const auto& [id, value] : script_->netFlags) flags_[{ScenarioScript::kNet, id}] = value;
-    }
-    for (const auto& p : control_.placements) {
-        for (std::size_t k = 0; k < kStateFlagBases.size(); ++k) {
-            flags_[{ScenarioScript::kNet, kStateFlagBases[k] + ScenarioControl::idBase(p.group) + p.id}] = p.states[k];
+    if (back) {
+        flags_.merge(visit.mapped().flags);
+        actors_ = std::move(visit.mapped().actors);
+        attackTarget_.reset();
+        spawnObjects();
+        const auto& fixed = visit.mapped().objectsFixed;
+        for (std::size_t i = 0; i < sceneObjects_.size() && i < fixed.size(); ++i) sceneObjects_[i].fixed = fixed[i];
+        groundItems_ = std::move(visit.mapped().groundItems);
+        log::info("Back in {} \"{}\" as it was left", scenarioDir_, control_.title);
+    } else {
+        // The NET flags start as the script lists them, then each
+        // character's and object's activity flags join them.
+        if (script_) {
+            for (const auto& [id, value] : script_->netFlags) flags_[{ScenarioScript::kNet, id}] = value;
         }
+        for (const auto& p : control_.placements) {
+            for (std::size_t k = 0; k < kStateFlagBases.size(); ++k) {
+                flags_[{ScenarioScript::kNet, kStateFlagBases[k] + ScenarioControl::idBase(p.group) + p.id}] = p.states[k];
+            }
+        }
+        spawnActors();
+        spawnObjects();
+        spawnGroundItems();
     }
-    spawnActors();
-    spawnObjects();
-    spawnGroundItems();
     placePlayer();
     dialogue_.reset();
     openShop_.reset();
@@ -168,7 +184,9 @@ void Game::loadScenario(const std::string& dir) {
     // an open content pack's scenario names it with its title.
     if (!dir.empty() && data_->read(dir + "/scenario.txt") && !control_.title.empty()) showAreaName(control_.title);
     if (!script_) return;
-    for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
+    if (!back) {
+        for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
+    }
     startScripts_ = true;
     for (const auto& t : script_->triggers) {
         if (t.event != ScenarioScript::kOnJudge) continue;
@@ -179,6 +197,26 @@ void Game::loadScenario(const std::string& dir) {
         }
     }
     checkTriggers(false);  // arriving inside an area does not set it off
+}
+
+void Game::keepScenario() {
+    if (std::exchange(forgetCurrent_, false) || scenarioDir_.empty()) return;
+    ScenarioVisit visit;
+    visit.control = std::move(control_);
+    visit.actors = std::move(actors_);
+    for (const auto& o : sceneObjects_) visit.objectsFixed.push_back(o.fixed);
+    visit.groundItems = std::move(groundItems_);
+    for (const auto& [key, value] : flags_) {
+        if (key.first == ScenarioScript::kTemp || key.first == ScenarioScript::kNet) visit.flags.emplace(key, value);
+    }
+    visited_[scenarioDir_] = std::move(visit);
+}
+
+// A new game or a loaded one starts every scenario afresh (0x41d3f0 makes
+// them all again), the one being left included.
+void Game::forgetVisitedScenarios() {
+    visited_.clear();
+    forgetCurrent_ = true;
 }
 
 // Several scenarios can share a map (the same place at different points in
@@ -269,6 +307,12 @@ void Game::setOurArt(bool on) {
     }
     for (auto& g : groundItems_) {
         if (g.sprite) swap(*g.sprite);
+    }
+    for (auto& [dir, visit] : visited_) {
+        for (auto& a : visit.actors) swap(a.character);
+        for (auto& g : visit.groundItems) {
+            if (g.sprite) swap(*g.sprite);
+        }
     }
     if (partner_) swap(partner_->character);
     if (player_) {
