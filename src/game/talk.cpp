@@ -677,7 +677,14 @@ bool Game::shopClick(int x, int y, bool right) {
         showMessage("You're running short of money.");
         return true;
     }
-    if (!inventory_.add(item)) {
+    // A mine goes onto the mine count, never the bag, and isn't sold while
+    // the hero carries as many as they can (0x44b020, 0x446320 case 9).
+    if (item.def->isMine()) {
+        if (!pickUpMine()) {
+            showMessage("No room for more mines");
+            return true;
+        }
+    } else if (!inventory_.add(item)) {
         showMessage("No room in the bag");
         return true;
     }

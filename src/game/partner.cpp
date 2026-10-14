@@ -902,8 +902,9 @@ bool Game::tickPartnerFetch(double toHero) {
     p.state = Partner::State::Idle;
     c.play(chart::kIdle);
     const Item item = it->item;
-    if (!inventory_.add(item)) {
-        showMessage(std::format("No room for {}", item.shownName()));
+    // A fetched mine joins the hero's mines, as one picked up does.
+    if (item.def->isMine() ? !pickUpMine() : !inventory_.add(item)) {
+        showMessage(item.def->isMine() ? std::string("No room for more mines") : std::format("No room for {}", item.shownName()));
         return true;
     }
     showMessage(item.def->isGold() ? std::format("{} gold", item.count) : item.shownName());
