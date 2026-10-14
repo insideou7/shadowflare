@@ -51,7 +51,9 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
     d.groundPicture = in.i32();  // 0x38
     skipWords(in, 4);         // 0x3c icon draw parameter, 0x50-0x58 ground tint
     const std::int32_t glow = in.i32();  // 0x68
-    skipWords(in, 3 + 1 + 2);  // 0x6c-0x74 its tint, 0x7c, 0x80[2]
+    skipWords(in, 3);          // 0x6c-0x74 its tint
+    d.specialPage = in.i32();  // 0x7c
+    skipWords(in, 2);          // 0x80[2], its place on that page
     if (d.width < 1 || d.height < 1 || d.width > 9 || d.height > 4) {
         throw FormatError(std::format("item \"{}\" has a bad size {}x{}", d.name, d.width, d.height));
     }

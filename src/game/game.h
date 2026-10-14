@@ -462,6 +462,7 @@ private:
     void renderGroundItems(int camX, int camY);
     void renderInventory();
     void renderItemTotals();
+    void putInWarehouse();  // the held item, into the Warehouse Transfer Box
     void renderItemPopup(const Item& item, int mx, int my);
     // The colours the item and status windows write numbers in (0x405590):
     // plain, lowered by what is worn (red) and raised by it (tan).
@@ -1148,6 +1149,8 @@ private:
     int weightGaugeShown_ = -1;
     bool weightGaugeSettled_ = true;
     std::uint64_t weightGaugeTick_ = 0;
+    int transferGlow_ = 0;  // the Warehouse Transfer Box's light, 0 to 10
+    std::uint64_t transferGlowTick_ = 0;
     // Identify was cast: the next item clicked in the bag is identified
     // (player + 0x1624).
     bool identifying_ = false;
