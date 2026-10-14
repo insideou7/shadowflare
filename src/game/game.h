@@ -30,6 +30,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "logic/title_smoke.h"
 #include "logic/traps.h"
 #include "formats/table_data.h"
 #include "formats/open_content.h"
@@ -918,6 +919,16 @@ private:
     bool spellBarClick(int x, int y);
     void renderSpellBar();
     void renderMenu();
+    // The steam blowing from the title picture's pipes (logic/title_smoke.h).
+    void tickTitleSmoke();
+    void renderTitleSmoke();
+    // Smoke00-09 from the original's files [0] and from our pack [1].
+    std::array<std::array<std::optional<CharacterModel>, TitleSmoke::kJets>, 2> titleSmokeModels_;
+    std::array<bool, 2> titleSmokeLoaded_{};
+    const std::array<std::optional<CharacterModel>, TitleSmoke::kJets>& titleSmokeJets();
+    std::optional<TitleSmoke> titleSmoke_;
+    Random titleRandom_;  // its own, so the menu leaves the game's rolls alone
+    double titleSmokeCarry_ = 0;
     void menuEvent(const SDL_Event& event);
     int menuItemAt(int x, int y) const;
     bool menuItemEnabled(MenuItem item) const;
