@@ -419,16 +419,28 @@ a switch at 0x430ffe (jump table 0x4344f0):
 | 17 | `CHANGESCENARIO scenario entry` | 39 | `GETRANDAM min max var` | 65 | `SETTINGRAIN r g b count` |
 | 18 | `C_STOP char` | 40 | `CREATEEFFECTCHAR effect char` | 66 | `GETMYPLAYERNO var` |
 | 19 | `C_MOVABLE char` | 41 | `STORAGE 0` | 67 | `MEMORIZEMAGIC spell` |
-| 20 | `C_ACTIONREQ` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
+| 20 | `C_ACTIONREQ char action loop from to` | 42 | `GETPLAYERLIFE` | 68 | `GETEXPERIENCE` |
 | 21 | `C_SETANGLETO char target` (0 = player) | 43 | `GETPLAYERMENTAL` | 69 | `CHECKMEMORIZEDMAGIC spell var` |
 | 22 | `SETACTIVE char` | 44 | `GETPARTNERKIND var` | 70 | `ENABLECLASSCHANGE class` |
 | 23 | `SETINACTIVE char` | 45 | `CHANGEPARTNER kind` | 71 | `GETCLASS var` |
 | 24 | `CREATEITEMTABLE` | 46 | `SETCHARTRANS object opacity` | 72 | `CHANGECOLOR` |
 | 25 | `RESSURECT enemy x y dir` | 47 | `GETCHARTRANS object var` | 73 | `STARTCARDGAME` |
-| | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT` |
+| | | 48 | `DRAWQUESTNAME quest` | 74 | `GETCARDGAMERESULT var` |
 | | | 49 | `SETCOMPASSES msg` | 75 | `SETITEMDIRECT` |
 | | | 50 | `GETENTRYPOINT var` | | |
 | | | 51 | `SETMSGDEFINE v0 ... v19` | | |
+
+`C_ACTIONREQ` makes a person play an action (0x45d480): 1 stands, 2
+walks, 3 talks and 4 or more plays chart action - 1. When `loop` is not
+-1 it repeats frames `from` to `to` (-1 is the first or the last frame)
+until `C_STOP` or `C_MOVABLE`; otherwise it plays once and the person
+stands. Healers run `C_ACTIONREQ healer 4 -1 -1 -1 -1` just before
+`HEALLIFE`, so they cast as they heal. `CHANGECOLOR` opens the Change
+Color window ([change_color.md](change_color.md)); `STARTCARDGAME` opens
+the card game, or closes it if it is open, and `GETCARDGAMERESULT` stores
+its result: 0 a draw, 1 the player won, 2 the dealer won
+([card_game.md](card_game.md)). When the card game ends the game runs the
+triggers of event 8.
 
 Traps, effects, rain, story pictures and taught spells (30, 33-36, 40,
 46, 47, 64-67, 69) are described in [traps.md](traps.md), and `PLAYSOUND`

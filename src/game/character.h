@@ -65,6 +65,13 @@ public:
     // Colour and opacity the body is drawn with (partner dogs are recoloured
     // per kind, and fade out when they die).
     SDL_Color tint{255, 255, 255, 255};
+    // Colours some layers are drawn with on top of `tint`, per mille of
+    // red, green and blue (the hero's dyed armour, Inventory::heroTints).
+    struct LayerTint {
+        int layer = 0;
+        int r = 1000, g = 1000, b = 1000;
+    };
+    std::vector<LayerTint> layerTints;
     // Drawn without colour (turned to stone by Medusa).
     bool grey = false;
     // Drawn brighter by this much, per mille (the one under the pointer).
@@ -87,6 +94,9 @@ public:
     int chart() const { return chart_; }
     int frame() const { return frame_; }
     int frameCount() const;
+    // Jumps to a frame of the chart playing (scripted actions that loop
+    // part of a chart, 0x45d850).
+    void setFrame(int frame);
     // The frames of `chart` in `direction` (0-8), 0 when it has none.
     int frameCountOf(int chart, int direction) const;
     bool finished() const;  // a non-looping chart reached its last frame

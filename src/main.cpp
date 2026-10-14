@@ -123,6 +123,8 @@ struct Options {
     std::optional<bool> storage;     // --storage / --giant-storage: open a warehouse (true: the Giant Warehouse)
     std::vector<std::pair<int, int>> warpFlags;  // WARP[gate] = value; gate -1 for every gate
     std::optional<int> warpGate;  // open the GATE window on this page
+    bool cardGame = false;        // start with the card game open
+    bool changeColor = false;     // start with the Change Color window open
     int warpTo = -1;              // then pick this row of it
 };
 
@@ -269,6 +271,10 @@ Options parseArgs(int argc, char** argv) {
             options.warpGate = 0;
         } else if (arg.starts_with("--warp-gate=")) {
             options.warpGate = static_cast<int>(std::strtol(argv[i] + 12, nullptr, 10));
+        } else if (arg == "--card-game") {
+            options.cardGame = true;
+        } else if (arg == "--change-color") {
+            options.changeColor = true;
         } else if (arg == "--warp-to" && i + 1 < argc) {
             options.warpTo = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
         } else if (arg == "--options") {
@@ -745,6 +751,8 @@ int main(int argc, char** argv) {
     }
     if (options.warpGate) app.game->openWarpGate(0, *options.warpGate);
     if (options.warpTo >= 0) app.game->chooseWarpGate(options.warpTo);
+    if (options.cardGame) app.game->toggleCardGame();
+    if (options.changeColor) app.game->openChangeColor();
     app.recording = !options.recordSound.empty();
     if (!app.recording) app.audio = std::make_unique<sf::AudioOutput>();
     app.lastCounter = SDL_GetPerformanceCounter();

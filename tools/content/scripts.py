@@ -53,7 +53,7 @@ IF, CHANGESCENARIO, SETCOMPASSES = 0, 17, 49
 # Commands whose numbers are items, gold or tables, never characters.
 ITEM_COMMANDS = {"CREATEITEM", "CREATEITEMTABLE", "CHECKITEMEXIST", "DELETEITEM", "SETITEMDIRECT", "INITTRADE",
                  "TRADE", "PAYGOLD", "SETQUESTFLAG", "DRAWQUESTNAME", "PLAYSOUND", "STARTVISUAL"}
-EVENTS = {0: "talk", 1: "talk-end", 3: "judge", 4: "enemy-dead", 5: "tick", 6: "routine", 7: "start"}
+EVENTS = {0: "talk", 1: "talk-end", 3: "judge", 4: "enemy-dead", 5: "tick", 6: "routine", 7: "start", 8: "card-game-end"}
 KINDS = {2: "msg", 3: "alive", 4: "temp", 5: "net", 6: "x", 7: "y", 8: "playmode", 9: "held", 10: "warp",
          11: "save", 12: "quest", 13: "exstrg"}
 OPERATORS = {0: "=", 1: "!", 2: ">", 3: "<"}
@@ -255,7 +255,7 @@ def translate(game, pack, number, props, words_dir):
         for _, event, ch, s in triggers:
             if s != i or event not in EVENTS or i in skip_sentences:
                 continue
-            if event in (5, 7) and ch == -1:
+            if event in (5, 7, 8) and ch == -1:
                 body.append(f"on={EVENTS[event]}")
             elif event == 6:
                 body.append(f"on=routine {ch}")

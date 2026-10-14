@@ -24,12 +24,15 @@ namespace sf {
 // works with whichever item list the game data has, original or open.
 struct SaveGame {
     static constexpr std::size_t kSavedModifiers = ItemDef::kModifierCount + 8;
+    // An item's dye is kept in its modifier list under this number.
+    static constexpr int kColourIndex = 100;
     struct ItemRef {
         int cls = 0;
         std::int32_t code = 0;
         int count = 1;
         int wear = 0;               // Item::wear
         bool unidentified = false;  // Item::unidentified
+        int colour = -1;            // Item::colour
         // Item::modifiers then Item::elementModifiers, as one list.
         std::array<std::int32_t, kSavedModifiers> modifiers{};
     };

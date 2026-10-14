@@ -4,7 +4,7 @@ Replacement content that lets the engine run without the original game:
 the original's first area, walked on like the original's with our own walls
 and trees (Remote Town, Cold Svalt Town and the fields, forests and dungeons
 round them), the hero and the heroine with their equipment, the title screen (`System/Title/Pattern/Title`, stone and copper pipes rendered in Blender by `tools/art/title_screen.py`, the name set in New Rocker under the SIL Open Font License 1.1) and the steam blowing from its pipes (`Smoke00-09`, painted by `tools/art/title_smoke.py`), the Create New Character screen (`System/Select`, drawn by `tools/art/select_screen.py` with figures from `tools/art/portraits.py`), 24 kinds of monster, the
-townspeople, the hero's dogs (`partners.txt`, `Character/PARTNER`, with the dash's speed streak painted by `tools/art/streak.py`), items, the game panel along the bottom of the screen (`tools/art/panel.py`) and the magic bar's icons (`tools/art/magic_icons.py`), the inventory panel, the shop window, the GATE window (`tools/art/warp.py`), the speech
+townspeople, the hero's dogs (`partners.txt`, `Character/PARTNER`, with the dash's speed streak painted by `tools/art/streak.py`), items, the game panel along the bottom of the screen (`tools/art/panel.py`) and the magic bar's icons (`tools/art/magic_icons.py`), the inventory panel, the shop window, the GATE window (`tools/art/warp.py`), the card game and the Change Color window (`System/Game/Pattern/Card` and `ChangeColor`, drawn by `tools/art/cards.py`), the speech
 balloon, the font, the spell, trap and script effects (`Character/OPTION`,
 painted by `tools/art/effects.py`) and the story pages that open and close
 each episode (`System/Common/Pattern/Visual01`-`06`, `Waiting` and

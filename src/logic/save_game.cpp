@@ -41,19 +41,21 @@ constexpr std::size_t kMaxModifierNumbers = 2 * SaveGame::kSavedModifiers;
 
 SaveGame::ItemRef ref(const Item& item) {
     SaveGame::ItemRef r{static_cast<int>(item.def->cls), item.def->code, item.count, item.wear, item.unidentified};
+    r.colour = item.colour;
     std::ranges::copy(item.modifiers, r.modifiers.begin());
     std::ranges::copy(item.elementModifiers, r.modifiers.begin() + ItemDef::kModifierCount);
     return r;
 }
 
 // An item's wear and whether it is unidentified, after its other numbers,
-// then each modifier it rolled as index,value; left off when it is new,
-// identified and plain.
+// then each modifier it rolled as index,value and its dye as
+// kColourIndex,colour; left off when it is new, identified and plain.
 std::string condition(const SaveGame::ItemRef& r) {
     std::string mods;
     for (std::size_t i = 0; i < r.modifiers.size(); ++i) {
         if (r.modifiers[i] != 0) mods += std::format(",{},{}", i, r.modifiers[i]);
     }
+    if (r.colour >= 0) mods += std::format(",{},{}", SaveGame::kColourIndex, r.colour);
     if (r.wear == 0 && !r.unidentified && mods.empty()) return {};
     return std::format(",{},{}{}", r.wear, r.unidentified ? 1 : 0, mods);
 }
@@ -67,6 +69,10 @@ SaveGame::ItemRef readRef(const std::vector<long long>& v, std::size_t extra, in
         r.unidentified = v[4 + extra] != 0;
     }
     for (std::size_t i = 5 + extra; i + 1 < v.size(); i += 2) {
+        if (v[i] == SaveGame::kColourIndex) {
+            r.colour = static_cast<int>(v[i + 1]);
+            continue;
+        }
         if (v[i] < 0 || static_cast<std::size_t>(v[i]) >= r.modifiers.size()) {
             throw FormatError(std::format("save line {}: no modifier {}", line, v[i]));
         }
@@ -79,6 +85,7 @@ Item toItem(const ItemDef* def, const SaveGame::ItemRef& r) {
     Item item{def, r.count};
     item.wear = r.wear;
     item.unidentified = r.unidentified;
+    item.colour = r.colour;
     std::copy_n(r.modifiers.begin(), ItemDef::kModifierCount, item.modifiers.begin());
     std::copy_n(r.modifiers.begin() + ItemDef::kModifierCount, 8, item.elementModifiers.begin());
     return item;
