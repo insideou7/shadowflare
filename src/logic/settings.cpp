@@ -36,8 +36,11 @@ int Settings::rank(int target) const {
 }
 
 int Settings::clampXpRate(int percent) {
-    const int steps = (std::clamp(percent, kXpRateMin, kXpRateMax) - kXpRateMin + kXpRateStep / 2) / kXpRateStep;
-    return kXpRateMin + steps * kXpRateStep;
+    int rate = kXpRates.front();
+    for (const int r : kXpRates) {
+        if (r <= percent) rate = r;
+    }
+    return rate;
 }
 
 std::string Settings::write() const {
@@ -58,7 +61,7 @@ std::string Settings::write() const {
     out += std::format("music_volume={}\n", musicVolume);
     out += std::format("original={}\n", originalMode ? 1 : 0);
     out += std::format("our_art={}\n", ourArt ? 1 : 0);
-    out += std::format("xp_rate={}.{}\n", xpRate / 100, xpRate % 100 / 10);
+    out += std::format("xp_rate={}\n", xpRate / 100);
     out += std::format("zoom={}\n", zoom);
     return out;
 }
@@ -97,7 +100,7 @@ Settings Settings::parse(std::string_view text) {
             continue;
         }
         if (key == "xp_rate") {
-            // Written as a multiplier with one decimal place, such as 1.5.
+            // Written as a multiplier, such as 2; older files have 1.5 and so on.
             double rate = 0;
             const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), rate);
             if (error == std::errc{} && end == value.data() + value.size()) s.xpRate = clampXpRate(static_cast<int>(rate * 100 + 0.5));

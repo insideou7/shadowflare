@@ -146,7 +146,7 @@ std::string Game::optionStepperText(OptionRow row) const {
     switch (row) {
         case OptionRow::XpRate: {
             const int rate = xpRate();
-            std::string text = std::format("{}.{}X", rate / 100, rate % 100 / 10);
+            std::string text = std::format("{}X", rate / 100);
             if (originalMode()) text += "  (ORIGINAL MODE)";
             return text;
         }
@@ -160,10 +160,11 @@ void Game::stepOption(OptionRow row, int by, bool wrap) {
     if (!optionEnabled(row)) return;
     switch (row) {
         case OptionRow::XpRate: {
-            int rate = settings_.xpRate + by * Settings::kXpRateStep;
-            if (wrap && rate > Settings::kXpRateMax) rate = Settings::kXpRateMin;
-            if (wrap && rate < Settings::kXpRateMin) rate = Settings::kXpRateMax;
-            rate = Settings::clampXpRate(rate);
+            const auto& rates = Settings::kXpRates;
+            const int count = static_cast<int>(rates.size());
+            const int at = static_cast<int>(std::ranges::find(rates, Settings::clampXpRate(settings_.xpRate)) - rates.begin());
+            const int next = wrap ? (at + by + count) % count : std::clamp(at + by, 0, count - 1);
+            const int rate = rates[static_cast<std::size_t>(next)];
             if (rate == settings_.xpRate) return;
             settings_.xpRate = rate;
             log::info("Experience rate {}%", rate);

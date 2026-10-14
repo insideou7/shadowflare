@@ -759,6 +759,12 @@ void testMagic() {
     const int need = t.spell(sf::kPlasma).usesToLevel[0];
     for (int k = 1; k < need; ++k) book.train(t, sf::kPlasma);
     check(book.castLevel(sf::kPlasma) == 1 && book.train(t, sf::kPlasma) && book.castLevel(sf::kPlasma) == 2, "training");
+    {
+        // The experience-rate cheat counts one use many times, through several levels.
+        auto fast = sf::SpellBook::replay(t, sf::classHistory(5, C::Warrior));
+        const int two = t.spell(sf::kPlasma).usesToLevel[0] + t.spell(sf::kPlasma).usesToLevel[1];
+        check(fast.train(t, sf::kPlasma, two) && fast.castLevel(sf::kPlasma) == 3, "training many uses at once");
+    }
     check(sf::spellMpCost(t, sf::kFireBall, 1) == 30 && sf::spellMpCost(t, sf::kFireBall, 1, 50) == 1, "MP cost");
 
     check(book.castLevel(sf::kPlasma, false, 3) == 5 && book.castLevel(sf::kPlasma, true, 40) == 30,
@@ -918,12 +924,13 @@ void testSettings() {
 
     check(defaults.xpRate == 100, "experience comes at the normal rate by default");
     sf::Settings fast;
-    fast.xpRate = 250;
-    check(fast.write().find("xp_rate=2.5\n") != std::string::npos && sf::Settings::parse(fast.write()).xpRate == 250,
+    fast.xpRate = 1000;
+    check(fast.write().find("xp_rate=10\n") != std::string::npos && sf::Settings::parse(fast.write()).xpRate == 1000,
           "the experience rate is saved as a multiplier and read back");
-    check(sf::Settings::parse("xp_rate=9\n").xpRate == 500 && sf::Settings::parse("xp_rate=0.1\n").xpRate == 50 &&
-              sf::Settings::parse("xp_rate=1.7\n").xpRate == 150 && sf::Settings::parse("xp_rate=fast\n").xpRate == 100,
-          "experience rates are kept to 0.5x-5.0x in steps of 0.5x");
+    check(sf::Settings::parse("xp_rate=9\n").xpRate == 500 && sf::Settings::parse("xp_rate=0.5\n").xpRate == 100 &&
+              sf::Settings::parse("xp_rate=2.5\n").xpRate == 200 && sf::Settings::parse("xp_rate=50\n").xpRate == 2000 &&
+              sf::Settings::parse("xp_rate=20\n").xpRate == 2000 && sf::Settings::parse("xp_rate=fast\n").xpRate == 100,
+          "experience rates are kept to 1x, 2x, 5x, 10x and 20x");
 }
 
 void testTrapGeometry() {

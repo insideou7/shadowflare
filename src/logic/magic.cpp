@@ -308,16 +308,22 @@ SpellBook SpellBook::replay(const MagicTables& t, const std::vector<HeroClass>& 
     return book;
 }
 
-bool SpellBook::train(const MagicTables& t, int spell) {
+bool SpellBook::train(const MagicTables& t, int spell, int times) {
     if (!knows(spell)) return false;
     const auto i = static_cast<std::size_t>(spell);
     if (level[i] >= kMaxSpellLevel) return false;
-    ++uses[i];
-    const int need = t.spells[i].usesToLevel[static_cast<std::size_t>(level[i] - 1)];
-    if (uses[i] < need) return false;
-    uses[i] -= need;
-    ++level[i];
-    return true;
+    uses[i] += std::max(1, times);
+    bool raised = false;
+    while (level[i] < kMaxSpellLevel) {
+        const int need = t.spells[i].usesToLevel[static_cast<std::size_t>(level[i] - 1)];
+        if (uses[i] < need) break;
+        uses[i] -= need;
+        ++level[i];
+        raised = true;
+        // One use raises one level at most, as in the original.
+        if (times <= 1) break;
+    }
+    return raised;
 }
 
 int SpellBook::castLevel(int spell, bool powerMode, int equipmentBonus) const {
