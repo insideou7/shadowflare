@@ -161,6 +161,9 @@ public:
     bool originalMode() const { return rules_.originalMode(); }
     // The Debug tab's experience rate in percent; 100 in original mode.
     int xpRate() const { return originalMode() ? Settings::kXpRateNormal : settings_.xpRate; }
+    // The Debug tab's luck in percent (unique drops); 100 in
+    // original mode.
+    int luck() const { return originalMode() ? Settings::kLuckNormal : settings_.luck; }
 
     // Draws the original game with our art or its own, at once and
     // without reloading the map, like a remaster's classic-graphics
@@ -1063,7 +1066,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, ShowFps
+        XpRate, Luck, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;

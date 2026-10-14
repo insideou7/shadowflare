@@ -50,7 +50,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     // A new debug option or cheat is a row here, with its label, its
     // choices or stepper text, what setOption or stepOption does with it,
     // and a field in Settings. A cheat must do nothing in original mode.
-    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::ShowFps};
+    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
@@ -77,7 +77,8 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
         // Cheats are ours, so original mode turns them off.
-        case OptionRow::XpRate: return !originalMode();
+        case OptionRow::XpRate:
+        case OptionRow::Luck: return !originalMode();
         default: return true;
     }
 }
@@ -104,6 +105,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::Exit: return "EXIT";
         case OptionRow::Back: return "BACK";
         case OptionRow::XpRate: return "EXPERIENCE RATE";
+        case OptionRow::Luck: return "LUCK";
         case OptionRow::ShowFps: return "SHOW FPS";
     }
     return "";
@@ -146,13 +148,18 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
 
 bool Game::optionIsSlider(OptionRow row) { return row == OptionRow::EffectVolume || row == OptionRow::MusicVolume; }
 
-bool Game::optionIsStepper(OptionRow row) { return row == OptionRow::XpRate; }
+bool Game::optionIsStepper(OptionRow row) { return row == OptionRow::XpRate || row == OptionRow::Luck; }
 
 std::string Game::optionStepperText(OptionRow row) const {
     switch (row) {
         case OptionRow::XpRate: {
             const int rate = xpRate();
             std::string text = std::format("{}X", rate / 100);
+            if (originalMode()) text += "  (ORIGINAL MODE)";
+            return text;
+        }
+        case OptionRow::Luck: {
+            std::string text = std::format("{}X UNIQUE ITEMS", luck() / 100);
             if (originalMode()) text += "  (ORIGINAL MODE)";
             return text;
         }
@@ -174,6 +181,17 @@ void Game::stepOption(OptionRow row, int by, bool wrap) {
             if (rate == settings_.xpRate) return;
             settings_.xpRate = rate;
             log::info("Experience rate {}%", rate);
+            break;
+        }
+        case OptionRow::Luck: {
+            const auto& rates = Settings::kLuckRates;
+            const int count = static_cast<int>(rates.size());
+            const int at = static_cast<int>(std::ranges::find(rates, Settings::clampLuck(settings_.luck)) - rates.begin());
+            const int next = wrap ? (at + by + count) % count : std::clamp(at + by, 0, count - 1);
+            const int luck = rates[static_cast<std::size_t>(next)];
+            if (luck == settings_.luck) return;
+            settings_.luck = luck;
+            log::info("Luck {}%", luck);
             break;
         }
         default: return;
@@ -519,7 +537,7 @@ void Game::renderOptions() {
             uiText(r.x + 3, y, choices[static_cast<std::size_t>(c)], color);
         }
     }
-    const char* note = optionsTab_ == OptionsTab::Debug ? "TAB FOR SETTINGS   ORIGINAL MODE TURNS THE EXPERIENCE RATE OFF"
+    const char* note = optionsTab_ == OptionsTab::Debug ? "TAB FOR SETTINGS   ORIGINAL MODE TURNS THE CHEATS OFF"
                        : optionsInGame_                 ? "ESC TO GO BACK TO THE GAME   TAB FOR DEBUG   DIM ROWS ARE NOT IN YET"
                                                         : "ESC TO GO BACK   TAB FOR DEBUG   DIM ROWS ARE NOT IN YET";
     drawText(renderer_, kOptionsPanel.x + (kOptionsPanel.w - textWidth(note, 1)) / 2, kOptionsPanel.y + kOptionsPanel.h - 14, note,

@@ -43,6 +43,14 @@ int Settings::clampXpRate(int percent) {
     return rate;
 }
 
+int Settings::clampLuck(int percent) {
+    int luck = kLuckRates.front();
+    for (const int r : kLuckRates) {
+        if (r <= percent) luck = r;
+    }
+    return luck;
+}
+
 std::string Settings::write() const {
     std::string out = "# ShadowFlare open edition options\n";
     out += std::format("fullscreen={}\n", fullScreen ? 1 : 0);
@@ -62,6 +70,7 @@ std::string Settings::write() const {
     out += std::format("original={}\n", originalMode ? 1 : 0);
     out += std::format("our_art={}\n", ourArt ? 1 : 0);
     out += std::format("xp_rate={}\n", xpRate / 100);
+    out += std::format("luck={}\n", luck / 100);
     out += std::format("show_fps={}\n", showFps ? 1 : 0);
     out += std::format("zoom={}\n", zoom);
     out += std::format("item_names={}\n", itemNames ? 1 : 0);
@@ -116,6 +125,7 @@ Settings Settings::parse(std::string_view text) {
         else if (key == "darkness") s.darkness = v != 0;
         else if (key == "save_image_at_end") s.saveImageAtEnd = v != 0;
         else if (key == "click_range") s.clickRange = v != 0;
+        else if (key == "luck") s.luck = clampLuck(std::clamp(v, 0, 1000) * 100);
         else if (key == "click_size") s.clickSize = std::clamp(v, 0, kClickSizes - 1);
         else if (key == "effect_volume") s.effectVolume = std::clamp(v, 0, kMaxVolume);
         else if (key == "music_volume") s.musicVolume = std::clamp(v, 0, kMaxVolume);
