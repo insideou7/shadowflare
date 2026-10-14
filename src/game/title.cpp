@@ -4,6 +4,7 @@
 
 #include "core/log.h"
 #include "game/game.h"
+#include "game/skin.h"
 #include "render/tiny_font.h"
 
 namespace sf {
@@ -152,6 +153,8 @@ void Game::menuEvent(const SDL_Event& event) {
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                 case SDLK_SPACE: chooseMenuItem(menuItems_[menuChoice_]); break;
+                // The picture behind shows which art is on.
+                case SDLK_F12: swapArt(); break;
                 default: break;
             }
             break;
@@ -172,7 +175,11 @@ void Game::renderMenu() {
     // The title picture, pattern 0 of System/Title/Pattern/Title: the
     // whole screen, with the name on it. The original's has gaps where its
     // smoke shows through (Smoke00-09, not drawn yet), so black first.
-    const SpriteBank* bank = itemBank("System/Title/Pattern/Title");
+    // With our art chosen (Settings Menu or F12) it is our picture, from
+    // the pack, over the original's.
+    constexpr const char* kTitleBank = "System/Title/Pattern/Title";
+    const SpriteBank* bank = skin_ ? skin_->sheet(kTitleBank) : nullptr;
+    if (!bank) bank = itemBank(kTitleBank);
     if (const SpriteTexture* t = bank ? sprites_.get(*bank, 0, false) : nullptr) {
         SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
         SDL_RenderClear(renderer_);

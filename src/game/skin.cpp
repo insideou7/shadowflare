@@ -111,6 +111,14 @@ std::optional<CharacterModel> Skin::character(const std::string& stem) const {
     return CharacterModel::load(*pack_, stem);
 }
 
+const SpriteBank* Skin::sheet(const std::string& stem) {
+    auto [it, inserted] = sheets_.try_emplace(stem);
+    if (inserted && pack_->exists(stem + ".sheet")) {
+        if (auto loaded = loadSheet(*pack_, stem + ".sheet")) it->second = std::make_unique<SpriteBank>(std::move(*loaded));
+    }
+    return it->second.get();
+}
+
 const MaterialTexture* Skin::material(const std::string& name) {
     if (name == "none") return nullptr;
     auto [it, inserted] = materials_.try_emplace(name);
