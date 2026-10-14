@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <format>
+#include <numbers>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
