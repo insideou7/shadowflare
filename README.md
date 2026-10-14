@@ -91,6 +91,12 @@ Options:
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting
+- `--render-maps [folder]` draw every map's picture for the area map (N), then quit:
+  into the folder as `<map>.png` (for the open pack, `content/Map/Overview`), or
+  with no folder where the game keeps the original's maps drawn in our art, so
+  none has to be drawn the first time it opens (`cmake --build build --target map_pictures`
+  does this for the files in game/)
+- `--map-pictures <folder>` where those are kept (default: `maps/` in the settings folder)
 - `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE

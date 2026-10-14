@@ -45,6 +45,10 @@ public:
     // Draws the ground in place of the original's chips.
     void renderGround(int camX, int camY);
 
+    // A number that changes when the pack's skin.txt or the pictures it
+    // draws the maps with change, to tell pictures made with them apart.
+    std::uint64_t fingerprint() const;
+
     // A w x h picture of the ground, each pixel the average of a scale x
     // scale block from map pixel (left, top): what renderGround draws
     // there, near enough, without painting it all, which takes long.

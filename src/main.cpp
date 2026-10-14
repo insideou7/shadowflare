@@ -28,6 +28,9 @@ struct Options {
     std::optional<std::filesystem::path> dataDir;  // default: game/, else the open content in content/
     std::string map;  // default: c02_00, or the content pack's start map
     std::string screenshot;  // saved as BMP when the run ends
+    std::string mapPictures;  // --map-pictures <folder>: where the area map keeps its pictures (default: the settings folder's maps/)
+    bool renderMaps = false;  // --render-maps [folder]: draw every map's picture for the area map, then quit
+    std::string renderMapsTo;  // default: where the game keeps them (--map-pictures)
     std::string recordSound;  // the game's sound, saved as a WAV file when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
@@ -99,6 +102,11 @@ Options parseArgs(int argc, char** argv) {
             options.dataDir = argv[++i];
         } else if (arg == "--map" && i + 1 < argc) {
             options.map = argv[++i];
+        } else if (arg == "--map-pictures" && i + 1 < argc) {
+            options.mapPictures = argv[++i];
+        } else if (arg == "--render-maps") {
+            options.renderMaps = true;
+            if (i + 1 < argc && !std::string_view(argv[i + 1]).starts_with("--")) options.renderMapsTo = argv[++i];
         } else if (arg == "--screenshot" && i + 1 < argc) {
             options.screenshot = argv[++i];
         } else if (arg == "--record-sound" && i + 1 < argc) {
@@ -536,7 +544,24 @@ int main(int argc, char** argv) {
             SDL_free(prefs);
         }
     }
+    // The area map's pictures of the original's maps, kept once drawn.
+    if (!options.mapPictures.empty()) {
+        app.game->setMapPictureFolder(options.mapPictures);
+    } else if (!scripted || options.renderMaps) {
+        if (char* prefs = SDL_GetPrefPath("ShadowFlare", "open")) {
+            app.game->setMapPictureFolder(std::string(prefs) + "maps");
+            SDL_free(prefs);
+        }
+    }
     if (options.ourArt) app.game->setOurArt(*options.ourArt);
+    if (options.renderMaps) {
+        sf::log::info("Drew {} map pictures", app.game->renderMapPictures(options.renderMapsTo));
+        app.game.reset();
+        SDL_DestroyRenderer(app.renderer);
+        SDL_DestroyWindow(app.window);
+        SDL_Quit();
+        return EXIT_SUCCESS;
+    }
     if (options.load) app.game->loadGame();
     if (options.level > 0) app.game->setLevel(options.level, options.heroClass);
     if (options.original) app.game->setOriginalMode(true);

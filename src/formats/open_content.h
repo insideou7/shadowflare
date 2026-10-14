@@ -42,6 +42,9 @@ struct Image {
 // Decodes a PNG (or any format stb_image reads). Throws FormatError.
 Image decodeImage(std::span<const std::uint8_t> data);
 
+// A PNG of w x h pixels, 0xAARRGGBB, top row first.
+std::vector<std::uint8_t> encodePng(std::span<const std::uint32_t> argb, int w, int h);
+
 // A .sheet file: one image cut into frames, each with an anchor point.
 struct Sheet {
     struct Frame {

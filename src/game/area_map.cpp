@@ -8,16 +8,22 @@
 //
 // The picture is the scenario's Scenario.Njp when the map is drawn with
 // the original's art, and otherwise ours, drawn from the map itself at a
-// tenth of its size the first time the map opens on it, so it shows what
-// the player sees (the open content pack's maps, or the original's maps
-// in our art). What has been seen is kept per area (ExploredMap) and goes
+// tenth of its size, so it shows what the player sees. The open content
+// pack brings its maps' pictures drawn ahead of time (Map/Overview, made
+// with --render-maps). The original's maps in our art are drawn the first
+// time each opens and kept in the settings folder's maps/, by the art they
+// were drawn in. What has been seen is kept per area (ExploredMap) and goes
 // in the saved game; walking reveals the block of 680 x 460 screen pixels
 // round the hero, about the whole screen.
 #include <algorithm>
+#include <filesystem>
 #include <format>
+#include <fstream>
+#include <iterator>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
+#include "formats/open_content.h"
 #include "game/game.h"
 #include "game/skin.h"
 #include "platform/filesystem.h"
@@ -131,13 +137,12 @@ void Game::tickAreaMap() {
 // to freeze the game, so there the skin works out each block's average
 // ground without painting it, and only the objects are drawn, on nothing,
 // to go over it.
-void Game::buildAreaMapPicture() {
-    mapPicture_.reset();
-    mapPictureFor_ = mapNames_[mapIndex_];
+std::vector<std::uint32_t> Game::drawAreaMapPixels(int& w, int& h) {
     int left, top, right, bottom;
     map_->ground().screenBounds(left, top, right, bottom);
-    const int w = (right - left) / kMapScale, h = (bottom - top) / kMapScale;
-    if (w <= 0 || h <= 0) return;
+    w = (right - left) / kMapScale;
+    h = (bottom - top) / kMapScale;
+    if (w <= 0 || h <= 0) return {};
     SDL_RendererInfo info{};
     SDL_GetRendererInfo(renderer_, &info);
     auto pieceSize = [](int most, int need) {
@@ -154,7 +159,7 @@ void Game::buildAreaMapPicture() {
     TexturePtr half(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, halfW, halfH));
     if (!piece || !half) {
         log::warn("Map picture: {}", SDL_GetError());
-        return;
+        return {};
     }
     SDL_SetTextureBlendMode(piece.get(), SDL_BLENDMODE_NONE);
     SDL_SetTextureScaleMode(piece.get(), SDL_ScaleModeLinear);
@@ -210,11 +215,97 @@ void Game::buildAreaMapPicture() {
     shotWidth_ = shotHeight_ = 0;
     SDL_SetRenderTarget(renderer_, previous);
     fullSize_ = false;
+    return small;
+}
+
+std::string Game::areaMapPictureFile() {
+    if (mapPictureFolder_.empty() || data_->exists("content.txt")) return {};
+    // Kept apart by the art they are drawn in, and by how they are drawn.
+    constexpr int kVersion = 1;
+    std::string art = "original";
+    if (skin_) {
+        if (!skinFingerprint_) skinFingerprint_ = skin_->fingerprint();
+        art = std::format("ours-{:016x}", *skinFingerprint_);
+    }
+    return (std::filesystem::path(mapPictureFolder_) / std::format("{}-{}", art, kVersion) / (mapNames_[mapIndex_] + ".png")).string();
+}
+
+// The picture comes from the open pack's Map/Overview, else from the ones
+// kept from earlier runs, else it is drawn now (and kept).
+void Game::buildAreaMapPicture() {
+    mapPicture_.reset();
+    mapPictureFor_ = mapNames_[mapIndex_];
+    int left, top, right, bottom;
+    map_->ground().screenBounds(left, top, right, bottom);
+    const int wantW = (right - left) / kMapScale, wantH = (bottom - top) / kMapScale;
+    const std::string file = areaMapPictureFile();
+    std::optional<std::vector<std::uint8_t>> png;
+    if (!skin_ && data_->exists("content.txt")) {
+        png = data_->read("Map/Overview/" + mapPictureFor_ + ".png");
+    } else if (!file.empty()) {
+        std::ifstream in(file, std::ios::binary);
+        if (in) png = std::vector<std::uint8_t>(std::istreambuf_iterator<char>(in), {});
+    }
+    std::vector<std::uint32_t> pixels;
+    int w = 0, h = 0;
+    if (png) {
+        try {
+            const auto image = open::decodeImage(*png);
+            if (image.width == wantW && image.height == wantH) {
+                pixels.assign(image.argb.begin(), image.argb.end());
+                w = image.width;
+                h = image.height;
+            }
+        } catch (const FormatError& e) {
+            log::warn("Map picture of {}: {}", mapPictureFor_, e.what());
+        }
+    }
+    if (pixels.empty()) {
+        pixels = drawAreaMapPixels(w, h);
+        if (pixels.empty()) return;
+        if (!file.empty()) {
+            std::error_code error;
+            std::filesystem::create_directories(std::filesystem::path(file).parent_path(), error);
+            const auto bytes = open::encodePng(pixels, w, h);
+            std::ofstream out(file, std::ios::binary | std::ios::trunc);
+            out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+            if (!out) log::warn("Could not keep the map picture in {}", file);
+        }
+    }
     mapPicture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, w, h));
     if (!mapPicture_) return;
-    SDL_UpdateTexture(mapPicture_.get(), nullptr, small.data(), w * 4);
+    SDL_UpdateTexture(mapPicture_.get(), nullptr, pixels.data(), w * 4);
     mapPictureW_ = w;
     mapPictureH_ = h;
+}
+
+int Game::renderMapPictures(const std::string& folder) {
+    int made = 0;
+    for (std::size_t i = 0; i < mapNames_.size(); ++i) {
+        loadMapLayers(i);
+        if (!map_) continue;
+        const std::filesystem::path path = folder.empty() ? std::filesystem::path(areaMapPictureFile()) : std::filesystem::path(folder) / (mapNames_[i] + ".png");
+        if (path.empty()) {
+            log::warn("No folder to keep the map pictures in");
+            break;
+        }
+        int w = 0, h = 0;
+        const auto pixels = drawAreaMapPixels(w, h);
+        if (pixels.empty()) continue;
+        const auto bytes = open::encodePng(pixels, w, h);
+        std::error_code error;
+        std::filesystem::create_directories(path.parent_path(), error);
+        std::ofstream out(path, std::ios::binary | std::ios::trunc);
+        out.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+        if (!out) {
+            log::warn("Could not write {}", path.string());
+            continue;
+        }
+        ++made;
+    }
+    mapPicture_.reset();
+    mapPictureFor_.clear();
+    return made;
 }
 
 // The area's picture with its top left corner of the map at (left, top).

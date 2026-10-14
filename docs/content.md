@@ -149,6 +149,11 @@ tents) are sorted with the characters so they can stand in front of them.
 Without `tiles=`, the ground is a screen-aligned grid of `chip=w,h`
 pixel chips, as in the original game.
 
+`Map/Overview/<name>.png` is the map's picture for the area map (N), a
+tenth of its size, drawn ahead of time with `--render-maps` (see
+"Rebuilding content/"). Draw them again after changing a map; a map
+without one is drawn when the area map first opens on it.
+
 ### Scenario/\<number\>/scenario.txt
 
     title=Goblin Camp
@@ -567,6 +572,7 @@ with Pillow and numpy:
     python tools/art/creatures.py hero /tmp/art/hero        # and every other
     python tools/art/props.py /tmp/art/props                # script in tools/art
     python3 tools/art/build_pack.py /tmp/art content
+    build/shadowflare --data content --render-maps content/Map/Overview
     python3 tools/art/shrink.py content
     python3 tools/art/trim_sheets.py content
 

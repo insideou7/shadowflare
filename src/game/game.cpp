@@ -109,6 +109,18 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     if (partner_) partnerHpCarried_ = partner_->state == Partner::State::Dead ? 0 : partner_->hp;
     partner_.reset();
     clearSpells();
+    loadMapLayers(index);
+    if (!map_) return;
+    if (!scenarioDir.empty()) {
+        loadScenario(scenarioDir);
+    } else {
+        const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
+        loadScenario(found == scenarioByMap_.end() ? std::string() : found->second);
+    }
+}
+
+// The map's ground and objects, without its scenario.
+void Game::loadMapLayers(std::size_t index) {
     mapIndex_ = index;
     sprites_.clear();
     map_ = Map::load(*data_, mapNames_[index]);
@@ -122,12 +134,6 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     // Painter's order by where each object stands, not where its sprite's
     // corner is: things nearer the bottom of the screen are drawn later.
     std::ranges::stable_sort(drawOrder_, [&](std::size_t a, std::size_t b) { return objects[a].depth() < objects[b].depth(); });
-    if (!scenarioDir.empty()) {
-        loadScenario(scenarioDir);
-    } else {
-        const auto found = scenarioByMap_.find(lower(mapNames_[mapIndex_]));
-        loadScenario(found == scenarioByMap_.end() ? std::string() : found->second);
-    }
 }
 
 void Game::loadScenario(const std::string& dir) {

@@ -82,6 +82,30 @@ Skin::~Skin() {
     }
 }
 
+std::uint64_t Skin::fingerprint() const {
+    // FNV-1a over skin.txt and each sheet it names, with its picture.
+    std::uint64_t hash = 0xcbf29ce484222325ull;
+    auto add = [&](const std::string& path) {
+        const auto bytes = pack_->read(path);
+        if (!bytes) return;
+        for (const std::uint8_t b : *bytes) hash = (hash ^ b) * 0x100000001b3ull;
+    };
+    auto addSheet = [&](const std::string& path) {
+        add(path);
+        if (const auto text = pack_->read(path)) {
+            try {
+                const auto slash = path.find_last_of('/');
+                add((slash == std::string::npos ? std::string() : path.substr(0, slash + 1)) + open::parseSheet(*text).image);
+            } catch (const FormatError&) {
+            }
+        }
+    };
+    add("skin.txt");
+    if (!file_.props.empty()) addSheet(file_.props);
+    for (const auto& [name, material] : file_.materials) addSheet(material.sheet);
+    return hash;
+}
+
 std::optional<CharacterModel> Skin::character(const std::string& stem) const {
     if (!pack_->exists(stem + ".anim")) return std::nullopt;
     return CharacterModel::load(*pack_, stem);

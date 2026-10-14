@@ -1,5 +1,6 @@
 // Tests for the open content pack readers (src/formats/open_content.h).
 #include <array>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -47,6 +48,9 @@ void testImage() {
     check(image.width == 2 && image.height == 2, "png size");
     check(image.argb[0] == 0xffff0000u && image.argb[1] == 0xff00ff00u, "png first row");
     check(image.argb[2] == 0x800000ffu && image.argb[3] >> 24 == 0, "png alpha");
+    const auto again = sf::open::decodeImage(sf::open::encodePng(image.argb, image.width, image.height));
+    check(again.width == 2 && again.height == 2 && std::equal(again.argb.begin(), again.argb.end(), image.argb.begin()),
+          "png written and read back");
     const std::vector<std::uint8_t> notPng = {1, 2, 3, 4};
     try {
         sf::open::decodeImage(notPng);

@@ -12,6 +12,7 @@
 
 #include "formats/binary_reader.h"
 #include "stb_image.h"
+#include "stb_image_write.h"
 
 namespace sf::open {
 
@@ -129,6 +130,24 @@ Image decodeImage(std::span<const std::uint8_t> data) {
     image.pixels.reset(argb);
     image.argb = {argb, count};
     return image;
+}
+
+std::vector<std::uint8_t> encodePng(std::span<const std::uint32_t> argb, int w, int h) {
+    std::vector<std::uint8_t> out;
+    if (w <= 0 || h <= 0 || argb.size() < static_cast<std::size_t>(w) * static_cast<std::size_t>(h)) return out;
+    std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * static_cast<std::size_t>(h) * 4);
+    for (std::size_t i = 0; i < rgba.size() / 4; ++i) {
+        rgba[i * 4] = static_cast<std::uint8_t>(argb[i] >> 16);
+        rgba[i * 4 + 1] = static_cast<std::uint8_t>(argb[i] >> 8);
+        rgba[i * 4 + 2] = static_cast<std::uint8_t>(argb[i]);
+        rgba[i * 4 + 3] = static_cast<std::uint8_t>(argb[i] >> 24);
+    }
+    auto append = [](void* context, void* data, int size) {
+        auto* bytes = static_cast<std::uint8_t*>(data);
+        static_cast<std::vector<std::uint8_t>*>(context)->insert(static_cast<std::vector<std::uint8_t>*>(context)->end(), bytes, bytes + size);
+    };
+    if (!stbi_write_png_to_func(append, &out, w, h, 4, rgba.data(), w * 4)) out.clear();
+    return out;
 }
 
 Sheet parseSheet(std::span<const std::uint8_t> text) {
