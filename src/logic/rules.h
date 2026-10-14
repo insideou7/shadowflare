@@ -41,6 +41,11 @@ struct Rules {
     // so what can be used stands out. The original only draws it a little
     // brighter (0x40ee70), which both modes do.
     bool outlineUnderPointer = true;
+    // Right clicking an item in the bag while a shop is open sells it. In
+    // the original a right click there only uses a consumable, as it does
+    // anywhere (0x44a6f0); to sell, the item is picked up and put on the
+    // shop.
+    bool rightClickSells = true;
     // Gold put in the Warehouse Transfer Box that exactly fills the
     // warehouse's gold stacks leaves a Gold item of 0 behind, which the
     // original puts down in the warehouse (0x446320). Ours drops it.
@@ -49,7 +54,7 @@ struct Rules {
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer && !noEmptyGoldInWarehouse;
+               !outlineUnderPointer && !rightClickSells && !noEmptyGoldInWarehouse;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -62,6 +67,7 @@ struct Rules {
         r.healthBarsOverMonsters = false;
         r.zoomOut = false;
         r.outlineUnderPointer = false;
+        r.rightClickSells = false;
         r.noEmptyGoldInWarehouse = false;
         return r;
     }

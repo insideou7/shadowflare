@@ -482,7 +482,12 @@ bool Game::inventoryClick(int x, int y, bool right) {
     if (inside(bag, x, y)) {
         const int cx = (x - kBagX) / kCell, cy = (y - kBagY) / kCell;
         if (right) {
-            if (!hand_) useItem(inventory_.indexAt(cx, cy));
+            if (hand_) return true;
+            if (rules_.rightClickSells && openShop_ && *openShop_ != kStorage) {
+                sellFromBag(inventory_.indexAt(cx, cy));
+            } else {
+                useItem(inventory_.indexAt(cx, cy));
+            }
             return true;
         }
         if (hand_) {

@@ -4,6 +4,7 @@
 #include <emscripten.h>
 #endif
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -23,6 +24,12 @@
 #include "platform/filesystem.h"
 
 namespace {
+
+struct Click {
+    long tick = 0;
+    bool right = false;
+    int x = 0, y = 0;
+};
 
 struct Options {
     std::optional<std::filesystem::path> dataDir;  // default: game/, else the open content in content/
@@ -55,6 +62,7 @@ struct Options {
     std::string heroName;             // --name
     bool newCharacter = false;        // open the Create New Character screen
     std::vector<std::string> presses;  // --press left,enter,text:Ada,wheeldown,...: keys queued at the start
+    std::vector<Click> clicks;  // --click <tick>:<left|right>:<x>,<y>: a mouse click at that tick (for tests)
     bool options = false;     // open the Settings Menu at the start (for screenshots)
     bool help = false;        // open the Help window at the start
     std::string optionsFile;  // default: options.txt in the user's settings folder
@@ -249,6 +257,16 @@ Options parseArgs(int argc, char** argv) {
                 options.presses.emplace_back(rest.substr(0, comma));
                 rest.remove_prefix(comma == std::string_view::npos ? rest.size() : comma + 1);
             }
+        } else if (arg == "--click" && i + 1 < argc) {
+            Click c;
+            char button[8] = {};
+            if (std::sscanf(argv[++i], "%ld:%7[a-z]:%d,%d", &c.tick, button, &c.x, &c.y) == 4 &&
+                (std::string_view(button) == "left" || std::string_view(button) == "right")) {
+                c.right = std::string_view(button) == "right";
+                options.clicks.push_back(c);
+            } else {
+                sf::log::warn("--click expects <tick>:<left|right>:<x>,<y>");
+            }
         } else if (arg == "--no-menu") {
             options.noMenu = true;
         } else if (arg == "--load") {
@@ -361,6 +379,7 @@ struct App {
     long frames = 0;
     long maxFrames = -1;
     long ticks = -1;  // fixed-step mode: one tick per frame, then quit
+    std::vector<Click> clicks;  // --click, in tick order
     double frameLogMs = -1;
     bool running = true;
 };
@@ -369,6 +388,20 @@ struct App {
 // browsers cannot block in a loop; Emscripten calls this once per frame.
 void frame(void* userData) {
     auto& app = *static_cast<App*>(userData);
+
+    // Scripted clicks whose tick has come: a press and a release.
+    while (!app.clicks.empty() && static_cast<long>(app.game->tickCount()) >= app.clicks.front().tick) {
+        const Click c = app.clicks.front();
+        app.clicks.erase(app.clicks.begin());
+        SDL_Event e{};
+        e.button.button = static_cast<Uint8>(c.right ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT);
+        e.button.x = c.x;
+        e.button.y = c.y;
+        e.type = SDL_MOUSEBUTTONDOWN;
+        SDL_PushEvent(&e);
+        e.type = SDL_MOUSEBUTTONUP;
+        SDL_PushEvent(&e);
+    }
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) app.game->handleEvent(event);
@@ -443,6 +476,8 @@ int main(int argc, char** argv) {
     App app;
     app.maxFrames = options.maxFrames;
     app.ticks = options.ticks;
+    app.clicks = options.clicks;
+    std::stable_sort(app.clicks.begin(), app.clicks.end(), [](const Click& a, const Click& b) { return a.tick < b.tick; });
     app.frameLogMs = options.frameLogMs;
     app.window = SDL_CreateWindow("ShadowFlare", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   sf::kScreenWidth * 2, sf::kScreenHeight * 2, SDL_WINDOW_RESIZABLE);
