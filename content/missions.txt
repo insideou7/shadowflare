@@ -11,6 +11,93 @@ text=
 text=Find it and drive it off, so the people here
 text=may sleep again.
 
+[mission 1]
+title=Win back the smith's sapphire.
+text=A goblin chief who hides south-west of Remote
+text=Town stole a sapphire from the smith, who
+text=trades in town.
+text=
+text=Find the chief and bring the stone back to him.
+
+[mission 2]
+title=Win back the healer's shrine stone.
+text=The healer at Remote Town's shrine cannot work
+text=her cures without her shrine stone. Goblins
+text=carried it off to the Dusty Ruins, north-west
+text=of town.
+text=
+text=Search the ruins and bring the stone back.
+
+[mission 3]
+title=Clear the Dusty Ruins.
+text=The goblins that prowl round Remote Town come
+text=from the Dusty Ruins to the north-west. They
+text=have made the ruins their stronghold.
+text=
+text=Go down into the ruins and break their hold.
+
+[mission 4]
+title=Find the widow's keepsake ruby.
+text=A woman of Cold Svalt Town lost the man she was
+text=to marry in a raid. A beast of ice that roams
+text=north-west of town took the ruby he carried.
+text=
+text=Bring the ruby back to her.
+
+[mission 5]
+title=Run the old knight's errand.
+text=An old knight who lives in Cold Svalt Town is
+text=waiting for something he ordered from the smith
+text=in Remote Town.
+text=
+text=Fetch it from the smith and take it to him.
+text=Not much of a job for a soldier, but it helps
+text=the townsfolk.
+
+[mission 6]
+title=Clear the Cold Ruins.
+text=Scouts report that the monsters near Cold Svalt
+text=Town come from the Cold Ruins, north-west of
+text=the town.
+text=
+text=Go to the Cold Ruins and clear them out.
+
+[mission 7]
+title=Search the Purgatory of Judgments.
+text=A scouting party sent to the Purgatory of
+text=Judgments, south-east of Cold Svalt Town, has
+text=stopped reporting.
+text=
+text=Something is wrong there.
+text=
+text=Search the place and destroy any monsters
+text=you find.
+
+[mission 8]
+title=Search the Remains of Reincarnation.
+text=Monsters may be gathering in the Remains of
+text=Reincarnation, south-west of Cold Svalt Town.
+text=
+text=Search the remains and destroy any monsters
+text=you find.
+
+[mission 9]
+title=Explore the land beyond the Remains.
+text=A road leads on from the far end of the Remains
+text=of Reincarnation. Where it goes may be where
+text=the monsters come from.
+text=
+text=Follow it and see what lies beyond.
+
+[mission 10]
+title=Search the Immortal Remains.
+text=The monsters troubling Cold Svalt Town most
+text=likely make their home in the Immortal Remains,
+text=beyond the Remains of Reincarnation.
+text=
+text=Search the Immortal Remains and destroy any
+text=monsters you find.
+
 # The second area.
 
 [mission 11]

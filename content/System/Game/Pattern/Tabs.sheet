@@ -1,0 +1,31 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The Giant Warehouse's header, its tab for a page not open yet, tabs I-X, tabs I-X lit; then the weapon set tabs I, II and shared for the set in use, and the same for the other set.
+image=Tabs.png
+frame=0,0,320,72,0,0
+frame=0,72,20,23,0,0
+frame=22,72,20,23,0,0
+frame=44,72,20,23,0,0
+frame=66,72,20,23,0,0
+frame=88,72,20,23,0,0
+frame=110,72,20,23,0,0
+frame=132,72,20,23,0,0
+frame=154,72,20,23,0,0
+frame=176,72,20,23,0,0
+frame=198,72,20,23,0,0
+frame=220,72,20,23,0,0
+frame=0,97,20,23,0,0
+frame=22,97,20,23,0,0
+frame=44,97,20,23,0,0
+frame=66,97,20,23,0,0
+frame=88,97,20,23,0,0
+frame=110,97,20,23,0,0
+frame=132,97,20,23,0,0
+frame=154,97,20,23,0,0
+frame=176,97,20,23,0,0
+frame=198,97,20,23,0,0
+frame=0,122,21,7,0,0
+frame=23,122,21,7,0,0
+frame=46,122,21,7,0,0
+frame=69,122,21,7,0,0
+frame=92,122,21,7,0,0
+frame=115,122,21,7,0,0

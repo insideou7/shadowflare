@@ -41,9 +41,23 @@ ElementLevels discElementLevels(int x, int y) {
     ElementLevels levels{};
     for (int e = 0; e < kElementCount; ++e) {
         const double d = std::hypot(static_cast<double>(x - kDiscAnchors[e][0]), static_cast<double>(y - kDiscAnchors[e][1]));
-        levels[static_cast<std::size_t>(e)] = (20000 - static_cast<int>(d)) / 1000;
+        levels[static_cast<std::size_t>(e)] = (20000 - static_cast<int>(d)) / 2000;
     }
     return levels;
+}
+
+void moveOnDisc(int& x, int& y, int element, int distance) {
+    if (element < 0 || element >= kElementCount || distance <= 0) return;
+    const int ax = kDiscAnchors[element][0], ay = kDiscAnchors[element][1];
+    const double dx = ax - x, dy = ay - y;
+    if (static_cast<int>(std::hypot(dx, dy)) <= distance) {
+        x = ax;
+        y = ay;
+        return;
+    }
+    const double angle = std::atan2(dy, dx);
+    x += static_cast<int>(std::cos(angle) * distance);
+    y += static_cast<int>(std::sin(angle) * distance);
 }
 
 ElementLevels elementLevels(const ElementLevels& base, const ElementLevels& worn) {
@@ -339,8 +353,10 @@ int spellMpCost(const MagicTables& t, int spell, int level, int equipmentSaving)
 double castSpeedFactor(const MagicTables& t, int spell, int chantSpeed, bool powerMode, bool overloaded) {
     const auto step = static_cast<std::size_t>(std::clamp(chantSpeed, 0, 255) / 32);
     int index = std::clamp(t.chantSteps[std::min(step, t.chantSteps.size() - 1)] + 1, 0, 9);
-    if (powerMode) index = 9;
+    // The step comes back 0 when overloaded (0x450cd0); power mode then
+    // takes the top one anyway (0x439825).
     if (overloaded) index = 0;
+    if (powerMode) index = 9;
     return 0.001 * t.spell(spell).castSpeed * kCastSteps[index];
 }
 
@@ -353,18 +369,21 @@ bool PowerMode::start(bool spiritStone) {
 
 bool blockedInPowerMode(int spell) { return spell == kMoon || spell == kBerserker || spell == kEnergyShield; }
 
-double walkSpeedFactor(int walkSpeed, bool powerMode) {
+int heroMoveSpeed(int walkSpeed, bool running, bool powerMode, bool overloaded) {
     // The scale the walk and run code builds on the stack (0x4351f0).
     static constexpr double kSteps[10] = {2.0 / 3, 0.75, 0.8, 5.0 / 6, 6.0 / 7, 1.0, 7.0 / 6, 1.2, 1.25, 4.0 / 3};
-    const int step = powerMode ? 9 : std::clamp((walkSpeed + 32) / 32, 0, 9);
-    return kSteps[step];
+    if (powerMode) return static_cast<int>(kSteps[9] * (running ? 40 : 20));
+    const int step = overloaded ? 0 : std::clamp((walkSpeed + 32) / 32, 0, 9);
+    const int walk = static_cast<int>(kSteps[step] * 20);
+    return running ? walk * 2 : walk;
 }
 
-double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode) {
+double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode, bool overloaded) {
     // The hero's swing's scale (0x437fe0).
     static constexpr double kSteps[10] = {0.3, 0.4, 0.5, 0.6, 0.8, 1.0, 1.2, 1.4, 1.7, 2.0};
     const auto column = static_cast<std::size_t>(std::clamp(attackSpeed, 0, 255) / 32);
     int step = std::clamp(t.chantSteps[std::min(column, t.chantSteps.size() - 1)] + 1, 0, 9);
+    if (overloaded) step = 0;
     if (powerMode) step = 9;
     return kSteps[step];
 }

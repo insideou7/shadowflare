@@ -113,8 +113,12 @@ std::optional<EquipSlot> partSlot(int part) {
 
 void Inventory::clear() {
     bag_.clear();
+    special_ = {};
     belt_ = {};
     equipped_ = {};
+    weaponSet_ = 0;
+    spare_ = {};
+    shared_ = {};
     gold_ = 0;
 }
 
@@ -195,6 +199,7 @@ int Inventory::indexAt(int x, int y) const {
 bool Inventory::add(const Item& item) {
     if (!item.def) return false;
     if (item.def->isGold()) return addGold(item.count);
+    if (item.def->specialPage >= 0) return addSpecial(item);
     for (int x = 0; x < kBagWidth; ++x) {
         for (int y = 0; y < kBagHeight; ++y) {
             if (addAt(item, x, y)) return true;
@@ -339,6 +344,7 @@ Inventory::Result Inventory::equipFromBag(int index, int level) {
     const Placed placed = bag_[static_cast<std::size_t>(index)];
     const auto slot = slotFor(*placed.item.def);
     if (!slot) return Result::WrongSlot;
+    if (slotShared(*slot)) return Result::Locked;
     if (const auto check = canEquip(*slot, *placed.item.def, level); check != Result::Done) return check;
     bag_.erase(bag_.begin() + index);
     auto& worn = equipped_[static_cast<int>(*slot)];
@@ -353,12 +359,63 @@ Inventory::Result Inventory::equipFromBag(int index, int level) {
 Inventory::Result Inventory::unequipToBag(EquipSlot slot) {
     auto& worn = equipped_[static_cast<int>(slot)];
     if (!worn) return Result::Nothing;
+    if (slotShared(slot)) return Result::Locked;
     if (!add(*worn)) return Result::NoRoom;
     worn.reset();
     return Result::Done;
 }
 
+bool Inventory::slotShared(EquipSlot slot) const {
+    if (slot == EquipSlot::Weapon) return shared(kSetWeapon, weaponSet_);
+    if (slot == EquipSlot::Shield) return shared(kSetShield, weaponSet_);
+    return false;
+}
+
+void Inventory::swapWeaponSets() {
+    for (const int part : {kSetWeapon, kSetShield}) {
+        if (shared(part, 0) || shared(part, 1)) continue;
+        std::swap(equipped_[static_cast<int>(part == kSetWeapon ? EquipSlot::Weapon : EquipSlot::Shield)],
+                  spare_[static_cast<std::size_t>(part)]);
+    }
+    weaponSet_ = 1 - weaponSet_;
+}
+
+bool Inventory::chooseWeaponSet(int set) {
+    if (set == weaponSet_ || (set != 0 && set != 1)) return false;
+    swapWeaponSets();
+    return true;
+}
+
+bool Inventory::toggleShared(int part, int set) {
+    if (set != weaponSet_ || (part != kSetWeapon && part != kSetShield)) return false;
+    auto& worn = equipped_[static_cast<int>(part == kSetWeapon ? EquipSlot::Weapon : EquipSlot::Shield)];
+    auto& aside = spare_[static_cast<std::size_t>(part)];
+    auto& mine = shared_[static_cast<std::size_t>(part * 2 + set)];
+    const bool theirs = shared_[static_cast<std::size_t>(part * 2 + 1 - set)];
+    if (!mine && !theirs) {
+        if (worn) return false;
+        mine = true;
+        if (!aside) return false;
+        worn = std::move(aside);
+        aside.reset();
+        return true;
+    }
+    if (!mine) return false;
+    mine = false;
+    if (!worn) return false;
+    aside = std::move(worn);
+    worn.reset();
+    return true;
+}
+
+void Inventory::setWeaponSets(int set, const std::array<bool, 4>& shared, const std::array<std::optional<Item>, 2>& spare) {
+    weaponSet_ = set == 1 ? 1 : 0;
+    shared_ = shared;
+    spare_ = spare;
+}
+
 Inventory::Result Inventory::clickSlot(std::optional<Item>& hand, EquipSlot slot, int level) {
+    if (slotShared(slot)) return Result::Locked;
     auto& worn = equipped_[static_cast<int>(slot)];
     if (!hand) {
         if (!worn) return Result::Nothing;
@@ -421,8 +478,38 @@ bool Inventory::hasUnidentified() const {
            std::ranges::any_of(equipped_, [](const auto& worn) { return worn && worn->unidentified; });
 }
 
+bool Inventory::addSpecial(const Item& item) {
+    if (!item.def || item.def->specialPage < 0 || item.def->specialPage >= kSpecialPages) return false;
+    if (hasSpecial(item.def->cls, item.def->code)) return false;
+    special_[static_cast<std::size_t>(item.def->specialPage)].push_back({item, item.def->specialX, item.def->specialY});
+    return true;
+}
+
+bool Inventory::hasSpecial(ItemDef::Class cls, std::int32_t code) const {
+    return std::ranges::any_of(special_, [&](const std::vector<Placed>& page) {
+        return std::ranges::any_of(page, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; });
+    });
+}
+
+int Inventory::specialIndexAt(int page, int x, int y) const {
+    if (page < 0 || page >= kSpecialPages) return -1;
+    const auto& entries = special_[static_cast<std::size_t>(page)];
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        const Placed& p = entries[i];
+        if (x >= p.x && x < p.x + p.item.def->width && y >= p.y && y < p.y + p.item.def->height) return static_cast<int>(i);
+    }
+    return -1;
+}
+
+void Inventory::removeSpecial(int page, int index) {
+    if (page < 0 || page >= kSpecialPages) return;
+    auto& entries = special_[static_cast<std::size_t>(page)];
+    if (index >= 0 && static_cast<std::size_t>(index) < entries.size()) entries.erase(entries.begin() + index);
+}
+
 bool Inventory::carries(ItemDef::Class cls, std::int32_t code) const {
-    return std::ranges::any_of(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; });
+    return hasSpecial(cls, code) ||
+           std::ranges::any_of(bag_, [&](const Placed& p) { return p.item.def->cls == cls && p.item.def->code == code; });
 }
 
 int Inventory::takeAll(ItemDef::Class cls, std::int32_t code) {
@@ -436,6 +523,12 @@ bool Inventory::has(ItemDef::Class cls, std::int32_t code) const {
 
 bool Inventory::removeOne(ItemDef::Class cls, std::int32_t code) {
     const auto is = [&](const Item& item) { return item.def->cls == cls && item.def->code == code; };
+    for (auto& page : special_) {
+        if (const auto it = std::ranges::find_if(page, [&](const Placed& p) { return is(p.item); }); it != page.end()) {
+            page.erase(it);
+            return true;
+        }
+    }
     if (const auto it = std::ranges::find_if(bag_, [&](const Placed& p) { return is(p.item); }); it != bag_.end()) {
         bag_.erase(it);
         return true;

@@ -1,12 +1,31 @@
 # Remote Town's people: where every new game begins, as in the original
-# (scenario 0). The talk follows the original's order in our own words:
-# the commander greets the hero over several boxes and hands over the
-# army's kit and a little gold, the healer tells of the monsters to the
-# north-east and gives the first mission, and the smith trades.
+# (scenario 0). The talk follows the original's order, purposes and
+# flags in our own words:
 #
-# temp:2 holds which of the commander's boxes is showing, so that closing
-# it shows the next one; save:4 and save:5 remember that the hero has met
-# the commander and the healer.
+# - the commander greets the hero over several boxes and hands over the
+#   army's kit and a little gold (save:4 met him); below level 5 he has
+#   nothing more; from level 5, once the beast to the north-east is
+#   dealt with (quest:0 cleared), he sends the hero to clear the Dusty
+#   Ruins (quest:3); when that is done he pays 1500 gold (save:2) and
+#   sends the hero west through the Wasteland of Pillars to Cold Svalt.
+# - the smith keeps the shop: sour (save:9 heard his complaint) until the
+#   beast is dead, then warms up (save:6 1, then 2 once he says so) and
+#   asks for his stolen gem back (quest:1); for it he tells of an exiled
+#   trader in the Wasteland of Pillars. Once the ruins are clear and the
+#   commander has sent the hero on, he gives a parting gift (save:8); he
+#   hands over the old knight's order for quest:5 (save:21); once the
+#   first area is finished (save:71) he sells only potions (save:70).
+#   Otherwise he trades, identifies and repairs.
+# - the healer gives the first mission (quest:0), later the shrine stone
+#   (quest:2, once quest:3 is taken and the hero is past level 5), thanks
+#   the hero for it and gives a parting gift (save:7); otherwise she heals
+#   the hero when hurt.
+#
+# Each person keeps which of their boxes is showing in a TEMP flag (the
+# commander temp:2, the smith temp:11, the healer temp:21) so that
+# closing it shows the next. As IF runs its sentence and carries on, each
+# talk-end sentence first copies that flag, and each check comes before
+# the sentence that would make it true.
 #
 # The warp gate north-east of the square, as the original's: walking up
 # to it finds it (warp:0, which a new game already has) and shows its
@@ -14,15 +33,47 @@
 
 object=9361,2086,9658,2337,gate
 object=8160,697,10460,3197,gate-ground
+object=6261,5738,6872,6355,warehouse
+
+# The healer's blessing (temp:26) starts with none said yet.
+temp=26,-1
+
+# The shop's stock: tools only once the first area is finished.
+[sentence town-start]
+on=start
+IF save:71 = 0 @stock-all
+IF save:71 ! 0 @stock-tools
+GETENTRYPOINT temp:5
+IF temp:5 = 50 @arrive-by-gate
+
+[sentence stock-all]
+INITTRADE 0 0
+
+[sentence stock-tools]
+INITTRADE 0 22
+
+[sentence arrive-by-gate]
+PLAYSOUND 53 0 x:gate y:gate
+
+[sentence warehouse]
+on=talk warehouse
+STORAGE 0
+
+# ---------------------------------------------------------------- commander
 
 [message 1]
 So the army did send someone. I command what is left of the
 garrison in this town, which is not much.
 
+Goblins and worse prowl along our wall every night.
+I have not slept well in weeks.
+
 [message 2]
-Most of the townsfolk have gone. Goblins and worse creep along
-the wall at night, and no more soldiers are coming.
-A few traders and the shrine's healer stayed. And now you.
+There is no money for more soldiers, and sooner or later the
+town will fall unless something changes. Most townsfolk have
+gone. A few traders and the shrine's healer stayed.
+
+So we make do with the handful of us there are.
 
 [message 3]
 Start with the goblins around the town. There are plenty,
@@ -31,60 +82,140 @@ but they have no leader. Think of it as training.
 [message 4]
 Here, kit from the army stores, and some coin to go with it.
 It is not much, but it is all we were given.
+
 Put it on in your bag before you go out there.
 
 [message 5]
 Come and see me when you can. If I hear anything new,
 you will be the first to know.
 
+[message 6]
+Nothing new to tell you yet.
+Keep at what you were sent to do.
+
+[message 7]
+Grow strong enough to take up a proper fighting trade,
+and I will have harder work for you.
+
+[message 8]
+A patrol came back from the Dusty Ruins, far to the
+north-west. The goblins have been moving in there and
+making the place their stronghold.
+
+[message 9]
+You have bought us some breathing room here. Go to the ruins
+and root out whoever leads them.
+
 [message 10]
-Our stock is small, but it's honest work.
-~Buy and sell~  ~Leave~
+One more thing: there is a warp gate near the ruins.
+Find it and it will save you the long walk back.
 
-[message 20]
-You're the one the army sent? I keep the shrine.
-Come to me when you are hurt.
+[message 11]
+I am counting on you. Off to the ruins.
 
-[message 21]
-Something has been hunting along the road north-east of town.
-Drive it off, and the people here may sleep again.
+[message 12]
+You did it. For the first time in months this town is safe.
 
-[message 22]
-Let the light close your wounds.
-~Heal me~  ~Leave~
+Here is your pay. You have earned every coin.
 
-[message 23]
-There. Go carefully.
+[message 13]
+Now there is trouble at Cold Svalt Town: monsters are at
+its gates. Go west through the Wasteland of Pillars and
+you will reach it.
 
-# The commander
 [sentence commander]
 on=talk commander
 C_STOP commander
 C_SETANGLETO commander 0
-IF save:4 = 1 @commander-again
+IF quest:3 ! 2 @commander-before
+IF quest:3 = 2 @commander-after
+TALK temp:6 temp:1 0 0 -1 -1
+
+[sentence commander-before]
+IF save:4 ! 0 @commander-again
 IF save:4 = 0 @commander-first
 
 [sentence commander-first]
-SETFLAG save:4 1
+SETFLAG temp:6 msg:1
 SETFLAG temp:2 1
-TALK msg:1 temp:1 0 0 -1 -1
+SETFLAG save:4 1
 
 [sentence commander-again]
+GETPLAYERLEVEL temp:5
+IF temp:5 < 5 @commander-weak
+IF temp:5 > 4 @commander-news
+
+[sentence commander-weak]
+SETFLAG temp:6 msg:6
+SETFLAG temp:2 30
+
+[sentence commander-news]
+IF quest:0 = 2 @commander-ruins
+IF quest:0 ! 2 @commander-nothing
+
+[sentence commander-ruins]
+IF quest:3 = 1 @commander-waiting
+IF quest:3 = 0 @commander-orders
+
+[sentence commander-waiting]
+SETFLAG temp:6 msg:11
 SETFLAG temp:2 0
-TALK msg:5 temp:1 0 0 -1 -1
+
+[sentence commander-orders]
+SETFLAG temp:6 msg:8
+SETFLAG temp:2 10
+
+[sentence commander-nothing]
+SETFLAG temp:6 msg:6
+SETFLAG temp:2 0
+
+[sentence commander-after]
+IF save:2 = 1 @commander-onward
+IF save:2 = 0 @commander-reward
+
+[sentence commander-onward]
+SETFLAG temp:6 msg:13
+SETFLAG temp:2 0
+
+[sentence commander-reward]
+SETFLAG temp:6 msg:12
+SETFLAG temp:2 20
+SETFLAG temp:3 x:commander
+SETFLAG temp:4 y:commander
+CREATEITEM 4 0 temp:3 temp:4 1500 1500
+SETFLAG save:2 1
 
 [sentence commander-end]
 on=talk-end commander
 SETFLAG temp:5 temp:2
 SETFLAG temp:2 0
 IF temp:5 = 0 @commander-done
-IF temp:5 = 1 @commander-2
-IF temp:5 = 2 @commander-3
-IF temp:5 = 3 @commander-4
+IF temp:5 = 30 @commander-class
+IF temp:5 = 20 @commander-cold-svalt
+IF temp:5 = 11 @commander-gate
+IF temp:5 = 10 @commander-mission
 IF temp:5 = 4 @commander-5
+IF temp:5 = 3 @commander-4
+IF temp:5 = 2 @commander-3
+IF temp:5 = 1 @commander-2
 
 [sentence commander-done]
 C_MOVABLE commander
+
+[sentence commander-class]
+TALK msg:7 temp:1 0 0 -1 -1
+
+[sentence commander-cold-svalt]
+TALK msg:13 temp:1 0 0 -1 -1
+
+[sentence commander-gate]
+TALK msg:10 temp:1 0 0 -1 -1
+
+[sentence commander-mission]
+SETFLAG temp:2 11
+TALK msg:9 temp:1 0 0 -1 -1
+SETQUESTFLAG 3 1 0
+DRAWQUESTNAME 3
 
 [sentence commander-2]
 SETFLAG temp:2 2
@@ -113,66 +244,672 @@ CREATEITEM 4 0 temp:3 temp:4 200 200
 [sentence commander-5]
 TALK msg:5 temp:1 0 0 -1 -1
 
-# The smith: list 0 of shops.txt
+# -------------------------------------------------------------------- smith
+# temp:10 the answer, temp:11 which box is showing, temp:12 whether
+# something has been said yet, temp:13 where in the shop menu he is,
+# temp:30 to temp:37 repair prices and the hero's gold.
+
+[message 100]
+Well, look who it is. What can I do for you?
+
+  ~Buy and sell~
+  ~Look over unknown items~
+  ~Mend equipment~
+
+                   ~Leave~
+
+[message 101]
+  ~Weapon         %9d gold~
+  ~Helmet         %9d gold~
+  ~Body armor     %9d gold~
+  ~Shield         %9d gold~
+  ~Boots          %9d gold~
+  ~All you wear   %9d gold~
+  ~All in the bag %9d gold~
+                       ~Back~
+
+[message 102]
+You can't pay for that.
+
+[message 103]
+Nothing there needs mending.
+
+[message 104]
+Telling what those are will cost you %d gold.
+
+             ~Go ahead~  ~Never mind~
+
+[message 105]
+You've nothing on you I can't put a name to.
+
+[message 106]
+The goblins have gotten bolder lately, and there are
+kinds out there I've never laid eyes on.
+Nobody comes to buy anymore. I'm going broke!
+
+[message 107]
+Leave me be. I'm in no mood for talk.
+
+[message 108]
+Wait, is it true? You killed that red brute on the
+north-east road? Well! You're nothing like the
+cowards they sent before.
+
+.......
+
+[message 109]
+I've misjudged you, friend!
+
+[message 110]
+I'm the smith here, and I trade a bit besides.
+Whatever you need, come to me. I'll treat you fair.
+
+[message 111]
+Since we're friends now, a favor. A goblin chief down in
+the far south-west of town robbed me of a gem.
+Could you bring it back?
+
+[message 112]
+Is that it? My gem! You got it back?
+
+[message 113]
+.......
+
+[message 114]
+It is! Thank you, truly. Let me tell you something
+in return that might be worth your while.
+
+[message 115]
+Out in the depths of the Wasteland of Pillars, an odd fellow
+keeps a shop. He traded here once, until the town threw him
+out for cheating.
+
+Drop in on him if you pass. I'll send him word about you.
+
+[message 116]
+They say you drove the goblins out of the ruins.
+I knew you had it in you!
+
+[message 117]
+And now you're off to Cold Svalt, I hear.
+I'd hoped you would stay.
+
+[message 118]
+My brother keeps a shop over there. I'll let him know
+you're coming, so go and say hello. And take this with you.
+
+[message 119]
+You've come for the old knight's order?
+
+[message 120]
+.......
+
+[message 121]
+It's no great matter, but do get it to him.
+
+[message 122]
+Nothing I make round here is good enough for you anymore.
+
+[message 123]
+Still, you'll need potions. From now on,
+I'll stock those for you.
+
 [sentence smith]
 on=talk smith
 C_STOP smith
 C_SETANGLETO smith 0
-TALK msg:10 temp:10 0 0 -1 -1
+SETFLAG temp:12 0
+SETFLAG temp:13 0
+IF quest:0 = 2 @smith-stock
+IF temp:12 = 0 @smith-errand
+IF temp:12 = 0 @smith-gem
+IF temp:12 = 0 @smith-mood
+
+# Once the first area is finished he turns to potions.
+[sentence smith-stock]
+IF save:71 ! 0 @smith-stock-2
+
+[sentence smith-stock-2]
+IF save:70 = 0 @smith-tools
+
+[sentence smith-tools]
+SETFLAG save:70 1
+TALK msg:122 temp:10 0 0 -1 -1
+SETFLAG temp:11 70
+SETFLAG temp:12 1
+INITTRADE 0 22
+
+# The old knight's order (quest 5), handed over once.
+[sentence smith-errand]
+IF quest:5 = 1 @smith-errand-2
+
+[sentence smith-errand-2]
+IF save:21 = 0 @smith-errand-3
+
+[sentence smith-errand-3]
+SETFLAG save:21 1
+SETFLAG temp:12 1
+TALK msg:119 temp:10 0 0 -1 -1
+SETFLAG temp:11 60
+
+# His gem back (quest 1).
+[sentence smith-gem]
+IF quest:0 = 2 @smith-gem-2
+
+[sentence smith-gem-2]
+IF quest:1 = 1 @smith-gem-3
+
+[sentence smith-gem-3]
+CHECKITEMEXIST 4 99000000 temp:14
+IF temp:14 = 1 @smith-gem-4
+
+[sentence smith-gem-4]
+TALK msg:112 temp:10 0 0 -1 -1
+SETFLAG temp:11 50
+DELETEITEM 4 99000000
+SETQUESTFLAG 1 2 0
+SETFLAG temp:12 1
+
+[sentence smith-mood]
+IF quest:0 = 2 @smith-warm
+IF save:6 = 0 @smith-sour
+IF save:6 ! 0 @smith-friendly
+
+[sentence smith-warm]
+IF save:6 = 0 @smith-warm-2
+
+[sentence smith-warm-2]
+SETFLAG save:6 1
+
+[sentence smith-sour]
+IF save:9 = 1 @smith-grumble
+IF save:9 = 0 @smith-complain
+
+[sentence smith-grumble]
+TALK msg:107 temp:10 0 0 -1 -1
+SETFLAG temp:11 0
+
+[sentence smith-complain]
+TALK msg:106 temp:10 0 0 -1 -1
+SETFLAG temp:11 20
+SETFLAG save:9 1
+
+[sentence smith-friendly]
+IF save:6 = 2 @smith-regular
+IF save:6 = 1 @smith-praise
+
+[sentence smith-regular]
+SETFLAG temp:11 10
+IF quest:3 = 2 @smith-farewell
+IF temp:11 = 10 @smith-menu
+
+[sentence smith-farewell]
+IF save:2 = 1 @smith-farewell-2
+
+[sentence smith-farewell-2]
+IF save:8 = 0 @smith-farewell-3
+
+[sentence smith-farewell-3]
+TALK msg:116 temp:10 0 0 -1 -1
+SETFLAG temp:11 30
+SETFLAG save:8 1
+
+[sentence smith-menu]
+TALK msg:100 temp:10 0 3 -1 -1
+
+[sentence smith-praise]
+TALK msg:108 temp:10 0 0 -1 -1
+SETFLAG temp:11 40
+SETFLAG save:6 2
 
 [sentence smith-end]
 on=talk-end smith
+SETFLAG temp:15 temp:11
+SETFLAG temp:11 0
+IF temp:15 = 0 @smith-done
+IF temp:15 = 70 @smith-tools-2
+IF temp:15 = 61 @smith-errand-item
+IF temp:15 = 60 @smith-errand-pause
+IF temp:15 = 52 @smith-gem-hint
+IF temp:15 = 51 @smith-gem-thanks
+IF temp:15 = 50 @smith-gem-pause
+IF temp:15 = 42 @smith-quest
+IF temp:15 = 41 @smith-intro
+IF temp:15 = 40 @smith-like
+IF temp:15 = 31 @smith-gift
+IF temp:15 = 30 @smith-leaving
+IF temp:15 = 20 @smith-grumble-2
+IF temp:15 = 10 @smith-shop
+
+[sentence smith-done]
 C_MOVABLE smith
-IF temp:10 = 0 @smith-shop
 
+[sentence smith-tools-2]
+TALK msg:123 temp:10 0 0 -1 -1
+
+[sentence smith-errand-item]
+TALK msg:121 temp:10 0 0 -1 -1
+SETFLAG temp:3 x:smith
+SETFLAG temp:4 y:smith
+ADD temp:3 200
+CREATEITEM 0 90000010 temp:3 temp:4 -1 -1
+
+[sentence smith-errand-pause]
+SETFLAG temp:11 61
+TALK msg:120 temp:10 0 0 -1 -1
+
+[sentence smith-gem-hint]
+TALK msg:115 temp:10 0 0 -1 -1
+
+[sentence smith-gem-thanks]
+SETFLAG temp:11 52
+TALK msg:114 temp:10 0 0 -1 -1
+
+[sentence smith-gem-pause]
+SETFLAG temp:11 51
+TALK msg:113 temp:10 0 0 -1 -1
+
+[sentence smith-quest]
+TALK msg:111 temp:10 0 0 -1 -1
+SETQUESTFLAG 1 1 0
+DRAWQUESTNAME 1
+
+[sentence smith-intro]
+SETFLAG temp:11 42
+TALK msg:110 temp:10 0 0 -1 -1
+
+[sentence smith-like]
+SETFLAG temp:11 41
+TALK msg:109 temp:10 0 0 -1 -1
+
+# His Cold Svalt-bound gift.
+[sentence smith-gift]
+TALK msg:118 temp:10 0 0 -1 -1
+SETFLAG temp:3 x:smith
+SETFLAG temp:4 y:smith
+ADD temp:3 200
+CREATEITEM 2 1100000 temp:3 temp:4 -1 -1
+
+[sentence smith-leaving]
+SETFLAG temp:11 31
+TALK msg:117 temp:10 0 0 -1 -1
+
+[sentence smith-grumble-2]
+TALK msg:107 temp:10 0 0 -1 -1
+
+# The shop menu: temp:13 says which box was showing (0 the menu, 1 the
+# mending list, 2 and 3 a note before the mending list again, 4 the
+# price of identifying, 5 and 6 a last note). The box stays in temp:11 10
+# until the hero leaves.
 [sentence smith-shop]
-INITTRADE 0 0
-TRADE 0
+SETFLAG temp:11 10
+IF temp:13 = 6 @smith-leave
+IF temp:13 = 5 @smith-leave
+IF temp:13 = 4 @smith-identify
+IF temp:13 = 3 @smith-again
+IF temp:13 = 2 @smith-again
+IF temp:13 = 1 @smith-mend
+IF temp:13 = 0 @smith-choice
 
-# The healer gives the first mission the first time, and heals after.
-# temp:21 says which question is showing: 1 the heal menu, 2 the
-# greeting. As IF carries on after its sentence, each check comes before
-# the sentence that would make it true.
+[sentence smith-leave]
+C_MOVABLE smith
+SETFLAG temp:13 0
+SETFLAG temp:10 -1
+SETFLAG temp:11 0
+
+[sentence smith-again]
+SETFLAG temp:13 0
+SETFLAG temp:10 2
+
+[sentence smith-identify]
+IF temp:10 ! 0 @smith-leave
+IF temp:10 = 0 @smith-identify-pay
+
+[sentence smith-identify-pay]
+GETTOTALGOLD temp:30
+SETFLAG temp:31 0
+IF temp:30 < 100 @smith-identify-poor
+IF temp:31 = 0 @smith-identify-done
+
+[sentence smith-identify-poor]
+TALK msg:102 temp:10 0 0 -1 -1
+SETFLAG temp:13 5
+SETFLAG temp:31 1
+
+[sentence smith-identify-done]
+PAYGOLD 100
+IDENTIFY
+C_MOVABLE smith
+SETFLAG temp:13 0
+SETFLAG temp:10 -1
+SETFLAG temp:11 0
+
+# A part of the mending list: temp:16 is its price, temp:17 the part.
+[sentence smith-mend]
+GETREPAIRPRICE 0 temp:30
+GETREPAIRPRICE 1 temp:31
+GETREPAIRPRICE 2 temp:32
+GETREPAIRPRICE 3 temp:33
+GETREPAIRPRICE 4 temp:34
+SETFLAG temp:35 temp:30
+ADD temp:35 temp:31
+ADD temp:35 temp:32
+ADD temp:35 temp:33
+ADD temp:35 temp:34
+GETREPAIRPRICE -1 temp:36
+GETTOTALGOLD temp:37
+SETFLAG temp:18 temp:10
+IF temp:18 = 0 @smith-mend-0
+IF temp:18 = 1 @smith-mend-1
+IF temp:18 = 2 @smith-mend-2
+IF temp:18 = 3 @smith-mend-3
+IF temp:18 = 4 @smith-mend-4
+IF temp:18 = 5 @smith-mend-worn
+IF temp:18 = 6 @smith-mend-bag
+IF temp:18 = 7 @smith-leave
+
+[sentence smith-mend-0]
+SETFLAG temp:16 temp:30
+SETFLAG temp:17 0
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-1]
+SETFLAG temp:16 temp:31
+SETFLAG temp:17 1
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-2]
+SETFLAG temp:16 temp:32
+SETFLAG temp:17 2
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-3]
+SETFLAG temp:16 temp:33
+SETFLAG temp:17 3
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-4]
+SETFLAG temp:16 temp:34
+SETFLAG temp:17 4
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-bag]
+SETFLAG temp:16 temp:36
+SETFLAG temp:17 -1
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-part
+
+[sentence smith-mend-none]
+TALK msg:103 temp:10 0 0 -1 -1
+SETFLAG temp:13 3
+
+[sentence smith-mend-part]
+SETFLAG temp:19 0
+IF temp:16 > temp:37 @smith-mend-poor
+IF temp:19 = 0 @smith-mend-pay
+
+[sentence smith-mend-poor]
+TALK msg:102 temp:10 0 0 -1 -1
+SETFLAG temp:13 2
+SETFLAG temp:19 1
+
+[sentence smith-mend-pay]
+REPAIR temp:17
+PAYGOLD temp:16
+SETFLAG temp:13 0
+SETFLAG temp:10 2
+
+# Everything worn at once.
+[sentence smith-mend-worn]
+SETFLAG temp:16 temp:35
+IF temp:16 = 0 @smith-mend-none
+IF temp:16 ! 0 @smith-mend-worn-2
+
+[sentence smith-mend-worn-2]
+SETFLAG temp:19 0
+IF temp:16 > temp:37 @smith-mend-poor
+IF temp:19 = 0 @smith-mend-worn-pay
+
+[sentence smith-mend-worn-pay]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:16
+SETFLAG temp:13 0
+SETFLAG temp:10 2
+
+# What was chosen on the menu (or 2 to show the mending list again).
+[sentence smith-choice]
+IF temp:10 = 0 @smith-trade
+IF temp:10 = 1 @smith-unknown
+IF temp:10 = 2 @smith-list
+IF temp:10 = 3 @smith-leave
+
+[sentence smith-trade]
+SETFLAG temp:11 0
+TRADE 0
+C_MOVABLE smith
+
+[sentence smith-unknown]
+CHECKUNOPINIONITEM temp:30
+IF temp:30 = 1 @smith-unknown-price
+IF temp:30 = 0 @smith-unknown-none
+
+[sentence smith-unknown-price]
+SETMSGDEFINE 100
+TALK msg:104 temp:10 0 1 -1 -1
+SETFLAG temp:13 4
+
+[sentence smith-unknown-none]
+TALK msg:105 temp:10 0 0 -1 -1
+SETFLAG temp:13 6
+
+[sentence smith-list]
+GETREPAIRPRICE 0 temp:30
+GETREPAIRPRICE 1 temp:31
+GETREPAIRPRICE 2 temp:32
+GETREPAIRPRICE 3 temp:33
+GETREPAIRPRICE 4 temp:34
+SETFLAG temp:35 temp:30
+ADD temp:35 temp:31
+ADD temp:35 temp:32
+ADD temp:35 temp:33
+ADD temp:35 temp:34
+GETREPAIRPRICE -1 temp:36
+SETMSGDEFINE temp:30 temp:31 temp:32 temp:33 temp:34 temp:35 temp:36
+TALK msg:101 temp:10 0 7 -1 -1
+SETFLAG temp:13 1
+
+# --------------------------------------------------------------------- healer
+# temp:20 the answer, temp:21 which box is showing, temp:23 whether the
+# hero is hurt, temp:26 the blessing said last.
+
+[message 200]
+You must be the new one the army hired. I keep the shrine.
+
+Come to me whenever you need your strength and spirit
+restored.
+
+....
+
+[message 201]
+Something has been preying on us out on the road
+north-east of town. An old trader there barely got away.
+
+Would you put an end to it?
+
+[message 202]
+Goblins at the ruins stole the stone from my shrine.
+I am sorry, but without it I cannot heal you.
+
+[message 203]
+!! Is that the shrine's stone? You found it?
+Oh, thank you!
+
+[message 204]
+Please take this. It is a small thing, but it may help you.
+
+[message 205]
+Thanks to you, this town may finally mend.
+I cannot thank you enough.
+
+[message 206]
+I hear you may be going to Cold Svalt.
+Take this along. It will serve you well.
+
+[message 207]
+Spirit of the shrine, keeper of life,
+close these wounds and drive out the hurt!
+
+[message 208]
+Go with the shrine's blessing.
+
+[message 209]
+There is a bright light in you. Trust it,
+and keep doing your best.
+
 [sentence healer]
 on=talk healer
 C_STOP healer
 C_SETANGLETO healer 0
-IF save:5 = 1 @healer-menu
-IF save:5 = 0 @healer-first
+IF quest:0 ! 0 @healer-later
+IF quest:0 = 0 @healer-first
 
 [sentence healer-first]
-SETFLAG save:5 1
-SETFLAG temp:21 2
-TALK msg:20 temp:20 0 0 -1 -1
+TALK msg:200 temp:20 0 0 -1 -1
+SETFLAG temp:21 40
 
-[sentence healer-menu]
-SETFLAG temp:21 1
-TALK msg:22 temp:20 0 0 -1 -1
+[sentence healer-later]
+SETFLAG temp:21 -1
+IF quest:3 ! 0 @healer-stone
+IF temp:21 = -1 @healer-farewell
+IF temp:21 = -1 @healer-bless
+
+# The shrine stone (quest 2).
+[sentence healer-stone]
+IF quest:2 = 1 @healer-stone-check
+IF quest:2 = 0 @healer-stone-ask
+
+[sentence healer-stone-check]
+CHECKITEMEXIST 4 99000001 temp:25
+IF temp:25 = 1 @healer-stone-back
+IF temp:25 ! 1 @healer-stone-wait
+
+[sentence healer-stone-back]
+TALK msg:203 temp:20 0 0 -1 -1
+SETFLAG temp:21 30
+DELETEITEM 4 99000001
+SETQUESTFLAG 2 2 0
+
+[sentence healer-stone-wait]
+TALK msg:202 temp:20 0 0 -1 -1
+SETFLAG temp:21 0
+
+[sentence healer-stone-ask]
+GETPLAYERLEVEL temp:25
+IF temp:25 > 5 @healer-stone-give
+
+[sentence healer-stone-give]
+TALK msg:202 temp:20 0 0 -1 -1
+SETFLAG temp:21 0
+SETQUESTFLAG 2 1 0
+DRAWQUESTNAME 2
+
+# Her Cold Svalt-bound gift, once the commander has sent the hero on.
+[sentence healer-farewell]
+IF quest:3 = 2 @healer-farewell-2
+
+[sentence healer-farewell-2]
+IF save:2 = 1 @healer-farewell-3
+
+[sentence healer-farewell-3]
+IF save:7 = 0 @healer-farewell-4
+
+[sentence healer-farewell-4]
+TALK msg:205 temp:20 0 0 -1 -1
+SETFLAG temp:21 10
+SETFLAG save:7 1
+
+# Healing when the hero or the companion is hurt or spent; otherwise a
+# blessing (the first after a healing, then the second from then on).
+[sentence healer-bless]
+SETFLAG temp:21 0
+SETFLAG temp:23 0
+GETPLAYERLIFE temp:24 temp:25
+IF temp:24 ! temp:25 @healer-hurt
+GETPLAYERMENTAL temp:24 temp:25
+IF temp:24 ! temp:25 @healer-hurt
+GETPARTNERLIFE temp:24 temp:25
+IF temp:24 ! temp:25 @healer-hurt
+IF temp:23 = 1 @healer-chant
+IF temp:23 = 0 @healer-blessing
+
+[sentence healer-hurt]
+SETFLAG temp:23 1
+
+[sentence healer-chant]
+TALK msg:207 temp:20 0 0 -1 -1
+SETFLAG temp:26 msg:207
+SETFLAG temp:21 20
+
+[sentence healer-blessing]
+IF temp:26 = -1 @healer-blessing-1
+IF temp:26 = msg:207 @healer-blessing-1
+TALK temp:26 temp:20 0 0 -1 -1
+IF temp:26 = msg:208 @healer-blessing-2
+
+[sentence healer-blessing-1]
+SETFLAG temp:26 msg:208
+
+[sentence healer-blessing-2]
+SETFLAG temp:26 msg:209
 
 [sentence healer-end]
 on=talk-end healer
 SETFLAG temp:22 temp:21
 SETFLAG temp:21 0
 IF temp:22 = 0 @healer-done
-IF temp:22 = 1 @healer-choice
-IF temp:22 = 2 @healer-mission
+IF temp:22 = 40 @healer-mission
+IF temp:22 = 30 @healer-thanks
+IF temp:22 = 20 @healer-heal
+IF temp:22 = 11 @healer-done
+IF temp:22 = 10 @healer-gift
 
 [sentence healer-done]
 C_MOVABLE healer
 
 [sentence healer-mission]
+TALK msg:201 temp:20 0 0 -1 -1
 SETQUESTFLAG 0 1 0
 DRAWQUESTNAME 0
-TALK msg:21 temp:20 0 0 -1 -1
 
-[sentence healer-choice]
-IF temp:20 = 0 @healer-heal
-IF temp:20 ! 0 @healer-done
+[sentence healer-thanks]
+TALK msg:204 temp:20 0 0 -1 -1
+SETFLAG temp:3 x:healer
+SETFLAG temp:4 y:healer
+ADD temp:3 200
+CREATEITEM 2 1100001 temp:3 temp:4 -1 -1
 
 [sentence healer-heal]
+C_MOVABLE healer
 HEALLIFE
 HEALMENTAL
-TALK msg:23 temp:20 0 0 -1 -1
+PLAYSOUND 24 0 x:healer y:healer
+
+[sentence healer-gift]
+SETFLAG temp:21 11
+TALK msg:206 temp:20 0 0 -1 -1
+SETFLAG temp:3 x:healer
+SETFLAG temp:4 y:healer
+ADD temp:3 200
+CREATEITEM 2 1100002 temp:3 temp:4 -1 -1
 
 [message 30]
 Remote Town

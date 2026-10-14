@@ -21,6 +21,7 @@
 #include "game/game.h"
 #include "game/skin.h"
 #include "platform/audio.h"
+#include "platform/crash_log.h"
 #include "platform/filesystem.h"
 
 namespace {
@@ -29,7 +30,24 @@ struct Click {
     long tick = 0;
     bool right = false;
     int x = 0, y = 0;
+    std::string press;  // --click <tick>:press:<key or text:...>, a key press instead
 };
+
+// A queued --press: a key by name, "text:..." typed, or the wheel.
+SDL_Event pressEvent(const std::string& press) {
+    SDL_Event e{};
+    if (press.starts_with("text:")) {
+        e.type = SDL_TEXTINPUT;
+        std::snprintf(e.text.text, sizeof e.text.text, "%s", press.c_str() + 5);
+    } else if (press == "wheelup" || press == "wheeldown") {
+        e.type = SDL_MOUSEWHEEL;
+        e.wheel.y = press == "wheelup" ? 1 : -1;
+    } else {
+        e.type = SDL_KEYDOWN;
+        e.key.keysym.sym = press == "enter" ? SDLK_RETURN : press == "esc" ? SDLK_ESCAPE : SDL_GetKeyFromName(press.c_str());
+    }
+    return e;
+}
 
 struct Options {
     std::optional<std::filesystem::path> dataDir;  // default: game/, else the open content in content/
@@ -57,6 +75,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool special = false;     // start with the special items window open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
     std::optional<sf::HeroSex> hero;  // --hero male|female: who plays
@@ -90,6 +109,7 @@ struct Options {
         int slot = 0, dx = 0, dy = 0;
     };
     std::optional<Cast> cast;  // cast the spell on F1-F8 at a point from the player
+    std::optional<std::pair<int, int>> combo;  // a Warrior's combo or spin towards a point from the player
     struct Order {
         std::string kind;  // jump, dash or fetch
         int dx = 0, dy = 0;
@@ -100,6 +120,7 @@ struct Options {
     int powerCharge = -1;     // --power-charge n: kills towards power mode
     bool power = false;       // start power mode
     std::optional<int> magicWindow;  // open the magic window on this page
+    std::optional<bool> storage;     // --storage / --giant-storage: open a warehouse (true: the Giant Warehouse)
     std::vector<std::pair<int, int>> warpFlags;  // WARP[gate] = value; gate -1 for every gate
     std::optional<int> warpGate;  // open the GATE window on this page
     int warpTo = -1;              // then pick this row of it
@@ -141,6 +162,8 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--special") {
+            options.special = true;
         } else if (arg == "--status") {
             options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
@@ -203,6 +226,13 @@ Options parseArgs(int argc, char** argv) {
             } else {
                 sf::log::warn("--cast expects slot:x,y");
             }
+        } else if (arg == "--combo" && i + 1 < argc) {
+            int dx = 0, dy = 0;
+            if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) {
+                options.combo = std::pair{dx, dy};
+            } else {
+                sf::log::warn("--combo expects x,y");
+            }
         } else if (arg == "--spell" && i + 1 < argc) {
             if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
         } else if (arg == "--companion" && i + 1 < argc) {
@@ -221,6 +251,8 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--magic-window") {
             // Opens the magic window; --magic-window=<page> on page 0-3.
             options.magicWindow = 0;
+        } else if (arg == "--storage" || arg == "--giant-storage") {
+            options.storage = arg == "--giant-storage";
         } else if (arg.starts_with("--magic-window=")) {
             options.magicWindow = static_cast<int>(std::strtol(argv[i] + 15, nullptr, 10));
         } else if (arg == "--warp-flag" && i + 1 < argc) {
@@ -264,12 +296,17 @@ Options parseArgs(int argc, char** argv) {
         } else if (arg == "--click" && i + 1 < argc) {
             Click c;
             char button[8] = {};
-            if (std::sscanf(argv[++i], "%ld:%7[a-z]:%d,%d", &c.tick, button, &c.x, &c.y) == 4 &&
+            const std::string_view text = argv[++i];
+            if (const auto at = text.find(":press:"); at != std::string_view::npos) {
+                c.tick = std::strtol(argv[i], nullptr, 10);
+                c.press = std::string(text.substr(at + 7));
+                options.clicks.push_back(c);
+            } else if (std::sscanf(argv[i], "%ld:%7[a-z]:%d,%d", &c.tick, button, &c.x, &c.y) == 4 &&
                 (std::string_view(button) == "left" || std::string_view(button) == "right")) {
                 c.right = std::string_view(button) == "right";
                 options.clicks.push_back(c);
             } else {
-                sf::log::warn("--click expects <tick>:<left|right>:<x>,<y>");
+                sf::log::warn("--click expects <tick>:<left|right>:<x>,<y> or <tick>:press:<key>");
             }
         } else if (arg == "--no-menu") {
             options.noMenu = true;
@@ -288,6 +325,15 @@ Options parseArgs(int argc, char** argv) {
             else if (on == "object") options.pointerOn = sf::Settings::kObject;
             else if (std::sscanf(argv[i], "%f,%f", &p.x, &p.y) == 2) options.pointer = p;
             else sf::log::warn("--pointer expects x,y, enemy, person, item or object");
+        } else if (arg == "--crash-test") {
+            // Crashes on purpose, to check that crash.txt is written.
+            std::vector<int> none;
+            volatile std::size_t index = 3;
+#if defined(_DEBUG)
+            none[index] = 1;  // a Debug build's "vector subscript out of range"
+#endif
+            sf::log::error("Crashing on purpose (--crash-test), index {}", static_cast<std::size_t>(index));
+            std::abort();
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -399,6 +445,11 @@ void frame(void* userData) {
     while (!app.clicks.empty() && static_cast<long>(app.game->tickCount()) >= app.clicks.front().tick) {
         const Click c = app.clicks.front();
         app.clicks.erase(app.clicks.begin());
+        if (!c.press.empty()) {
+            SDL_Event e = pressEvent(c.press);
+            SDL_PushEvent(&e);
+            continue;
+        }
         SDL_Event e{};
         e.button.button = static_cast<Uint8>(c.right ? SDL_BUTTON_RIGHT : SDL_BUTTON_LEFT);
         e.button.x = c.x;
@@ -459,12 +510,20 @@ void frame(void* userData) {
         }
     }
 
+#ifdef __EMSCRIPTEN__
+    // In a browser the saves are files in memory; the page copies them to
+    // the browser's storage every few seconds.
+    if (app.frames % 120 == 0) EM_ASM({ Module.sf.syncSaves(); });
+#endif
+
     ++app.frames;
     const bool ticksDone = app.ticks >= 0 && static_cast<long>(app.game->tickCount()) >= app.ticks;
     if (app.game->wantsQuit() || ticksDone || (app.maxFrames >= 0 && app.frames >= app.maxFrames)) {
         app.running = false;
 #ifdef __EMSCRIPTEN__
+        // Back to the page's start screen, once the saves are kept.
         emscripten_cancel_main_loop();
+        EM_ASM({ if (Module.sfGameExit) Module.sfGameExit(); });
 #endif
     }
 }
@@ -472,6 +531,7 @@ void frame(void* userData) {
 }  // namespace
 
 int main(int argc, char** argv) {
+    sf::crash::install();
     const Options options = parseArgs(argc, argv);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0) {
@@ -479,7 +539,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
+#ifdef __EMSCRIPTEN__
+    // The browser goes on calling frame() after main() has given up its
+    // stack, so the app cannot live there.
+    static App app;
+#else
     App app;
+#endif
     app.maxFrames = options.maxFrames;
     app.ticks = options.ticks;
     app.clicks = options.clicks;
@@ -582,6 +648,7 @@ int main(int argc, char** argv) {
     app.game->setAutoFight(options.autoFight);
     if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
     app.game->setInventoryOpen(options.inventory);
+    if (options.special) app.game->setSpecialWindowOpen(true);
     app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);
@@ -639,17 +706,7 @@ int main(int argc, char** argv) {
     if (options.loadData) app.game->openLoadData();
     // Queued key presses, for scripted runs of the menus.
     for (const auto& press : options.presses) {
-        SDL_Event e{};
-        if (press.starts_with("text:")) {
-            e.type = SDL_TEXTINPUT;
-            std::snprintf(e.text.text, sizeof e.text.text, "%s", press.c_str() + 5);
-        } else if (press == "wheelup" || press == "wheeldown") {
-            e.type = SDL_MOUSEWHEEL;
-            e.wheel.y = press == "wheelup" ? 1 : -1;
-        } else {
-            e.type = SDL_KEYDOWN;
-            e.key.keysym.sym = press == "enter" ? SDLK_RETURN : press == "esc" ? SDLK_ESCAPE : SDL_GetKeyFromName(press.c_str());
-        }
+        SDL_Event e = pressEvent(press);
         SDL_PushEvent(&e);
     }
     if (options.options) app.game->openOptions(true);
@@ -667,6 +724,7 @@ int main(int argc, char** argv) {
     if (options.press) app.game->pressLeftButton();
     if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
+    if (options.combo) app.game->comboBy(options.combo->first, options.combo->second);
     // After the cast, so a walk can follow it (into a Transport gate).
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);
@@ -677,6 +735,7 @@ int main(int argc, char** argv) {
         app.game->startPower();
     }
     if (options.magicWindow) app.game->openMagicWindow(*options.magicWindow);
+    if (options.storage) app.game->openStorageWindow(*options.storage);
     for (const auto& [gate, value] : options.warpFlags) {
         if (gate >= 0) {
             app.game->setWarpFlag(gate, value);

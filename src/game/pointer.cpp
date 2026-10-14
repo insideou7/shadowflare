@@ -152,7 +152,7 @@ void Game::followPointerTarget() {
 bool Game::pointerOnWorld(const SDL_FPoint& p) const {
     if (!player_ || menuOpen_ || optionsOpen_ || newCharacter_ || dialogue_ || visual_ || missionsOpen_ || p.y >= kPanelTop) return false;
     const bool left = showStatus_ || magicOpen_ || warpOpen_ || mapOpen_ || openShop_.has_value();
-    const bool right = showInventory_;
+    const bool right = rightWindowOpen();
     if (left && right) return false;
     if (right && p.x >= kScreenWidth / 2) return false;
     if (left && p.x < kScreenWidth / 2) return false;

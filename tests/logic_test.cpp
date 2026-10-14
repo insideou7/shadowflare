@@ -12,6 +12,7 @@
 
 #include "logic/ai_select.h"
 #include "logic/archery.h"
+#include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -26,6 +27,7 @@
 #include "logic/settings.h"
 #include "logic/shop.h"
 #include "audio/mixer.h"
+#include "logic/title_smoke.h"
 #include "logic/traps.h"
 #include "formats/item_data.h"
 #include "formats/warp_gates.h"
@@ -225,6 +227,33 @@ sf::GroundLayer smallGround() {
     return g;
 }
 
+void testTitleSmoke() {
+    // Each jet waits rand() % 90 ticks, plays its frames once, then rests
+    // rand() % 100 + 30 more before playing again (0x420d88, 0x421836).
+    sf::Random random(7);
+    sf::TitleSmoke smoke(random);
+    std::array<int, sf::TitleSmoke::kJets> frames{};
+    frames.fill(46);
+    frames[9] = 0;  // a jet with no chart never shows
+    std::vector<std::pair<int, int>> runs;  // first and last tick each time jet 0 blows
+    for (int t = 0; t < 400; ++t) {
+        const int f = smoke.frame(0, frames[0]);
+        if (f == 0) runs.emplace_back(t, t);
+        if (f >= 0) {
+            check(!runs.empty() && f == t - runs.back().first, "a jet shows its frames in order");
+            runs.back().second = t;
+        }
+        check(smoke.frame(9, frames[9]) < 0, "a jet with no frames is never drawn");
+        smoke.step(frames, random);
+    }
+    check(runs.size() >= 2, "a jet blows more than once");
+    const int firstShown = runs[0].first, lastShown = runs[0].second, nextShown = runs[1].first;
+    check(firstShown >= 0 && firstShown < 90, "a jet first blows within 90 ticks");
+    check(lastShown - firstShown == 45, "a jet plays its 46 frames once");
+    check(nextShown >= 0 && nextShown - lastShown >= 31 && nextShown - lastShown <= 130 + 46,
+          "it blows again after rand() % 100 + its frames + 30 ticks");
+}
+
 void testMovement() {
     const auto g = smallGround();
     double x = 80, y = 80;
@@ -307,7 +336,8 @@ struct TestHost : sf::ScriptHost {
     void offerClass(int cls) override { chosenClass = cls; }
     int storages = 0;
     std::vector<Label> labels;
-    void openStorage() override { ++storages; }
+    int giantStorages = 0;
+    void openStorage(bool giant) override { ++(giant ? giantStorages : storages); }
     void showLabel(const Label& l) override { labels.push_back(l); }
     bool unidentified = true;
     std::vector<int> repaired;
@@ -375,6 +405,7 @@ void testScriptStorageAndLabels() {
     S script;
     script.messages[1000060] = "Remote Town";
     script.sentences = {{{S::kStorage, {raw(0)}},
+                         {S::kStorage, {constant(1)}},
                          {S::kMessageBox, {constant(10000200), constant(0), constant(-160), {S::kMessage, 1000060}, constant(224),
                                            constant(200), constant(100), raw(1000)}},
                          {S::kMessageBoxValue, {constant(10041000), constant(20), constant(-60), constant(29), constant(224),
@@ -383,6 +414,7 @@ void testScriptStorageAndLabels() {
     TestHost host;
     sf::ScriptRunner(script, flags, &host).run(0);
     check(host.storages == 1, "STORAGE opens the warehouse");
+    check(host.giantStorages == 1, "STORAGE 1 opens the Giant Warehouse");
     check(host.labels.size() == 2 && host.labels[0].text == "Remote Town" && host.labels[0].character == 10000200 &&
               host.labels[0].dy == -160 && host.labels[0].g == 200 && host.labels[0].duration == 1000,
           "MESSAGEBOX floats a message over a character");
@@ -723,7 +755,18 @@ void testMagic() {
     check(t.count(204, 1) == 2 && t.count(204, 6) == 3 && t.count(204, 29) == 7 && t.count(204, 30) == 8, "table 204");
     check(t.count(205, 10) == 3 && t.count(206, 20) == 5, "tables 205 and 206");
     check(t.count(207, 9) == 1 && t.count(207, 10) == 3 && t.count(207, 21) == 5, "table 207");
-    check(sf::discElementLevels(0, 20000)[sf::kFire] == 20, "the disc's fire anchor");
+    check(sf::discElementLevels(0, 20000)[sf::kFire] == 10 && sf::discElementLevels(0, 20000)[sf::kWater] == -10, "the disc's fire anchor");
+    {
+        int x = 0, y = 0;
+        sf::moveOnDisc(x, y, sf::kFire, 4000);
+        check(x == 0 && y == 4000 && sf::discElementLevels(x, y)[sf::kFire] == 2, "Fire Medicine moves 4000 towards fire");
+        x = 0, y = 18000;
+        sf::moveOnDisc(x, y, sf::kFire, 4000);
+        check(x == 0 && y == 20000, "and stops on the anchor");
+        x = 0, y = 0;
+        sf::moveOnDisc(x, y, sf::kHoly, 4000);
+        check(x == 2828 && y == -2828, "or slants towards a corner element");
+    }
     check(sf::elementLevels({}, L{15, -12, 3})[0] == 10 && sf::elementLevels({}, L{15, -12, 3})[1] == -10, "levels stay in -10..10");
 
     // 0x412a40: blows get table 7 at the level in the monster's opposite.
@@ -865,8 +908,17 @@ void testPowerMode() {
           "Berserker, Moon and Energy Shield can't be cast in power mode");
 
     const auto t = sf::MagicTables::standard();
-    check(sf::walkSpeedFactor(128) == 1.0 && sf::walkSpeedFactor(0) < 1.0, "walking speed 128 is the normal step");
-    check(std::abs(sf::walkSpeedFactor(0, true) - 4.0 / 3.0) < 1e-9, "power mode walks at the fastest step");
+    check(sf::heroMoveSpeed(128, false) == 20 && sf::heroMoveSpeed(128, true) == 40, "a new hero walks 20 and runs 40 a tick");
+    check(sf::heroMoveSpeed(0, false) == 15 && sf::heroMoveSpeed(255, false) == 25 && sf::heroMoveSpeed(300, true) == 52,
+          "the walk is 20 times the step, cut to a whole number, and the run twice it");
+    check(sf::heroMoveSpeed(200, false) == 24 && sf::heroMoveSpeed(180, false) == 23, "steps 6 and 7 walk 23 and 24");
+    check(sf::heroMoveSpeed(0, false, true) == 26 && sf::heroMoveSpeed(0, true, true) == 53, "power mode walks 26 and runs 53");
+    check(sf::heroMoveSpeed(128, true, false, true) == 26 && sf::heroMoveSpeed(128, true, true, true) == 53,
+          "carrying too much drops to the bottom step, except in power mode");
+    check(sf::attackSpeedFactor(t, 100, false, true) == 0.3 && sf::attackSpeedFactor(t, 100, true, true) == 2.0,
+          "carrying too much swings at the slowest step, except in power mode");
+    check(sf::castSpeedFactor(t, sf::kFireBall, 80, true, true) == sf::castSpeedFactor(t, sf::kFireBall, 0, true),
+          "power mode casts at the fastest step even when carrying too much");
     check(sf::attackSpeedFactor(t, 0, true) == 2.0 && sf::attackSpeedFactor(t, 0) < 2.0, "power mode attacks at the fastest step");
     check(sf::attackSpeedFactor(t, 255) >= sf::attackSpeedFactor(t, 0), "faster attack speed, faster swings");
 }
@@ -1202,6 +1254,32 @@ void testMixer() {
     check(out[0] > 1600 && out[0] < 1700, "quieter by its attenuation");
 }
 
+void testCombat() {
+    using sf::WarriorMove;
+    check(sf::warriorMove(0) == WarriorMove::Sword && sf::warriorMove(3) == WarriorMove::GreatSword, "swords combo");
+    check(sf::warriorMove(1) == WarriorMove::Spin, "axes and maces spin");
+    check(sf::warriorMove(2) == WarriorMove::None && sf::warriorMove(4) == WarriorMove::None, "staffs and bowguns do not");
+    check(sf::comboChart(WarriorMove::Sword, 1) == 5 && sf::comboChart(WarriorMove::Sword, 3) == 8, "sword combo charts 5, 7, 8");
+    check(sf::comboChart(WarriorMove::GreatSword, 2) == 17, "great sword combo charts 15, 17, 18");
+    check(sf::comboShout(1, false) == 0x60 && sf::comboShout(3, true) == 0x65, "combo shouts");
+    check(sf::attackSpeedStep(3, false) == 4 && sf::attackSpeedStep(0, true) == 9, "attack speed step, 9 in power mode");
+    check(sf::comboSpeed(0) == 0.8 && sf::comboSpeed(9) == 1.7 && sf::spinSpeed(4) == 1.0, "combo and spin speeds");
+    check(sf::comboLunge(0) == 0 && sf::comboLunge(6) == 60 && sf::comboLunge(7) == 0, "the lunge grows to 60, then stops");
+    // Wind-up 9, turn 8, recovery 19.
+    auto f = sf::spinFrame(8, 2, 9, 8, 19);
+    check(f.chart == 21 && f.frame == 8 && !f.turning, "spin winds up");
+    f = sf::spinFrame(9, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 1 && f.turning, "the turn starts from the facing");
+    f = sf::spinFrame(32, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 0, "three turns");
+    f = sf::spinFrame(33, 2, 9, 8, 19);
+    check(f.chart == 23 && f.frame == 0 && f.turning && !f.done, "blows go on one frame past the turn");
+    check(sf::spinFrame(51, 2, 9, 8, 19).done && !sf::spinFrame(50, 2, 9, 8, 19).done, "spin ends on chart 23's last frame");
+    check(sf::inSwing(0, 2, sf::kComboSpread) && sf::inSwing(0, 6, sf::kComboSpread), "combo catches two steps either side");
+    check(!sf::inSwing(0, 3, sf::kComboSpread) && sf::inSwing(0, 4, sf::kAllRound), "spin catches all round");
+    check(sf::inSwing(7, 0, sf::kSwingSpread) && !sf::inSwing(7, 1, sf::kSwingSpread), "swing wraps round");
+}
+
 int main() {
     testItemLabels();
     testMixer();
@@ -1232,11 +1310,13 @@ int main() {
     testAiPriorityAndWeights();
     testAiHealthCondition();
     testAiSameSeedSameChoices();
+    testTitleSmoke();
     testMovement();
     testLevels();
     testTrapGeometry();
     testTrapShots();
     testArchery();
+    testCombat();
     testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

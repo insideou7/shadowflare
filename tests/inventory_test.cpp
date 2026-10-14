@@ -885,7 +885,168 @@ void testRightClickEquip() {
           "rings fill the free accessory slots");
 }
 
+// The special items window (0x449ef0, 0x430ffe cases 0x3a, 0x3b and 0x4b).
+void testSpecialItems() {
+    sf::ItemTable table;
+    auto gem = def(Class::Special, 0, 1, 1);
+    gem.code = 100003;
+    gem.specialPage = 1;
+    gem.specialX = 3;
+    auto medicine = def(Class::Consumable, 0, 1, 2);
+    medicine.code = 30000001;
+    medicine.specialPage = 3;
+    medicine.specialX = 1;
+    auto stone = def(Class::Special, 0, 1, 1);
+    stone.code = 99000001;
+    stone.specialPage = 0;
+    stone.specialX = 1;
+    stone.specialY = 1;
+    auto sword = def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12);
+    table.items = {gem, medicine, stone, sword};
+    const sf::ItemDef& g = table.items[0];
+    const sf::ItemDef& m = table.items[1];
+    const sf::ItemDef& s = table.items[2];
+
+    sf::Inventory inventory;
+    check(inventory.addSpecial({&g, 1}), "a gem goes to its page");
+    check(!inventory.addSpecial({&g, 1}), "but only one of each");
+    check(!inventory.addSpecial({&table.items[3], 1}), "items without a page do not");
+    check(inventory.add({&m, 1}) && inventory.bag().empty(), "the bag sends a medicine to its page");
+    check(inventory.pickUp({&s, 1}) && inventory.bag().empty(), "and a picked-up stone");
+    check(inventory.specialPage(1).size() == 1 && inventory.specialPage(1)[0].x == 3 && inventory.specialPage(1)[0].y == 0,
+          "each at its own place");
+    check(inventory.specialIndexAt(3, 1, 1) == 0 && inventory.specialIndexAt(3, 1, 2) == -1 && inventory.specialIndexAt(3, 0, 0) == -1,
+          "a 1 x 2 medicine covers two cells");
+    check(inventory.has(Class::Special, 100003) && inventory.carries(Class::Special, 99000001), "CHECKITEMEXIST looks there");
+    check(inventory.removeOne(Class::Special, 100003) && !inventory.has(Class::Special, 100003), "DELETEITEM takes from there");
+
+    sf::SaveGame save;
+    save.map = "a";
+    save.discX = 0;
+    save.discY = 4000;
+    save.store(inventory);
+    // Older saves had such items in the bag; they move to their page.
+    save.bag.push_back({{4, 100003, 1}, 0, 0});
+    const auto loaded = sf::SaveGame::parse(save.write());
+    check(loaded.discX == 0 && loaded.discY == 4000, "the disc point is saved");
+    sf::Inventory back;
+    check(loaded.restore(back, table) == 0, "every special item comes back");
+    check(back.specialPage(3).size() == 1 && back.specialPage(0).size() == 1 && back.specialPage(1).size() == 1 &&
+              back.bag().empty(),
+          "on their pages, the old save's gem too");
+    back.removeSpecial(3, 0);
+    check(back.specialPage(3).empty(), "a used medicine is taken away");
+}
+
+// The second weapon set (0x406aa0, 0x451930).
+void testWeaponSets() {
+    sf::Inventory inv;
+    inv.equip(Slot::Weapon, {&kSword});
+    inv.equip(Slot::Shield, {&kShield});
+    check(inv.weaponSet() == 0 && !inv.chooseWeaponSet(0), "set I is in use; choosing it again changes nothing");
+    check(inv.chooseWeaponSet(1) && inv.weaponSet() == 1 && !inv.equipped(Slot::Weapon) && !inv.equipped(Slot::Shield) &&
+              inv.spare(sf::Inventory::kSetWeapon)->def == &kSword && inv.spare(sf::Inventory::kSetShield)->def == &kShield,
+          "set II starts empty; set I's weapon and shield are kept aside");
+    inv.equip(Slot::Weapon, {&kGreatSword});
+    inv.swapWeaponSets();
+    check(inv.weaponSet() == 0 && inv.equipped(Slot::Weapon)->def == &kSword && inv.spare(0)->def == &kGreatSword,
+          "Caps Lock swaps back");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 1), "only the tab in use answers a right click");
+    check(!inv.toggleShared(sf::Inventory::kSetWeapon, 0) && !inv.shared(0, 0), "a slot with a weapon in it can't be shared");
+    std::optional<sf::Item> hand;
+    inv.clickSlot(hand, Slot::Shield, 1);  // take the shield off
+    check(hand && !inv.equipped(Slot::Shield), "the shield comes off");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 0) && inv.shared(sf::Inventory::kSetShield, 0),
+          "an empty shield slot is shared even with nothing to bring over");
+    check(inv.clickSlot(hand, Slot::Shield, 1) == Result::Locked && hand, "a shared slot takes nothing");
+    check(inv.chooseWeaponSet(1) && !inv.equipped(Slot::Shield) && inv.equipped(Slot::Weapon)->def == &kGreatSword,
+          "changing sets leaves the shared slot alone");
+    // As in the original, only the sharing set's own flag locks the slot,
+    // so set II can still put a shield there.
+    check(inv.clickSlot(hand, Slot::Shield, 1) == Result::Done && !hand, "set II can use the slot set I shares");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 1) && inv.shared(sf::Inventory::kSetShield, 0),
+          "only set I's tab ends set I's sharing");
+    inv.chooseWeaponSet(0);
+    check(inv.equipped(Slot::Shield)->def == &kShield, "the shared shield stays for set I");
+    check(inv.toggleShared(sf::Inventory::kSetShield, 0) && !inv.shared(sf::Inventory::kSetShield, 0) &&
+              !inv.equipped(Slot::Shield) && inv.spare(sf::Inventory::kSetShield)->def == &kShield,
+          "ending the sharing sends the shield to the other set");
+
+    // Sharing a weapon brings the other set's over and keeps it there.
+    sf::Inventory two;
+    two.equip(Slot::Weapon, {&kGreatSword});
+    two.chooseWeaponSet(1);
+    check(two.toggleShared(sf::Inventory::kSetWeapon, 1) && two.equipped(Slot::Weapon)->def == &kGreatSword && !two.spare(0),
+          "set II borrows set I's weapon");
+    two.chooseWeaponSet(0);
+    check(two.equipped(Slot::Weapon)->def == &kGreatSword, "and both sets use it");
+    check(!two.toggleShared(sf::Inventory::kSetWeapon, 0), "set I's tab can't end set II's sharing");
+    two.chooseWeaponSet(1);
+    check(two.toggleShared(sf::Inventory::kSetWeapon, 1) && !two.equipped(Slot::Weapon) && two.spare(0)->def == &kGreatSword,
+          "ending it gives the weapon back to set I");
+
+    // Saved and loaded.
+    sf::ItemTable table;
+    auto sword = kSword;
+    sword.code = 4;
+    table.items = {sword};
+    sf::Inventory saved;
+    saved.equip(Slot::Weapon, {&table.items[0]});
+    saved.chooseWeaponSet(1);
+    saved.toggleShared(sf::Inventory::kSetShield, 1);
+    sf::SaveGame save;
+    save.map = "a";
+    save.store(saved);
+    sf::Inventory loaded;
+    check(sf::SaveGame::parse(save.write()).restore(loaded, table) == 0, "the sets load");
+    check(loaded.weaponSet() == 1 && loaded.spare(0) && loaded.spare(0)->def->code == 4 && loaded.shared(1, 1) &&
+              !loaded.equipped(Slot::Weapon),
+          "the set in use, what is kept aside and the sharing survive saving");
+}
+
+// The gold split box (0x4429b0).
+void testGoldSplit() {
+    sf::Inventory inv;
+    inv.setGoldDef(&kGold);
+    inv.addGold(500);
+    std::optional<sf::Item> hand;
+    check(!inv.splitGold(0, 501, hand) && !hand && inv.gold() == 500, "more than the stack takes nothing");
+    check(!inv.splitGold(0, 0, hand) && !hand, "nor does none");
+    check(inv.splitGold(0, 120, hand) && hand && hand->count == 120 && inv.gold() == 380, "part of a stack comes away");
+    check(!inv.splitGold(0, 10, hand), "only into an empty hand");
+    hand.reset();
+    check(inv.splitGold(0, 380, hand) && hand && hand->count == 380 && inv.bag().empty(), "all of it takes the stack");
+    sf::ShopStock stock;
+    stock.add({&kGold, 900});
+    hand.reset();
+    check(sf::splitGold(stock.goods, 0, 899, &kGold, hand) && stock.goods[0].item.count == 1 && hand->count == 899,
+          "a warehouse stack splits the same way");
+    hand.reset();
+    stock.add({&kSword});
+    check(!sf::splitGold(stock.goods, 1, 1, &kGold, hand), "only gold splits");
+}
+
+// The Giant Warehouse's pages are saved one by one.
+void testGiantStorageSave() {
+    sf::ItemTable table;
+    auto sword = kSword;
+    sword.code = 9;
+    table.items = {sword};
+    std::array<sf::ShopStock, sf::kGiantStoragePages> pages;
+    pages[0].add({&table.items[0]});
+    pages[7].goods.push_back({{&table.items[0]}, 4, 3});
+    sf::SaveGame save;
+    save.map = "a";
+    save.storeGiantStorage(pages);
+    std::array<sf::ShopStock, sf::kGiantStoragePages> loaded;
+    check(sf::SaveGame::parse(save.write()).restoreGiantStorage(loaded, table) == 0, "the Giant Warehouse loads");
+    check(loaded[0].goods.size() == 1 && loaded[7].goods.size() == 1 && loaded[7].goods[0].x == 4 && loaded[7].goods[0].y == 3 &&
+              loaded[3].goods.empty(),
+          "each page keeps its own items where they were");
+}
+
 int main() {
+    testSpecialItems();
     testItemSounds();
     testTakeAll();
     testBagPlacement();
@@ -905,6 +1066,9 @@ int main() {
     testOpenPackLoot();
     testWornWeight();
     testGoldInBag();
+    testWeaponSets();
+    testGoldSplit();
+    testGiantStorageSave();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

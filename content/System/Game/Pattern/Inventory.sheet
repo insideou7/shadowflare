@@ -1,5 +1,5 @@
 # Drawn by tools/art/ui.py (our own art, see content/README.md).
-# The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its socket, the weight gauge's marks (light, darker, red, flash) and the Warehouse Transfer Box lit up.
+# The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its socket, the weight gauge's marks (light, darker, red, flash), the Warehouse Transfer Box lit up and the button to the special items window lit up.
 image=Inventory.png
 frame=0,0,320,416,-320,0
 frame=0,416,48,48,-336,-84
@@ -8,3 +8,4 @@ frame=57,416,3,5,0,0
 frame=62,416,3,5,0,0
 frame=67,416,3,5,0,0
 frame=80,416,56,72,-336,-140
+frame=138,416,67,9,-376,-394

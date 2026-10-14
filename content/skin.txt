@@ -1045,6 +1045,18 @@ none=
 11=spike_pit_b@-325,-305
 12=spike_pit_c@-423,-397
 13=spike_pit_d@-387,-353
+# Skeletons in the dirt, and patches of blood-soaked earth (tools/art/remains.py).
+4=bones_a@-188,-162
+5=bones_b!@-182,-128
+6=bones_c!@-185,-205
+7=bones_d@-133,-147
+8=bones_f@-195,-195
+9=bones_d@-105,-125
+14=soaked_earth_a@-227,-253
+15=soaked_earth_b@-150,-230
+16=soaked_earth_c!@-153,-227
+17=soaked_earth_d!@-225,-185
+18=soaked_earth_e@-190,-290
 [objects tower2.njp]
 0=stones@-30,-30
 1=stone_small@-55,-55
@@ -1188,3 +1200,54 @@ none=
 3=obj_lever_down_y
 7=obj_pad_blue
 8=obj_pad_red
+# Blood, the fallen, skeletons on crosses, beds and a wrecked cart, drawn
+# by tools/art/remains.py.
+[objects blood00.njp]
+0=blood_a@-192,-158
+1=blood_b!@-293,-187
+2=blood_c@-228,-202
+3=blood_d@-72,-278
+4=blood_e@-218,-172
+5=blood_f@-32,-198
+6=blood_g@-103,-237
+[objects deadbody00.njp]
+0=fallen_d@-65,-105
+1=fallen_e@-123,-117
+2=fallen_g@-135,-155
+3=fallen_d@-157,-103
+4=fallen_a@-257,-223
+5=fallen_c@-67,-133
+6=fallen_a@-158,-192
+7=fallen_a!@-135,-175
+8=fallen_e!@-192,-198
+9=fallen_a@-220,-180
+10=fallen_h@-145,-65
+11=fallen_b@-68,-122
+12=fallen_d@-123,-137
+13=fallen_d@-177,-183
+[objects hone.njp]
+0=bones_cross@-43,-37
+1=bones_cross!@-37,-43
+[objects ex_obj.njp]
+0=cart_wreck@-513,-447
+1=bed@-215,-195
+2=bed_rumpled@-183,-157
+3=bed_broken!@-200,-220
+4=bed_wrecked!@-165,-125
+5=bed@-212,-198
+6=bed_dead@-218,-252
+7=bed_dead!@-200,-220
+# The waterworks' blood-stained walls (tools/art/dungeon.py).
+[objects 00d_blood.njp]
+0=dwall_lamp_x@-170,-170
+1=dwall_x@-157,-183
+3=dwall_lamp_x@-157,-183
+12=dwall_blood2_y@-147,-153
+13=dwall_x@-163,-137
+14=dwall_x@-163,-137
+15=dwall_blood_y@-157,-183
+16=dwall_blood2_y@-163,-137
+17=dwall_blood2_y@-133,-167
+18=dwall_blood_y@-110,-110
+19=dwall_blood_y@-163,-137
+20=dwall_x@-163,-137

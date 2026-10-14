@@ -26,8 +26,9 @@ from their own copy (content/skin.txt draws them with our art).
 
 Writes Map/<original map name>.txt and Scenario/<10000000 + original
 number>/ for each. Then run
-enemy_stats.py to give the monsters the original's numbers. Exits to areas
-the pack does not have are left out (see exit_targets). Needs Pillow and
+enemy_stats.py to give the monsters the original's numbers, then
+enemy_holes.py to put back the burrows (Enemy Holes). Exits to areas the
+pack does not have are left out (see exit_targets). Needs Pillow and
 numpy.
 """
 
@@ -407,11 +408,18 @@ def nearest_open(open_, tx, ty):
 # Names that a scenario's script.txt calls people by, by original scenario
 # and placement id: Remote Town's commander, smith and healer.
 PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer",
+                # The Wasteland of Pillars: a scout and an exiled trader.
+                (6, 0): "scout", (6, 1): "trader",
                 # The companions waiting in Remote Town's kennel and
                 # Cold Svalt Town (people of kind 1000000 + their
                 # Character/PARTNER folder).
                 (0, 10000): "ash", (0, 10001): "soot", (0, 10002): "amber", (0, 10003): "pip",
-                (1000000, 10000): "rust"}
+                (1000000, 10000): "rust",
+                # Cold Svalt Town's people.
+                (1000000, 0): "commander", (1000000, 1): "soldier", (1000000, 2): "guard",
+                (1000000, 3): "boy", (1000000, 4): "widow", (1000000, 5): "knight",
+                (1000000, 6): "mother", (1000000, 7): "merchant", (1000000, 8): "healer",
+                (1000000, 9): "wizard", (1000000, 10): "jeweler"}
 # The warp gates the pack has (content/gates.txt): the object a click on
 # opens the GATE window, which stands on a warp circle.
 GATES = {0: [200], 1000000: [200],

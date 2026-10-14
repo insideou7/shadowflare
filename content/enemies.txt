@@ -6,6 +6,7 @@
 # its feet the name floats (a little over the top of its picture); the
 # colour is light grey unless given.
 
+-1=Burrow,40
 0=Giant Fly,44
 1=Goblin,55
 2=Ghoul,52

@@ -52,14 +52,26 @@ struct SaveGame {
     std::optional<int> mines;  // mines in hand; none in saves from before mines
     std::vector<BagEntry> bag;
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
+    // The special items window's items; x is the page. Each goes back to
+    // its own place there.
+    std::vector<BagEntry> special;
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
+    // The weapon set in use, which parts are shared (Inventory::shared, set
+    // I weapon, set II weapon, set I shield, set II shield) and the other
+    // set's weapon and shield.
+    int weaponSet = 0;
+    std::array<bool, 4> sharedParts{};
+    std::array<std::optional<ItemRef>, 2> spare;
+    // The Giant Warehouse (STORAGE 1): its ten pages, cells of 9 x 10 grids.
+    std::array<std::vector<BagEntry>, kGiantStoragePages> giantStorage;
     ScriptFlags flags;  // the persistent scenario flags
     std::optional<SpellBook> spells;  // none in saves from before magic
     std::array<bool, kSpellCount> spellsOn{};  // toggle spells that are on
     bool originalMode = false;
     std::optional<PartnerRecord> partner;  // none in saves from before companions
     int partnerHp = 0;                     // 0 = full (or down, with reviveTicks)
+    int discX = 0, discY = 0;              // the hero's point on the attribute disc
     // What the map shows of each area seen, by scenario folder (or map name
     // for a map without one). The original keeps these in its own files
     // (Save\M<scenario><slot>.msk); ours go in the save.
@@ -75,6 +87,8 @@ struct SaveGame {
     void store(const Inventory& inventory);
     int restoreStorage(ShopStock& stock, const ItemTable& items) const;
     void storeStorage(const ShopStock& stock);
+    int restoreGiantStorage(std::array<ShopStock, kGiantStoragePages>& pages, const ItemTable& items) const;
+    void storeGiantStorage(const std::array<ShopStock, kGiantStoragePages>& pages);
 };
 
 }  // namespace sf

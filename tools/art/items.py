@@ -49,8 +49,12 @@ HERO_SCALE = 1.22  # the hero rig's scale (creatures.build_hero_shapes)
 # (name, builder, width and height in cells, ground scale relative to the
 # hero, ground angle in degrees). Builders return (objects, kind) where
 # kind says how to stand the model up: "grip" (a weapon along +X of its
-# grip), "shield" (a disc facing +X), "armour" (worn on the hero's rig) or
-# "thing" (a model standing at the origin, its front towards -Y).
+# grip), "shield" (a disc facing +X), "armour" (worn on the hero's rig),
+# "thing" (a model standing at the origin, its front towards -Y) or
+# "pendant" (a flat charm standing at the origin, its face towards -Y,
+# that lies on its back on the ground). A ("blade", name) builder is a
+# weapon the hero does not wear, built by blade() along +X of its grip;
+# ("pendant", name) is built by pendant().
 ITEMS = [
     ("short_sword", ("gear", 12), 1, 4, 1.15, 30),
     ("great_sword", ("gear", 19), 2, 4, 1.0, 35),
@@ -67,6 +71,15 @@ ITEMS = [
     ("plate_mail", ("gear", 6), 2, 3, 0.85, 20),
     ("mine", ("thing", "mine"), 2, 2, 1.6, 0),
     ("wood_bowgun", ("gear", 16), 2, 3, 1.4, 30),
+    ("merchant_sapphire", ("thing", "sapphire"), 1, 1, 2.2, 15),
+    ("shrine_stone", ("thing", "shrine_stone"), 1, 1, 2.0, 0),
+    ("keepsake_ruby", ("thing", "ruby"), 1, 1, 2.2, 20),
+    ("might_charm", ("pendant", "might_charm"), 1, 1, 2.0, 15),
+    ("shrine_charm", ("pendant", "shrine_charm"), 1, 1, 2.0, -15),
+    ("blast_charm", ("pendant", "blast_charm"), 1, 1, 2.0, 10),
+    ("warding_cross", ("pendant", "warding_cross"), 1, 1, 2.0, 20),
+    ("scarlet_dirk", ("blade", "scarlet_dirk"), 1, 3, 1.3, 30),
+    ("old_knight_sword", ("blade", "old_knight_sword"), 1, 4, 1.0, 40),
 ]
 
 # A laid mine is drawn larger than the mine item, as the original's is, so
@@ -193,17 +206,252 @@ def thing(kind):
     return made
 
 
+def gem(colour, radius, glow=0.4, facets=8):
+    """A brilliant-cut stone with flat facets, its table up (+Z), sitting on
+    its point at the origin."""
+    m = studio.material(f"gem {colour}", colour, tuple(c * 0.35 for c in colour), scale=8, rough=0.05, bump=0)
+    bsdf = m.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Emission Color"].default_value = (*studio.linear(colour), 1)
+    bsdf.inputs["Emission Strength"].default_value = glow
+    bpy.ops.mesh.primitive_cone_add(vertices=facets, radius1=0, radius2=radius, depth=radius * 0.85,
+                                    location=(0, 0, radius * 0.425))
+    pavilion = studio.assign(bpy.context.object, m)
+    bpy.ops.mesh.primitive_cone_add(vertices=facets, radius1=radius, radius2=radius * 0.58, depth=radius * 0.38,
+                                    location=(0, 0, radius * 0.85 + radius * 0.19))
+    crown = studio.assign(bpy.context.object, m)
+    crown.rotation_euler = (0, 0, math.pi / facets)
+    return [pavilion, crown]
+
+
+def tilt(objects, angle, at):
+    """Turns objects about X by `angle` round the point `at` (a positive
+    angle tips their top towards the viewer, -Y)."""
+    pivot = bpy.data.objects.new("pivot", None)
+    bpy.context.scene.collection.objects.link(pivot)
+    for o in objects:
+        o.parent = pivot
+    pivot.location = at
+    pivot.rotation_euler = (angle, 0, 0)
+    bpy.context.view_layer.update()
+    for o in objects:
+        w = o.matrix_world.copy()
+        o.parent = None
+        o.matrix_world = w
+    bpy.data.objects.remove(pivot)
+    return objects
+
+
+def loop(radius, thickness, at, m):
+    """A small ring a charm hangs from, upright facing -Y."""
+    bpy.ops.mesh.primitive_torus_add(major_radius=radius, minor_radius=thickness, major_segments=20,
+                                     minor_segments=8, location=at, rotation=(math.radians(90), 0, 0))
+    return studio.assign(studio.smooth(bpy.context.object), m)
+
+
+def jewel(kind):
+    """The quest stones, standing at the origin, front towards -Y."""
+    shape = creatures.shape
+    made = []
+    if kind == "sapphire":
+        # A large blue stone tipped towards the viewer so its table shows.
+        made += tilt(gem((0.12, 0.30, 0.95), 0.17, glow=0.5), math.radians(55), (0, 0, 0.06))
+    elif kind == "ruby":
+        # A red stone held by four gold claws on a little gold cup.
+        gold = mat("ruby gold", (0.92, 0.72, 0.28), (0.45, 0.28, 0.06), scale=30, rough=0.25)
+        parts = gem((0.88, 0.08, 0.10), 0.14, glow=0.5)
+        bpy.ops.mesh.primitive_cone_add(vertices=16, radius1=0.05, radius2=0.12, depth=0.1, location=(0, 0, 0.06))
+        parts.append(studio.assign(studio.smooth(bpy.context.object), gold))
+        for k in range(4):
+            a = math.pi / 4 + k * math.pi / 2
+            parts.append(shape("cone", (0.022, 0.022, 0.07), gold))
+            parts[-1].location = (0.125 * math.cos(a), 0.125 * math.sin(a), 0.14)
+            parts[-1].rotation_euler = (-0.5 * math.sin(a), 0.5 * math.cos(a), 0)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.13, minor_radius=0.015, major_segments=24, minor_segments=6,
+                                         location=(0, 0, 0.11))
+        parts.append(studio.assign(studio.smooth(bpy.context.object), gold))
+        made += tilt(parts, math.radians(45), (0, 0, 0.04))
+    elif kind == "shrine_stone":
+        # A smooth pale stone, a little egg-shaped, glowing softly, with
+        # three carved marks down its face.
+        pale = mat("shrine stone", (0.90, 0.92, 0.84), (0.62, 0.66, 0.64), scale=7, rough=0.4, bump=0.2)
+        bsdf = pale.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Emission Color"].default_value = (*studio.linear((0.85, 0.95, 1.0)), 1)
+        bsdf.inputs["Emission Strength"].default_value = 0.6
+        add = made.append
+        add(shape("ball", (0.15, 0.12, 0.19), pale))
+        made[-1].location = (0, 0, 0.19)
+        rune = glass("shrine rune", (0.55, 0.85, 1.0), 3.0)
+        for z, w in ((0.27, 0.07), (0.19, 0.045), (0.11, 0.07)):
+            add(shape("box", (w, 0.012, 0.012), rune))
+            made[-1].location = (0, -0.118 + 0.02 * abs(z - 0.19) / 0.08, z)
+        add(shape("box", (0.012, 0.012, 0.09), rune))
+        made[-1].location = (0, -0.121, 0.19)
+    return made
+
+
+def pendant(kind):
+    """Charms on a loop, built upright at the origin with their face towards
+    -Y; they lie on their backs on the ground."""
+    shape = creatures.shape
+    made = []
+    add = made.append
+    if kind == "might_charm":
+        # A rounded red-brown stone in a bronze rim on a leather thong.
+        bronze = mat("bronze", (0.70, 0.46, 0.24), (0.30, 0.17, 0.07), scale=30, rough=0.35, bump=0.3)
+        stone = mat("might stone", (0.62, 0.22, 0.14), (0.28, 0.08, 0.05), scale=9, rough=0.3, bump=0.3)
+        bsdf = stone.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Emission Color"].default_value = (*studio.linear((0.7, 0.2, 0.1)), 1)
+        bsdf.inputs["Emission Strength"].default_value = 0.25
+        add(shape("cylinder", (0.15, 0.15, 0.03), bronze, rotation=(math.radians(90), 0, 0)))
+        made[-1].location = (0, 0, 0.16)
+        add(shape("ball", (0.11, 0.05, 0.13), stone))
+        made[-1].location = (0, -0.03, 0.16)
+        for k in range(6):
+            a = k * math.pi / 3
+            add(shape("ball", (0.02, 0.02, 0.02), bronze))
+            made[-1].location = (0.135 * math.cos(a), -0.03, 0.16 + 0.135 * math.sin(a))
+        rune = mat("might rune", (0.95, 0.78, 0.36), (0.55, 0.38, 0.10), scale=30, rough=0.3)
+        for k in range(3):  # a gold triangle inlaid in the stone
+            a = math.radians(90 + 120 * k)
+            add(shape("box", (0.05, 0.008, 0.008), rune, rotation=(0, -a - math.radians(90), 0)))
+            made[-1].location = (0.035 * math.cos(a + math.pi), -0.08, 0.16 + 0.035 * math.sin(a + math.pi))
+        add(loop(0.045, 0.014, (0, 0, 0.33), bronze))
+    elif kind == "shrine_charm":
+        # A violet stone in a silver teardrop with pale pearls round it.
+        silver = mat("silver", (0.86, 0.86, 0.90), (0.45, 0.45, 0.52), scale=24, rough=0.22, bump=0.2)
+        pearl = mat("pearl", (0.96, 0.94, 0.98), (0.75, 0.72, 0.80), scale=20, rough=0.2, bump=0)
+        add(shape("ball", (0.12, 0.025, 0.16), silver))
+        made[-1].location = (0, 0, 0.16)
+        add(shape("cone", (0.06, 0.025, 0.06), silver))
+        made[-1].location = (0, 0, 0.32)
+        for k in range(10):
+            a = k * 2 * math.pi / 10
+            add(shape("ball", (0.022, 0.022, 0.022), pearl))
+            made[-1].location = (0.13 * math.sin(a), -0.02, 0.16 + 0.17 * math.cos(a))
+        stone = gem((0.72, 0.42, 0.98), 0.085, glow=1.2)
+        made += tilt(stone, math.radians(90), (0, -0.03, 0.15))
+        add(loop(0.04, 0.012, (0, 0, 0.39), silver))
+    elif kind == "blast_charm":
+        # A black iron sun with a fiery orange core and eight short rays.
+        iron = mat("charm iron", (0.20, 0.19, 0.20), (0.06, 0.05, 0.06), scale=26, rough=0.4, bump=0.5)
+        core = glass("blast core", (1.0, 0.45, 0.08), 3.5)
+        add(shape("cylinder", (0.12, 0.12, 0.035), iron, rotation=(math.radians(90), 0, 0)))
+        made[-1].location = (0, 0, 0.18)
+        for k in range(8):
+            a = k * math.pi / 4
+            add(shape("cone", (0.03, 0.02, 0.05), iron, rotation=(0, math.pi / 2 - a, 0)))
+            made[-1].location = (0.15 * math.cos(a), 0, 0.18 + 0.15 * math.sin(a))
+        add(shape("ball", (0.07, 0.04, 0.07), core))
+        made[-1].location = (0, -0.035, 0.18)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.085, minor_radius=0.014, major_segments=24, minor_segments=6,
+                                         location=(0, -0.035, 0.18), rotation=(math.radians(90), 0, 0))
+        add(studio.assign(studio.smooth(bpy.context.object), iron))
+        add(loop(0.04, 0.012, (0, 0, 0.37), iron))
+    elif kind == "warding_cross":
+        # A silver cross with flared arms and a small white stone at the
+        # crossing.
+        silver = mat("cross silver", (0.88, 0.88, 0.92), (0.40, 0.42, 0.48), scale=24, rough=0.2, bump=0.2)
+        add(shape("box", (0.035, 0.022, 0.17), silver))
+        made[-1].location = (0, 0, 0.17)
+        add(shape("box", (0.12, 0.022, 0.035), silver))
+        made[-1].location = (0, 0, 0.22)
+        for x, z, r in ((0, 0.0, 0), (0, 0.34, 180), (0.12, 0.22, -90), (-0.12, 0.22, 90)):
+            add(shape("cone", (0.05, 0.022, 0.025), silver, rotation=(0, math.radians(r), 0)))
+            made[-1].location = (x, 0, z + (0.02 if r == 0 else 0))
+        made += tilt(gem((0.92, 0.95, 1.0), 0.035, glow=1.0), math.radians(90), (0, -0.02, 0.22))
+        add(loop(0.03, 0.01, (0, 0, 0.39), silver))
+    return made
+
+
+def blade(kind):
+    """Swords the hero does not wear, built along +X from the middle of
+    the grip like creatures.blade_weapon, the blade's flat facing +Z."""
+    shape = creatures.shape
+    along = (0, math.radians(90), 0)
+    made = []
+    add = made.append
+    if kind == "scarlet_dirk":
+        # A short dagger: a red-tinted steel blade, a gold guard curling
+        # forward, a grip wound in red and a ruby for a pommel.
+        steel = mat("scarlet steel", (0.80, 0.30, 0.28), (0.34, 0.06, 0.06), scale=24, rough=0.22, bump=0.2)
+        gold = mat("dirk gold", (0.90, 0.70, 0.28), (0.42, 0.26, 0.06), scale=30, rough=0.25)
+        wrap = mat("dirk grip", (0.60, 0.08, 0.08), (0.25, 0.03, 0.03), scale=40, rough=0.6, bump=0.5)
+        add(shape("cylinder", (0.03, 0.03, 0.08), wrap, rotation=along))
+        add(shape("ball", (0.045, 0.045, 0.045), glass("dirk ruby", (0.85, 0.05, 0.08), 0.6)))
+        made[-1].location = (-0.115, 0, 0)
+        add(shape("box", (0.025, 0.11, 0.025), gold))
+        made[-1].location = (0.095, 0, 0)
+        for side in (1, -1):
+            add(shape("ball", (0.025, 0.025, 0.025), gold))
+            made[-1].location = (0.115, 0.11 * side, 0)
+        length, width = 0.42, 0.045
+        b = shape("box", (length / 2, width, 0.015), steel)
+        b.modifiers.clear()
+        b.location = (0.12 + length / 2, 0, 0)
+        add(b)
+        add(shape("cone", (0.015, width * 1.02, width * 2.4), steel, rotation=along))
+        made[-1].location = (0.12 + length + width * 2.4, 0, 0)
+        r = shape("box", (length / 2, width * 0.28, width * 0.28), steel, rotation=(math.radians(45), 0, 0))
+        r.modifiers.clear()
+        r.location = (0.12 + length / 2, 0, 0)
+        add(r)
+    elif kind == "old_knight_sword":
+        # A broad old blade with a dark fuller, a straight steel cross-guard
+        # with knobbed ends, a wire-bound grip and a wheel pommel.
+        steel = mat("knight steel", (0.86, 0.87, 0.90), (0.40, 0.41, 0.45), scale=20, rough=0.28, bump=0.2,
+                    grime=0.3)
+        fuller = mat("knight fuller", (0.36, 0.37, 0.40), (0.14, 0.14, 0.16), scale=30, rough=0.4)
+        guard = mat("knight guard", (0.55, 0.56, 0.60), (0.20, 0.20, 0.22), scale=24, rough=0.3, bump=0.3)
+        grip = mat("knight grip", (0.24, 0.16, 0.10), (0.09, 0.06, 0.04), scale=40, rough=0.6, bump=0.5)
+        brass = mat("knight brass", (0.80, 0.62, 0.30), (0.40, 0.28, 0.10), scale=30, rough=0.35)
+        add(shape("cylinder", (0.036, 0.036, 0.15), grip, rotation=along))
+        for x in (-0.1, -0.03, 0.04, 0.11):
+            add(shape("cylinder", (0.039, 0.039, 0.008), brass, rotation=along))
+            made[-1].location = (x, 0, 0)
+        add(shape("cylinder", (0.075, 0.075, 0.03), guard))  # the wheel pommel, its faces with the blade's
+        made[-1].location = (-0.19, 0, 0)
+        for z in (1, -1):
+            add(shape("ball", (0.03, 0.03, 0.02), brass))
+            made[-1].location = (-0.19, 0, 0.03 * z)
+        add(shape("box", (0.04, 0.27, 0.035), guard))
+        made[-1].location = (0.19, 0, 0)
+        for side in (1, -1):
+            add(shape("ball", (0.045, 0.045, 0.045), guard))
+            made[-1].location = (0.19, 0.29 * side, 0)
+        add(shape("box", (0.06, 0.085, 0.045), guard))  # the langet over the blade's root
+        made[-1].location = (0.25, 0, 0)
+        length, width = 1.2, 0.11
+        b = shape("box", (length / 2, width, 0.022), steel)
+        b.modifiers.clear()
+        b.location = (0.23 + length / 2, 0, 0)
+        add(b)
+        add(shape("cone", (0.022, width * 1.02, width * 1.8), steel, rotation=along))
+        made[-1].location = (0.23 + length + width * 1.8, 0, 0)
+        for z in (1, -1):
+            f = shape("box", (length * 0.36, width * 0.22, 0.004), fuller)
+            f.modifiers.clear()
+            f.location = (0.27 + length * 0.36, 0, 0.022 * z)
+            add(f)
+    return made
+
+
 def build(spec):
     """Builds an item; returns (handle, objects, kind). The handle is an
     empty that moves the whole model."""
     source, what = spec
-    if source == "thing":
+    if source in ("thing", "pendant", "blade"):
         handle = bpy.data.objects.new("item", None)
         bpy.context.scene.collection.objects.link(handle)
-        objects = thing(what)
+        if source == "blade":
+            objects = blade(what)
+            handle.scale = (HERO_SCALE,) * 3
+        elif source == "pendant":
+            objects = pendant(what)
+        else:
+            objects = thing(what) or jewel(what)
         for o in objects:
             o.parent = handle
-        return handle, objects, "thing"
+        return handle, objects, {"thing": "thing", "pendant": "pendant", "blade": "grip"}[source]
     rig = creatures.build_hero_shapes()
     for o in [o for o in bpy.data.objects if o.type == "MESH" and o.name != "shadow catcher"]:
         bpy.data.objects.remove(o)
@@ -249,6 +497,9 @@ def orient(handle, kind, lying, angle=0.0):
     elif kind == "armour":
         # Worn, facing the camera; lying on its back.
         handle.rotation_euler = (0, math.radians(-90), a) if lying else (0, 0, math.radians(-90))
+    elif kind == "pendant":
+        # Upright in the bag, its face a little turned; on its back on the ground.
+        handle.rotation_euler = (math.radians(-90), 0, a) if lying else (0, 0, math.radians(-12))
     else:
         # Small things stand on the ground either way; in the bag they are
         # turned a little to show their sides.

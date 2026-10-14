@@ -1,0 +1,149 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+object=9476,12885,9636,13045,hole0,hole,hidden
+object=9476,12885,9636,13045,hole0-open,hole_open,hidden
+object=9476,12885,9636,13045,hole0-broken,hole_broken,hidden
+temp=901,-1
+temp=902,-1
+object=11174,13977,11334,14137,hole1,hole,hidden
+object=11174,13977,11334,14137,hole1-open,hole_open,hidden
+object=11174,13977,11334,14137,hole1-broken,hole_broken,hidden
+temp=911,-1
+temp=912,-1
+
+[message 1]
+Purgatory of Judgments, B1F
+
+[sentence arrive]
+on=start
+SETCOMPASSES msg:1
+
+# Burrows (written by tools/content/enemy_holes.py)
+#
+# Each burrow brings its monsters back, one at a time, while it
+# stands: every 200 ticks, if one of them is dead, the burrow glows
+# and it climbs back out. Breaking the burrow ends it. temp:<n> flags
+# from 900 on: the tick count, the glow left, the monster
+# coming back, whether the burrow is still standing, set up.
+
+[sentence hole0-start]
+on=start
+IF temp:904 = 0 @hole0-setup
+
+[sentence hole0-setup]
+SETFLAG temp:904 1
+SETFLAG shown:hole0 1
+
+# Monsters 14000016 to 14000020 are this burrow's.
+[sentence hole0-tick]
+on=tick
+CHECKENEMYLIVE 14000015 14000015 temp:903
+IF temp:900 = 180 @hole0-wake
+IF temp:900 = 200 @hole0-revive
+IF temp:903 ! -1 @hole0-glow
+ADD temp:900 1
+
+[sentence hole0-wake]
+IF temp:903 ! -1 @hole0-look
+
+[sentence hole0-look]
+CHECKENEMYDEAD 14000016 14000020 temp:902
+IF temp:902 ! -1 @hole0-open
+
+[sentence hole0-open]
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 1
+SETFLAG temp:901 40
+CREATEEFFECT 20007 x:hole0 y:hole0 0 -1
+CREATEEFFECT 20008 x:hole0 y:hole0 0 -1
+PLAYSOUND 27 0 x:hole0 y:hole0
+
+[sentence hole0-revive]
+IF temp:902 ! -1 @hole0-bring
+SETFLAG temp:900 0
+
+[sentence hole0-bring]
+IF temp:903 ! -1 @hole0-rise
+
+[sentence hole0-rise]
+RESSURECT temp:902 x:hole0 y:hole0 7
+
+[sentence hole0-glow]
+IF temp:901 > -1 @hole0-fade
+
+[sentence hole0-fade]
+IF temp:901 = 0 @hole0-shut
+SUB temp:901 1
+
+[sentence hole0-shut]
+SETFLAG shown:hole0 1
+SETFLAG shown:hole0-open 0
+
+[sentence hole0-broken]
+on=enemy-dead 14000015
+PLAYSOUND 28 0 x:hole0 y:hole0
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 0
+SETFLAG shown:hole0-broken 1
+
+[sentence hole1-start]
+on=start
+IF temp:914 = 0 @hole1-setup
+
+[sentence hole1-setup]
+SETFLAG temp:914 1
+SETFLAG shown:hole1 1
+
+# Monsters 14000022 to 14000026 are this burrow's.
+[sentence hole1-tick]
+on=tick
+CHECKENEMYLIVE 14000021 14000021 temp:913
+IF temp:910 = 180 @hole1-wake
+IF temp:910 = 200 @hole1-revive
+IF temp:913 ! -1 @hole1-glow
+ADD temp:910 1
+
+[sentence hole1-wake]
+IF temp:913 ! -1 @hole1-look
+
+[sentence hole1-look]
+CHECKENEMYDEAD 14000022 14000026 temp:912
+IF temp:912 ! -1 @hole1-open
+
+[sentence hole1-open]
+SETFLAG shown:hole1 0
+SETFLAG shown:hole1-open 1
+SETFLAG temp:911 40
+CREATEEFFECT 20007 x:hole1 y:hole1 0 -1
+CREATEEFFECT 20008 x:hole1 y:hole1 0 -1
+PLAYSOUND 27 0 x:hole1 y:hole1
+
+[sentence hole1-revive]
+IF temp:912 ! -1 @hole1-bring
+SETFLAG temp:910 0
+
+[sentence hole1-bring]
+IF temp:913 ! -1 @hole1-rise
+
+[sentence hole1-rise]
+RESSURECT temp:912 x:hole1 y:hole1 7
+
+[sentence hole1-glow]
+IF temp:911 > -1 @hole1-fade
+
+[sentence hole1-fade]
+IF temp:911 = 0 @hole1-shut
+SUB temp:911 1
+
+[sentence hole1-shut]
+SETFLAG shown:hole1 1
+SETFLAG shown:hole1-open 0
+
+[sentence hole1-broken]
+on=enemy-dead 14000021
+PLAYSOUND 28 0 x:hole1 y:hole1
+SETFLAG shown:hole1 0
+SETFLAG shown:hole1-open 0
+SETFLAG shown:hole1-broken 1

@@ -16,6 +16,60 @@ sell=accessory,1000000
 sell=consumable,0,6
 sell=consumable,10000000,6
 
+[shop 2]                 # Cold Svalt Town's merchant
+sell=weapon,1000000
+sell=weapon,5000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+sell=accessory,1000000
+sell=consumable,0,10
+sell=consumable,10000000,10
+
+[shop 22]                # Remote Town's smith once the first area is finished: tools only
+sell=consumable,0,20
+sell=consumable,10000000,20
+
+[shop 1]                 # the Wasteland of Pillars' trader, hero below level 7
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+sell=accessory,1000000
+sell=consumable,0,10
+sell=consumable,10000000,10
+
+[shop 3]                 # the same trader, hero level 7 to 9
+sell=weapon,5000000
+sell=weapon,1000100
+sell=weapon,2000100
+sell=weapon,1000110
+sell=armour,4000000
+sell=armour,1000100
+sell=armour,2000100
+sell=armour,3000100
+sell=accessory,1000100
+sell=consumable,0,10
+sell=consumable,10000000,10
+
+[shop 4]                 # the same trader, hero level 10 and up
+sell=weapon,5000100
+sell=weapon,1000101
+sell=weapon,2000101
+sell=weapon,1000110
+sell=armour,4000100
+sell=armour,101
+sell=armour,1000100
+sell=armour,3000100
+sell=accessory,1000101
+sell=consumable,0,10
+sell=consumable,10000000,10
+
 # The second area. The original stocks these from its own item tables;
 # ours sell the pack's nearest items, in the same kinds and order.
 

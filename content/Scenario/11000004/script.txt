@@ -1,0 +1,66 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+[message 20]
+So the woods go on even here...
+I never knew this land was here.
+
+[message 21]
+The woods go on even here...
+I never knew this land existed.
+
+[message 1]
+Sea of Trees
+
+[message 2]
+Crossroads Wood
+
+[message 3]
+Sea of Trees, Burnt Ruins
+
+[sentence arrive]
+on=start
+SETCOMPASSES msg:1
+SETFLAG temp:50 0
+GETENTRYPOINT temp:52
+IF temp:52 = 1 @arrive-1
+IF temp:52 = 2 @arrive-2
+
+[sentence arrive-1]
+SETCOMPASSES msg:2
+SETFLAG temp:50 200
+
+[sentence arrive-2]
+SETCOMPASSES msg:3
+
+# The hero's remark floats over them, fading over its last 100 ticks;
+# temp:50 counts down the ticks it has left.
+[sentence remark]
+on=tick
+IF temp:50 ! 0 @remark-show
+
+[sentence remark-show]
+GETMYPLAYERNO temp:53
+GETPLAYERSEX temp:54
+SETFLAG temp:55 msg:20
+IF temp:54 = 0 @remark-her
+IF temp:50 < 100 @remark-fade
+IF temp:50 > 99 @remark-full
+MESSAGEBOX temp:53 0 -80 temp:55 224 224 224 temp:56
+SUB temp:50 1
+
+[sentence remark-her]
+SETFLAG temp:55 msg:21
+
+[sentence remark-fade]
+SETFLAG temp:56 temp:50
+MUL temp:56 10
+
+[sentence remark-full]
+SETFLAG temp:56 1000
+
+# Light rain falls here all the time.
+[sentence rain]
+on=tick
+SETTINGRAIN 224 224 224 5

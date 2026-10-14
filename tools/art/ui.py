@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The interface pictures for the open content pack.
 
-    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map marks]
+    python3 tools/art/ui.py <content pack folder> [inventory special shop balloon font missions compasses map marks tabs]
 
 Draws, in the style of the original but from scratch:
 
@@ -15,6 +15,12 @@ Draws, in the style of the original but from scratch:
   gauge's marks and the box lit up. Written as
   System/Game/Pattern/Inventory; its anchor puts it at x = 320 on the
   screen.
+- the special items window (X): the same stone and frame with a carved
+  header, the four sections of cells where quest items, gems, stones and
+  cards, and medicines are kept, each labelled, and the button back to
+  the item window, also lit up; System/Game/Pattern/Special, at x = 320
+  (src/game/special_items.cpp, after ShadowFlare.exe's). The inventory
+  panel has the button the other way, lit up as its frame 7.
 - the shop window: the same stone and frame with a carved header and the
   9 x 10 cells of goods at (16, 72), as the original's (src/game/talk.cpp).
   System/Game/Pattern/Shop, at x = 0.
@@ -38,6 +44,11 @@ Draws, in the style of the original but from scratch:
   question mark (not yet identified) and one split by a crack (worn out
   or broken), drawn in the bottom right corner as the original's are.
   System/Game/Pattern/ItemMarks.
+- the tabs: the Giant Warehouse's header with ten sockets and a close
+  button over the top of the shop window, its page tabs I-X (plain, lit,
+  and blank for pages not open yet), and the weapon set tabs I, II and
+  shared under the item window's weapon and shield slots.
+  System/Game/Pattern/Tabs.
 - the area map's window: the same stone and iron with a hole the map shows
   through, a gem by the area's name, the hero's arrow and a PLAYER label
   (src/game/area_map.cpp). System/Game/Pattern/Map.
@@ -78,6 +89,12 @@ LABELS = [("LANDMINE", 18, 68), ("POWER", 64, 85), ("STOCK", 68, 104), ("WEIGHT"
 # in items.cpp: an item let go here goes to the town warehouse.
 TRANSFER_BOX = (16, 140, 72, 212)
 GOODS = (16, 72, 9, 10)  # the shop's cells: x, y, columns, rows, as in talk.cpp
+# The special items window's sections (x, y, columns, rows in the panel)
+# and their labels, as in special_items.cpp, and the button between it
+# and the item window (x0, y0, x1, y1).
+SECTIONS = [((16, 72, 9, 2), "QUEST ITEMS"), ((16, 168, 9, 1), "GEMS"), ((16, 232, 9, 1), "STONES AND CARDS"),
+            ((16, 296, 9, 2), "MEDICINES")]
+SWITCH_BUTTON = (56, 394, 123, 403)
 
 STONE = np.array([42, 40, 47])
 IRON = np.array([50, 48, 49])
@@ -202,17 +219,40 @@ def write_sheet(folder, name, image, frames, comment):
             f.write("frame=" + ",".join(str(v) for v in fr) + "\n")
 
 
-def engrave(p, text, x0, y0, colour=None):
+def engrave(p, text, x0, y0, colour=None, scale=1):
     """Cuts `text` into the panel in our font (lowercase as small
-    capitals on the same baseline), filled with bronze."""
+    capitals on the same baseline), filled with bronze, `scale` times the
+    size."""
     colour = BRONZE * 0.8 if colour is None else colour
     for i, ch in enumerate(text):
         rows, top = (CAPS[ch], 0) if ch in CAPS else (SMALL[ch], 2) if ch in SMALL else ([], 0)
         for y, row in enumerate(rows):
             for x, bit in enumerate(row):
                 if bit == "#":
-                    p.colour[y0 + top + y, x0 + i * 6 + x] = colour
-                    p.height[y0 + top + y, x0 + i * 6 + x] -= 1.5
+                    py, px = y0 + (top + y) * scale, x0 + (i * 6 + x) * scale
+                    p.colour[py:py + scale, px:px + scale] = colour
+                    p.height[py:py + scale, px:px + scale] -= 1.5
+
+
+def switch_button(p, text):
+    """The small plate under the bag or sections that switches between the
+    item and special windows, with its name cut in and a bronze arrow
+    head at each end."""
+    x0, y0, x1, y1 = SWITCH_BUTTON
+    p.sunken(x0, y0, x1, y1, depth=1.0, rim=True, floor=STONE * 0.55)
+    engrave(p, text, (x0 + x1) // 2 - len(text) * 3, y0 + 1)
+    for tip, back in ((x0 + 2, x0 + 6), (x1 - 3, x1 - 7)):
+        arrow = (np.abs(yy - (y0 + y1 - 1) / 2) <= np.abs(xx - tip) * 0.8) & inside(min(tip, back), y0 + 1, max(tip, back) + 1, y1 - 1)
+        p.bronze(arrow, 1.0)
+
+
+def lit_part(panel, rect):
+    """A part of a panel lit up: brighter and warmer."""
+    x0, y0, x1, y1 = rect
+    crop = np.asarray(panel.crop((x0, y0, x1, y1))).astype(float)
+    rgb = np.clip(crop[..., :3] * np.array([1.7, 1.5, 1.1]) + np.array([40, 30, 10]), 0, 255).astype(np.uint8)
+    alpha = np.full(rgb.shape[:2] + (1,), 255, dtype=np.uint8)
+    return Image.fromarray(np.concatenate([rgb, alpha], axis=2), "RGBA")
 
 
 def strongbox(p):
@@ -325,6 +365,7 @@ def inventory(out):
     strongbox(p)
     for text, x, y in LABELS:
         engrave(p, text, x, y)
+    switch_button(p, "SPECIAL")
     panel = p.image()
     bw, bh = TRANSFER_BOX[2] - TRANSFER_BOX[0], TRANSFER_BOX[3] - TRANSFER_BOX[1]
     sheet = Image.new("RGBA", (W, H + max(48, bh)), (0, 0, 0, 0))
@@ -340,10 +381,41 @@ def inventory(out):
         frames.append((52 + k * 5, H, 3, 5, 0, 0))
     sheet.paste(lit_box(panel), (80, H))
     frames.append((80, H, bw, bh, -(LEFT + TRANSFER_BOX[0]), -TRANSFER_BOX[1]))
+    sx0, sy0, sx1, sy1 = SWITCH_BUTTON
+    sheet.paste(lit_part(panel, SWITCH_BUTTON), (80 + bw + 2, H))
+    frames.append((80 + bw + 2, H, sx1 - sx0, sy1 - sy0, -(LEFT + sx0), -sy0))
     write_sheet(out / "System/Game/Pattern", "Inventory", sheet, frames,
                 "The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its "
-                "socket, the weight gauge's marks (light, darker, red, flash) and the Warehouse Transfer Box "
-                "lit up.")
+                "socket, the weight gauge's marks (light, darker, red, flash), the Warehouse Transfer Box "
+                "lit up and the button to the special items window lit up.")
+
+
+def special(out):
+    p = Panel(9)
+    # The header: a dark plate with the window's name cut in at twice the
+    # size, between two bronze rules.
+    p.sunken(14, 14, W - 14, 50, depth=1.5, rim=True, floor=STONE * 0.6)
+    title = "SPECIAL ITEMS"
+    engrave(p, title, W // 2 - len(title) * 6, 24, scale=2)
+    for y in (56, 60):
+        p.bronze((np.abs(yy - y) < 0.6) & inside(24, 0, W - 24, H), 1.5)
+    # Each section: a recess of dark red cloth with bronze ribs, its name
+    # cut in under its right end.
+    for (x, y, cols, rows), label in SECTIONS:
+        p.sunken(x, y, x + cols * CELL, y + rows * CELL, floor=MAROON)
+        p.cells(x, y, cols, rows, BRONZE * 0.7, raised=2)
+        engrave(p, label, x + cols * CELL - len(label) * 6, y + rows * CELL + 5)
+    p.bronze((np.abs(yy - 380.5) < 0.6) & inside(40, 0, W - 40, H), 1.5)
+    switch_button(p, "ITEMS")
+    panel = p.image()
+    sx0, sy0, sx1, sy1 = SWITCH_BUTTON
+    sheet = Image.new("RGBA", (W, H + sy1 - sy0), (0, 0, 0, 0))
+    sheet.paste(panel, (0, 0))
+    sheet.paste(lit_part(panel, SWITCH_BUTTON), (0, H))
+    frames = [(0, 0, W, H, -LEFT, 0), (0, H, sx1 - sx0, sy1 - sy0, -(LEFT + sx0), -sy0)]
+    write_sheet(out / "System/Game/Pattern", "Special", sheet, frames,
+                "The special items window (the anchor puts it at x = 320 on the 640 x 480 screen) and its "
+                "button back to the item window lit up.")
 
 
 # The question mark and the crack, one row of 12 pixels to a line.
@@ -855,17 +927,133 @@ def font(out):
                 "The font: 6 x 12 cells by byte value, 16 to a row.")
 
 
+# The Giant Warehouse's header (talk.cpp): tabs I-X 24 apart from (24, 41)
+# and the close button; and the weapon set tabs under the item window's
+# weapon and shield slots (items.cpp).
+GIANT_TAB = (24, 41, 24)  # x, y of tab I, then the step
+GIANT_CLOSE = (272, 40, 296, 56)
+ROMAN = {
+    "I": ["#"] * 7,
+    "V": ["#...#", "#...#", ".#.#.", ".#.#.", ".#.#.", "..#..", "..#.."],
+    "X": ["#...#", ".#.#.", ".#.#.", "..#..", ".#.#.", ".#.#.", "#...#"],
+}
+NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+
+
+def roman(img, text, cx, y0, colour):
+    """Roman numerals 7 pixels tall, one pixel apart, centred on cx."""
+    width = sum(len(ROMAN[c][0]) for c in text) + len(text) - 1
+    x = cx - width // 2
+    for c in text:
+        rows = ROMAN[c]
+        for y, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit == "#":
+                    img.putpixel((x + dx, y0 + y), colour)
+        x += len(rows[0]) + 1
+
+
+def giant_header():
+    """The top 72 rows of the shop window with a band of ten sockets for
+    the tabs and a bronze close button marked with an X."""
+    canvas(320, 416)
+    p = Panel(8)
+    p.sunken(14, 12, W - 14, 68, depth=1.5, rim=True, floor=STONE * 0.7)
+    # A frieze of scrolls along the top of the band, as on the shop's.
+    frieze = inside(20, 15, W - 20, 27)
+    for k in range(0, W, 12):
+        cx, up = k + 6, (k // 12) % 2 == 0
+        d = np.hypot(xx - cx, yy - 21)
+        arc = (np.abs(d - 4.5) < 0.8) & ((yy < 21) if up else (yy > 21))
+        p.bronze(arc & frieze, 2.0)
+    p.bronze((np.abs(yy - 30.5) < 0.6) & inside(20, 0, W - 20, H), 1.5)
+    x0, y0, step = GIANT_TAB
+    for k in range(10):
+        x = x0 + k * step
+        p.sunken(x - 1, y0 - 1, x + 21, y0 + 24, depth=2, rim=False, floor=HOLLOW)
+    cx0, cy0, cx1, cy1 = GIANT_CLOSE
+    plate = inside(cx0, cy0, cx1, cy1)
+    p.colour[plate] = BRONZE * 0.6
+    p.height += 3 * box(cx0, cy0, cx1, cy1, 2)
+    for t in np.linspace(0, 1, 40):  # the X, cut into the plate
+        for px, py in ((cx0 + 8 + 8 * t, cy0 + 4 + 8 * t), (cx1 - 8 - 8 * t, cy0 + 4 + 8 * t)):
+            p.colour[int(round(py)), int(round(px))] = HOLLOW * 0.6
+            p.height[int(round(py)), int(round(px))] -= 1.5
+    gx, gy, cols, rows = GOODS
+    p.sunken(gx, gy, gx + cols * CELL, gy + rows * CELL, floor=MAROON)
+    return p.image().crop((0, 0, 320, 72))
+
+
+def page_tab(lit, text):
+    """A tab of the Giant Warehouse: a bronze-rimmed plate with its page's
+    numeral, brighter for the page in view; with no numeral, a page not
+    open yet."""
+    canvas(20, 23)
+    p = Panel(40 + (len(text) if text else 0) + 3 * lit)
+    p.colour[:] = BRONZE * (0.6 if lit else 0.4 if text else 0.25)
+    p.height[:] = 0
+    p.sunken(3, 3, 17, 20, depth=2, rim=False, floor=STONE * (0.8 if lit else 0.5 if text else 0.3))
+    img = p.image()
+    if text:
+        roman(img, text, 10, 8, (236, 214, 150, 255) if lit else (150, 128, 84, 255))
+    return img
+
+
+def set_tab(in_use, label):
+    """A weapon set tab, 21 x 7: warm rust for the set in use, slate for the
+    other, with I, II or a bar (shared) in pale ink."""
+    base = np.array([150, 70, 40]) if in_use else np.array([62, 70, 112])
+    img = Image.new("RGBA", (21, 7), (0, 0, 0, 0))
+    for y in range(7):
+        for x in range(21):
+            edge = x in (0, 20) or y in (0, 6)
+            shade = (0.55 if edge else 1.0) * (1.15 - 0.06 * y)
+            img.putpixel((x, y), tuple(int(c) for c in np.clip(base * shade, 0, 255)) + (255,))
+    ink = (240, 222, 170, 255) if in_use else (200, 204, 230, 255)
+    if label == "-":
+        for x in range(8, 13):
+            img.putpixel((x, 3), ink)
+    else:
+        strokes = len(label)
+        x0 = 10 - (strokes - 1)
+        for k in range(strokes):
+            for y in range(2, 5):
+                img.putpixel((x0 + 2 * k, y), ink)
+    return img
+
+
+def tabs(out):
+    parts = [giant_header(), page_tab(False, "")]
+    parts += [page_tab(False, n) for n in NUMERALS] + [page_tab(True, n) for n in NUMERALS]
+    parts += [set_tab(True, "I"), set_tab(True, "II"), set_tab(True, "-"), set_tab(False, "I"), set_tab(False, "II"), set_tab(False, "-")]
+    canvas(320, 416)
+    sheet = Image.new("RGBA", (320, 72 + 25 + 25 + 9), (0, 0, 0, 0))
+    sheet.paste(parts[0], (0, 0))
+    frames = [(0, 0, 320, 72, 0, 0)]
+    x, y = 0, 72
+    for k, img in enumerate(parts[1:]):
+        if k in (11, 21):  # the lit tabs, then the set tabs, on rows of their own
+            x, y = 0, y + (25 if k == 11 else 25)
+        sheet.paste(img, (x, y))
+        frames.append((x, y, img.width, img.height, 0, 0))
+        x += img.width + 2
+    write_sheet(out / "System/Game/Pattern", "Tabs", sheet, frames,
+                "The Giant Warehouse's header, its tab for a page not open yet, tabs I-X, tabs I-X lit; then the weapon set "
+                "tabs I, II and shared for the set in use, and the same for the other set.")
+
+
 def main():
     out = Path(sys.argv[1])
     only = set(sys.argv[2:])  # the names below, to redraw just those
-    sheets = {"inventory": inventory, "shop": shop, "balloon": balloon, "font": font,
-              "missions": missions, "compasses": compasses, "map": area_map, "marks": item_marks}
+    sheets = {"inventory": inventory, "special": special, "shop": shop, "balloon": balloon, "font": font,
+              "missions": missions, "compasses": compasses, "map": area_map, "marks": item_marks,
+              "tabs": tabs}
     for name, draw in sheets.items():
         if not only or name in only:
             draw(out)
     # The panels to 256 colours, as the rest of the pack; the balloon and
     # the font have only a few already.
-    for name, png in (("inventory", "Inventory"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map")):
+    for name, png in (("inventory", "Inventory"), ("special", "Special"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map"), ("tabs", "Tabs")):
         if not only or name in only:
             shrink.shrink(out / "System/Game/Pattern" / f"{png}.png")
     if not only or "compasses" in only:

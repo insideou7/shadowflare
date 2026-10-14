@@ -141,6 +141,8 @@ bool Game::saveGame() {
     save.hp = playerHp_;
     save.mp = playerMp_;
     save.mines = mineCount_;
+    save.discX = discX_;
+    save.discY = discY_;
     save.spells = spells_;
     save.spellsOn = spellOn_;
     save.originalMode = originalMode();
@@ -153,6 +155,7 @@ bool Game::saveGame() {
     save.partnerHp = !partner_ ? partnerHpCarried_ : partnerAlive() ? partner_->hp : 0;
     save.store(inventory_);
     if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
+    save.storeGiantStorage(giantStorage_);
     for (const auto& [key, value] : flags_) {
         // TEMP and NET flags start again with every scenario.
         if (key.first != ScenarioScript::kTemp && key.first != ScenarioScript::kNet && key.first >= 0) save.flags[key] = value;
@@ -240,6 +243,7 @@ bool Game::loadGameFrom(const std::string& path) {
 
     forgetVisitedScenarios();
     hand_.reset();
+    specialOpen_ = false;
     flags_ = save.flags;
     explored_ = save.explored;
     // Saves from before companions: Kerberos at level 1, at rest.
@@ -255,6 +259,8 @@ bool Game::loadGameFrom(const std::string& path) {
     walkTarget_.reset();
     attackTarget_.reset();
     playerExperience_ = save.experience;
+    discX_ = save.discX;
+    discY_ = save.discY;
     playerLevel_ = std::max(1, save.level);
     // Saves from before classes: a warrior from level 5.
     career_ = save.career && save.career->history.size() == static_cast<std::size_t>(playerLevel_ - 1) ? *save.career
@@ -281,6 +287,9 @@ bool Game::loadGameFrom(const std::string& path) {
     while (mineCount_ < mostMines() && inventory_.removeOne(ItemDef::Class::Special, 1)) ++mineCount_;
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", path, skipped);
+    }
+    if (const int skipped = save.restoreGiantStorage(giantStorage_, items_)) {
+        log::warn("{}: {} items in the Giant Warehouse are unknown", path, skipped);
     }
     updateEquipment();
     // The companion came before the hero's things, which can raise its health.

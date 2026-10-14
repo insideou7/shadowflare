@@ -1,10 +1,13 @@
 // The title menu, shown when the game starts and after Save and Return to
 // Title. Esc during play opens the Settings Menu instead (options.cpp).
+#include <algorithm>
 #include <filesystem>
+#include <format>
 
 #include "core/log.h"
 #include "game/game.h"
 #include "game/skin.h"
+#include "platform/filesystem.h"
 #include "render/tiny_font.h"
 
 namespace sf {
@@ -40,6 +43,8 @@ void Game::openMenu() {
     using M = MenuItem;
     menuItems_ = {M::Continue, M::NewGame, M::Options, M::Quit};
     menuChoice_ = 0;
+    titleSmoke_.emplace(titleRandom_);
+    titleSmokeCarry_ = 0;
     // Start on the first thing that can be chosen (New Game without a save).
     while (!menuItemEnabled(menuItems_[menuChoice_])) ++menuChoice_;
     mouseHeld_ = false;
@@ -85,14 +90,21 @@ void Game::chooseMenuItem(MenuItem item) {
 void Game::newGame() {
     forgetVisitedScenarios();
     hand_.reset();
+    specialOpen_ = false;
     inventory_.clear();
     flags_.clear();
     // The first gate, Remote Town's, is known from the start (0x4412dc).
     flags_[{ScenarioScript::kWarp, 0}] = 1;
+    // Pages I and II of the Giant Warehouse are open from the start (0x440f70).
+    flags_[{ScenarioScript::kExtraStorage, 0}] = 1;
+    flags_[{ScenarioScript::kExtraStorage, 1}] = 1;
+    giantStorage_ = {};
+    giantPage_ = 0;
     closeWarpWindow();
     explored_.clear();
     mapOpen_ = false;
     playerLevel_ = 1;
+    discX_ = discY_ = 0;
     career_ = {};
     showStatus_ = false;
     closeMagicWindow();
@@ -174,7 +186,7 @@ void Game::menuEvent(const SDL_Event& event) {
 void Game::renderMenu() {
     // The title picture, pattern 0 of System/Title/Pattern/Title: the
     // whole screen, with the name on it. The original's has gaps where its
-    // smoke shows through (Smoke00-09, not drawn yet), so black first.
+    // smoke shows through, so black first; the smoke is added on top.
     // With our art chosen (Settings Menu or F12) it is our picture, from
     // the pack, over the original's.
     constexpr const char* kTitleBank = "System/Title/Pattern/Title";
@@ -185,6 +197,7 @@ void Game::renderMenu() {
         SDL_RenderClear(renderer_);
         const SDL_Rect dst{t->originX, t->originY, t->width, t->height};
         SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+        renderTitleSmoke();
     } else {
         // Without one the world stays behind the menu, darkened.
         SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
@@ -214,6 +227,76 @@ void Game::renderMenu() {
     }
     const char* help = "ARROWS OR MOUSE TO CHOOSE, ENTER TO START";
     drawText(renderer_, (kScreenWidth - textWidth(help, 1)) / 2, kScreenHeight - 24, help, kOther, 1);
+}
+
+const std::array<std::optional<CharacterModel>, TitleSmoke::kJets>& Game::titleSmokeJets() {
+    // With our art chosen the pack's jets go with its picture; the
+    // original's would blow from pipes that are not there.
+    const int set = skin_ ? 1 : 0;
+    if (!titleSmokeLoaded_[set]) {
+        titleSmokeLoaded_[set] = true;
+        for (int i = 0; i < TitleSmoke::kJets; ++i) {
+            const std::string stem = std::format("System/Title/Pattern/Smoke{:02d}", i);
+            if (skin_) {
+                titleSmokeModels_[set][i] = skin_->character(stem);
+            } else if (data_->exists(stem + ".caf") || data_->exists(stem + ".anim")) {
+                titleSmokeModels_[set][i] = CharacterModel::load(*data_, stem);
+            }
+        }
+    }
+    return titleSmokeModels_[set];
+}
+
+namespace {
+
+// Frames in a jet's one chart, facing 8 (0x47343c GetMaxFrameCount(8)).
+const AnimationSet::Direction* smokeDirection(const std::optional<CharacterModel>& model) {
+    if (!model || model->animations.charts.empty()) return nullptr;
+    const auto& dirs = model->animations.charts[0].directions;
+    return dirs.size() > 8 ? &dirs[8] : nullptr;
+}
+
+}  // namespace
+
+void Game::tickTitleSmoke() {
+    if (!titleSmoke_) return;
+    const auto& jets = titleSmokeJets();
+    std::array<int, TitleSmoke::kJets> frames{};
+    for (int i = 0; i < TitleSmoke::kJets; ++i) {
+        if (const auto* dir = smokeDirection(jets[i])) frames[i] = dir->frameCount;
+    }
+    // The title loop runs once for each of the original's ticks.
+    for (titleSmokeCarry_ += kOriginalTicksPerTick; titleSmokeCarry_ >= 1.0; titleSmokeCarry_ -= 1.0) {
+        titleSmoke_->step(frames, titleRandom_);
+    }
+}
+
+void Game::renderTitleSmoke() {
+    if (!titleSmoke_) return;
+    const auto& jets = titleSmokeJets();
+    for (int i = 0; i < TitleSmoke::kJets; ++i) {
+        const auto* dir = smokeDirection(jets[i]);
+        if (!dir) continue;
+        const int f = titleSmoke_->frame(i, dir->frameCount);
+        if (f < 0) continue;
+        const auto [x, y] = TitleSmoke::kPositions[i];
+        for (const auto& layer : dir->layers) {
+            if (f >= static_cast<int>(layer.size())) continue;
+            const auto& cell = layer[static_cast<std::size_t>(f)];
+            if (AnimationSet::isShadow(cell.status)) continue;
+            const SpriteTexture* sprite = sprites_.get(jets[i]->body, cell.pattern, false);
+            if (!sprite) continue;
+            // The original's jets are additive (status 16): steam lightens
+            // what is behind it.
+            const bool additive = cell.status & AnimationSet::kAdditiveStatus;
+            if (additive) SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(std::clamp<int>(cell.trans, 0, 1000) * 255 / 1000));
+            const SDL_Rect dst{x + sprite->originX, y + sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            SDL_SetTextureAlphaMod(sprite->texture, 255);
+            if (additive) SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+        }
+    }
 }
 
 }  // namespace sf

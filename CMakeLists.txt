@@ -7,6 +7,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
+# Crash reports to sentry.io (sentry-native, downloaded and built when on).
+# Nothing is sent without a DSN: SFE_SENTRY_DSN here, or the
+# SHADOWFLARE_SENTRY_DSN environment variable when the game starts.
+option(SFE_SENTRY "Send crash reports to Sentry (needs a DSN)" OFF)
+set(SFE_SENTRY_DSN "" CACHE STRING "Sentry DSN built into the game (empty: only SHADOWFLARE_SENTRY_DSN)")
+
+if(EMSCRIPTEN)
+    # The format readers report bad data by throwing, and Emscripten turns
+    # catching off unless asked. Wasm's own exceptions are the fast kind.
+    add_compile_options(-fwasm-exceptions)
+    add_link_options(-fwasm-exceptions)
+endif()
 
 # Data file readers: no SDL dependency, so they can be tested on their own.
 add_library(sf_formats STATIC
@@ -41,6 +53,7 @@ add_library(sf_logic STATIC
     src/logic/script_runner.cpp
     src/logic/traps.cpp
     src/logic/archery.cpp
+    src/logic/combat.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
@@ -57,6 +70,7 @@ add_library(sf_logic STATIC
     src/logic/lighting.cpp
     src/logic/explored_map.cpp
     src/logic/open_areas.cpp
+    src/logic/title_smoke.cpp
     src/audio/mixer.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
@@ -66,6 +80,7 @@ add_executable(shadowflare
     src/core/log.cpp
     src/platform/filesystem.cpp
     src/platform/audio.cpp
+    src/platform/crash_log.cpp
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
@@ -74,6 +89,7 @@ add_executable(shadowflare
     src/game/game.cpp
     src/game/enemy_ai.cpp
     src/game/items.cpp
+    src/game/special_items.cpp
     src/game/saving.cpp
     src/game/title.cpp
     src/game/new_character.cpp
@@ -83,6 +99,7 @@ add_executable(shadowflare
     src/game/spells.cpp
     src/game/traps.cpp
     src/game/archery.cpp
+    src/game/combat.cpp
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
@@ -100,6 +117,9 @@ add_executable(shadowflare
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
+if(WIN32)
+    target_link_libraries(shadowflare PRIVATE dbghelp)
+endif()
 
 foreach(target sf_formats sf_logic shadowflare)
     if(MSVC)
@@ -140,10 +160,19 @@ if(BUILD_TESTING)
 endif()
 
 if(EMSCRIPTEN)
-    # Emscripten ships its own SDL2 port.
+    # The browser build (docs/web.md): Emscripten's own SDL2 port, the open
+    # content packed into shadowflare.data, and a page (web/shell.html) that
+    # starts the open game or the player's own files from a folder picker.
     target_compile_options(shadowflare PRIVATE -sUSE_SDL=2)
-    target_link_options(shadowflare PRIVATE -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1)
-    set_target_properties(shadowflare PROPERTIES SUFFIX ".html")
+    target_link_options(shadowflare PRIVATE
+        -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4GB -sSTACK_SIZE=4MB
+        -sFORCE_FILESYSTEM=1 -lidbfs.js -sINVOKE_RUN=0 -sENVIRONMENT=web
+        -sEXPORTED_RUNTIME_METHODS=callMain
+        --preload-file ${CMAKE_SOURCE_DIR}/content@/content
+        --pre-js ${CMAKE_SOURCE_DIR}/web/pre.js
+        --shell-file ${CMAKE_SOURCE_DIR}/web/shell.html)
+    set_target_properties(shadowflare PROPERTIES SUFFIX ".html"
+        LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/pre.js;${CMAKE_SOURCE_DIR}/web/shell.html")
 else()
     find_package(SDL2 CONFIG QUIET)
     if(NOT SDL2_FOUND AND SFE_FETCH_SDL)
@@ -161,4 +190,20 @@ else()
         target_link_libraries(shadowflare PRIVATE SDL2::SDL2main)
     endif()
     target_link_libraries(shadowflare PRIVATE SDL2::SDL2)
+endif()
+
+if(SFE_SENTRY AND NOT EMSCRIPTEN)
+    include(FetchContent)
+    # The in-process backend needs no crashpad_handler next to the program.
+    set(SENTRY_BACKEND inproc CACHE STRING "" FORCE)
+    set(SENTRY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(sentry
+        GIT_REPOSITORY https://github.com/getsentry/sentry-native.git
+        GIT_TAG 0.16.8
+        GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(sentry)
+    target_link_libraries(shadowflare PRIVATE sentry::sentry)
+    target_compile_definitions(shadowflare PRIVATE SF_SENTRY SF_SENTRY_DSN="${SFE_SENTRY_DSN}")
 endif()

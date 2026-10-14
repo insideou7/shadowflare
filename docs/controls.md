@@ -57,12 +57,12 @@ monsters; its people and objects have no names to show.
 | P | increased-power mode, once its button by the panel's crossed swords blinks (or click the button); see [magic.md](magic.md#increased-power-mode) | yes |
 | Ctrl | run while held | yes |
 | Shift | stop where you are; with a left click, attack in place | yes |
-| Caps Lock | swap between the two equipment sets | no |
+| Caps Lock | swap between the two weapon sets (also the I and II tabs under the weapon and shield slots; see [formats.md](formats.md#weapon-sets-the-giant-warehouse-and-the-gold-split-box)) | yes |
 | Tab + click | companion: left click jumps (onto a monster, switch or spot), fetches an item, or shows its status; right click dashes; see [partners.md](partners.md) | yes |
 | Space | companion active / inactive (or click its gauge at the bottom left); see [partners.md](partners.md) | yes |
 | S | status window | yes |
 | I | items window | yes |
-| X | special items window | no |
+| X | special items window (quest items, gems, stones and cards, medicines); see [formats.md](formats.md#the-special-items-window) | yes |
 | M | magic window, the STATUS window's other tab; drag spells to its bar for F1-F8; see [magic.md](magic.md#the-magic-window) | yes |
 | Q | mission list; see below | yes |
 | N | map (the arrow keys scroll it, Enter centers it) | yes |

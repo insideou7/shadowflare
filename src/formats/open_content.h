@@ -95,6 +95,9 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario);
 
 // items.txt: item definitions, standing in for Item.Ibn.
 ItemTable parseItems(std::span<const std::uint8_t> text);
+// Adds a second file of item definitions (uniques.txt) to a table; an item
+// both files define is an error.
+void parseItems(std::span<const std::uint8_t> text, ItemTable& table);
 
 // shops.txt: the goods INITTRADE stocks a shop with, by list number,
 // standing in for Table.Tbd tables 32 and 33.

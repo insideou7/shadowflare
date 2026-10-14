@@ -99,6 +99,7 @@ Options:
   does this for the files in game/)
 - `--map-pictures <folder>` where those are kept (default: `maps/` in the settings folder)
 - `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
+- `--crash-test` crash on purpose, to check that `crash.txt` is written next to the program
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
@@ -111,6 +112,7 @@ Options:
   both take a fourth number for how worn the item starts, e.g. `--equip 0:0:1:150`
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
+- `--special` start with the special items window (X) open
 - `--status` start with the status window open
 - `--save-file <path>` save to and load from this one file instead of the six slots
 - `--save-folder <dir>` keep the six save slots in this folder; `--load-data`
@@ -141,25 +143,45 @@ Options:
   screen pixels from the player, e.g. `--level 3 --cast 1:120,0`
 - `--spell <n>[:<level>]` teach spell n (0-21, the original's numbering) at
   that level and put it on F1, e.g. `--spell 3:10 --cast 1:200,60` for Plasma
+- `--combo <x>,<y>` a Warrior's combo (sword or great sword) or spin (axe or mace) towards
+  a point in screen pixels from the player, e.g. `--level 6 --class warrior --equip 0:0 --combo 120,0`
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 - `--options` / `--help-window` start with the Settings Menu or the Help window open
 - `--options-file <path>` read and write the options there instead of `options.txt`
 
 Run the unit tests with `ctest --test-dir build`.
 
-### Browser build (later)
+### Browser build
 
-The main loop runs one frame per call, so the same code builds with Emscripten:
+The same code builds for the browser with Emscripten (WebAssembly). Open
+`build-web/shadowflare.html` from a web server, not from disk:
 
-    emcmake cmake -S . -B build-web
+    emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
     cmake --build build-web
+    python3 -m http.server -d build-web 8000   # then http://localhost:8000/shadowflare.html
 
-Players will still need to supply their own game files.
+The page plays the open game, or the original from the player's own copy
+picked with a folder picker. See [docs/web.md](docs/web.md).
+
+### Crashes
+
+When the game crashes, or a Debug build's check fails ("vector subscript out
+of range"), it writes `crash.txt` next to the program: what went wrong, the
+call stack and the last 40 log lines. Debug and RelWithDebInfo builds name the
+functions and lines in the stack. `--crash-test` crashes on purpose to try it.
+
+Crashes can also go to [Sentry](https://sentry.io). Configure with
+`-DSFE_SENTRY=ON`, which downloads and builds sentry-native, and give it your
+project's DSN with `-DSFE_SENTRY_DSN=<dsn>` or the `SHADOWFLARE_SENTRY_DSN`
+environment variable. Without a DSN nothing is sent. A crash is uploaded the
+next time the game starts, with the last log lines as breadcrumbs; a failed
+Debug check is sent at once.
 
 ## Layout
 
     src/core/       logging and shared helpers
     src/platform/   OS boundary: file access (all data goes through FileSystem)
+    web/            the browser build's page and its JavaScript side
     src/formats/    readers for the original data files (no SDL dependency)
     src/render/     turning decoded sprites into textures
     src/logic/      game rules without SDL: scripts, AI choice, movement
