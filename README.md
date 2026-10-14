@@ -88,6 +88,7 @@ Options:
   or `0`. New games begin where the original's do, in Remote Town (scenario 0;
   `10000000` in the open content)
 - `--frames <n>` quit after n frames
+- `--frame-log <ms>` log every frame slower than ms milliseconds, split into ticks and drawing (0 logs them all)
 - `--ticks <n>` run exactly n simulation ticks as fast as possible, then quit;
   the same command always gives the same result, so use this for smoke tests
 - `--screenshot <file.bmp>` save the last frame when quitting

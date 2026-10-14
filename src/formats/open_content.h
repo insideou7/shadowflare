@@ -57,8 +57,11 @@ struct Sheet {
 };
 Sheet parseSheet(std::span<const std::uint8_t> text);
 
-// One pattern per frame, each a single full-colour part.
-SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image);
+// One pattern per frame, each a single full-colour part. `trim` cuts each
+// part down to what shows in it, keeping the anchor, for sheets whose
+// frames are mostly see-through (our character renders are 200 x 200
+// cells, about 3% figure); frames with the same rectangle share a part.
+SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image, bool trim = false);
 
 // A .anim file: the charts of a character, and the sheet holding its frames.
 struct Animation {

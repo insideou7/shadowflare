@@ -34,6 +34,7 @@ struct Options {
     std::string recordSound;  // the game's sound, saved as a WAV file when the run ends
     std::optional<std::pair<int, int>> walk;  // scripted walk, screen pixels from the player
     long maxFrames = -1;     // -1 runs until quit; used for smoke tests
+    double frameLogMs = -1;  // --frame-log: report frames slower than this
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
     bool autoFight = false;  // player attacks nearby monsters by itself
@@ -271,6 +272,8 @@ Options parseArgs(int argc, char** argv) {
             options.showJudge = true;
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
+        } else if (arg == "--frame-log" && i + 1 < argc) {
+            options.frameLogMs = std::strtod(argv[++i], nullptr);
         } else if (arg == "--ticks" && i + 1 < argc) {
             options.ticks = std::strtol(argv[++i], nullptr, 10);
         } else {
@@ -358,6 +361,7 @@ struct App {
     long frames = 0;
     long maxFrames = -1;
     long ticks = -1;  // fixed-step mode: one tick per frame, then quit
+    double frameLogMs = -1;
     bool running = true;
 };
 
@@ -374,10 +378,13 @@ void frame(void* userData) {
     app.lastCounter = now;
 
     constexpr double kTickSeconds = 1.0 / sf::kTicksPerSecond;
+    const Uint64 workStart = SDL_GetPerformanceCounter();
+    Uint64 renderStart = workStart;
     if (app.ticks >= 0) {
         // Repeatable runs for tests: the simulation advances one tick per
         // frame whatever the clock says.
         if (static_cast<long>(app.game->tickCount()) < app.ticks) app.game->tick();
+        renderStart = SDL_GetPerformanceCounter();
         app.game->render(0.0);
     } else {
         app.accumulator += SDL_min(elapsed, 0.25);
@@ -385,6 +392,7 @@ void frame(void* userData) {
             app.game->tick();
             app.accumulator -= kTickSeconds;
         }
+        renderStart = SDL_GetPerformanceCounter();
         app.game->render(app.accumulator / kTickSeconds);
     }
 
@@ -398,6 +406,18 @@ void frame(void* userData) {
         }
     } else if (app.audio) {
         app.audio->pump(app.game->mixer());
+    }
+
+    if (app.frameLogMs >= 0) {
+        // Frames that took longer than asked, split into ticks and drawing,
+        // for finding stutters.
+        const double ms = 1000.0 / SDL_GetPerformanceFrequency();
+        const Uint64 end = SDL_GetPerformanceCounter();
+        const double total = (end - workStart) * ms;
+        if (total >= app.frameLogMs) {
+            sf::log::info("Frame {}: {:.1f} ms (ticks {:.1f}, render {:.1f})", app.frames, total,
+                          (renderStart - workStart) * ms, (end - renderStart) * ms);
+        }
     }
 
     ++app.frames;
@@ -423,6 +443,7 @@ int main(int argc, char** argv) {
     App app;
     app.maxFrames = options.maxFrames;
     app.ticks = options.ticks;
+    app.frameLogMs = options.frameLogMs;
     app.window = SDL_CreateWindow("ShadowFlare", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
                                   sf::kScreenWidth * 2, sf::kScreenHeight * 2, SDL_WINDOW_RESIZABLE);
     if (!app.window) {

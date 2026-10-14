@@ -71,6 +71,18 @@ void testSheet() {
     check(named.frames.size() == 1 && named.frames[0].name == "well", "sheet frame name");
     check(sf::open::makeSpriteBank(named, sf::open::decodeImage(kPng)).names == std::vector<std::string>{"well"},
           "frame names reach the sprite bank");
+    // Trimmed: a frame keeps only its shown pixels, anchored where they
+    // were (the right column's clear bottom pixel goes); a frame of the same
+    // rectangle shares the part, and a frame with nothing in it becomes one
+    // clear pixel at its anchor.
+    const auto cut = sf::open::parseSheet(bytes("image=a.png\nframe=1,0,1,2,0,2\nframe=1,0,1,2,0,2\nframe=1,1,1,1,0,0\n"));
+    const auto trimmed = sf::open::makeSpriteBank(cut, sf::open::decodeImage(kPng), true);
+    check(trimmed.parts.size() == 2 && trimmed.patterns.size() == 3, "trimmed frames share parts");
+    check(trimmed.patterns[0].parts[0].part == trimmed.patterns[1].parts[0].part, "same rectangle, same part");
+    check(trimmed.parts[0].argb == std::vector<std::uint32_t>{0xff00ff00u}, "trim drops the clear pixel");
+    check(trimmed.bounds(trimmed.patterns[0], x, y, w, h) && x == 0 && y == -2 && w == 1 && h == 1, "trimmed anchor");
+    const auto& clear = trimmed.parts[trimmed.patterns[2].parts[0].part];
+    check(clear.width == 1 && clear.height == 1 && clear.argb[0] >> 24 == 0, "empty frame is one clear pixel");
     const auto outside = sf::open::parseSheet(bytes("image=a.png\nframe=1,1,2,2,0,0\n"));
     try {
         sf::open::makeSpriteBank(outside, sf::open::decodeImage(kPng));

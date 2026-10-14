@@ -179,29 +179,54 @@ Sheet parseSheet(std::span<const std::uint8_t> text) {
     return sheet;
 }
 
-SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image) {
+SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image, bool trim) {
     SpriteBank bank;
+    // Rectangles already cut, to the part made from them.
+    std::map<std::array<int, 4>, std::int32_t> made;
     for (const auto& f : sheet.frames) {
         if (f.x < 0 || f.y < 0 || f.x + f.width > image.width || f.y + f.height > image.height) {
             throw FormatError(std::format("frame {},{} {}x{} lies outside the {}x{} image", f.x, f.y, f.width, f.height,
                                           image.width, image.height));
         }
-        SpritePart part;
-        part.bpp = 32;
-        part.width = f.width;
-        part.height = f.height;
-        part.argb.reserve(static_cast<std::size_t>(f.width) * f.height);
-        for (int y = 0; y < f.height; ++y) {
-            const auto* row = image.argb.data() + static_cast<std::size_t>(f.y + y) * image.width + f.x;
-            part.argb.insert(part.argb.end(), row, row + f.width);
+        const auto at = [&](int x, int y) { return image.argb[static_cast<std::size_t>(y) * image.width + x]; };
+        // The part's rectangle within the frame.
+        int x0 = 0, y0 = 0, x1 = f.width, y1 = f.height;
+        if (trim) {
+            x0 = f.width, y0 = f.height, x1 = 0, y1 = 0;
+            for (int y = 0; y < f.height; ++y) {
+                for (int x = 0; x < f.width; ++x) {
+                    if (!(at(f.x + x, f.y + y) >> 24)) continue;
+                    x0 = std::min(x0, x);
+                    x1 = std::max(x1, x + 1);
+                    y0 = std::min(y0, y);
+                    y1 = std::max(y1, y + 1);
+                }
+            }
+            // Nothing shows: one clear pixel at the anchor.
+            if (x1 <= x0) x0 = 0, y0 = 0, x1 = 1, y1 = 1;
+        }
+        PatternPart placed;
+        placed.x = x0 - f.anchorX;
+        placed.y = y0 - f.anchorY;
+        const std::array<int, 4> key{f.x, f.y, f.width, f.height};
+        if (auto found = trim ? made.find(key) : made.end(); found != made.end()) {
+            placed.part = found->second;
+        } else {
+            SpritePart part;
+            part.bpp = 32;
+            part.width = x1 - x0;
+            part.height = y1 - y0;
+            part.argb.reserve(static_cast<std::size_t>(part.width) * part.height);
+            for (int y = y0; y < y1; ++y) {
+                const auto row = image.argb.subspan(static_cast<std::size_t>(f.y + y) * image.width + f.x + x0, part.width);
+                part.argb.insert(part.argb.end(), row.begin(), row.end());
+            }
+            placed.part = static_cast<std::int32_t>(bank.parts.size());
+            bank.parts.push_back(std::move(part));
+            if (trim) made.emplace(key, placed.part);
         }
         Pattern pattern;
-        PatternPart placed;
-        placed.part = static_cast<std::int32_t>(bank.parts.size());
-        placed.x = -f.anchorX;
-        placed.y = -f.anchorY;
         pattern.parts.push_back(placed);
-        bank.parts.push_back(std::move(part));
         bank.patterns.push_back(std::move(pattern));
         bank.names.push_back(f.name);
     }

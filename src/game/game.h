@@ -366,8 +366,10 @@ private:
     void goToStart();
     void checkTriggers(bool fire = true);
     const CharacterModel* model(const std::string& stem);
-    // Both of the player's figures in the art being drawn, by HeroSex.
-    std::array<std::optional<CharacterModel>, 2>& playerModels();
+    // The player's figure for `sex` in the art being drawn, or the hero's
+    // when the pack has no heroine. Each is loaded the first time it is
+    // asked for: our sheets are big.
+    const CharacterModel* heroModel(HeroSex sex);
     void placePlayer();
     void updateCamera();
     // The world's zoom (Settings::zoom, the scroll wheel): 1 draws it as
@@ -1112,7 +1114,7 @@ private:
     bool forgetCurrent_ = false;
 
     std::array<std::array<std::optional<CharacterModel>, 2>, 2> playerModels_;  // [art][HeroSex], as models_
-    std::array<bool, 2> playerModelsLoaded_{};
+    std::array<std::array<bool, 2>, 2> playerModelsLoaded_{};
     HeroSex heroSex_ = HeroSex::Male;
     std::string heroName_;
     std::optional<NewCharacter> newCharacter_;

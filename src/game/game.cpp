@@ -77,7 +77,7 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     loadWarpGates();
     loadSounds();
     indexScenarios();
-    if (auto& hero = playerModels()[static_cast<int>(HeroSex::Male)]) player_.emplace(&*hero);
+    if (const CharacterModel* hero = heroModel(HeroSex::Male)) player_.emplace(hero);
     giveStartingKit();
     updateEquipment();
     if (mapNames_.empty()) {
@@ -265,22 +265,23 @@ bool Game::readScenario(const std::string& dir, ScenarioControl& control, std::o
 
 Game::~Game() = default;
 
-std::array<std::optional<CharacterModel>, 2>& Game::playerModels() {
+const CharacterModel* Game::heroModel(HeroSex sex) {
     const int art = skin_ ? 1 : 0;
-    auto& models = playerModels_[art];
-    if (!playerModelsLoaded_[art]) {
-        playerModelsLoaded_[art] = true;
-        // Both of the player's figures (0x412806 picks by the hero's sex); a
-        // pack without a heroine draws her as the hero.
-        for (const HeroSex sex : {HeroSex::Male, HeroSex::Female}) {
-            const std::string stem = sex == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
-            auto& model = models[static_cast<int>(sex)];
+    // 0x412806 picks the figure by the hero's sex; a pack without a heroine
+    // draws her as the hero.
+    for (const HeroSex s : {sex, HeroSex::Male}) {
+        const int i = static_cast<int>(s);
+        auto& model = playerModels_[art][i];
+        if (!playerModelsLoaded_[art][i]) {
+            playerModelsLoaded_[art][i] = true;
+            const std::string stem = s == HeroSex::Male ? "Player/Male/Animation00" : "Player/Female/Animation00";
             if (skin_) model = skin_->character(stem);
             const bool there = data_->exists(stem + ".anim") || data_->exists(stem + ".caf");
-            if (!model && (sex == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
+            if (!model && (s == HeroSex::Male || there)) model = CharacterModel::load(*data_, stem);
         }
+        if (model) return &*model;
     }
-    return models;
+    return nullptr;
 }
 
 void Game::setOurArt(bool on) {
@@ -333,10 +334,7 @@ void Game::setOurArt(bool on) {
         if (swap(c)) c.visibleLayers = partnerLayers(*c.model(), c.visibleLayers);
     }
     if (player_) {
-        const auto& heroes = playerModels();
-        const auto& hero = heroes[static_cast<int>(heroSex_)];
-        const auto& fallback = heroes[static_cast<int>(HeroSex::Male)];
-        if (const CharacterModel* m = hero ? &*hero : fallback ? &*fallback : nullptr) player_->setModel(m);
+        if (const CharacterModel* m = heroModel(heroSex_)) player_->setModel(m);
         updateEquipment();
     }
     sprites_.clear();
