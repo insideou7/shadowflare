@@ -1435,7 +1435,7 @@ def build_carls():
     """Carls (people kind 4): a young swordsman with a full mop of blond
     hair, a navy doublet with a white collar, a short royal-blue cape over
     his shoulders worked with gold, dark breeches, tall brown boots and a
-    sword at his left hip. He waits with his hands at his belt."""
+    sword at his left hip. He waits with his hands on his hips."""
     import mpfb_body
     skin = studio.material("skin", (0.88, 0.70, 0.56), (0.70, 0.52, 0.40), scale=30, bump=0.05)
     hair = studio.material("blond hair", (0.96, 0.78, 0.30), (0.60, 0.40, 0.10), scale=50, bump=0.6, stretch=(1, 1, 4))
@@ -1501,8 +1501,8 @@ def build_carls():
                (0.11, 0.27, 0.16))
     rig.kind = "carls"
     rig.poses = {
-        "idle": lambda s, c, k: stand(s, arm_l=(0.25, -0.3 - 0.02 * s, 0), elbow_l=(-0.65, -0.85, 0),
-                                      arm_r=(-0.25, -0.3 - 0.02 * s, 0), elbow_r=(0.65, -0.85, 0),
+        "idle": lambda s, c, k: stand(s, arm_l=(0.70, -0.02 * s, 0), elbow_l=(-1.4, 0, 0),
+                                      arm_r=(-0.70, -0.02 * s, 0), elbow_r=(1.4, 0, 0),
                                       leg_l=(0.0, 0, 0), leg_r=(0.0, 0, 0)),
         "walk": lambda s, c, k: stroll(s, c, swing=0.55),
     }
@@ -1621,8 +1621,8 @@ def build_jill():
 def build_izaram():
     """Wizard Izaram (people kind 12): a tall figure in a long dark olive
     robe with a gold panel down the front, a shoulder cape edged in red and
-    a tall pointed hood with a red tip that hides his face; pale hands at
-    his sides."""
+    a tall pointed hood with a red tip that hides his face; his pale hands
+    hang slack beside his hips."""
     import mpfb_body
     skin = studio.material("pale skin", (0.92, 0.88, 0.84), (0.66, 0.62, 0.60), scale=30, bump=0.05)
     shadow = studio.material("hood shadow", (0.10, 0.08, 0.05), (0.03, 0.02, 0.01), scale=30)
@@ -1684,8 +1684,8 @@ def build_izaram():
     rig.attach(shape("ball", (0.06, 0.06, 0.09), red), "head", (-0.12, 0, top * 0.60 + 0.56))
     rig.kind = "izaram"
     rig.poses = {
-        "idle": lambda s, c, k: stand(s, arm_l=(0.22, -0.10 - 0.02 * s, 0), elbow_l=(0, -0.30, 0),
-                                      arm_r=(-0.22, -0.10 - 0.02 * s, 0), elbow_r=(0, -0.30, 0)),
+        "idle": lambda s, c, k: stand(s, arm_l=(0.10, -0.01 * s, 0), elbow_l=(0, -0.08, 0),
+                                      arm_r=(-0.10, -0.01 * s, 0), elbow_r=(0, -0.08, 0)),
         "walk": lambda s, c, k: stroll(s, c, swing=0.35, spine=(0, 0.04, 0.03 * s)),
     }
     return rig
