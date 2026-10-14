@@ -135,6 +135,7 @@ change it, Enter steps through it or does it.
 | Help | the keyboard help window |
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |
+| Exit | ours: quits without saving. Not on the original's menu, so original mode leaves it out. |
 
 ### Debug tab
 
