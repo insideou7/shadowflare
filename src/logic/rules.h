@@ -50,11 +50,17 @@ struct Rules {
     // warehouse's gold stacks leaves a Gold item of 0 behind, which the
     // original puts down in the warehouse (0x446320). Ours drops it.
     bool noEmptyGoldInWarehouse = true;
+    // Holding Alt, or after L turns them on, every item on the ground shows
+    // its name over it, and a click on a name goes for that item. The
+    // original names only the item under the pointer (0x40ee70); it reads
+    // Alt with its other keys but does nothing with it.
+    bool groundItemNames = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer && !rightClickSells && !noEmptyGoldInWarehouse;
+               !outlineUnderPointer && !rightClickSells && !noEmptyGoldInWarehouse &&
+               !groundItemNames;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -69,6 +75,7 @@ struct Rules {
         r.outlineUnderPointer = false;
         r.rightClickSells = false;
         r.noEmptyGoldInWarehouse = false;
+        r.groundItemNames = false;
         return r;
     }
 };

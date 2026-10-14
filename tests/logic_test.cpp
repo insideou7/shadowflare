@@ -14,6 +14,7 @@
 #include "logic/archery.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
+#include "logic/item_labels.h"
 #include "formats/table_data.h"
 #include "logic/magic.h"
 #include "logic/mines.h"
@@ -838,6 +839,8 @@ void testMagic() {
           "original mode draws no outline around what is under the pointer");
     check(sf::Rules::ours().rightClickSells && !sf::Rules::original().rightClickSells,
           "selling from the bag with a right click is ours alone");
+    check(sf::Rules::ours().groundItemNames && !sf::Rules::original().groundItemNames,
+          "the names of items on the ground are ours alone");
     check(sf::Rules::ours().noEmptyGoldInWarehouse && !sf::Rules::original().noEmptyGoldInWarehouse,
           "original mode leaves empty gold in the warehouse");
 }
@@ -930,6 +933,10 @@ void testSettings() {
 
     check(defaults.xpRate == 100, "experience comes at the normal rate by default");
     check(!defaults.showFps, "the frame rate is hidden by default");
+    check(!defaults.itemNames, "item names show only while Alt is held by default");
+    sf::Settings names;
+    names.itemNames = true;
+    check(sf::Settings::parse(names.write()).itemNames, "item names left on survive a write and a parse");
     sf::Settings fps;
     fps.showFps = true;
     check(sf::Settings::parse(fps.write()).showFps, "show FPS survives a write and a parse");
@@ -1118,6 +1125,19 @@ sf::VoiceBank oneVoice(std::vector<std::uint8_t> pcm, int copies = 0) {
     return bank;
 }
 
+void testItemLabels() {
+    // Three names over a pile, nearest the front first, and one apart.
+    std::vector<sf::LabelBox> boxes{{100, 200, 60, 18}, {110, 195, 40, 18}, {90, 190, 80, 18}, {400, 200, 50, 18}};
+    sf::stackLabels(boxes);
+    check(boxes[0].y == 200, "the front item's name keeps its place");
+    check(boxes[1].y == 200 - 18 - 1, "a covered name rises just above the one in front");
+    check(boxes[2].y == boxes[1].y - 18 - 1, "and the next above that");
+    check(boxes[3].y == 200, "a name clear of the others stays put");
+    for (std::size_t i = 0; i < boxes.size(); ++i) {
+        for (std::size_t j = i + 1; j < boxes.size(); ++j) check(!boxes[i].overlaps(boxes[j]), "stacked names do not overlap");
+    }
+}
+
 void testMixer() {
     check(sf::Mixer::attenuation(0) == sf::Mixer::kSilent && sf::Mixer::attenuation(10) == 0 && sf::Mixer::attenuation(5) == -1500,
           "volume sliders: 0 silent, then -3000 + 300 a step");
@@ -1157,6 +1177,7 @@ void testMixer() {
 }
 
 int main() {
+    testItemLabels();
     testMixer();
     testLighting();
     testExploredMap();

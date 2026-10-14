@@ -51,6 +51,9 @@ struct Settings {
     bool showFps = false;
     // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
     int zoom = kMaxZoom;
+    // Ours: the names of the items on the ground always show (L), not only
+    // while Alt is held.
+    bool itemNames = false;
 
     // Half the side of the square a click reaches, in screen pixels.
     int clickReach() const;

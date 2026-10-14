@@ -52,6 +52,7 @@ add_library(sf_logic STATIC
     src/logic/magic_tables.cpp
     src/logic/mines.cpp
     src/logic/settings.cpp
+    src/logic/item_labels.cpp
     src/logic/partner.cpp
     src/logic/lighting.cpp
     src/logic/explored_map.cpp

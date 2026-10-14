@@ -577,6 +577,7 @@ void Game::renderHelp() {
         {"ESC", "SETTINGS MENU, CLOSE WINDOWS", true},
         {"F10 / F11", "QUICK SAVE / LOAD (OURS)", true},
         {"ARROWS", "WALK (OURS)", true},
+        {"ALT / L", "ITEM NAMES: WHILE HELD / ON-OFF (OURS)", true},
     };
     const SDL_Rect panel{60, 20, 520, 400};
     frame(renderer_, panel, {14, 12, 18, 235}, {150, 130, 90, 255});
@@ -584,8 +585,10 @@ void Game::renderHelp() {
     uiText(panel.x + (panel.w - uiTextWidth(title)) / 2, panel.y + 10, title, kTitle);
     int y = panel.y + 34;
     for (const auto& k : kKeys) {
-        uiText(panel.x + 20, y, k.key, k.works ? kTitle : kDimmed);
-        uiText(panel.x + 140, y, k.what, k.works ? kLabel : kDimmed);
+        // Original mode has no item names (Rules::groundItemNames).
+        const bool works = k.works && (k.key != std::string_view("ALT / L") || rules_.groundItemNames);
+        uiText(panel.x + 20, y, k.key, works ? kTitle : kDimmed);
+        uiText(panel.x + 140, y, k.what, works ? kLabel : kDimmed);
         y += 14;
     }
     const char* mouse = "LEFT CLICK: WALK, ATTACK, TALK, PICK UP   RIGHT CLICK: CAST OR ATTACK";

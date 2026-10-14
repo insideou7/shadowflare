@@ -34,6 +34,8 @@ constexpr int kSquareFaint = 100, kSquareBright = 300;
 constexpr SDL_Color kHealthLeft{0x80, 0x20, 0x20, 128};
 constexpr SDL_Color kHealthLost{0, 0, 0, 128};
 constexpr SDL_Color kNavy{0, 0, 0x60, 128};
+// Ours: an item's name box while the pointer is on it, with every item named.
+constexpr SDL_Color kNavyLit{0x20, 0x30, 0xa0, 200};
 // The edge: the exe asks for black at 800 (flag 0x400), but the manual's
 // screenshots show a soft dark rim with a lighter line inside along the
 // top and left, so it is drawn that way.
@@ -67,6 +69,23 @@ void edge(SDL_Renderer* r, int left, int top, int right, int bottom, SDL_Color c
     SDL_SetRenderDrawColor(r, c.r, c.g, c.b, c.a);
     const SDL_Rect rect{left, top, right - left + 1, bottom - top + 1};
     SDL_RenderDrawRect(r, &rect);
+}
+
+// The name box's edge and rims round a box from left to right whose text
+// starts at y (0x40ee70).
+void nameFrame(SDL_Renderer* r, int left, int right, int y) {
+    edge(r, left - 1, y - 3, right + 1, y + 14, kEdge);
+    fill(r, left, y - 2, right, y - 2, kRimLight);
+    fill(r, left, y - 1, left, y + 13, kRimLight);
+    fill(r, left + 1, y + 13, right, y + 13, kRimDark);
+    fill(r, right, y - 1, right, y + 12, kRimDark);
+}
+
+// Names are trimmed, as the original's padded ones ("  Warehouse  ")
+// would otherwise sit off centre in our font.
+void trim(std::string& name) {
+    while (!name.empty() && name.back() == ' ') name.pop_back();
+    while (!name.empty() && name.front() == ' ') name.erase(name.begin());
 }
 
 }  // namespace
@@ -212,6 +231,8 @@ void Game::renderHoverName() {
             break;
         }
         case Settings::kItem: {
+            // With every item named, its own name is already there.
+            if (itemNamesShown()) return;
             const GroundItem& g = groundItems_[hover_.index];
             const ItemDef& def = *g.item.def;
             name = def.isGold() ? std::format("{} Gold", g.item.count) : toAscii(g.item.shownName());
@@ -222,10 +243,7 @@ void Game::renderHoverName() {
         }
         default: return;  // the companion has none
     }
-    // Names are trimmed, as the original's padded ones ("  Warehouse  ")
-    // would otherwise sit off centre in our font.
-    while (!name.empty() && name.back() == ' ') name.pop_back();
-    while (!name.empty() && name.front() == ' ') name.erase(name.begin());
+    trim(name);
     if (name.empty()) return;
 
     int sx, sy;
@@ -248,11 +266,7 @@ void Game::renderHoverName() {
     } else {
         fill(renderer_, left, y - 2, right, y + 13, kNavy);
     }
-    edge(renderer_, left - 1, y - 3, right + 1, y + 14, kEdge);
-    fill(renderer_, left, y - 2, right, y - 2, kRimLight);
-    fill(renderer_, left, y - 1, left, y + 13, kRimLight);
-    fill(renderer_, left + 1, y + 13, right, y + 13, kRimDark);
-    fill(renderer_, right, y - 1, right, y + 12, kRimDark);
+    nameFrame(renderer_, left, right, y);
     const int textX = x - half + (orb ? 2 * kCharWidth : 0);
     windowText(textX, y, name, color);
     if (orb) {
@@ -275,6 +289,72 @@ void Game::renderHoverName() {
             fill(renderer_, ix + 2, iy + 3, ix + 9, iy + 7, kShadow);
             fill(renderer_, ix + 3, iy + 3, ix + 8, iy + 7, c);
         }
+    }
+    SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
+}
+
+// Ours (Rules::groundItemNames): Alt held, or L to keep them on.
+bool Game::itemNamesShown() const {
+    if (!rules_.groundItemNames || !map_ || groundItems_.empty()) return false;
+    return forceItemNames_ || settings_.itemNames || (SDL_GetModState() & KMOD_ALT) != 0;
+}
+
+// Every item on screen gets a name box as the pointer's (0x40ee70), where
+// that one would sit, stacked upward where they would cover each other so
+// a pile of loot reads as a list. The nearest the front keep their place.
+// Boxes that would reach the panel or leave the screen are left out.
+std::vector<Game::ItemLabel> Game::itemLabels() const {
+    std::vector<ItemLabel> labels;
+    if (!itemNamesShown()) return labels;
+    struct Anchor {
+        std::size_t item;
+        float x, y;
+    };
+    std::vector<Anchor> anchors;
+    for (std::size_t i = 0; i < groundItems_.size(); ++i) {
+        int sx, sy;
+        worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
+        const SDL_FPoint at = onScreen(sx, sy);
+        if (at.x < -64 || at.x > kScreenWidth + 64 || at.y < 0 || at.y > kPanelTop + kLabelLift) continue;
+        anchors.push_back({i, at.x, at.y});
+    }
+    std::ranges::stable_sort(anchors, [](const Anchor& a, const Anchor& b) { return a.y > b.y; });
+    std::vector<LabelBox> boxes;
+    for (const Anchor& a : anchors) {
+        const GroundItem& g = groundItems_[a.item];
+        const ItemDef& def = *g.item.def;
+        std::string name = def.isGold() ? std::format("{} Gold", g.item.count) : toAscii(g.item.shownName());
+        trim(name);
+        if (name.empty()) continue;
+        // As renderHoverName lays out an item's name.
+        const int x = static_cast<int>(a.x) + 2, y = static_cast<int>(a.y) - kLabelLift;
+        const int half = static_cast<int>(name.size()) * kCharWidth / 2;
+        const int left = x - half - 4, right = x + half + 1;
+        labels.push_back({a.item, {left - 1, y - 3, right - left + 3, 18}, std::move(name), kQualityColors[std::clamp(def.quality, 0, 3)]});
+        boxes.push_back(labels.back().box);
+    }
+    stackLabels(boxes);
+    std::vector<ItemLabel> shown;
+    for (std::size_t i = 0; i < labels.size(); ++i) {
+        const LabelBox& b = boxes[i];
+        if (b.y < 0 || b.y + b.h > kPanelTop || b.x + b.w <= 0 || b.x >= kScreenWidth) continue;
+        labels[i].box = b;
+        shown.push_back(std::move(labels[i]));
+    }
+    return shown;
+}
+
+void Game::renderItemNames() {
+    const auto labels = itemLabels();
+    // Front to back as laid out; drawn back to front so nothing is under
+    // a box placed before it.
+    for (auto it = labels.rbegin(); it != labels.rend(); ++it) {
+        const LabelBox& b = it->box;
+        const int left = b.x + 1, right = b.x + b.w - 2, y = b.y + 3;
+        const bool lit = hovered(Settings::kItem, it->item);
+        fill(renderer_, left, y - 2, right, y + 13, lit ? kNavyLit : kNavy);
+        nameFrame(renderer_, left, right, y);
+        windowText(left + 4, y, it->name, it->color);
     }
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
 }
