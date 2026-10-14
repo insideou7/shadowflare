@@ -982,7 +982,9 @@ DropTables parseDrops(std::span<const std::uint8_t> text) {
                 continue;
             }
             const auto f = Lines::split(value, ',');
-            if (f.size() != 2 && f.size() != 4) lines.fail("expected pick=<class>,<code>[,<lowest level>,<highest level>]");
+            if (f.size() != 2 && f.size() != 4 && f.size() != 5) {
+                lines.fail("expected pick=<class>,<code>[,<lowest level>,<highest level>[,<qualities>]]");
+            }
             DropTables::Entry e;
             e.pool = -1;
             if (f[0] != "any") {
@@ -992,11 +994,20 @@ DropTables parseDrops(std::span<const std::uint8_t> text) {
             }
             if (f[1] != "any") e.code = lines.toInt(f[1]);
             if (e.cls == -1 && e.code != -1) lines.fail("a code needs a class");
-            if (f.size() == 4) {
+            if (f.size() >= 4) {
                 e.minLevel = lines.toInt(f[2]);
                 e.maxLevel = lines.toInt(f[3]);
             }
-            list->picks.push_back({static_cast<int>(tables.entries.size()), 1});
+            // Which qualities may come, as the original's digits: ones
+            // normal, tens magic, hundreds unique; any by default.
+            int quality = 111;
+            if (f.size() == 5) {
+                quality = lines.toInt(f[4]);
+                if (quality < 0 || quality > 111 || f[4].find_first_not_of("01") != std::string_view::npos) {
+                    lines.fail("qualities are three digits of 0 or 1: unique, magic, normal");
+                }
+            }
+            list->picks.push_back({static_cast<int>(tables.entries.size()), quality});
             tables.entries.push_back(e);
         } else {
             lines.fail(std::format("unknown key '{}'", key));
@@ -1004,6 +1015,22 @@ DropTables parseDrops(std::span<const std::uint8_t> text) {
     }
     return tables;
 }
+
+namespace {
+
+// The names items.txt gives the magic modifiers, in ItemDef::Modifier order.
+constexpr std::string_view kModifierNames[] = {
+    "attack", "defense", "hit", "evasion", "magic-attack", "magic-defense", "magic-hit", "magic-evasion",
+    "attack-speed", "walk-speed", "max-hp", "max-mp", "strength", "magic-level", "stun-chance", "stun-length",
+    "high-damage", "life-recovery", "mental-recovery", "mental-cost", "reflection-chance", "reflection-rate",
+    "healing-potions", "mental-potions", "absorption-chance", "absorption-rate", "gold", "mine-power",
+    "mine-count", "chant-speed", "companion-hp", "companion-attack", "companion-hit", "companion-defense",
+    "companion-evasion", "companion-magic-attack", "companion-magic-hit", "companion-magic-defense",
+    "companion-magic-evasion"};
+static_assert(std::size(kModifierNames) == ItemDef::kModifierCount);
+constexpr std::string_view kElementNames[] = {"fire", "water", "earth", "thunder", "holy", "dark", "gel", "metal"};
+
+}  // namespace
 
 // [item <class> <code>] sections of key=value lines; see docs/content.md.
 ItemTable parseItems(std::span<const std::uint8_t> text) {
@@ -1076,6 +1103,24 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item->twoHandedFlag = lines.toInt(value) != 0;
         } else if (key == "effect") {
             numbers(value, item->effect);
+        } else if (key == "mod") {
+            // mod=<name>,<least>,<most>[,<chance>]: rolled when the item
+            // is made, `chance` percent of the time (100 if left out).
+            const auto f = Lines::split(value, ',');
+            if (f.size() != 3 && f.size() != 4) lines.fail("expected mod=<name>,<least>,<most>[,<chance>]");
+            const auto found = std::ranges::find(kModifierNames, f[0]);
+            if (found == std::end(kModifierNames)) lines.fail(std::format("unknown modifier '{}'", f[0]));
+            item->modifiers[static_cast<std::size_t>(found - std::begin(kModifierNames))] = {
+                lines.toInt(f[1]), lines.toInt(f[2]), f.size() == 4 ? lines.toInt(f[3]) : 100};
+        } else if (key == "element-mod") {
+            const auto f = Lines::split(value, ',');
+            if (f.size() != 3 && f.size() != 4) lines.fail("expected element-mod=<element>,<least>,<most>[,<chance>]");
+            const auto found = std::ranges::find(kElementNames, f[0]);
+            if (found == std::end(kElementNames)) lines.fail(std::format("unknown element '{}'", f[0]));
+            item->elementModifiers[static_cast<std::size_t>(found - std::begin(kElementNames))] = {
+                lines.toInt(f[1]), lines.toInt(f[2]), f.size() == 4 ? lines.toInt(f[3]) : 100};
+        } else if (key == "fixed-price") {
+            item->fixedPrice = lines.toInt(value) != 0;
         } else if (key == "shot") {
             // kind, spread, speed, then optionally turn and pierce
             const auto v = lines.ints(value);

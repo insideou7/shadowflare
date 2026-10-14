@@ -242,6 +242,13 @@ public:
     // (0x44f610).
     int modifierEvenBroken(ItemDef::Modifier which) const;
     int goldBonus() const { return modifierEvenBroken(ItemDef::kModGold); }
+    // A modifier that works only some of the time: `chance` (percent) and
+    // `amount` added up over everything worn, broken items included and a
+    // shield hidden by a two-handed weapon not; the amount counts only
+    // items whose chance is not 0. Returns the amount when `roll` (0-99)
+    // is under the chance, else 0. Reflection (0x44f7a0) and Absorption
+    // (0x44f990) work this way.
+    int chanceModifier(ItemDef::Modifier chance, ItemDef::Modifier amount, int roll) const;
     // Their element levels with their element modifiers, added up
     // (0x44fe30). Broken items still count: that code, unlike the stats
     // at 0x44eb5b, does not check; a shield hidden by a two-handed weapon

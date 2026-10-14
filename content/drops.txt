@@ -5,6 +5,9 @@
 # dropping something `chance` percent of the time (a little more: as in
 # the original, 15 means 16 in 100), as one of its picks chosen at random.
 # Monsters with no gold of their own drop gold= (chance, least, most).
+# An `any` pick may give a normal, magic or unique item, as the original's
+# usually may; a fifth number limits that (110: no normal items, 11: no
+# uniques). How often each comes is down to the items' weight=.
 
 [drops 1]
 rolls=1

@@ -444,6 +444,7 @@ private:
     void strikePlayer(Actor& enemy, int slot = 0);
     // `bySpell` counts the kill as a magic one for the class offer.
     // byPartner: the companion's bite, which the class kill counts skip.
+    void absorbFrom(const Actor& enemy, int damage);
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
     // `flinch`: whether it plays the hero's hit pose (traps do not, see
@@ -510,6 +511,7 @@ private:
     void dropHand();
     std::optional<std::size_t> groundItemAt(float screenX, float screenY) const;
     const SpriteBank* itemBank(const std::string& stem);
+    void drawItemMarks(const Item& item, const SDL_Rect& area);
     void drawItemPicture(const ItemDef& def, const SDL_Rect& area);
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
@@ -548,6 +550,7 @@ private:
         bool followsPlayer = false;
         int followsActor = -1;  // an index into actors_ (a freeze's ice)
         bool followsPartner = false;
+        bool homesOnPlayer = false;  // turns towards the hero and ends on reaching them
         int then = -1;          // played where it stands when its life runs out
         // Hurting: spell < 0 for effects that only show.
         int spell = -1, level = 1, power = 0, hit = 0;
@@ -641,6 +644,7 @@ private:
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
+    void regenerateHero();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
     const CharacterModel* effectModel(int option);
@@ -1213,9 +1217,11 @@ private:
     bool magicOpen_ = false;
     int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
     int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)
-    int berserkerCarry_ = 0;
     int moonLevel_ = 0;  // the level Moon was cast at (+0x15e8)
-    int moonCarry_ = 0;
+    // Hundredths of a point of health and mental power still to come back
+    // (+0x1638, +0x163c), and the original's ticks counted towards it.
+    int lifeCarry_ = 0, mentalCarry_ = 0;
+    std::uint64_t regenTicks_ = 0;
     int moonGlow_ = 0;   // the effect id of the glow on the companion
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units

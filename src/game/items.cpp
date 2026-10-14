@@ -640,6 +640,33 @@ void Game::drawItemPicture(const ItemDef& def, const SDL_Rect& area) {
     drawText(renderer_, box.x + 3, box.y + 3, def.name.substr(0, 1), kWhite);
 }
 
+// The marks on an item's picture (0x465cb0), in the bottom right corner:
+// a question mark while it is not identified, and above that a crack once
+// it is broken, blinking while less than a tenth of its durability is
+// left. The open pack's ItemMarks.sheet, or the original's Status.njp
+// patterns 0x11 and 0x10.
+void Game::drawItemMarks(const Item& item, const SDL_Rect& area) {
+    const SpriteBank* open = itemBank("System/Game/Pattern/ItemMarks");
+    const SpriteBank* bank = open ? open : itemBank("System/Game/Pattern/Status");
+    auto mark = [&](int originalPattern, int openPattern, int x, int y) {
+        if (const SpriteTexture* t = bank ? sprites_.get(*bank, open ? openPattern : originalPattern, false) : nullptr) {
+            const SDL_Rect dst{x + t->originX, y + t->originY, t->width, t->height};
+            SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
+        }
+    };
+    int x = area.x + area.w - 16, y = area.y + area.h - 16;
+    if (item.unidentified) {
+        mark(0x11, 0, x, y);
+        y -= 15;
+    }
+    const auto& def = *item.def;
+    if ((def.cls != ItemDef::Class::Weapon && def.cls != ItemDef::Class::Armour) || def.durability <= 0) return;
+    const int left = item.durability();
+    // Eight of every sixteen of the original's ticks.
+    const bool blinkOn = static_cast<std::uint64_t>(static_cast<double>(ticks_) * kOriginalTicksPerTick) % 16 < 8;
+    if (left == 0 || (left * 100 / def.durability <= 9 && blinkOn)) mark(0x10, 1, x, y);
+}
+
 // The inventory panel's background: the open pack's Inventory.sheet, or
 // the original's item window (Status.njp pattern 0, the figure behind the
 // worn items, under pattern 2, the window, and pattern 3, its left part).
@@ -874,13 +901,21 @@ void Game::renderItemPopup(const Item& item, int mx, int my) {
     // Its rolled modifiers, shortened.
     static constexpr const char* kModNames[ItemDef::kModifierCount] = {
         "ATK", "DEF", "HIT", "EVA", "MATK", "MDEF", "MHIT", "MEVA", "SPD", "WALK", "HP", "MP", "STR",
-        "MLV", "STUN%", "STUN", nullptr, "REGEN", "MREGEN", "MCOST", "REFL", "REFL", "TABLET", "CAPSULE",
-        "ABS", "ABS", "GOLD", "MINE", "MINES", "CHANT", "DOG HP", "DOG ATK", "DOG HIT", "DOG DEF",
+        "MLV", "STUN%", "STUN", nullptr, "REGEN", "MREGEN", "MCOST", "REFL%", "REFL", "TABLET", "CAPSULE",
+        "ABS%", "ABS", "GOLD", "MINE", "MINES", "CHANT", "DOG HP", "DOG ATK", "DOG HIT", "DOG DEF",
         "DOG EVA", "DOG MATK", "DOG MHIT", "DOG MDEF", "DOG MEVA"};
     std::string mods;
     for (int i = 0; i < ItemDef::kModifierCount && !item.unidentified; ++i) {
         const int v = item.modifiers[static_cast<std::size_t>(i)];
-        if (v != 0 && kModNames[i]) mods += std::format("{}{}{:+d}", mods.empty() ? "" : " ", kModNames[i], v);
+        if (v == 0 || !kModNames[i]) continue;
+        // Recovery in tenths of a percent a second, as the original's
+        // tooltip shows it (0x40aed0).
+        if (i == ItemDef::kModLifeRecovery || i == ItemDef::kModMentalRecovery) {
+            mods += std::format("{}{}{}{}.{}%/s", mods.empty() ? "" : " ", kModNames[i], v < 0 ? "-" : "+", std::abs(v) / 10,
+                                std::abs(v) % 10);
+        } else {
+            mods += std::format("{}{}{:+d}", mods.empty() ? "" : " ", kModNames[i], v);
+        }
     }
     if (!mods.empty()) lines.emplace_back(mods, SDL_Color{150, 200, 255, 255});
 
@@ -922,6 +957,7 @@ void Game::renderInventory() {
             if (!picture) frame(renderer_, r, {45, 40, 50, 255}, {110, 100, 80, 255});
             if (const auto& worn = inventory_.equipped(box.slot)) {
                 drawItemPicture(*worn->def, r);
+                drawItemMarks(*worn, r);
                 if (inside(r, mx, my)) hover = &*worn;
             }
         }
@@ -949,6 +985,7 @@ void Game::renderInventory() {
                 frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
             }
             drawItemPicture(*p.item.def, r);
+            drawItemMarks(p.item, r);
             if (inside(r, mx, my)) hover = &p.item;
         }
         renderItemTotals();
@@ -957,6 +994,7 @@ void Game::renderInventory() {
     if (hand_) {
         const int w = hand_->def->width * kCell, h = hand_->def->height * kCell;
         drawItemPicture(*hand_->def, {mx - w / 2, my - h / 2, w, h});
+        drawItemMarks(*hand_, {mx - w / 2, my - h / 2, w, h});
     }
 }
 
