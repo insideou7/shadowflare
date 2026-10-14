@@ -1821,8 +1821,10 @@ def skeleton_stand(animation, s, c):
         r["leg_r"] = (-0.06, swing * s, 0)
         r["knee_l"] = (0, 0.15 + 0.6 * max(0.0, s), 0)
         r["knee_r"] = (0, 0.15 + 0.6 * max(0.0, -s), 0)
-        r["arm_r"] = (-0.12, -0.10 - 0.10 * s, 0)
-        r["weapon"] = (0, math.radians(-5), -0.25)
+        # The sword is carried low, angled down across the front of the body.
+        r["arm_r"] = (-0.05, -0.05 - 0.08 * s, 0)
+        r["elbow_r"] = (0, -0.15, 0)
+        r["weapon"] = (0, math.radians(26), 0.45)
     return r
 
 
