@@ -164,7 +164,34 @@ void Game::shotHitsPlayer(const Effect& e) {
         spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     Actor* thrower = static_cast<std::size_t>(e.trap->thrower) < actors_.size() ? &actors_[static_cast<std::size_t>(e.trap->thrower)] : nullptr;
-    hurtPlayer(damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, random_.next(3)), false, thrower);
+    const int damage = damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, random_.next(3));
+    hurtPlayer(damage, false, thrower);
+    // An ice arrow (kind 5) freezes the hero it stuns and a stone shot
+    // (kind 7) turns them to stone (hit word 3 set to 1 or 2, 0x45a2f0):
+    // the stun from table 25 by the damage, which the worn gear resists,
+    // capped at 15 ticks and pushing them back unless the gear is steady
+    // (0x443cb0). A Warrior's combo or spin is not stopped.
+    const int kind = e.trap->kind;
+    if ((kind != 5 && kind != 7) || playerHp_ <= 0 || !player_ || heroSteadyInCombo()) return;
+    const int row = std::min(damage * 50 / std::max(1, playerMaxHp()), 49);
+    const auto* t = tables_.find(25);
+    if (!t || t->rows <= row || t->cols < 2) return;
+    const auto ticks = stunTicks(t->value(row, 0), t->value(row, 1), false, inventory_.guardModifier(ItemDef::kModStunChance),
+                                 inventory_.guardModifier(ItemDef::kModStunLength), random_.next(100));
+    if (!ticks) return;
+    Stun stun;
+    stun.total = *ticks;
+    stun.angle = std::atan2(-(player_->y - e.y), player_->x - e.x);
+    stun.pushed = inventory_.guardModifier(ItemDef::kModHighDamage) == 0;
+    stunHero(stun);
+    if (kind == 5) {
+        iceOnHero(stun.total);
+    } else {
+        // Stone: grey, and held on the hit pose's first frame till the
+        // stun ends (flag 0x4000).
+        player_->pose(chart::kPlayerHit, 0);
+        player_->grey = player_->held = true;
+    }
 }
 
 // The same shot on an ACTIVE companion, as strikePartner's blow.
@@ -195,6 +222,9 @@ void Game::trapHitsPlayer(const Effect& e) {
     }
     hurtPlayer(damage, false, nullptr, false);
     if (playerHp_ <= 0 || !player_) return;
+    // Nothing but a spell stops a Warrior's combo blows or spin (states
+    // 11-14 ignore the stun, 0x443cb0).
+    if (heroSteadyInCombo()) return;
     // The armour and accessories worn resist it (0x450d90); modifier 16
     // keeps the hero from being pushed.
     const auto stun = trapStun(e, player_->x, player_->y, inventory_.guardModifier(ItemDef::kModStunChance),
@@ -208,6 +238,8 @@ void Game::stunHero(const Stun& stun) {
     log::info("The hero is stunned for {} ticks{}", stun.total, stun.pushed ? " and pushed back" : "");
     heroStun_ = stun;
     casting_.reset();
+    combo_.reset();
+    player_->held = player_->grey = false;
     walkTarget_.reset();
     attackTarget_.reset();
     if (stun.pushed) player_->direction = directionOfAngle(stun.angle - 3.141592);

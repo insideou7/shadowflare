@@ -619,6 +619,27 @@ back to event 0. Distances are gaps between the two collision boxes.
 | 11 | walk home |
 
 Speeds are multiplied by the monster's speed (word 77) / 1000.
+Durations and speeds count the original's ticks, 30 a second: walking
+home (0x45c900) hands the path mover (0x454210) the list's walk speed x
+word 77 / 1000 as the distance to cover each tick, and gives up after 90
+ticks. Most lists approach at 15 to 25 a tick, golems at 5 and dragons
+up to 70.
+
+### How fast the hero moves
+
+The path mover (0x454930) steps `speed` world units a tick along the line
+to the target. The hero's speed is set whenever the stats change
+(0x450080): walking speed / 32 + 1, kept to 0-9, picks a step (0x450d40)
+of the scale {2/3, 3/4, 4/5, 5/6, 6/7, 1, 7/6, 6/5, 5/4, 4/3}; the walk
+is 20 (0x475200) x that step, cut to a whole number, and the run twice the
+walk. A new hero's 128 is step 5: 20 walking and 40 running. Wearing more
+than strength can carry (0x445630, the weight of the worn items) makes it
+step 0, 13 and 26; the swing (0x450c60) and the chant (0x450cd0) drop to
+step 0 the same way. In power mode (+0x1554) the walk and run code
+(0x4351f0, 0x435530) use step 9 instead, 20 or 40 (0x475208) x 4/3: 26
+and 53, and so do the swing and the chant. The walking setting (+0x494)
+is 0 walk, 1 run, 2 run only when the target is 1000 or more away
+(0x443490). The companion moves at its stat / 5 a tick (0x454210).
 
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
 

@@ -87,12 +87,18 @@ public:
     void play(int chart);
     // `speed` is frames per tick (spells cast faster or slower).
     void restart(int chart, double speed = 1.0);
+    // Shows `frame` of `chart` and holds it there until the next call: for
+    // moves whose frame the game works out itself (the Warrior's combos).
+    // Frames passed since the last pose count as reached (cues, strikes).
+    void pose(int chart, int frame);
     int chart() const { return chart_; }
     int frame() const { return frame_; }
     int frameCount() const;
     // Jumps to a frame of the chart playing (scripted actions that loop
     // part of a chart, 0x45d850).
     void setFrame(int frame);
+    // The frames of `chart` in `direction` (0-8), 0 when it has none.
+    int frameCountOf(int chart, int direction) const;
     bool finished() const;  // a non-looping chart reached its last frame
     bool hasChart(int chart) const;
     const CharacterModel* model() const { return model_; }

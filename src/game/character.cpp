@@ -75,6 +75,22 @@ void Character::restart(int chart, double speed) {
     reached(0);
 }
 
+void Character::pose(int chart, int frame) {
+    if (chart != chart_) {
+        chart_ = chart;
+        frame_ = -1;
+        cues_ = 0;
+        strikes_ = 0;
+    }
+    speed_ = 0;
+    progress_ = 0;
+    const auto* dir = currentDirection();
+    const int last = dir ? std::max(0, dir->frameCount - 1) : 0;
+    const int to = std::clamp(frame, 0, last);
+    for (int f = frame_ + 1; f <= to; ++f) reached(f);
+    frame_ = to;
+}
+
 void Character::reached(int frame) {
     const auto* dir = currentDirection();
     if (!dir) return;
@@ -109,6 +125,14 @@ void Character::setFrame(int frame) {
     frame_ = std::clamp(frame, 0, count - 1);
     progress_ = 0;
     reached(frame_);
+}
+
+int Character::frameCountOf(int chart, int direction) const {
+    const auto& charts = model_->animations.charts;
+    if (chart < 0 || static_cast<std::size_t>(chart) >= charts.size()) return 0;
+    const auto& dirs = charts[static_cast<std::size_t>(chart)].directions;
+    if (direction < 0 || static_cast<std::size_t>(direction) >= dirs.size()) return 0;
+    return dirs[static_cast<std::size_t>(direction)].frameCount;
 }
 
 bool Character::finished() const {

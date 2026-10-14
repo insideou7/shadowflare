@@ -19,14 +19,11 @@ namespace sf {
 
 namespace {
 
-// Walking speed in world units per tick. Not yet taken from the original;
-// nor is running, which is ours at twice the walk.
-constexpr double kWalkSpeed = kPlayerWalkSpeed;
-constexpr double kRunSpeed = 140.0;
-
 // Monsters take their health, attack and defense from the scenario file.
 // Blows follow the original's rules (see strikeEnemy and strikePlayer).
-constexpr double kEnemySpeed = 35.0;
+// One with no AI list walks at 20 an original tick, the original's commonest
+// approach speed in Control.aid (the hero walks at 20 too).
+constexpr double kEnemySpeed = 20.0 * kOriginalTicksPerTick;
 // OPTION animations: the flash of Reflection (option 20014) and the orbs of
 // Absorption (option 20013).
 constexpr int kReflectGlow = 11000013, kAbsorbOrb = 11000012;
@@ -442,6 +439,7 @@ void Game::placePlayer() {
 
 void Game::placePlayerAt(double screenX, double screenY) {
     heroStun_.reset();
+    combo_.reset();
     const auto& g = map_->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
     int left, top, right, bottom;
@@ -761,11 +759,18 @@ void Game::handleEvent(const SDL_Event& event) {
                 break;
             }
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
-                if (spells_.knows(spells_.selected)) {
+                double aimX, aimY;
+                screenToWorld(pixelX(event.button.x), pixelY(event.button.y), aimX, aimY);
+                // A Warrior holding the left button combos (or spins) with
+                // the right whatever spell is chosen (0x448740); with the
+                // attack chosen (F9) the right button alone does (0x441c00).
+                if (mouseHeld_ && startCombo(aimX, aimY)) {
+                } else if (spells_.knows(spells_.selected)) {
                     // The right button casts the chosen spell at the cursor.
                     double wx, wy;
                     screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
                     startCast(wx, wy);
+                } else if (startCombo(aimX, aimY)) {
                 } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
                            target.kind == Settings::kEnemy) {
                     // With the attack chosen (F9) it strikes the monster under it.
@@ -1024,7 +1029,8 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 // A swing of the hero's weapon, as fast as their attack speed (power mode:
 // the fastest).
 void Game::swing() {
-    player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
+    const HeroStats stats = playerStats();
+    player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, stats[HeroStats::kAttackSpeed], power_.active(), overloaded(stats)));
     blowLanded_ = false;
     shouted_ = false;
     swingTicks_ = 0;
@@ -1037,7 +1043,14 @@ void Game::tickPlayer() {
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
         heroStun_.reset();
+        player_->held = false;
+        player_->grey = false;
         player_->play(chart::kIdle);
+    }
+    // The Warrior's combo or spin runs to its end (states 11-18).
+    if (combo_) {
+        tickCombo();
+        return;
     }
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
@@ -1253,9 +1266,11 @@ void Game::tickPlayer() {
 
     // Run when RUN is chosen (R), or while Ctrl is held.
     const bool running = runMode_ || (SDL_GetModState() & KMOD_CTRL) != 0;
-    // Walking speed picks a step of the original's scale; power mode the
-    // fastest.
-    const double speed = (running ? kRunSpeed : kWalkSpeed) * walkSpeedFactor(playerStats()[HeroStats::kWalkSpeed], power_.active());
+    // The original's step for this walking speed, in its ticks; power mode
+    // the fastest, and the slowest when the hero wears more than they can
+    // carry.
+    const HeroStats stats = playerStats();
+    const double speed = heroMoveSpeed(stats[HeroStats::kWalkSpeed], running, power_.active(), overloaded(stats)) * kOriginalTicksPerTick;
     const double length = std::hypot(dx, dy);
     if (length > 1.0) {
         const double step = std::min(speed, walkTarget_ ? length : speed);
@@ -1459,6 +1474,8 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     } else {
         playerHp_ -= damage;
     }
+    // The Elixir in the bag brings the hero straight back (0x443cb0).
+    if (playerHp_ <= 0 && reviveWithElixir()) return;
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
@@ -1505,7 +1522,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.
-    if (flinch && !casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+    if (flinch && !casting_ && !combo_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
         player_->restart(chart::kPlayerHit);
         walkTarget_.reset();
     }

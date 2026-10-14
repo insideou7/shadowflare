@@ -13,6 +13,7 @@
 #include "logic/ai_select.h"
 #include "logic/archery.h"
 #include "logic/card_game.h"
+#include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -971,8 +972,17 @@ void testPowerMode() {
           "Berserker, Moon and Energy Shield can't be cast in power mode");
 
     const auto t = sf::MagicTables::standard();
-    check(sf::walkSpeedFactor(128) == 1.0 && sf::walkSpeedFactor(0) < 1.0, "walking speed 128 is the normal step");
-    check(std::abs(sf::walkSpeedFactor(0, true) - 4.0 / 3.0) < 1e-9, "power mode walks at the fastest step");
+    check(sf::heroMoveSpeed(128, false) == 20 && sf::heroMoveSpeed(128, true) == 40, "a new hero walks 20 and runs 40 a tick");
+    check(sf::heroMoveSpeed(0, false) == 15 && sf::heroMoveSpeed(255, false) == 25 && sf::heroMoveSpeed(300, true) == 52,
+          "the walk is 20 times the step, cut to a whole number, and the run twice it");
+    check(sf::heroMoveSpeed(200, false) == 24 && sf::heroMoveSpeed(180, false) == 23, "steps 6 and 7 walk 23 and 24");
+    check(sf::heroMoveSpeed(0, false, true) == 26 && sf::heroMoveSpeed(0, true, true) == 53, "power mode walks 26 and runs 53");
+    check(sf::heroMoveSpeed(128, true, false, true) == 26 && sf::heroMoveSpeed(128, true, true, true) == 53,
+          "carrying too much drops to the bottom step, except in power mode");
+    check(sf::attackSpeedFactor(t, 100, false, true) == 0.3 && sf::attackSpeedFactor(t, 100, true, true) == 2.0,
+          "carrying too much swings at the slowest step, except in power mode");
+    check(sf::castSpeedFactor(t, sf::kFireBall, 80, true, true) == sf::castSpeedFactor(t, sf::kFireBall, 0, true),
+          "power mode casts at the fastest step even when carrying too much");
     check(sf::attackSpeedFactor(t, 0, true) == 2.0 && sf::attackSpeedFactor(t, 0) < 2.0, "power mode attacks at the fastest step");
     check(sf::attackSpeedFactor(t, 255) >= sf::attackSpeedFactor(t, 0), "faster attack speed, faster swings");
 }
@@ -1308,6 +1318,32 @@ void testMixer() {
     check(out[0] > 1600 && out[0] < 1700, "quieter by its attenuation");
 }
 
+void testCombat() {
+    using sf::WarriorMove;
+    check(sf::warriorMove(0) == WarriorMove::Sword && sf::warriorMove(3) == WarriorMove::GreatSword, "swords combo");
+    check(sf::warriorMove(1) == WarriorMove::Spin, "axes and maces spin");
+    check(sf::warriorMove(2) == WarriorMove::None && sf::warriorMove(4) == WarriorMove::None, "staffs and bowguns do not");
+    check(sf::comboChart(WarriorMove::Sword, 1) == 5 && sf::comboChart(WarriorMove::Sword, 3) == 8, "sword combo charts 5, 7, 8");
+    check(sf::comboChart(WarriorMove::GreatSword, 2) == 17, "great sword combo charts 15, 17, 18");
+    check(sf::comboShout(1, false) == 0x60 && sf::comboShout(3, true) == 0x65, "combo shouts");
+    check(sf::attackSpeedStep(3, false) == 4 && sf::attackSpeedStep(0, true) == 9, "attack speed step, 9 in power mode");
+    check(sf::comboSpeed(0) == 0.8 && sf::comboSpeed(9) == 1.7 && sf::spinSpeed(4) == 1.0, "combo and spin speeds");
+    check(sf::comboLunge(0) == 0 && sf::comboLunge(6) == 60 && sf::comboLunge(7) == 0, "the lunge grows to 60, then stops");
+    // Wind-up 9, turn 8, recovery 19.
+    auto f = sf::spinFrame(8, 2, 9, 8, 19);
+    check(f.chart == 21 && f.frame == 8 && !f.turning, "spin winds up");
+    f = sf::spinFrame(9, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 1 && f.turning, "the turn starts from the facing");
+    f = sf::spinFrame(32, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 0, "three turns");
+    f = sf::spinFrame(33, 2, 9, 8, 19);
+    check(f.chart == 23 && f.frame == 0 && f.turning && !f.done, "blows go on one frame past the turn");
+    check(sf::spinFrame(51, 2, 9, 8, 19).done && !sf::spinFrame(50, 2, 9, 8, 19).done, "spin ends on chart 23's last frame");
+    check(sf::inSwing(0, 2, sf::kComboSpread) && sf::inSwing(0, 6, sf::kComboSpread), "combo catches two steps either side");
+    check(!sf::inSwing(0, 3, sf::kComboSpread) && sf::inSwing(0, 4, sf::kAllRound), "spin catches all round");
+    check(sf::inSwing(7, 0, sf::kSwingSpread) && !sf::inSwing(7, 1, sf::kSwingSpread), "swing wraps round");
+}
+
 int main() {
     testItemLabels();
     testMixer();
@@ -1346,6 +1382,7 @@ int main() {
     testTrapGeometry();
     testTrapShots();
     testArchery();
+    testCombat();
     testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
