@@ -5,6 +5,7 @@
 sell=weapon,0
 sell=weapon,1000000
 sell=weapon,2000000
+sell=weapon,1000010
 sell=weapon,5000000
 sell=armour,0
 sell=armour,4000000

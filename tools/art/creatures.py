@@ -638,6 +638,40 @@ def gear_staff(rig):
              (1.80, 0.09 * math.sin(a), 0.09 * math.cos(a)))
 
 
+def gear_bowgun(rig):
+    """Wood Bowgun: a small crossbow held by its stock like a pistol, a
+    wooden tiller with an iron-bound steel prod across the front, its string
+    drawn back to the nut and a bolt laid in the groove."""
+    m = gear_material
+    g = grip(rig, -15)
+    along = (0, math.radians(90), 0)
+    # The grip in the hand, then the tiller running forward from it, with
+    # a short butt behind.
+    hang(shape("cylinder", (0.036, 0.036, 0.12), m("dark"), rotation=along), g, (0.0, 0, 0))
+    tiller = hang(shape("box", (0.36, 0.045, 0.05), m("wood")), g, (0.30, 0, 0.07))
+    tiller.modifiers.clear()
+    hang(shape("box", (0.10, 0.05, 0.07), m("wood")), g, (-0.12, 0, 0.05))
+    hang(shape("box", (0.03, 0.05, 0.06), m("steel")), g, (0.07, 0, 0.12))  # the nut
+    # The prod: two arms swept back from an iron stirrup at the front.
+    hang(shape("box", (0.04, 0.06, 0.06), m("steel")), g, (0.64, 0, 0.08))
+    span, sweep = 0.34, math.radians(14)
+    for side in (1, -1):
+        hang(shape("cylinder", (0.022, 0.022, span / 2), m("steel"),
+                         rotation=(math.radians(90), 0, side * sweep)), g,
+                   (0.62 - math.sin(sweep) * span / 2, side * span * math.cos(sweep) / 2, 0.08))
+        tip = (0.62 - math.sin(sweep) * span, side * span * math.cos(sweep), 0.08)
+        hang(shape("ball", (0.03, 0.03, 0.03), m("brass")), g, tip)
+        # The string from the arm's tip back to the nut.
+        dx, dy = 0.08 - tip[0], -tip[1]
+        length = math.hypot(dx, dy)
+        hang(shape("cylinder", (0.007, 0.007, length / 2), m("dark"),
+                   rotation=(0, math.radians(90), math.atan2(dy, dx))), g,
+             (tip[0] + dx / 2, tip[1] + dy / 2, 0.10))
+    # The bolt in its groove, an iron head past the prod.
+    hang(shape("cylinder", (0.012, 0.012, 0.30), m("oak"), rotation=along), g, (0.38, 0, 0.13))
+    hang(shape("cone", (0.025, 0.025, 0.06), m("steel"), rotation=along), g, (0.72, 0, 0.13))
+
+
 # layer: (name, builder, armour). Armour casts no shadow of its own: the
 # body's shadow, drawn on layer 0, already covers it.
 GEAR = {
@@ -645,6 +679,7 @@ GEAR = {
     6: ("plate", gear_plate, True),
     9: ("round_shield", gear_round_shield, False),
     12: ("short_sword", gear_short_sword, False),
+    16: ("bowgun", gear_bowgun, False),
     17: ("long_sword", gear_long_sword, False),
     18: ("staff", gear_staff, False),
     19: ("two_hand_sword", gear_two_hand_sword, False),

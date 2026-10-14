@@ -627,6 +627,15 @@ font) are kept in content/ and rebuilt on their own:
 Their order is the ITEMS list in items.py; `content/items.txt` is
 written by hand.
 
+A new piece of the hero's equipment (a GEAR entry in creatures.py) can be
+added to the hero's and heroine's sheets without rendering them again:
+render only its layer, add it, then pack the sheets tightly again:
+
+    python tools/art/creatures.py --layers 16 hero /tmp/art/hero      # and heroine
+    python3 tools/art/add_layer.py /tmp/art/hero 16 content/Player/Male
+    python3 tools/art/add_layer.py /tmp/art/heroine 16 content/Player/Female
+    python3 tools/art/trim_sheets.py content
+
 A few new props can be added to the existing props sheet without
 rebuilding everything: render them, then
 
