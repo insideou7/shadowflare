@@ -16,10 +16,9 @@ using S = ScenarioScript;
 constexpr double kRadiansPerDegree = 0.01745328888888889;
 
 // Operand types that hold a value the script can change.
-// WARP holds the warp gates found; 13 is EXSTRG (a word list on the
-// player, + 0x55c, its use not traced).
+// WARP holds the warp gates found; EXSTRG the Giant Warehouse's open pages.
 bool writable(std::int32_t type) {
-    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == S::kWarp || type == 13;
+    return type == S::kTemp || type == S::kNet || type == S::kSave || type == S::kQuest || type == S::kWarp || type == S::kExtraStorage;
 }
 
 }  // namespace
@@ -429,7 +428,7 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kGetPlayerSex:
                 if (!ops.empty()) store(ops[0], host_->playerSex());
                 break;
-            case S::kStorage: host_->openStorage(); break;
+            case S::kStorage: host_->openStorage(!ops.empty() && arg(0) != 0); break;
             case S::kMessageBox:
             case S::kMessageBoxValue: {
                 // character dx dy text r g b [duration]; the text is a MSG id

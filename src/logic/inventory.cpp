@@ -115,6 +115,9 @@ void Inventory::clear() {
     bag_.clear();
     belt_ = {};
     equipped_ = {};
+    weaponSet_ = 0;
+    spare_ = {};
+    shared_ = {};
     gold_ = 0;
 }
 
@@ -339,6 +342,7 @@ Inventory::Result Inventory::equipFromBag(int index, int level) {
     const Placed placed = bag_[static_cast<std::size_t>(index)];
     const auto slot = slotFor(*placed.item.def);
     if (!slot) return Result::WrongSlot;
+    if (slotShared(*slot)) return Result::Locked;
     if (const auto check = canEquip(*slot, *placed.item.def, level); check != Result::Done) return check;
     bag_.erase(bag_.begin() + index);
     auto& worn = equipped_[static_cast<int>(*slot)];
@@ -353,12 +357,63 @@ Inventory::Result Inventory::equipFromBag(int index, int level) {
 Inventory::Result Inventory::unequipToBag(EquipSlot slot) {
     auto& worn = equipped_[static_cast<int>(slot)];
     if (!worn) return Result::Nothing;
+    if (slotShared(slot)) return Result::Locked;
     if (!add(*worn)) return Result::NoRoom;
     worn.reset();
     return Result::Done;
 }
 
+bool Inventory::slotShared(EquipSlot slot) const {
+    if (slot == EquipSlot::Weapon) return shared(kSetWeapon, weaponSet_);
+    if (slot == EquipSlot::Shield) return shared(kSetShield, weaponSet_);
+    return false;
+}
+
+void Inventory::swapWeaponSets() {
+    for (const int part : {kSetWeapon, kSetShield}) {
+        if (shared(part, 0) || shared(part, 1)) continue;
+        std::swap(equipped_[static_cast<int>(part == kSetWeapon ? EquipSlot::Weapon : EquipSlot::Shield)],
+                  spare_[static_cast<std::size_t>(part)]);
+    }
+    weaponSet_ = 1 - weaponSet_;
+}
+
+bool Inventory::chooseWeaponSet(int set) {
+    if (set == weaponSet_ || (set != 0 && set != 1)) return false;
+    swapWeaponSets();
+    return true;
+}
+
+bool Inventory::toggleShared(int part, int set) {
+    if (set != weaponSet_ || (part != kSetWeapon && part != kSetShield)) return false;
+    auto& worn = equipped_[static_cast<int>(part == kSetWeapon ? EquipSlot::Weapon : EquipSlot::Shield)];
+    auto& aside = spare_[static_cast<std::size_t>(part)];
+    auto& mine = shared_[static_cast<std::size_t>(part * 2 + set)];
+    const bool theirs = shared_[static_cast<std::size_t>(part * 2 + 1 - set)];
+    if (!mine && !theirs) {
+        if (worn) return false;
+        mine = true;
+        if (!aside) return false;
+        worn = std::move(aside);
+        aside.reset();
+        return true;
+    }
+    if (!mine) return false;
+    mine = false;
+    if (!worn) return false;
+    aside = std::move(worn);
+    worn.reset();
+    return true;
+}
+
+void Inventory::setWeaponSets(int set, const std::array<bool, 4>& shared, const std::array<std::optional<Item>, 2>& spare) {
+    weaponSet_ = set == 1 ? 1 : 0;
+    shared_ = shared;
+    spare_ = spare;
+}
+
 Inventory::Result Inventory::clickSlot(std::optional<Item>& hand, EquipSlot slot, int level) {
+    if (slotShared(slot)) return Result::Locked;
     auto& worn = equipped_[static_cast<int>(slot)];
     if (!hand) {
         if (!worn) return Result::Nothing;

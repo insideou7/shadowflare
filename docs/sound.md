@@ -109,7 +109,12 @@ original: only the mouse makes these sounds.
 - **Settings Menu** (0x4103c0). Every choice on the ON/OFF rows, the
   click size and the click order plays 0x37, even one already set; the
   volume sliders are silent. Mission List, MAP, HELP and the two save rows
-  play 0x38, and Back plays 0x39.
+  play 0x38, and Back plays 0x39. Their YES plays 0x38 again and NO 0x37.
+- **Warehouses and weapon sets** (0x447ca0, 0x406aa0, 0x44a8f0). The Giant
+  Warehouse's tabs and close button play 0x3a, as does changing weapon sets
+  with the tabs (Caps Lock is silent). Gold taken with the split box plays
+  0x55. A right click that empties a slot of the magic window's bar plays
+  0x39.
 - **New character** (0x423ca0, 0x424d80). Moving between the hero and the
   heroine plays 0x3a, but only when the choice changes. Choosing one, BACK,
   EXIT, and closing the name box with a name play 0x37. In the mode window,
@@ -173,13 +178,9 @@ Each spell's controller plays its sounds where they happen (0x42a860-0x42f890):
 
 These sounds belong to things the engine does not have yet:
 
-- **Windows the engine lacks.** The save and delete confirmations
-  (0x4103c0, 0x4228b0), the load screen (0x422e30), the special items page
-  and the second weapon set (0x446320, 0x406aa0), the drop box and the mine
-  slot of the item window, the 10-tab storage (0x447ca0), the Change Color
-  window (0x40f9e0), the card game (0x40da90, 0x2c, 0x40 and 0x41), the
-  gold split box (0x4429b0, 0x55), clearing a bar slot with a right click
-  in the magic window (0x44a8f0) and the online menus. The shop's unpaid
+- **Windows the engine lacks.** The special items page (0x446320), the
+  Change Color window (0x40f9e0), the card game (0x40da90, 0x2c, 0x40 and
+  0x41) and the online menus. The shop's unpaid
   hand and right-click buying (0x4480c0, 0x44b020), and picking up into
   the hand while the item window is open (0x449ef0), are also missing.
 - **Fights.** The Warrior's combo shouts (0x60-0x65) and swings, the

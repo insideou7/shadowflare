@@ -77,8 +77,9 @@ public:
     // ENABLECLASSCHANGE: offers class 1 warrior, 2 hunter or 3 wizard; the
     // player takes it in the status window.
     virtual void offerClass(int /*cls*/) {}
-    // STORAGE: opens the warehouse.
-    virtual void openStorage() {}
+    // STORAGE: opens the warehouse, or with a number other than 0 the
+    // Giant Warehouse and its ten pages (0x434a60 case 0x29).
+    virtual void openStorage(bool /*giant*/) {}
     // IDENTIFY, CHECKUNOPINIONITEM, REPAIR and GETREPAIRPRICE: see
     // Inventory for the part numbers.
     virtual void identifyItems() {}

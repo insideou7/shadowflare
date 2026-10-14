@@ -576,6 +576,7 @@ void Game::zoomBy(int notches) {
 
 // The keys follow the manual's Shortcut Keys page (see docs/controls.md).
 void Game::handleEvent(const SDL_Event& event) {
+    if (goldSplitEvent(event)) return;
     if (optionsOpen_) {
         optionsEvent(event);
         return;
@@ -706,7 +707,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 }
                 case SDLK_b: layMine(); break;
                 case SDLK_p: startPower(); break;
-                case SDLK_CAPSLOCK: notYet("The second equipment set"); break;
+                case SDLK_CAPSLOCK: swapWeaponSetsSoon(); break;
                 case SDLK_SPACE:
                     // Open content has no companions.
                     if (partner_) {
@@ -1037,7 +1038,19 @@ void Game::swing() {
     bowShot_.reset();
 }
 
+// Caps Lock changes weapon sets between blows and spells (0x4429b0).
+void Game::swapWeaponSetsIfFree() {
+    if (!swapWeaponSetsPending_ || !player_ || casting_ || bowShot_ || player_->chart() == chart::kPlayerPunch ||
+        player_->chart() == chart::kPlayerShoot) {
+        return;
+    }
+    swapWeaponSetsPending_ = false;
+    inventory_.swapWeaponSets();
+    updateEquipment();
+}
+
 void Game::tickPlayer() {
+    swapWeaponSetsIfFree();
     if (player_->chart() != chart::kWalk && player_->chart() != chart::kPlayerRun) heroSteps(false, false);
     // A trap's stun holds the hero in the hit pose (0x435870).
     if (heroStun_) {
@@ -1736,6 +1749,7 @@ void Game::renderMap() {
     renderStatus();
     renderMagicWindow();
     renderInventory();
+    renderGoldSplit();
     renderMissions();
     renderAreaMap();
     renderWarpGate();

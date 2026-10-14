@@ -33,6 +33,7 @@ struct ScenarioScript {
         kPlayMode = 8,
         kObjectCheck = 9,  // CCHECK id: whether the player is working object `id`
         kWarp = 10,     // WARP n: 1 once warp gate n (Table.Tbd table 40 row n) has been found
+        kExtraStorage = 13,  // EXSTRG n: 1 once page n of the Giant Warehouse is open (player +0x55c)
     };
 
     // Command numbers, with the names RKC_RPG_SCRIPT.dll compiles them from

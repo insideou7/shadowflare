@@ -230,7 +230,10 @@ void Game::openOptions(bool inGame) {
     attackTarget_.reset();
 }
 
-void Game::closeOptions() { optionsOpen_ = false; }
+void Game::closeOptions() {
+    optionsOpen_ = false;
+    saveQuestion_.reset();
+}
 
 void Game::setSettingsFile(std::string path) {
     settingsFile_ = std::move(path);
@@ -306,8 +309,8 @@ void Game::setOption(OptionRow row, int index) {
 
 void Game::chooseOption(OptionRow row) {
     if (!optionEnabled(row)) return;
-    // Going ahead plays 0x38 (0x4103c0). The original asks YES or NO before
-    // saving and plays it again on YES; the engine saves at once.
+    // Going ahead plays 0x38 (0x4103c0). Saving asks YES or NO first, and
+    // plays it again on YES.
     switch (row) {
         case OptionRow::Help:
         case OptionRow::MissionList:
@@ -332,14 +335,7 @@ void Game::chooseOption(OptionRow row) {
             if (!mapOpen_) toggleAreaMap();
             break;
         case OptionRow::SaveAndTitle:
-            if (saveGame()) {
-                closeOptions();
-                openMenu();
-            }
-            break;
-        case OptionRow::SaveAndExit:
-            if (saveGame()) quit_ = true;
-            break;
+        case OptionRow::SaveAndExit: saveQuestion_ = row; break;
         case OptionRow::Exit: quit_ = true; break;
         case OptionRow::Back: closeOptions(); break;
         case OptionRow::ClickPriority:
@@ -360,6 +356,38 @@ void Game::chooseOption(OptionRow row) {
     }
 }
 
+namespace {
+
+// The question and its answers, where the original writes them over its
+// menu (0x4103c0): the question centred on x = 320, YES and NO below.
+constexpr int kQuestionY = 170;
+constexpr SDL_Rect kYes{336, 202, 24, 12};
+constexpr SDL_Rect kNo{384, 202, 36, 12};
+const SDL_Color kAnswer{224, 224, 224, 255};
+const SDL_Color kAnswerLit{64, 64, 224, 255};
+
+bool on(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
+
+}  // namespace
+
+void Game::answerSaveQuestion(bool yes) {
+    if (!saveQuestion_) return;
+    const OptionRow row = *saveQuestion_;
+    saveQuestion_.reset();
+    if (!yes) {
+        playSound(0x37);
+        return;
+    }
+    playSound(0x38);
+    if (!saveGame()) return;
+    if (row == OptionRow::SaveAndExit) {
+        quit_ = true;
+    } else {
+        closeOptions();
+        openMenu();
+    }
+}
+
 SDL_Rect Game::optionChoiceRect(int row, int choice) {
     int chosen = 0;
     const auto choices = optionChoices(optionRows()[static_cast<std::size_t>(row)], chosen);
@@ -370,6 +398,19 @@ SDL_Rect Game::optionChoiceRect(int row, int choice) {
 }
 
 void Game::optionsEvent(const SDL_Event& event) {
+    if (saveQuestion_) {
+        if (event.type == SDL_QUIT) quit_ = true;
+        if (event.type == SDL_KEYDOWN) {
+            const auto key = event.key.keysym.sym;
+            if (key == SDLK_RETURN || key == SDLK_KP_ENTER || key == SDLK_y) answerSaveQuestion(true);
+            if (key == SDLK_ESCAPE || key == SDLK_n) answerSaveQuestion(false);
+        }
+        if (event.type == SDL_MOUSEBUTTONDOWN && event.button.button == SDL_BUTTON_LEFT) {
+            if (on(kYes, event.button.x, event.button.y)) answerSaveQuestion(true);
+            else if (on(kNo, event.button.x, event.button.y)) answerSaveQuestion(false);
+        }
+        return;
+    }
     const auto rows = optionRows();
     const int count = static_cast<int>(rows.size());
     auto step = [&](int by) {
@@ -499,6 +540,19 @@ void Game::renderOptions() {
         uiText(r.x + 6, kOptionsPanel.y + 12, name, active ? kTitle : kOff);
     }
 
+    if (saveQuestion_) {
+        // The question in place of the rows.
+        int mx = 0, my = 0;
+        if (const auto at = pointerPosition()) {
+            mx = static_cast<int>(at->x);
+            my = static_cast<int>(at->y);
+        }
+        const char* question = *saveQuestion_ == OptionRow::SaveAndExit ? "Is it O.K. to exit the game?" : "Return to the Title Screen?";
+        uiText(320 - uiTextWidth(question) / 2, kQuestionY, question, kLabel);
+        uiText(kYes.x, kYes.y, "YES", on(kYes, mx, my) ? kAnswerLit : kAnswer);
+        uiText(kNo.x, kNo.y, "NO", on(kNo, mx, my) ? kAnswerLit : kAnswer);
+        return;
+    }
     const auto rows = optionRows();
     for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
         const OptionRow row = rows[static_cast<std::size_t>(i)];
@@ -580,7 +634,7 @@ void Game::renderHelp() {
         {"P", "INCREASED-POWER MODE", true},
         {"CTRL", "RUN WHILE HELD", true},
         {"SHIFT", "STOP; ATTACK IN PLACE", true},
-        {"CAPS LOCK", "SWAP EQUIPMENT", false},
+        {"CAPS LOCK", "SWAP EQUIPMENT", true},
         {"TAB+CLICK", "COMPANION", false},
         {"SPACE", "COMPANION ACTIVE/INACTIVE", true},
         {"S", "STATUS WINDOW", true},

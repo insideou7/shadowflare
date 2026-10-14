@@ -153,6 +153,7 @@ bool Game::saveGame() {
     save.partnerHp = !partner_ ? partnerHpCarried_ : partnerAlive() ? partner_->hp : 0;
     save.store(inventory_);
     if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
+    save.storeGiantStorage(giantStorage_);
     for (const auto& [key, value] : flags_) {
         // TEMP and NET flags start again with every scenario.
         if (key.first != ScenarioScript::kTemp && key.first != ScenarioScript::kNet && key.first >= 0) save.flags[key] = value;
@@ -281,6 +282,9 @@ bool Game::loadGameFrom(const std::string& path) {
     while (mineCount_ < mostMines() && inventory_.removeOne(ItemDef::Class::Special, 1)) ++mineCount_;
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", path, skipped);
+    }
+    if (const int skipped = save.restoreGiantStorage(giantStorage_, items_)) {
+        log::warn("{}: {} items in the Giant Warehouse are unknown", path, skipped);
     }
     updateEquipment();
     // The companion came before the hero's things, which can raise its health.
