@@ -1,0 +1,133 @@
+# The Wasteland of Pillars' people, as in the original (scenario 6), in
+# our own words: a scout by the western road to Cold Svalt and a trader
+# deep in the wasteland, the one Remote Town's smith had thrown out.
+#
+# - The road west to Cold Svalt is barred until the Dusty Ruins are
+#   cleared (quest:3 cleared), as the original's exit there only works
+#   then; the scout warns the hero off before that and is impressed after.
+# - The trader will not deal with the hero until the smith's gem is back
+#   (quest:1 cleared); then he greets the hero as the smith's friend once
+#   (save:10) and trades after. His stock depends on the hero's level on
+#   arriving: list 1 below level 7, 3 from 7 to 9, 4 from 10.
+#
+# The original has a warp gate here (warp:1), but content/gates.txt has no
+# gate 1 yet, so it is left out: add [gate 1] there and the gate objects
+# here, as Remote Town's, to bring it in.
+
+# The barrier across the road west, in front of the exit to Cold Svalt.
+object=1500,18900,1800,20000,barrier,rail_gate_y
+
+[message 1]
+Turn back. Go on as you are now and you
+won't live to see the other side.
+
+[message 2]
+You cleared out the ruins over there?
+Then I'd better stop taking you lightly.
+
+[message 3]
+I don't sell to people I can't trust.
+Off with you.
+
+[message 4]
+A friend of mine in Remote Town told me about you.
+Says you're handy with a blade.
+
+[message 5]
+My goods don't come cheap, but every one of them
+earns its price. Have a look any time.
+
+[message 6]
+Ah, welcome back. I've some fine things in today.
+
+[sentence wasteland-start]
+on=start
+GETPLAYERLEVEL temp:5
+IF temp:5 < 7 @stock-low
+IF temp:5 > 6 @stock-mid
+IF temp:5 > 9 @stock-high
+
+[sentence stock-low]
+INITTRADE 0 1
+
+[sentence stock-mid]
+IF temp:5 < 10 @stock-mid-2
+
+[sentence stock-mid-2]
+INITTRADE 0 3
+
+[sentence stock-high]
+INITTRADE 0 4
+
+[sentence weather]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+# The barrier stands until the Dusty Ruins are cleared.
+[sentence barrier-tick]
+on=tick
+IF quest:3 = 2 @barrier-open
+IF quest:3 ! 2 @barrier-shut
+
+[sentence barrier-open]
+ABSOLUTEOBJECTFLAG barrier 0 0 0
+
+[sentence barrier-shut]
+ABSOLUTEOBJECTFLAG barrier 1 0 1
+
+[sentence scout]
+on=talk scout
+C_STOP scout
+C_SETANGLETO scout 0
+SETFLAG temp:1 msg:1
+IF quest:3 = 2 @scout-impressed
+TALK temp:1 temp:2 0 0 -1 -1
+
+[sentence scout-impressed]
+SETFLAG temp:1 msg:2
+
+[sentence scout-end]
+on=talk-end scout
+C_MOVABLE scout
+
+[sentence trader]
+on=talk trader
+C_STOP trader
+C_SETANGLETO trader 0
+IF quest:1 ! 2 @trader-refuse
+IF quest:1 = 2 @trader-meet
+IF save:10 = 1 @trader-welcome
+
+[sentence trader-refuse]
+TALK msg:3 temp:2 0 0 -1 -1
+SETFLAG temp:3 0
+
+[sentence trader-meet]
+IF save:10 = 0 @trader-first
+
+[sentence trader-first]
+TALK msg:4 temp:2 0 0 -1 -1
+SETFLAG temp:3 10
+
+[sentence trader-welcome]
+TALK msg:6 temp:2 0 0 -1 -1
+SETFLAG temp:3 20
+
+[sentence trader-end]
+on=talk-end trader
+SETFLAG temp:4 temp:3
+SETFLAG temp:3 0
+IF temp:4 = 0 @trader-done
+IF temp:4 = 10 @trader-pitch
+IF temp:4 = 20 @trader-shop
+
+[sentence trader-done]
+C_MOVABLE trader
+
+[sentence trader-pitch]
+TALK msg:5 temp:2 0 0 -1 -1
+SETFLAG save:10 1
+
+[sentence trader-shop]
+TRADE 0
+C_MOVABLE trader
