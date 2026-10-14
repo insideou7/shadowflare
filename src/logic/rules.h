@@ -41,11 +41,15 @@ struct Rules {
     // so what can be used stands out. The original only draws it a little
     // brighter (0x40ee70), which both modes do.
     bool outlineUnderPointer = true;
+    // Gold put in the Warehouse Transfer Box that exactly fills the
+    // warehouse's gold stacks leaves a Gold item of 0 behind, which the
+    // original puts down in the warehouse (0x446320). Ours drops it.
+    bool noEmptyGoldInWarehouse = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer;
+               !outlineUnderPointer && !noEmptyGoldInWarehouse;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -58,6 +62,7 @@ struct Rules {
         r.healthBarsOverMonsters = false;
         r.zoomOut = false;
         r.outlineUnderPointer = false;
+        r.noEmptyGoldInWarehouse = false;
         return r;
     }
 };

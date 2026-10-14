@@ -42,6 +42,11 @@ constexpr SlotBox kSlots[] = {
     {EquipSlot::Accessory4, 440, 183, 1, 1},
 };
 
+// The Warehouse Transfer Box, the picture of a strongbox left of the
+// accessories: an item put there goes to the town warehouse (0x447290
+// answers 10 for it).
+constexpr SDL_Rect kTransferBox{336, 140, 56, 72};
+
 bool inside(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
 
 const SDL_Color kWhite{235, 235, 235, 255};
@@ -495,6 +500,10 @@ bool Game::inventoryClick(int x, int y, bool right) {
         }
         return true;
     }
+    if (inside(kTransferBox, x, y)) {
+        if (!right) putInWarehouse();
+        return true;
+    }
     for (const auto& box : kSlots) {
         if (!inside(box.rect(), x, y) || right) continue;
         const ItemDef* held = hand_ ? hand_->def : nullptr;
@@ -511,6 +520,21 @@ bool Game::inventoryClick(int x, int y, bool right) {
         return true;
     }
     return true;
+}
+
+// An item let go over the Warehouse Transfer Box goes to the warehouse,
+// wherever the hero is, if there is room (0x446320). Items kept on a
+// special items page go back there in the original, never to the
+// warehouse; with no special items window yet they stay in the hand.
+void Game::putInWarehouse() {
+    if (!hand_ || hand_->def->specialPage >= 0) return;
+    const ItemDef& held = *hand_->def;
+    if (shops_[kStorage].takeIn(hand_, !rules_.noEmptyGoldInWarehouse)) {
+        playSound(itemSound(held, kItemPut));
+    } else if (hand_) {
+        // The original says nothing and keeps the item in the hand.
+        showMessage("The warehouse is full");
+    }
 }
 
 std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) const {
@@ -636,6 +660,7 @@ constexpr SDL_Color kShadow{0, 0, 0, 255};
 // The weight gauge: 33 marks four pixels apart from (338, 239), tan up to
 // x = 437, darker to 457 and red after that (0x4074e0).
 constexpr int kGaugeMarks = 33, kGaugeX = 338, kGaugeY = 239, kGaugeStep = 4;
+constexpr int kTransferGlowSteps = 10;
 constexpr SDL_Color kGaugeColours[] = {{214, 182, 134, 255}, {176, 144, 90, 255}, {168, 20, 20, 255}, {255, 255, 255, 255}};
 
 }  // namespace
@@ -710,6 +735,30 @@ void Game::renderItemTotals() {
     windowNumber(446, 116, mineCount_, stock);
     windowText(445, 117, "/", kTones[kPlain]);
     windowNumber(471, 116, mostMines(), stock);
+
+    // Holding an item over the Warehouse Transfer Box lights it up, fading
+    // in over ten steps and out again when it leaves (0x4074e0).
+    if (transferGlowTick_ != ticks_) {
+        transferGlowTick_ = ticks_;
+        const auto at = pointerPosition();
+        const bool over = hand_ && at && inside(kTransferBox, static_cast<int>(at->x), static_cast<int>(at->y));
+        transferGlow_ = std::clamp(transferGlow_ + (over ? 1 : -1), 0, kTransferGlowSteps);
+    }
+    if (transferGlow_ > 0) {
+        const Uint8 a = static_cast<Uint8>(transferGlow_ * 255 / kTransferGlowSteps);
+        if (const SpriteTexture* glow = part(4, 6)) {
+            SDL_SetTextureAlphaMod(glow->texture, a);
+            const SDL_Rect dst{glow->originX, glow->originY, glow->width, glow->height};
+            SDL_RenderCopy(renderer_, glow->texture, nullptr, &dst);
+            SDL_SetTextureAlphaMod(glow->texture, 255);
+        } else {
+            frame(renderer_, kTransferBox, {255, 230, 160, static_cast<Uint8>(a / 4)}, {255, 230, 160, a});
+        }
+    }
+    if (!labelled) {
+        frame(renderer_, kTransferBox, {0, 0, 0, 0}, {150, 130, 90, 255});
+        drawText(renderer_, kTransferBox.x + 4, kTransferBox.y + 32, "STORE", kWhite, 1);
+    }
 
     const int strength = playerStats()[HeroStats::kStrength];
     const int weight = inventory_.wornWeight();

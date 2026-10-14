@@ -190,6 +190,12 @@ void testScenario() {
     check(f.magicEvasion == 20 && f.speed == 1200 && f.word7 == 100 && f.stunChanceResist == 20 && f.stunLengthResist == 5 &&
               f.stunUncapped,
           "an enemy's other fields");
+    const auto thrower = sf::open::parseScenario(bytes("enemy=2,5,6,0,40,30,960,thrower,2,10,10,20,2,10,170,50,0,0,shot=1/250/50/200/0\n"));
+    const auto& t = thrower.control.placements.at(0).stats;
+    check(t.shotKind == 1 && t.shotHeight == 250 && t.shotSpeed == 50 && t.shotStart == 200 && t.shotSlot == 0, "what an enemy throws");
+    check(full.control.placements.at(0).stats.shotKind == -1, "an enemy throws nothing without shot=");
+    expectRejected("enemy shot", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,shot=1/250/50\n",
+                   [](auto& d) { sf::open::parseScenario(d); });
     expectRejected("unknown enemy field", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,fury=3\n",
                    [](auto& d) { sf::open::parseScenario(d); });
     expectRejected("enemy slots", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,attacks=3/4\n",

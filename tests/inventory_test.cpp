@@ -508,6 +508,46 @@ void testStorageClicks() {
     check(storage.click(hand, 0, 3) == sf::Inventory::Result::Done && hand && hand->def == &table.items[0], "and is picked up again");
 }
 
+// The item window's Warehouse Transfer Box (0x446320, case 10).
+void testTransferBox() {
+    auto gold = def(Class::Special, -1, 1, 1);
+    gold.code = 0;
+    sf::ShopStock storage;
+    std::optional<sf::Item> hand = sf::Item{&kSword, 1};
+    check(storage.takeIn(hand) && !hand && storage.goods.size() == 1 && storage.goods[0].x == 0 && storage.goods[0].y == 0,
+          "an item goes to the warehouse's first free place");
+    hand = sf::Item{&kSword, 1};
+    check(storage.takeIn(hand) && storage.goods[1].x == 1 && storage.goods[1].y == 0, "places are taken row by row");
+    // Gold tops up the fullest stack that is not full first.
+    storage.goods.push_back({sf::Item{&gold, 9000}, 2, 0});
+    storage.goods.push_back({sf::Item{&gold, 4000}, 3, 0});
+    hand = sf::Item{&gold, 500};
+    check(!storage.takeIn(hand) && !hand && storage.goods[2].item.count == 9500 && storage.goods[3].item.count == 4000,
+          "gold joins the fullest stack");
+    hand = sf::Item{&gold, 7000};
+    check(storage.takeIn(hand) && !hand && storage.goods[2].item.count == 10000 && storage.goods[3].item.count == 10000 &&
+              storage.goods.size() == 5 && storage.goods[4].item.count == 500,
+          "then the next, and the rest gets a place of its own");
+    hand = sf::Item{&gold, 9500};
+    check(!storage.takeIn(hand) && !hand && storage.goods.size() == 5, "gold that exactly fills the stacks is gone");
+    // The original puts an empty Gold item down instead.
+    storage.goods[4].item.count = 9000;
+    hand = sf::Item{&gold, 1000};
+    check(storage.takeIn(hand, true) && storage.goods.size() == 6 && storage.goods[5].item.count == 0,
+          "original: an empty Gold item is left in the warehouse");
+    // A full warehouse leaves the item in the hand.
+    sf::ShopStock full;
+    for (int i = 0; i < 18; ++i) full.goods.push_back({sf::Item{&kSword, 1}, i % 9, i / 9 * 4});
+    full.goods.push_back({sf::Item{&gold, 9900}, 0, 8});
+    for (int x = 1; x < 9; ++x) full.goods.push_back({sf::Item{&kRing, 1}, x, 8});
+    for (int x = 0; x < 9; ++x) full.goods.push_back({sf::Item{&kRing, 1}, x, 9});
+    hand = sf::Item{&kRing, 1};
+    check(!full.takeIn(hand) && hand && full.goods.size() == 36, "a full warehouse leaves the item in the hand");
+    hand = sf::Item{&gold, 300};
+    check(!full.takeIn(hand) && hand && hand->count == 200 && full.goods[18].item.count == 10000,
+          "gold fills what stacks it can and the rest stays in the hand");
+}
+
 // Magic modifiers: rolled per item, counted in the stats, the companion's
 // stats and the price (0x467310, 0x44eb5b, 0x4138b0, 0x4661c0).
 void testModifiers() {
@@ -693,6 +733,7 @@ int main() {
     testBelt();
     testSaveGame();
     testStorageClicks();
+    testTransferBox();
     testWearRepairIdentify();
     testModifiers();
     testWornWeight();

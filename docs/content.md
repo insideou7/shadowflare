@@ -190,6 +190,7 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 | `speed=` | per mille of its AI's speeds | 1000 |
 | `stun=` | what it takes off a stun's chance and length, and 1 if its stuns may run past 15 ticks | 0/0/0 |
 | `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
+| `shot=` | what one attack throws instead of striking: kind/height/speed/start/attack (see docs/archery.md) | throws nothing |
 
 Every monster in the pack has the original's numbers.
 `tools/content/enemy_stats.py` copies them from the player's own copy:
@@ -422,7 +423,9 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-`glow` (a second hero layer) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
+`glow` (a second hero layer), `page` (the special items page a quest item,
+gem or the like is kept on, as the original's are; such items never go to
+the warehouse) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
 (kind 0 stone, 1 arrow, 2 fire arrow, 3 ice arrow; see docs/archery.md). The item window weighs the `load` of
 everything worn against the hero's strength, as the original does.
 An item with a `load` of 60 or more also sounds heavy when it is taken or

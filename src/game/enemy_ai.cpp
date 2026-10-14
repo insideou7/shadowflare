@@ -166,6 +166,10 @@ void Game::runAiAction(Actor& enemy) {
             for (; strikes > 0; --strikes) {
                 if (magic) {
                     castMonsterSpell(enemy, slot);
+                } else if (s.shotKind != -1 && s.shotSlot == slot) {
+                    // This attack throws a stone or shoots an arrow instead
+                    // of striking (words 44 and 48).
+                    throwShot(enemy, slot);
                 } else {
                     const double reach = enemy.entry.cond[3] == 1 && enemy.entry.cond[5] > 0 ? enemy.entry.cond[5] + 60.0 : 100.0;
                     if (gapToPlayer(enemy) <= reach) strikePlayer(enemy, slot);

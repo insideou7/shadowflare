@@ -10,8 +10,9 @@ Draws, in the style of the original but from scratch:
   the 9 x 4 bag, and plates for the gold, the mines' power and stock
   (with a round socket for our mine picture) and the weight with its
   gauge, labelled as the original's are, where the engine writes them
-  (src/game/items.cpp, which follows ShadowFlare.exe's item window). Also
-  the mine and the gauge's marks. Written as
+  (src/game/items.cpp, which follows ShadowFlare.exe's item window), and
+  the Warehouse Transfer Box, a strongbox in a recess. Also the mine, the
+  gauge's marks and the box lit up. Written as
   System/Game/Pattern/Inventory; its anchor puts it at x = 320 on the
   screen.
 - the shop window: the same stone and frame with a carved header and the
@@ -69,6 +70,9 @@ MINE_SOCKET = (40, 108, 22)  # centre and radius; the mine sits at (16, 84), 48 
 WEIGHT_PLATE = (96, 222, 152, 239)
 GAUGE = (16, 237, 152, 247)  # the groove the 33 marks fill from (18, 239)
 LABELS = [("LANDMINE", 18, 68), ("POWER", 64, 85), ("STOCK", 68, 104), ("WEIGHT", 18, 225), ("OVER", 126, 251)]
+# The Warehouse Transfer Box (x0, y0, x1, y1 in the panel), as kTransferBox
+# in items.cpp: an item let go here goes to the town warehouse.
+TRANSFER_BOX = (16, 140, 72, 212)
 GOODS = (16, 72, 9, 10)  # the shop's cells: x, y, columns, rows, as in talk.cpp
 
 STONE = np.array([42, 40, 47])
@@ -207,6 +211,59 @@ def engrave(p, text, x0, y0, colour=None):
                     p.height[y0 + top + y, x0 + i * 6 + x] -= 1.5
 
 
+def strongbox(p):
+    """The Warehouse Transfer Box: a bronze-rimmed recess holding a small
+    oak strongbox seen from the front, its lid domed, two iron straps
+    round it and a bronze lock plate with a keyhole."""
+    x0, y0, x1, y1 = TRANSFER_BOX
+    p.sunken(x0, y0, x1, y1, depth=4)
+    cx = (x0 + x1) / 2
+    bx0, bx1, top, lid, bottom = cx - 20, cx + 20, y0 + 14, y0 + 30, y1 - 10
+    oak = np.array([104, 66, 36])
+    grain = 0.8 + 0.35 * p.noise(5, 2)
+    # Planks across the body, a darker seam between each.
+    body = inside(bx0, lid, bx1, bottom)
+    seam = body & (((yy - lid) % 9) < 1)
+    p.colour[body] = (oak * grain[..., None])[body]
+    p.colour[seam] *= 0.55
+    p.height[body] += 5
+    p.height[seam] -= 1
+    # The domed lid, its edge overhanging the body a little.
+    d = np.clip(1 - ((xx - cx) / 21) ** 2, 0, 1)
+    dome = (yy >= lid - (lid - top) * np.sqrt(d)) & (yy < lid + 1) & (np.abs(xx - cx) < 22)
+    p.colour[dome] = (oak * 1.1 * grain[..., None])[dome]
+    p.height[dome] += 5 + 3 * np.sqrt(d)[dome]
+    rim = inside(bx0 - 2, lid - 1, bx1 + 2, lid + 3)
+    p.colour[rim] = IRON * 1.3
+    p.height[rim] += 7
+    # Iron straps down the body and over the lid, with rivets.
+    for sx in (bx0 + 7, bx1 - 9):
+        strap = (inside(sx, top - 2, sx + 3, bottom) & (body | dome | rim))
+        p.colour[strap] = IRON * 1.4
+        p.height[strap] += 1.5
+        for ry in range(int(lid + 6), int(bottom) - 2, 9):
+            p.boss((sx + 1.5, ry), 1.2, height=1.5)
+    base = inside(bx0 - 1, bottom - 3, bx1 + 1, bottom)
+    p.colour[base] = IRON * 1.2
+    p.height[base] += 6
+    # The lock plate and keyhole.
+    plate = inside(cx - 6, lid + 1, cx + 6, lid + 15)
+    p.bronze(plate, 2.5)
+    key = (np.hypot(xx - cx, yy - (lid + 6)) < 1.8) | inside(cx - 0.5, lid + 6, cx + 1, lid + 11)
+    p.colour[key] = HOLLOW * 0.5
+    p.height[key] -= 2
+
+
+def lit_box(panel):
+    """The box lit up, shown fading in while an item is held over it: the
+    panel's own picture of it, brighter and warmer."""
+    x0, y0, x1, y1 = TRANSFER_BOX
+    crop = np.asarray(panel.crop((x0, y0, x1, y1))).astype(float)
+    rgb = np.clip(crop[..., :3] * np.array([1.7, 1.5, 1.1]) + np.array([40, 30, 10]), 0, 255).astype(np.uint8)
+    alpha = np.full(rgb.shape[:2] + (1,), 255, dtype=np.uint8)
+    return Image.fromarray(np.concatenate([rgb, alpha], axis=2), "RGBA")
+
+
 def mine_picture():
     """The mine shown in the socket while any are carried: a squat iron
     drum seen from above, banded in bronze, with a pressure cap in the
@@ -261,10 +318,12 @@ def inventory(out):
     hollow = np.clip((r - d) / 3, 0, 1)
     p.height -= 4 * hollow
     p.colour = np.where((hollow > 0)[..., None], HOLLOW * (0.8 + 0.4 * p.noise(16, 2))[..., None], p.colour)
+    strongbox(p)
     for text, x, y in LABELS:
         engrave(p, text, x, y)
     panel = p.image()
-    sheet = Image.new("RGBA", (W, H + 48), (0, 0, 0, 0))
+    bw, bh = TRANSFER_BOX[2] - TRANSFER_BOX[0], TRANSFER_BOX[3] - TRANSFER_BOX[1]
+    sheet = Image.new("RGBA", (W, H + max(48, bh)), (0, 0, 0, 0))
     sheet.paste(panel, (0, 0))
     sheet.paste(mine_picture(), (0, H))
     frames = [(0, 0, W, H, -LEFT, 0), (0, H, 48, 48, -(LEFT + MINE_SOCKET[0] - 24), -(MINE_SOCKET[1] - 24))]
@@ -275,9 +334,12 @@ def inventory(out):
             mark.putpixel((x, 4), tuple(int(c * 0.7) for c in rgb) + (255,))
         sheet.paste(mark, (52 + k * 5, H))
         frames.append((52 + k * 5, H, 3, 5, 0, 0))
+    sheet.paste(lit_box(panel), (80, H))
+    frames.append((80, H, bw, bh, -(LEFT + TRANSFER_BOX[0]), -TRANSFER_BOX[1]))
     write_sheet(out / "System/Game/Pattern", "Inventory", sheet, frames,
                 "The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its "
-                "socket, and the weight gauge's marks (light, darker, red, flash).")
+                "socket, the weight gauge's marks (light, darker, red, flash) and the Warehouse Transfer Box "
+                "lit up.")
 
 
 def shop(out):

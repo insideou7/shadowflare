@@ -24,6 +24,17 @@ struct ShopStock {
     // in hand, puts it down with its top-left at (x, y), picking up the one
     // item it covers, as the bag does.
     Inventory::Result click(std::optional<Item>& hand, int x, int y);
+    // The item window's Warehouse Transfer Box (ShadowFlare.exe 0x446320,
+    // case 10): the held item goes to the warehouse's first free place,
+    // row by row. Gold first tops up the warehouse's fullest stack that is
+    // not full, then the next, and only what is left needs a free place.
+    // When there is none the item stays in the hand, less any gold that
+    // went into stacks. Returns whether the hand was emptied by placing it
+    // in a free place (the original sounds the item being put down only
+    // then). Gold that exactly fills the stacks leaves an empty Gold item
+    // in the hand, which the original then puts down in the warehouse
+    // like any other; `emptyGoldStays` keeps that.
+    bool takeIn(std::optional<Item>& hand, bool emptyGoldStays = false);
 };
 
 // INITTRADE's stock, as ShadowFlare.exe builds it (0x430c10): row `list` of

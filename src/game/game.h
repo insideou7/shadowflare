@@ -360,6 +360,8 @@ private:
     void indexScenarios();
     bool readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const;
     void spawnActors();
+    // Every layer of a model's first chart: what non-player characters wear.
+    static std::vector<int> allLayers(const CharacterModel& m);
     void changeScenario(int number, int entry);
     void goToStart();
     void checkTriggers(bool fire = true);
@@ -470,6 +472,7 @@ private:
     void renderGroundItems(int camX, int camY);
     void renderInventory();
     void renderItemTotals();
+    void putInWarehouse();  // the held item, into the Warehouse Transfer Box
     void renderItemPopup(const Item& item, int mx, int my);
     // The colours the item and status windows write numbers in (0x405590):
     // plain, lowered by what is worn (red) and raised by it (tan).
@@ -531,13 +534,19 @@ private:
         int facing = -1;    // a fixed direction 0-8 to draw it in; -1: see `directional`
         std::int32_t follows = -1;  // a character it stays on (CREATEEFFECTCHAR), 0-3 the players
         // A trap's shot (CREATEOPTIONANGLE), which hurts the hero and the
-        // companion instead of monsters (traps.cpp).
+        // companion instead of monsters (traps.cpp), or a monster's stone
+        // or arrow (throwShot).
         struct Trap {
             TrapShot shot;
             int kind = 0;
             int power = 0;
             bool fixedDamage = false;
             ScriptHost::TrapFire::Stun stun;
+            // A monster's shot: its thrower's index in actors_ (-1 for a
+            // trap's), and the hit and element of the attack that threw
+            // it, taken as it leaves the hand.
+            int thrower = -1;
+            int hit = 0, element = -1;
         };
         std::optional<Trap> trap;
         // One of the hero's bowgun shots, or an arrow of the hunter's
@@ -694,6 +703,12 @@ private:
     void stepTrap(Effect& e);
     void trapHitsPlayer(const Effect& e);
     void trapHitsPartner(const Effect& e);
+    // A monster's attack that throws or shoots (words 44-48): the stone or
+    // arrow leaves its hand (0x45a2f0), and lands on the hero or the
+    // companion as its blow would.
+    void throwShot(Actor& enemy, int slot);
+    void shotHitsPlayer(const Effect& e);
+    void shotHitsPartner(const Effect& e);
     // A stun from a trap's blow (0x443cb0, 0x45f9f0): held in the hit pose
     // for `total` original ticks, pushed away from the blow unless steady.
     struct Stun {
@@ -825,6 +840,9 @@ private:
         std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
     void spawnPartner();
+    // The partner's layers in its model: all but the dash streak, unless
+    // `before` shows it (partner.cpp).
+    static std::vector<int> partnerLayers(const CharacterModel& m, const std::vector<int>& before = {});
     void changePartner(int kind);
     void refreshPartnerStats();
     void togglePartnerMode();
@@ -1163,6 +1181,8 @@ private:
     int weightGaugeShown_ = -1;
     bool weightGaugeSettled_ = true;
     std::uint64_t weightGaugeTick_ = 0;
+    int transferGlow_ = 0;  // the Warehouse Transfer Box's light, 0 to 10
+    std::uint64_t transferGlowTick_ = 0;
     // Identify was cast: the next item clicked in the bag is identified
     // (player + 0x1624).
     bool identifying_ = false;

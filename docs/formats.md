@@ -270,6 +270,11 @@ code (0x45b043) reads + 0x134 to + 0x158.
 | 35-37 | 0x14c | each spell's power |
 | 38-40 | 0x140 | the level whose Table.Tbd columns each spell uses (hit, element) |
 | 41-43 | 0x158 | added to each spell's hit |
+| 44 | 0x184 | what one of its attacks throws or shoots: the shot controller (1 a stone, 0, 4, 5, 7 arrows, 6 a big shot; -1 nothing). See [archery.md](archery.md) |
+| 45 | 0x190 | how high the shot flies |
+| 46 | 0x188 | the shot's speed, world units a tick |
+| 47 | 0x18c | how far out from the monster the shot starts |
+| 48 | 0x194 | the attack (0-2) that throws instead of striking |
 | 49 | 0x198 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
 | 64-66 | 0x11c | each attack's chart, less 4 (0x45a749 plays chart 4 + this) |
 | 67-69 | 0x164 | each spell's chart, less 7 (0x45ac90 plays chart 7 + this) |
@@ -277,7 +282,7 @@ code (0x45b043) reads + 0x134 to + 0x158.
 | 77 | | movement speed, per mille (usually 1000) |
 
 Words 26-28 (monster + 0x110, which the attack code hands on with the
-target search, probably each attack's reach), 44-48, 52-60, 70-75 and 78 are copied too but their use is not known
+target search, probably each attack's reach), 52-60, 70-75 and 78 are copied too but their use is not known
 yet. Before this was read from the exe, the engine took word 9 as the
 attack and 10-12 as hit, defence and evasion, which made monsters far too
 weak.
@@ -705,7 +710,7 @@ bitwise inverted) followed by i32 fields. The shared part, in file order
 | ground folder, picture (0x34, 0x38) | `Character/ITEM/%08d`: a chart of its `Animation.Caf` (folders 0-6) or a pattern of its `Pattern.njp` (7-11) |
 | icon parameter (0x3c), ground tint R, G, B (0x50-0x58) | |
 | glow layer (0x68), its tint (0x6c-0x74) | a second hero layer for some weapons, or -1 |
-| 0x7c, 0x80[2] | unknown |
+| special page (0x7c), its place there (0x80[2]) | the page of the special items window the item is kept on, or -1 |
 
 Then per class: weapons have durability, ten stats (attack, hit, defense,
 evasion, magic attack, magic hit, magic defense, magic evasion, attack
@@ -981,8 +986,30 @@ less). The marks are Status.njp pattern 0x12 left of x = 438, 0x13 to
 x = 457 and 0x14 (red) after. The marks shown step one a frame towards
 that number; the ones between it and the marks shown fade out along the
 way, and on the first frame of a change the full marks are pattern 0x15,
-white. Holding an item over the book at (336, 140)-(391, 211) fades in
-pattern 4 over it.
+white.
+
+The book at (336, 140)-(391, 211) is the Warehouse Transfer Box
+(0x447290 answers 10 there). Holding an item over it fades in pattern 4
+over it, a tenth more each frame up to full and back out once the item
+leaves (0x4074e0). Letting go of an item there (0x446320, case 10) sends
+it to the town warehouse, wherever the hero is:
+
+- Gold first tops up the warehouse's fullest stack short of 10000
+  (0x466cd0), then the next, and so on. All of it fits a stack only with
+  room to spare, so gold that fills the stacks exactly leaves a Gold item
+  of 0 in the hand, which is then put down like any other item (ours drops
+  it; `Rules::noEmptyGoldInWarehouse`).
+- What is left goes to the first free place of the warehouse's 9 x 10
+  grid, row by row from the top (0x466f80), with the item's put-down sound.
+- With no room it stays in the hand, and the original says nothing (ours
+  says the warehouse is full). Gold already added to stacks stays there.
+- An item kept on a special items page (item word 0x7c) goes back to its
+  place on that page instead, unless one like it is there already, and
+  never to the warehouse. With no special items window yet, ours keeps it
+  in the hand.
+
+The open pack draws its own box, an iron-strapped oak strongbox, as part
+of the panel, and frame 6 of Inventory.sheet is the same box lit up.
 
 The status window (Status.njp pattern 5, 0x405750) writes its numbers the
 same way, with Font01 like the item window: level (303, 41), experience

@@ -8,8 +8,9 @@ Each enemy= line of a scenario first_area.py laid out after an original
 one (Scenario/1xxxxxxx) takes the numbers of the monster it stands for,
 placement by placement, so it fights as the original's does: health,
 attacks and their hit, defence, evasion, magic defence and evasion,
-element, spells, experience, gold, speed and what it takes off stuns
-(the enemy block's words, as src/formats/scenario.cpp reads them).
+element, spells, what it throws, experience, gold, speed and what it
+takes off stuns (the enemy block's words, as src/formats/scenario.cpp
+reads them).
 
 Kept as they are: kind, place, facing, wander radius, the AI list (ours,
 in ai.txt) and the drop list (ours, in drops.txt). Only numbers are taken
@@ -52,6 +53,8 @@ def stats_line(line, w):
     for key, word, default in SINGLE:
         if w[word] != default:
             out.append(f"{key}={w[word]}")
+    if w[44] != -1:  # what its attack throws: kind/height/speed/start/attack
+        out.append("shot=" + "/".join(str(w[i]) for i in range(44, 49)))
     if w[7] == 100:  # only 100 matters (Counter Burst); the rest are 1 or 0
         out.append("word7=100")
     return "enemy=" + ",".join(out)
