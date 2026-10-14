@@ -107,6 +107,17 @@ void Game::followPointerTarget() {
     };
     if (pointerOnKind_ == Settings::kItem) {
         for (const auto& g : groundItems_) consider(g.x, g.y, 8);
+    } else if (pointerOnKind_ == Settings::kObject) {
+        // The middle of each object a click would go for.
+        for (std::size_t i = 0; i < control_.placements.size(); ++i) {
+            const auto& p = control_.placements[i];
+            if (p.group != ScenarioControl::Group::Object) continue;
+            const double x = p.x + (p.rect[0] + p.rect[2]) / 2.0, y = p.y + (p.rect[1] + p.rect[3]) / 2.0;
+            int sx, sy;
+            worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
+            const auto [px, py] = onScreen(sx, sy);
+            if (objectAt(px, py) == i) consider(x, y, 0);
+        }
     } else {
         for (const auto& a : actors_) {
             const bool want = pointerOnKind_ == Settings::kEnemy ? a.hostile() && a.alive() : !a.hostile();

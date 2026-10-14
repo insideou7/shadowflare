@@ -834,6 +834,8 @@ void testMagic() {
     check(sf::Rules::ours().healthBarsOverMonsters && !sf::Rules::original().healthBarsOverMonsters,
           "health bars over monsters are ours alone");
     check(sf::Rules::ours().zoomOut && !sf::Rules::original().zoomOut, "original mode keeps the world at full size");
+    check(sf::Rules::ours().outlineUnderPointer && !sf::Rules::original().outlineUnderPointer,
+          "original mode draws no outline around what is under the pointer");
 }
 
 void testPowerMode() {

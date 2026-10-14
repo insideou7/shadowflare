@@ -60,7 +60,10 @@ public:
     // anchored on the object's own position, as the original's pictures
     // are, so a pack draws them to fit that anchor (tools/art/objects.py).
     const std::vector<open::Skin::Piece>* scenarioObject(int kind, int pattern) const;
-    void renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY);
+    // `glow` (per mille) adds a brighter copy on top, as for the one under
+    // the pointer, and `outline` rings it in that colour first.
+    void renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY, int glow = 0,
+                              const SDL_Color* outline = nullptr);
 
 private:
     Skin() = default;
@@ -68,10 +71,12 @@ private:
     SDL_Texture* groundChunk(int cx, int cy);
     const SpriteBank::Picture* chip(int bank, int pattern);
     // Draws props with the original piece's foot at (footX, footY), in map pixels.
-    void renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY);
+    void renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY, int glow = 0,
+                      const SDL_Color* outline = nullptr);
     // Where an original picture's foot is, from its anchor.
     static std::pair<int, int> footOf(const SpriteBank& bank, int pattern);
     SDL_Texture* propTexture(const std::string& prop, int& frame);
+    SDL_Texture* propOutline(const std::string& prop);
 
     std::unique_ptr<FileSystem> pack_;
     SDL_Renderer* renderer_ = nullptr;
@@ -79,6 +84,7 @@ private:
     std::unique_ptr<SpriteBank> props_;
     std::map<std::string, int> propFrames_;
     std::map<std::string, SDL_Texture*> propTextures_;  // by prop name
+    std::map<std::string, SDL_Texture*> propOutlines_;  // their outlines (kOutlineWidth wider each side)
     std::map<std::string, std::optional<MaterialTexture>> materials_;
     std::map<std::tuple<std::string, int, int, int>, MaterialTexture> tinted_;  // material, colour
 

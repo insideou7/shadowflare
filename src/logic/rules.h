@@ -37,10 +37,15 @@ struct Rules {
     // The scroll wheel zooms the world out, to half size (Settings::zoom).
     // The original always shows it at 640 x 480.
     bool zoomOut = true;
+    // A chest, lever, door or item under the pointer gets a light outline,
+    // so what can be used stands out. The original only draws it a little
+    // brighter (0x40ee70), which both modes do.
+    bool outlineUnderPointer = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
-               !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut;
+               !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
+               !outlineUnderPointer;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -52,6 +57,7 @@ struct Rules {
         r.missionsClearOnlyWhenTaken = false;
         r.healthBarsOverMonsters = false;
         r.zoomOut = false;
+        r.outlineUnderPointer = false;
         return r;
     }
 };
