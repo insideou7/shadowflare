@@ -2477,10 +2477,15 @@ HERO_ATTACK = [
                     elbow_r=(0, 0, 0), weapon=(0, math.radians(50), 0), arm_l=(0.0, -4.2, 0),
                     elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.50, 0.1), knee_l=(0, 1.85, 0),
                     leg_r=(-0.12, 0.97, -0.1), knee_r=(0, 0.25, 0))),
+    (0.889, hero_key(GUARD, spine=(0, 1.30, -0.20), head=(0, -0.85, 0.10), arm_r=(0.30, 4.22, 0),
+                     elbow_r=(0, -0.05, 0), weapon=(0, math.radians(53), 0), arm_l=(0.0, -4.1, 0),
+                     elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.50, 0.1), knee_l=(0, 1.85, 0),
+                     leg_r=(-0.12, 0.97, -0.1), knee_r=(0, 0.25, 0))),
+    # On the last frame the back knee sags down towards the ground.
     (1.0, hero_key(GUARD, spine=(0, 1.30, -0.20), head=(0, -0.85, 0.10), arm_r=(0.30, 4.22, 0),
                    elbow_r=(0, -0.05, 0), weapon=(0, math.radians(53), 0), arm_l=(0.0, -4.1, 0),
                    elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.50, 0.1), knee_l=(0, 1.85, 0),
-                   leg_r=(-0.12, 0.97, -0.1), knee_r=(0, 0.25, 0))),
+                   leg_r=(-0.12, 0.556, -0.1), knee_r=(0, 0.9, 0))),
 ]
 # The heroine's attack, her own like the original's, over the same ten
 # frames with the blow on frame 7: from a crouch with the sword held low
