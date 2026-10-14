@@ -1,0 +1,1591 @@
+# The original's unique items with our names and pictures. Made by
+# tools/content/uniques.py from the player's own Item.Ibn: the numbers are
+# the original's, so each plays and drops as it did there.
+
+# Accessory: 93 items
+
+[item accessory 200000]
+name=Huntsman's Amulet
+unidentified=Amulet
+quality=2
+subtype=0
+size=1,1
+price=6800
+fixed-price=1
+icon=1,0
+ground=8,0
+level=25,27
+weight=500
+load=5
+mod=attack,15,15
+mod=defense,-5,-5
+mod=hit,35,35
+
+[item accessory 200001]
+name=Warding Amulet
+unidentified=Amulet
+quality=2
+subtype=0
+size=1,1
+price=6700
+fixed-price=1
+icon=1,1
+ground=8,1
+level=25,27
+weight=500
+load=5
+mod=attack,-5,-5
+mod=defense,15,15
+mod=evasion,20,20
+
+[item accessory 200002]
+name=Falconer's Pendant
+unidentified=Pendant
+quality=2
+subtype=0
+size=1,1
+price=6900
+fixed-price=1
+icon=1,2
+ground=8,2
+level=25,27
+weight=500
+load=5
+mod=attack,15,15
+mod=defense,-5,-5
+mod=hit,15,15
+mod=evasion,10,10
+
+[item accessory 200003]
+name=Shepherd's Pendant
+unidentified=Pendant
+quality=2
+subtype=0
+size=1,1
+price=6800
+fixed-price=1
+icon=1,3
+ground=8,3
+level=22,23
+weight=500
+load=5
+mod=attack,-5,-5
+mod=defense,15,15
+mod=hit,15,15
+mod=evasion,10,10
+
+[item accessory 200004]
+name=Twinheart Pendant
+unidentified=Pendant
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,4
+ground=8,4
+level=22,23
+weight=500
+load=5
+mod=max-hp,50,50
+mod=max-mp,50,50
+
+[item accessory 200005]
+name=Tidewall Pendant
+unidentified=Pendant
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,5
+ground=8,5
+level=22,23
+weight=500
+load=5
+mod=attack,-10,-10
+mod=defense,25,25
+mod=strength,5,5
+element-mod=fire,-2,-2
+element-mod=water,2,2
+
+[item accessory 200006]
+name=Oxblood Amulet
+unidentified=Amulet
+quality=2
+subtype=0
+size=1,1
+price=7800
+fixed-price=1
+icon=1,6
+ground=8,6
+level=23,25
+weight=500
+load=5
+mod=attack,20,20
+mod=strength,20,20
+
+[item accessory 200007]
+name=Riverglass Pendant
+unidentified=Pendant
+quality=2
+subtype=0
+size=1,1
+price=7500
+fixed-price=1
+icon=1,7
+ground=8,7
+level=23,25
+weight=500
+load=5
+mod=mental-cost,5,5
+element-mod=water,2,2
+
+[item accessory 200008]
+name=Miser's Bangle
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,8
+ground=8,8
+level=26,28
+weight=500
+load=5
+mod=gold,50,50
+mod=mine-count,3,3
+element-mod=dark,2,2
+
+[item accessory 200009]
+name=Sapper's Bangle
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,9
+ground=8,9
+level=26,28
+weight=500
+load=5
+mod=gold,30,30
+mod=mine-power,100,100
+element-mod=fire,-2,-2
+element-mod=water,2,2
+
+[item accessory 200010]
+name=Houndmaster's Cuff
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,10
+ground=8,10
+level=27,29
+weight=500
+load=5
+mod=companion-hp,-20,-20
+mod=companion-attack,50,50
+element-mod=holy,-2,-2
+element-mod=dark,2,2
+
+[item accessory 200011]
+name=Cinder Cuff
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8600
+fixed-price=1
+icon=1,11
+ground=8,11
+level=27,29
+weight=500
+load=5
+mod=attack,-5,-5
+mod=defense,10,10
+element-mod=fire,2,2
+element-mod=water,-2,-2
+
+[item accessory 200012]
+name=Duskwoven Cuff
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8700
+fixed-price=1
+icon=1,12
+ground=8,12
+level=27,29
+weight=500
+load=5
+mod=magic-attack,5,5
+element-mod=dark,2,2
+
+[item accessory 200013]
+name=Emberlink Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8300
+fixed-price=1
+icon=1,13
+ground=8,13
+level=27,29
+weight=500
+load=5
+mod=attack,10,10
+mod=defense,-5,-5
+element-mod=fire,2,2
+
+[item accessory 200014]
+name=Chanter's Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8900
+fixed-price=1
+icon=1,14
+ground=8,14
+level=23,25
+weight=500
+load=5
+mod=healing-potions,1,1
+mod=chant-speed,20,20
+
+[item accessory 200015]
+name=Kennel Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8600
+fixed-price=1
+icon=1,15
+ground=8,15
+level=23,25
+weight=500
+load=5
+mod=companion-hp,100,100
+mod=companion-attack,20,20
+
+[item accessory 200016]
+name=Psalmist's Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8700
+fixed-price=1
+icon=1,16
+ground=8,16
+level=23,25
+weight=500
+load=5
+mod=mental-potions,1,1
+mod=chant-speed,30,30
+
+[item accessory 200017]
+name=Loam Sage Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8600
+fixed-price=1
+icon=1,17
+ground=8,17
+level=23,25
+weight=500
+load=5
+mod=attack,-15,-15
+mod=defense,-15,-15
+mod=magic-attack,30,30
+mod=magic-defense,30,30
+element-mod=earth,2,2
+
+[item accessory 200018]
+name=Brawler's Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,18
+ground=8,18
+level=23,25
+weight=500
+load=5
+mod=attack,30,30
+mod=defense,30,30
+mod=magic-attack,-15,-15
+mod=magic-defense,-15,-15
+
+[item accessory 200019]
+name=Starwatch Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=8700
+fixed-price=1
+icon=1,19
+ground=8,19
+level=27,30
+weight=500
+load=5
+mod=magic-hit,45,45
+mod=magic-evasion,45,45
+mod=attack-speed,-10,-10
+
+[item accessory 200020]
+name=Ironsap Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12000
+fixed-price=1
+icon=1,20
+ground=8,20
+level=27,30
+weight=500
+load=5
+mod=max-hp,20,20
+mod=strength,10,10
+element-mod=gel,3,3
+element-mod=metal,3,3
+
+[item accessory 200021]
+name=Hushstone Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11500
+fixed-price=1
+icon=1,21
+ground=8,21
+level=23,25
+weight=500
+load=5
+mod=magic-attack,-5,-5
+mod=magic-defense,20,20
+
+[item accessory 200022]
+name=Sparkthorn Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,22
+ground=8,22
+level=23,25
+weight=500
+load=5
+mod=magic-attack,20,20
+mod=magic-defense,-5,-5
+
+[item accessory 200023]
+name=Prospector's Band
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,23
+ground=8,23
+level=27,30
+weight=500
+load=5
+mod=gold,70,70
+mod=mine-count,5,5
+element-mod=fire,1,1
+element-mod=water,1,1
+element-mod=earth,1,1
+element-mod=thunder,1,1
+element-mod=holy,1,1
+element-mod=dark,1,1
+element-mod=gel,1,1
+element-mod=metal,1,1
+
+[item accessory 200024]
+name=Tinker's Band
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,24
+ground=8,24
+level=22,24
+weight=500
+load=5
+mod=gold,50,50
+mod=mine-power,130,130
+element-mod=fire,1,1
+element-mod=earth,1,1
+element-mod=holy,1,1
+element-mod=gel,1,1
+
+[item accessory 200025]
+name=Packleader Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9500
+fixed-price=1
+icon=1,25
+ground=8,25
+level=22,24
+weight=500
+load=5
+mod=hit,-35,-35
+mod=companion-attack,50,50
+mod=companion-hit,10,10
+mod=companion-defense,10,10
+mod=companion-evasion,10,10
+mod=companion-magic-defense,10,10
+mod=companion-magic-evasion,10,10
+
+[item accessory 200026]
+name=Shieldhound Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9600
+fixed-price=1
+icon=1,26
+ground=8,26
+level=27,30
+weight=500
+load=5
+mod=evasion,-35,-35
+mod=companion-attack,10,10
+mod=companion-hit,10,10
+mod=companion-defense,30,30
+mod=companion-evasion,10,10
+mod=companion-magic-defense,10,10
+mod=companion-magic-evasion,10,10
+
+[item accessory 200027]
+name=Fusewright Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12800
+fixed-price=1
+icon=1,27
+ground=8,27
+level=27,30
+weight=500
+load=5
+mod=mine-power,50,50
+mod=mine-count,10,10
+
+[item accessory 200028]
+name=Blastcap Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,28
+ground=8,28
+level=28,33
+weight=500
+load=5
+mod=mine-power,150,150
+mod=mine-count,2,2
+
+[item accessory 200029]
+name=Wayfarer's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12300
+fixed-price=1
+icon=1,29
+ground=8,29
+level=22,24
+weight=500
+load=5
+mod=walk-speed,30,30
+
+[item accessory 200030]
+name=Oakheart Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=14000
+fixed-price=1
+icon=1,30
+ground=8,30
+level=22,24
+weight=500
+load=5
+mod=max-hp,100,100
+
+[item accessory 200031]
+name=Wellspring Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=14000
+fixed-price=1
+icon=1,31
+ground=8,31
+level=22,24
+weight=500
+load=5
+mod=max-mp,100,100
+
+[item accessory 200032]
+name=Howling Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=14500
+fixed-price=1
+icon=1,32
+ground=8,32
+level=28,33
+weight=500
+load=5
+mod=companion-hp,50,50
+mod=companion-attack,20,20
+mod=companion-hit,20,20
+mod=companion-defense,20,20
+mod=companion-evasion,20,20
+mod=companion-magic-defense,20,20
+mod=companion-magic-evasion,20,20
+
+[item accessory 200033]
+name=Spellbane Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=14500
+fixed-price=1
+icon=1,33
+ground=8,33
+level=28,33
+weight=500
+load=5
+mod=magic-attack,-5,-5
+mod=magic-defense,25,25
+
+[item accessory 200034]
+name=Quickhand Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12000
+fixed-price=1
+icon=1,34
+ground=8,34
+level=28,33
+weight=500
+load=5
+mod=attack-speed,25,25
+mod=walk-speed,25,25
+mod=stun-chance,3,3
+mod=stun-length,2,2
+
+[item accessory 200035]
+name=Leechbite Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12000
+fixed-price=1
+icon=1,35
+ground=8,35
+level=28,33
+weight=500
+load=5
+mod=absorption-chance,2,2
+mod=absorption-rate,3,3
+
+[item accessory 200036]
+name=Thornback Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=13500
+fixed-price=1
+icon=1,36
+ground=8,36
+level=28,33
+weight=500
+load=5
+mod=reflection-chance,5,5
+mod=reflection-rate,5,5
+
+[item accessory 200037]
+name=Lantern Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12500
+fixed-price=1
+icon=1,37
+ground=8,37
+level=25,30
+weight=500
+load=5
+mod=mental-recovery,8,8
+mod=mental-cost,5,5
+
+[item accessory 200038]
+name=Mender's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=12500
+fixed-price=1
+icon=1,38
+ground=8,38
+level=25,30
+weight=500
+load=5
+mod=strength,20,20
+mod=life-recovery,8,8
+
+[item accessory 200039]
+name=Scholar's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=10000
+fixed-price=1
+icon=1,39
+ground=8,39
+level=25,30
+weight=500
+load=5
+mod=magic-level,1,1
+
+[item accessory 200040]
+name=Bitterroot Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,40
+ground=8,40
+level=25,28
+weight=500
+load=5
+mod=healing-potions,15,15
+element-mod=holy,-1,-1
+element-mod=dark,1,1
+
+[item accessory 200041]
+name=Dewdrop Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,41
+ground=8,41
+level=25,28
+weight=500
+load=5
+mod=mental-potions,15,15
+element-mod=holy,1,1
+element-mod=dark,-1,-1
+
+[item accessory 200042]
+name=Shade Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9500
+fixed-price=1
+icon=1,42
+ground=8,42
+level=26,30
+weight=500
+load=5
+mod=attack,5,5
+element-mod=dark,2,2
+
+[item accessory 200043]
+name=Dawn Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9500
+fixed-price=1
+icon=1,43
+ground=8,43
+level=26,30
+weight=500
+load=5
+mod=defense,5,5
+element-mod=holy,2,2
+
+[item accessory 200044]
+name=Stoutheart Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,44
+ground=8,44
+level=26,30
+weight=500
+load=5
+mod=max-hp,150,150
+mod=max-mp,-20,-20
+
+[item accessory 200045]
+name=Thinblood Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,45
+ground=8,45
+level=26,30
+weight=500
+load=5
+mod=max-hp,-20,-20
+mod=max-mp,150,150
+
+[item accessory 200046]
+name=Hillshrine Beads
+unidentified=Beads
+quality=2
+subtype=0
+size=1,1
+price=6800
+fixed-price=1
+icon=1,46
+ground=8,46
+level=49,55
+weight=500
+load=5
+mod=defense,25,25
+mod=magic-defense,20,20
+mod=max-mp,50,50
+mod=magic-level,1,1
+
+[item accessory 200047]
+name=Brightsteel Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,47
+ground=8,47
+level=42,42
+weight=500
+load=5
+mod=strength,20,20
+element-mod=metal,1,1
+
+[item accessory 200048]
+name=Blackguard Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,48
+ground=8,48
+level=42,42
+weight=500
+load=5
+mod=strength,20,20
+element-mod=dark,1,1
+
+[item accessory 200049]
+name=Paladin's Bracelet
+unidentified=Bracelet
+quality=2
+subtype=0
+size=1,1
+price=9800
+fixed-price=1
+icon=1,49
+ground=8,49
+level=42,42
+weight=500
+load=5
+mod=strength,20,20
+element-mod=holy,1,1
+
+[item accessory 200050]
+name=Deepdelver Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,50
+ground=8,50
+level=49,61
+weight=200
+load=5
+mod=healing-potions,10,10
+mod=mental-potions,10,10
+element-mod=fire,1,1
+element-mod=water,1,1
+element-mod=earth,1,1
+element-mod=thunder,1,1
+element-mod=holy,1,1
+element-mod=dark,1,1
+element-mod=gel,1,1
+element-mod=metal,1,1
+
+[item accessory 200051]
+name=Heartfire Shard
+unidentified=Crystal
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,51
+ground=8,51
+level=48,50
+weight=200
+load=5
+mod=attack,20,20
+mod=magic-attack,10,10
+element-mod=fire,5,5
+element-mod=water,-2,-2
+
+[item accessory 200052]
+name=Deepwater Shard
+unidentified=Crystal
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,52
+ground=8,52
+level=48,50
+weight=200
+load=5
+mod=defense,10,10
+mod=magic-defense,10,10
+element-mod=fire,-2,-2
+element-mod=water,5,5
+
+[item accessory 200053]
+name=Bedrock Shard
+unidentified=Crystal
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,53
+ground=8,53
+level=48,50
+weight=200
+load=5
+mod=hit,10,10
+mod=max-hp,100,100
+element-mod=earth,5,5
+element-mod=thunder,-2,-2
+
+[item accessory 200054]
+name=Stormcall Shard
+unidentified=Crystal
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,54
+ground=8,54
+level=48,50
+weight=200
+load=5
+mod=evasion,10,10
+mod=walk-speed,20,20
+element-mod=earth,-2,-2
+element-mod=thunder,5,5
+
+[item accessory 200055]
+name=Marksman's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,55
+ground=8,55
+level=42,40
+weight=200
+load=5
+mod=hit,35,35
+mod=magic-hit,35,35
+
+[item accessory 200056]
+name=Nimblefinger Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=8500
+fixed-price=1
+icon=1,56
+ground=8,56
+level=48,65
+weight=200
+load=5
+mod=hit,20,20
+mod=evasion,15,15
+mod=magic-hit,20,20
+mod=magic-evasion,15,15
+
+[item accessory 200057]
+name=Warlord's Signet
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9500
+fixed-price=1
+icon=1,57
+ground=8,57
+level=48,65
+weight=200
+load=5
+mod=attack,5,5
+mod=defense,10,10
+mod=max-hp,200,200
+mod=max-mp,-50,-50
+mod=strength,20,20
+
+[item accessory 200058]
+name=Conjurer's Signet
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=9500
+fixed-price=1
+icon=1,58
+ground=8,58
+level=48,65
+weight=200
+load=5
+mod=magic-attack,20,20
+mod=magic-defense,10,10
+mod=max-mp,150,150
+mod=strength,-20,-20
+
+[item accessory 200059]
+name=Pickpocket's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,59
+ground=8,59
+level=42,40
+weight=200
+load=5
+mod=evasion,10,10
+mod=magic-evasion,10,10
+mod=walk-speed,40,40
+
+[item accessory 200060]
+name=Whirlwind Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=11000
+fixed-price=1
+icon=1,60
+ground=8,60
+level=48,65
+weight=200
+load=5
+mod=hit,20,20
+mod=attack-speed,30,30
+mod=walk-speed,25,25
+
+[item accessory 200061]
+name=Warbringer Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,61
+ground=8,61
+level=56,70
+weight=200
+load=5
+mod=attack,50,50
+
+[item accessory 200062]
+name=Staggerbolt Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,62
+ground=8,62
+level=56,70
+weight=200
+load=5
+mod=hit,40,40
+mod=stun-chance,5,5
+mod=stun-length,3,3
+
+[item accessory 200063]
+name=Apothecary's Locket
+unidentified=Locket
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,63
+ground=8,63
+level=56,70
+weight=200
+load=5
+mod=healing-potions,20,20
+mod=mental-potions,20,20
+
+[item accessory 200064]
+name=Bastion Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,64
+ground=8,64
+level=56,70
+weight=200
+load=5
+mod=defense,50,50
+
+[item accessory 200065]
+name=Soul of the Fleeting Shade
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,65
+ground=8,65
+level=56,70
+weight=200
+load=5
+mod=evasion,20,20
+
+[item accessory 200066]
+name=Soul of the Burning Eye
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,66
+ground=8,66
+level=56,70
+weight=200
+load=5
+mod=magic-attack,50,50
+
+[item accessory 200067]
+name=Soul of the Silent Wall
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,67
+ground=8,67
+level=56,70
+weight=200
+load=5
+mod=magic-defense,50,50
+
+[item accessory 200068]
+name=Soul of the Iron Giant
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,68
+ground=8,68
+level=56,70
+weight=200
+load=5
+mod=max-hp,250,250
+
+[item accessory 200069]
+name=Soul of the Deep Well
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,69
+ground=8,69
+level=56,70
+weight=200
+load=5
+mod=max-mp,200,200
+
+[item accessory 200070]
+name=Soul of the Mountain Bull
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,70
+ground=8,70
+level=56,70
+weight=200
+load=5
+mod=strength,60,60
+
+[item accessory 200071]
+name=Soul of the Black Powder
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,71
+ground=8,71
+level=56,70
+weight=200
+load=5
+mod=mine-power,170,170
+
+[item accessory 200072]
+name=Soul of the Green Healer
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,72
+ground=8,72
+level=56,70
+weight=200
+load=5
+mod=healing-potions,30,30
+
+[item accessory 200073]
+name=Soul of the Blue Sage
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,73
+ground=8,73
+level=56,70
+weight=200
+load=5
+mod=mental-potions,30,30
+
+[item accessory 200074]
+name=Soul of the Swift Tongue
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=15000
+fixed-price=1
+icon=1,74
+ground=8,74
+level=56,70
+weight=200
+load=5
+mod=chant-speed,50,50
+
+[item accessory 200075]
+name=Bloodthirst Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,75
+ground=8,75
+level=60,75
+weight=50
+load=5
+mod=absorption-chance,10,10
+mod=absorption-rate,5,5
+
+[item accessory 200076]
+name=Conqueror's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,76
+ground=8,76
+level=60,75
+weight=50
+pool=2
+load=5
+mod=attack,100,100
+mod=defense,25,25
+mod=magic-attack,-100,-100
+mod=attack-speed,20,20
+mod=walk-speed,10,10
+
+[item accessory 200077]
+name=Ring of the Old Champion
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,77
+ground=8,77
+level=60,75
+weight=50
+pool=2
+load=5
+mod=attack,50,50
+mod=defense,10,10
+mod=hit,20,20
+mod=evasion,10,10
+mod=attack-speed,20,20
+mod=walk-speed,10,10
+mod=strength,20,20
+
+[item accessory 200078]
+name=Glacier Heart
+unidentified=Gem
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,78
+ground=8,78
+level=60,75
+weight=30
+load=5
+mod=defense,30,30
+mod=evasion,10,10
+mod=magic-defense,30,30
+mod=life-recovery,2,2
+mod=mental-recovery,2,2
+element-mod=fire,-1,-1
+element-mod=water,2,2
+
+[item accessory 200079]
+name=Ring of Balance
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,79
+ground=8,79
+level=60,75
+weight=30
+load=5
+mod=attack,50,50
+mod=magic-attack,50,50
+mod=attack-speed,20,20
+mod=max-hp,100,100
+mod=max-mp,100,100
+element-mod=fire,1,1
+element-mod=water,1,1
+element-mod=earth,1,1
+element-mod=thunder,1,1
+element-mod=holy,1,1
+element-mod=dark,1,1
+element-mod=gel,1,1
+element-mod=metal,1,1
+
+[item accessory 200080]
+name=Oyster's Gift
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,80
+ground=8,80
+level=60,75
+weight=30
+load=5
+mod=defense,-20,-20
+mod=magic-defense,-20,-20
+mod=life-recovery,2,2
+mod=mental-recovery,2,2
+
+[item accessory 200081]
+name=Inkwater Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,81
+ground=8,81
+level=60,75
+weight=30
+load=5
+mod=healing-potions,-10,-10
+mod=mental-potions,-10,-10
+mod=mine-power,200,200
+mod=mine-count,5,5
+element-mod=dark,2,2
+
+[item accessory 200082]
+name=Sunforged Nugget
+unidentified=Gem
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,82
+ground=8,82
+level=60,75
+weight=30
+load=5
+mod=attack,100,100
+mod=defense,10,10
+mod=magic-attack,-50,-50
+mod=walk-speed,-10,-10
+
+[item accessory 200083]
+name=Rainmaiden's Ring
+unidentified=Ring
+quality=2
+subtype=0
+size=1,1
+price=30000
+fixed-price=1
+icon=1,83
+ground=8,83
+level=60,75
+weight=30
+load=5
+mod=attack,-30,-30
+mod=defense,30,30
+mod=evasion,10,10
+mod=magic-attack,-30,-30
+mod=magic-defense,30,30
+mod=magic-evasion,10,10
+mod=absorption-chance,5,5
+mod=absorption-rate,5,5
+element-mod=water,2,2
+
+[item accessory 30000000]
+name=Great Waystone
+unidentified=Stone
+quality=2
+subtype=0
+size=5,3
+price=100000
+fixed-price=1
+icon=1,84
+ground=8,84
+level=56,70
+weight=500
+load=100
+
+[item accessory 30000001]
+name=Waystone of Embers
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,85
+ground=8,85
+level=56,70
+weight=500
+load=100
+element-mod=fire,1,5
+
+[item accessory 30000002]
+name=Waystone of Tides
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,86
+ground=8,86
+level=56,70
+weight=500
+load=100
+element-mod=water,1,5
+
+[item accessory 30000003]
+name=Waystone of Loam
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,87
+ground=8,87
+level=56,70
+weight=500
+load=100
+element-mod=earth,1,5
+
+[item accessory 30000004]
+name=Waystone of Storms
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,88
+ground=8,88
+level=56,70
+weight=500
+load=100
+element-mod=thunder,1,5
+
+[item accessory 30000005]
+name=Waystone of Dawn
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,89
+ground=8,89
+level=56,70
+weight=500
+load=100
+element-mod=holy,1,5
+
+[item accessory 30000006]
+name=Waystone of Dusk
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,90
+ground=8,90
+level=56,70
+weight=500
+load=100
+element-mod=dark,1,5
+
+[item accessory 30000007]
+name=Waystone of Ooze
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,91
+ground=8,91
+level=56,70
+weight=500
+load=100
+element-mod=gel,1,5
+
+[item accessory 30000008]
+name=Waystone of Iron
+unidentified=Stone
+quality=2
+subtype=0
+size=3,4
+price=10000
+fixed-price=1
+icon=1,92
+ground=8,92
+level=56,70
+weight=500
+load=100
+element-mod=metal,1,5

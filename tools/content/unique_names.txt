@@ -1,0 +1,99 @@
+# Our names for the original's unique items (tools/content/uniques.py).
+# <class> <code> <kind> <name>: the kind picks the picture tools/art/uniques.py
+# draws and the name shown before the item is identified. The names are
+# ours; never copy the original's.
+
+# Accessories
+accessory 200000 amulet Huntsman's Amulet
+accessory 200001 amulet Warding Amulet
+accessory 200002 pendant Falconer's Pendant
+accessory 200003 pendant Shepherd's Pendant
+accessory 200004 pendant Twinheart Pendant
+accessory 200005 pendant Tidewall Pendant
+accessory 200006 amulet Oxblood Amulet
+accessory 200007 pendant Riverglass Pendant
+accessory 200008 bracelet Miser's Bangle
+accessory 200009 bracelet Sapper's Bangle
+accessory 200010 bracelet Houndmaster's Cuff
+accessory 200011 bracelet Cinder Cuff
+accessory 200012 bracelet Duskwoven Cuff
+accessory 200013 bracelet Emberlink Bracelet
+accessory 200014 bracelet Chanter's Bracelet
+accessory 200015 bracelet Kennel Bracelet
+accessory 200016 bracelet Psalmist's Bracelet
+accessory 200017 bracelet Loam Sage Bracelet
+accessory 200018 bracelet Brawler's Bracelet
+accessory 200019 bracelet Starwatch Bracelet
+accessory 200020 ring Ironsap Ring
+accessory 200021 ring Hushstone Ring
+accessory 200022 ring Sparkthorn Ring
+accessory 200023 ring Prospector's Band
+accessory 200024 ring Tinker's Band
+accessory 200025 ring Packleader Ring
+accessory 200026 ring Shieldhound Ring
+accessory 200027 ring Fusewright Ring
+accessory 200028 ring Blastcap Ring
+accessory 200029 ring Wayfarer's Ring
+accessory 200030 ring Oakheart Ring
+accessory 200031 ring Wellspring Ring
+accessory 200032 ring Howling Ring
+accessory 200033 ring Spellbane Ring
+accessory 200034 ring Quickhand Ring
+accessory 200035 ring Leechbite Ring
+accessory 200036 ring Thornback Ring
+accessory 200037 ring Lantern Ring
+accessory 200038 ring Mender's Ring
+accessory 200039 ring Scholar's Ring
+accessory 200040 ring Bitterroot Ring
+accessory 200041 ring Dewdrop Ring
+accessory 200042 ring Shade Ring
+accessory 200043 ring Dawn Ring
+accessory 200044 ring Stoutheart Ring
+accessory 200045 ring Thinblood Ring
+accessory 200046 beads Hillshrine Beads
+accessory 200047 bracelet Brightsteel Bracelet
+accessory 200048 bracelet Blackguard Bracelet
+accessory 200049 bracelet Paladin's Bracelet
+accessory 200050 ring Deepdelver Ring
+accessory 200051 crystal Heartfire Shard
+accessory 200052 crystal Deepwater Shard
+accessory 200053 crystal Bedrock Shard
+accessory 200054 crystal Stormcall Shard
+accessory 200055 ring Marksman's Ring
+accessory 200056 ring Nimblefinger Ring
+accessory 200057 ring Warlord's Signet
+accessory 200058 ring Conjurer's Signet
+accessory 200059 ring Pickpocket's Ring
+accessory 200060 ring Whirlwind Ring
+accessory 200061 ring Warbringer Ring
+accessory 200062 ring Staggerbolt Ring
+accessory 200063 locket Apothecary's Locket
+accessory 200064 ring Bastion Ring
+accessory 200065 darkring Soul of the Fleeting Shade
+accessory 200066 darkring Soul of the Burning Eye
+accessory 200067 darkring Soul of the Silent Wall
+accessory 200068 darkring Soul of the Iron Giant
+accessory 200069 darkring Soul of the Deep Well
+accessory 200070 darkring Soul of the Mountain Bull
+accessory 200071 darkring Soul of the Black Powder
+accessory 200072 darkring Soul of the Green Healer
+accessory 200073 darkring Soul of the Blue Sage
+accessory 200074 darkring Soul of the Swift Tongue
+accessory 200075 darkring Bloodthirst Ring
+accessory 200076 darkring Conqueror's Ring
+accessory 200077 darkring Ring of the Old Champion
+accessory 200078 gem Glacier Heart
+accessory 200079 ring Ring of Balance
+accessory 200080 ring Oyster's Gift
+accessory 200081 ring Inkwater Ring
+accessory 200082 gem Sunforged Nugget
+accessory 200083 ring Rainmaiden's Ring
+accessory 30000000 waystone Great Waystone
+accessory 30000001 waystone Waystone of Embers
+accessory 30000002 waystone Waystone of Tides
+accessory 30000003 waystone Waystone of Loam
+accessory 30000004 waystone Waystone of Storms
+accessory 30000005 waystone Waystone of Dawn
+accessory 30000006 waystone Waystone of Dusk
+accessory 30000007 waystone Waystone of Ooze
+accessory 30000008 waystone Waystone of Iron
