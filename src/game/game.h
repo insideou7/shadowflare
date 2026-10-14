@@ -976,7 +976,7 @@ private:
     // original's own art, else ours, drawn from the map itself.
     void drawAreaMapPicture(int left, int top);
     void buildAreaMapPicture();
-    void renderScenery(int camX, int camY);  // ground and objects, no one on them
+    void renderScenery(int camX, int camY, bool ground = true);  // ground and objects, no one on them
 
     // The Settings Menu and Help window (options.cpp). The menu has two
     // tabs: the original's settings, and our cheats.

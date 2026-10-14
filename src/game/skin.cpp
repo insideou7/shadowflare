@@ -1,6 +1,7 @@
 #include "game/skin.h"
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <format>
@@ -133,7 +134,7 @@ void Skin::setMap(const Map* map) {
                         if (made) at->second = tinted(*texture, m.colour);
                         texture = &at->second;
                     }
-                    rule.entries.push_back({texture, m.colour});
+                    rule.entries.push_back({texture, m.colour, texture ? averageColour(*texture) : Rgb{}});
                 }
                 rules_.push_back(std::move(rule));
             }
@@ -199,6 +200,75 @@ SDL_Texture* Skin::groundChunk(int cx, int cy) {
     }
     chunks_.emplace_front(std::pair{cx, cy}, texture);
     return texture;
+}
+
+std::vector<std::uint32_t> Skin::groundOverview(int left, int top, int scale, int w, int h) {
+    std::vector<std::uint32_t> out(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0xff000000u);
+    if (!map_ || scale < 1) return out;
+    const auto& g = map_->ground();
+    if (g.chipWidth <= 0 || g.chipHeight <= 0) return out;
+    const int mapW = g.width * g.chipWidth, mapH = g.height * g.chipHeight;
+    // A row of blocks at a time: each block's original colours added up by
+    // the rule painting them (the last for none, kept as they are), then
+    // painted as paintGround paints them on average. Every other pixel each
+    // way is plenty for an average.
+    constexpr int kStep = 2;
+    const std::size_t kinds = rules_.size() + 1, none = rules_.size();
+    std::vector<std::array<unsigned, 4>> sums(static_cast<std::size_t>(w) * kinds);
+    std::vector<float> weights;
+    const float n = static_cast<float>(((scale + kStep - 1) / kStep) * ((scale + kStep - 1) / kStep));
+    for (int by = 0; by < h; ++by) {
+        std::fill(sums.begin(), sums.end(), std::array<unsigned, 4>{});
+        const int y0 = top + by * scale;
+        for (int py = std::max(0, y0); py < std::min(mapH, y0 + scale); py += kStep) {
+            const int chipY = py / g.chipHeight, iy = py - chipY * g.chipHeight;
+            int lastChipX = -1;
+            const SpriteBank::Picture* pic = nullptr;
+            std::size_t rule = none;
+            for (int bx = 0; bx < w; ++bx) {
+                const int x0 = left + bx * scale;
+                for (int px = std::max(0, x0); px < std::min(mapW, x0 + scale); px += kStep) {
+                    const int chipX = px / g.chipWidth;
+                    if (chipX != lastChipX) {
+                        lastChipX = chipX;
+                        const auto& cell = g.at(chipX, chipY);
+                        pic = chip(cell.bank, cell.pattern);
+                        if (pic && iy >= pic->height) pic = nullptr;
+                        rule = cell.bank >= 0 && static_cast<std::size_t>(cell.bank) < bankRule_.size() && bankRule_[cell.bank] >= 0
+                                   ? static_cast<std::size_t>(bankRule_[cell.bank])
+                                   : none;
+                    }
+                    const int ix = px - chipX * g.chipWidth;
+                    const bool drawn = pic && ix < pic->width;
+                    const std::uint32_t c = drawn ? pic->argb[static_cast<std::size_t>(iy) * pic->width + ix] : 0;
+                    auto& s = sums[static_cast<std::size_t>(bx) * kinds + (drawn ? rule : none)];
+                    s[0] += (c >> 16) & 255;
+                    s[1] += (c >> 8) & 255;
+                    s[2] += c & 255;
+                    s[3] += 1;
+                }
+            }
+        }
+        for (int bx = 0; bx < w; ++bx) {
+            float rgb[3] = {0, 0, 0};
+            for (std::size_t i = 0; i < kinds; ++i) {
+                const auto& s = sums[static_cast<std::size_t>(bx) * kinds + i];
+                if (s[3] == 0) continue;
+                const float count = static_cast<float>(s[3]);
+                const float r = static_cast<float>(s[0]) / count, g = static_cast<float>(s[1]) / count,
+                            b = static_cast<float>(s[2]) / count;
+                Rgb c{static_cast<std::uint8_t>(r), static_cast<std::uint8_t>(g), static_cast<std::uint8_t>(b)};
+                if (i != none && !rules_[i].entries.empty()) c = averagePainted(rules_[i], r, g, b, weights);
+                rgb[0] += c.r * count / n;
+                rgb[1] += c.g * count / n;
+                rgb[2] += c.b * count / n;
+            }
+            out[static_cast<std::size_t>(by) * static_cast<std::size_t>(w) + static_cast<std::size_t>(bx)] =
+                0xff000000u | static_cast<std::uint32_t>(std::min(255.0f, rgb[0])) << 16 |
+                static_cast<std::uint32_t>(std::min(255.0f, rgb[1])) << 8 | static_cast<std::uint32_t>(std::min(255.0f, rgb[2]));
+        }
+    }
+    return out;
 }
 
 void Skin::renderGround(int camX, int camY) {

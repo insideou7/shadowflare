@@ -44,6 +44,11 @@ public:
     // Draws the ground in place of the original's chips.
     void renderGround(int camX, int camY);
 
+    // A w x h picture of the ground, each pixel the average of a scale x
+    // scale block from map pixel (left, top): what renderGround draws
+    // there, near enough, without painting it all, which takes long.
+    std::vector<std::uint32_t> groundOverview(int left, int top, int scale, int w, int h);
+
     // What to draw instead of an original map object: null when the
     // original is drawn, else the props (an empty list draws nothing). A
     // shadow (.sdw) piece goes with its .njp piece, since our props carry

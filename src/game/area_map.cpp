@@ -19,6 +19,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "game/game.h"
+#include "game/skin.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -121,7 +122,11 @@ void Game::tickAreaMap() {
 }
 
 // Our picture of the area: the ground and objects drawn a screen at a time
-// and each 10 x 10 block of pixels averaged into one.
+// and each 10 x 10 block of pixels averaged into one. Our ground on the
+// original's maps is painted pixel by pixel, which for a whole map takes
+// long enough to freeze the game, so there the skin works out each block's
+// average ground without painting it, and only the objects are drawn, on
+// nothing, to go over it.
 void Game::buildAreaMapPicture() {
     mapPicture_.reset();
     mapPictureFor_ = mapNames_[mapIndex_];
@@ -134,32 +139,45 @@ void Game::buildAreaMapPicture() {
         log::warn("Map picture: {}", SDL_GetError());
         return;
     }
+    const bool skinGround = skin_ && map_->ground().isoTile <= 0;
+    std::vector<std::uint32_t> small =
+        skinGround ? skin_->groundOverview(left, top, kMapScale, w, h)
+                   : std::vector<std::uint32_t>(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
     SDL_Texture* previous = SDL_GetRenderTarget(renderer_);
     fullSize_ = true;  // a screen at a time, at full size
-    std::vector<std::uint32_t> small(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
     std::vector<std::uint32_t> pixels(static_cast<std::size_t>(kScreenWidth) * kScreenHeight);
     constexpr int kCellsX = kScreenWidth / kMapScale, kCellsY = kScreenHeight / kMapScale;
     for (int cy = 0; cy < h; cy += kCellsY) {
         for (int cx = 0; cx < w; cx += kCellsX) {
             SDL_SetRenderTarget(renderer_, screen.get());
-            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
+            // Clear, for the objects to go over the ground's picture: what
+            // they cover comes out in their colours times their alpha.
+            SDL_SetRenderDrawColor(renderer_, 0, 0, 0, skinGround ? 0 : 255);
             SDL_RenderClear(renderer_);
-            renderScenery(left + cx * kMapScale, top + cy * kMapScale);
+            renderScenery(left + cx * kMapScale, top + cy * kMapScale, !skinGround);
             if (SDL_RenderReadPixels(renderer_, nullptr, SDL_PIXELFORMAT_ARGB8888, pixels.data(), kScreenWidth * 4) != 0) continue;
             for (int y = 0; y < kCellsY && cy + y < h; ++y) {
                 for (int x = 0; x < kCellsX && cx + x < w; ++x) {
-                    unsigned r = 0, g = 0, b = 0;
+                    unsigned r = 0, g = 0, b = 0, a = 0;
                     for (int py = 0; py < kMapScale; ++py) {
                         const std::uint32_t* row = &pixels[static_cast<std::size_t>(y * kMapScale + py) * kScreenWidth + static_cast<std::size_t>(x * kMapScale)];
                         for (int px = 0; px < kMapScale; ++px) {
+                            a += row[px] >> 24;
                             r += row[px] >> 16 & 0xff;
                             g += row[px] >> 8 & 0xff;
                             b += row[px] & 0xff;
                         }
                     }
                     constexpr unsigned n = kMapScale * kMapScale;
-                    small[static_cast<std::size_t>(cy + y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(cx + x)] =
-                        0xff000000u | (r / n) << 16 | (g / n) << 8 | (b / n);
+                    std::uint32_t& out = small[static_cast<std::size_t>(cy + y) * static_cast<std::size_t>(w) + static_cast<std::size_t>(cx + x)];
+                    if (skinGround) {
+                        // The ground shows through where the objects leave it.
+                        const unsigned under = 255 * n - a;
+                        r = (r * 255 + (out >> 16 & 0xff) * under) / 255;
+                        g = (g * 255 + (out >> 8 & 0xff) * under) / 255;
+                        b = (b * 255 + (out & 0xff) * under) / 255;
+                    }
+                    out = 0xff000000u | std::min(r / n, 255u) << 16 | std::min(g / n, 255u) << 8 | std::min(b / n, 255u);
                 }
             }
         }

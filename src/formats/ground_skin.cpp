@@ -19,6 +19,29 @@ std::uint32_t blend(std::uint32_t under, std::uint32_t over) {
     return (outA << 24) | mix(16) | mix(8) | mix(0);
 }
 
+// How much of each material goes where the smoothed original colour is
+// (r, g, b); returns their total.
+float materialWeights(const std::vector<GroundRule::Entry>& entries, float r, float g, float b, std::vector<float>& weights) {
+    // How sharply a pixel goes over from one material to the next, in
+    // squared colour distance.
+    constexpr float kSoftness = 40.0f;
+    weights.resize(entries.size());
+    float best = 1e30f;
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        const float dr = r - entries[i].colour.r, dg = g - entries[i].colour.g, db = b - entries[i].colour.b;
+        weights[i] = dr * dr + dg * dg + db * db;
+        best = std::min(best, weights[i]);
+    }
+    // Materials with under 1% of the weight of the nearest are left out.
+    float total = 0;
+    for (auto& wgt : weights) {
+        wgt = std::exp((best - wgt) / kSoftness);
+        if (wgt < 0.01f) wgt = 0;
+        total += wgt;
+    }
+    return total;
+}
+
 }  // namespace
 
 MaterialTexture buildMaterialTexture(const SpriteBank& tiles, int first, int period, int halfWidth, int halfHeight) {
@@ -121,9 +144,6 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
         }
     }
 
-    // How sharply a pixel goes over from one material to the next, in
-    // squared colour distance.
-    constexpr float kSoftness = 40.0f;
     std::vector<float> weights;
     for (int y = 0; y < h; ++y) {
         for (int x = 0; x < w; ++x) {
@@ -141,20 +161,7 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
                 continue;
             }
             const float* c = &smooth[(static_cast<std::size_t>(y) * w + x) * 3];
-            weights.resize(entries.size());
-            float best = 1e30f;
-            for (std::size_t i = 0; i < entries.size(); ++i) {
-                const float dr = c[0] - entries[i].colour.r, dg = c[1] - entries[i].colour.g, db = c[2] - entries[i].colour.b;
-                weights[i] = dr * dr + dg * dg + db * db;
-                best = std::min(best, weights[i]);
-            }
-            // Materials with under 1% of the weight of the nearest are left out.
-            float total = 0;
-            for (auto& wgt : weights) {
-                wgt = std::exp((best - wgt) / kSoftness);
-                if (wgt < 0.01f) wgt = 0;
-                total += wgt;
-            }
+            const float total = materialWeights(entries, c[0], c[1], c[2], weights);
             float rgb[3] = {0, 0, 0};
             for (std::size_t i = 0; i < entries.size(); ++i) {
                 if (weights[i] == 0) continue;
@@ -166,6 +173,32 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
         }
     }
     return out;
+}
+
+Rgb averageColour(const MaterialTexture& texture) {
+    if (texture.argb.empty()) return {};
+    double sum[3] = {0, 0, 0};
+    for (const std::uint32_t c : texture.argb) {
+        for (int ch = 0; ch < 3; ++ch) sum[ch] += (c >> (16 - 8 * ch)) & 255;
+    }
+    const double n = static_cast<double>(texture.argb.size());
+    return {static_cast<std::uint8_t>(sum[0] / n + 0.5), static_cast<std::uint8_t>(sum[1] / n + 0.5),
+            static_cast<std::uint8_t>(sum[2] / n + 0.5)};
+}
+
+Rgb averagePainted(const GroundRule& rule, float r, float g, float b, std::vector<float>& weights) {
+    const auto& entries = rule.entries;
+    if (entries.empty()) return {};
+    if (entries.size() == 1) return entries[0].average;
+    const float total = materialWeights(entries, r, g, b, weights);
+    float rgb[3] = {0, 0, 0};
+    for (std::size_t i = 0; i < entries.size(); ++i) {
+        rgb[0] += weights[i] / total * entries[i].average.r;
+        rgb[1] += weights[i] / total * entries[i].average.g;
+        rgb[2] += weights[i] / total * entries[i].average.b;
+    }
+    auto channel = [](float v) { return static_cast<std::uint8_t>(std::min(255.0f, v)); };
+    return {channel(rgb[0]), channel(rgb[1]), channel(rgb[2])};
 }
 
 }  // namespace sf
