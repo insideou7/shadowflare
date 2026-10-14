@@ -132,7 +132,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 727,759,1,1
 -690,2209,1,225
 1473,253,1,2
--1767,3506,1,104
+-2062,3131,1,104
 -1537,3336,1,224
 -709,2678,1,225
 738,1231,1,1
@@ -195,7 +195,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 443,5006,1,1
 4578,922,1,1
 4430,1161,1,199
-3070,2648,1,12
+2870,2348,1,12
 -1000,6779,1,225
 1132,4649,1,200
 917,4877,1,0
@@ -237,7 +237,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 6210,1393,1,0
 3225,4443,1,15
 6530,1161,1,199
-3140,4558,1,8
+2655,4108,1,8
 1156,6552,1,204
 6835,906,1,0
 3495,4273,1,15
@@ -317,14 +317,14 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 8880,1680,1,91
 5676,4923,1,224
 1207,9400,1,0
-1633,9036,1,13
+1453,8856,1,13
 2160,8560,1,3
 5655,5091,1,0
-6971,3838,1,7
+6181,2878,1,7
 9663,1160,1,203
 8720,2160,1,86
 1062,9821,1,0
-7805,3084,1,9
+7625,2824,1,9
 1213,9714,1,205
 10134,877,1,1
 5703,5335,1,225
@@ -335,7 +335,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 7481,3717,1,2
 2960,8240,1,24
 10834,448,1,2
-7779,3579,1,9
+7559,3299,1,9
 1679,9690,1,199
 1487,9892,1,0
 1845,9670,1,0
@@ -449,7 +449,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 10859,5583,1,200
 11426,5069,1,1
 6816,9722,1,203
-9292,7436,1,13
+9112,7256,1,13
 10872,5893,1,204
 5845,10956,1,2
 6989,9813,1,23
@@ -461,7 +461,7 @@ xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 10859,6253,1,200
 8560,8560,1,86
 6907,10296,1,1
-9780,7438,1,13
+9600,7258,1,13
 11895,5356,1,1
 7441,9842,1,2
 7616,9722,1,203
