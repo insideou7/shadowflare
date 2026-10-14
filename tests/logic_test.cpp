@@ -27,6 +27,7 @@
 #include "logic/settings.h"
 #include "logic/shop.h"
 #include "audio/mixer.h"
+#include "logic/title_smoke.h"
 #include "logic/traps.h"
 #include "formats/item_data.h"
 #include "formats/warp_gates.h"
@@ -224,6 +225,33 @@ sf::GroundLayer smallGround() {
     g.judge.assign(16, 0);
     g.judge[1 * 4 + 2] = sf::GroundLayer::kBlocked;
     return g;
+}
+
+void testTitleSmoke() {
+    // Each jet waits rand() % 90 ticks, plays its frames once, then rests
+    // rand() % 100 + 30 more before playing again (0x420d88, 0x421836).
+    sf::Random random(7);
+    sf::TitleSmoke smoke(random);
+    std::array<int, sf::TitleSmoke::kJets> frames{};
+    frames.fill(46);
+    frames[9] = 0;  // a jet with no chart never shows
+    std::vector<std::pair<int, int>> runs;  // first and last tick each time jet 0 blows
+    for (int t = 0; t < 400; ++t) {
+        const int f = smoke.frame(0, frames[0]);
+        if (f == 0) runs.emplace_back(t, t);
+        if (f >= 0) {
+            check(!runs.empty() && f == t - runs.back().first, "a jet shows its frames in order");
+            runs.back().second = t;
+        }
+        check(smoke.frame(9, frames[9]) < 0, "a jet with no frames is never drawn");
+        smoke.step(frames, random);
+    }
+    check(runs.size() >= 2, "a jet blows more than once");
+    const int firstShown = runs[0].first, lastShown = runs[0].second, nextShown = runs[1].first;
+    check(firstShown >= 0 && firstShown < 90, "a jet first blows within 90 ticks");
+    check(lastShown - firstShown == 45, "a jet plays its 46 frames once");
+    check(nextShown >= 0 && nextShown - lastShown >= 31 && nextShown - lastShown <= 130 + 46,
+          "it blows again after rand() % 100 + its frames + 30 ticks");
 }
 
 void testMovement() {
@@ -1312,6 +1340,7 @@ int main() {
     testAiPriorityAndWeights();
     testAiHealthCondition();
     testAiSameSeedSameChoices();
+    testTitleSmoke();
     testMovement();
     testLevels();
     testTrapGeometry();

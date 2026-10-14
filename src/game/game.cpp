@@ -853,6 +853,7 @@ void Game::tick() {
     if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
     if (newCharacter_) tickNewCharacter();
     if (loadData_) tickLoadData();
+    if (menuOpen_) tickTitleSmoke();
     if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_) return;  // the world waits while a menu is open
     tickMissions();
     if (startScripts_) {

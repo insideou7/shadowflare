@@ -52,6 +52,8 @@ def landing():
     fort.landing(dict(stone=BLOCKS, cap=CAP, dais=DDAIS))
 
 
+BLOOD = dict(colour=(0.30, 0.03, 0.02), dark=(0.10, 0.01, 0.01), scale=12, rough=0.7, bump=0.3)
+GLASS = dict(colour=(0.95, 0.78, 0.45), dark=(0.55, 0.40, 0.20), scale=6, rough=0.3, bump=0.0)
 DARK = dict(colour=(0.05, 0.05, 0.05), dark=(0.02, 0.02, 0.02), scale=4, bump=0)
 
 WALL_L, WALL_H, WALL_T = 6.4, 5.9, 0.7
@@ -110,6 +112,25 @@ def wall(along_y=False, fittings=None, seed=1):
             box((0.24, 0.24, h + 0.2), (dx, face - 0.12, WALL_H / 2), frame)
         for sa in (-1, 1):
             box((0.2, 0.2, math.hypot(w, h)), (0, face - 0.14, WALL_H / 2), frame, rot=(0, sa * math.atan2(w, h), 0))
+    elif fittings == "blood":
+        # Old blood thrown up the face and run down it in streaks.
+        blood = mat("blood", BLOOD)
+        for _ in range(rng.randint(3, 5)):
+            x, z = rng.uniform(-DWALL_L / 2 + 0.6, DWALL_L / 2 - 0.6), rng.uniform(1.2, WALL_H - 1.5)
+            r = rng.uniform(0.35, 0.7)
+            ball(r, (x, face - 0.01, z), blood, scale=(rng.uniform(0.8, 1.6), 0.03 / r, rng.uniform(0.5, 1.0)))
+            for _ in range(rng.randint(2, 5)):
+                dx, run = rng.uniform(-r, r), rng.uniform(0.6, 2.4)
+                ball(0.07, (x + dx, face - 0.01, z - run / 2), blood, scale=(rng.uniform(0.6, 1.2), 0.3, run / 0.14))
+            for _ in range(rng.randint(4, 9)):
+                ball(rng.uniform(0.05, 0.12), (x + rng.gauss(0, 0.8), face - 0.01, z + rng.gauss(0, 0.6)), blood,
+                     scale=(1, 0.3, 1))
+    elif fittings == "lamp":
+        # A small iron lamp on a bracket.
+        x, z = rng.uniform(-0.6, 0.6), WALL_H * 0.55
+        box((0.12, 0.5, 0.12), (x, face - 0.25, z), iron)
+        box((0.36, 0.36, 0.5), (x, face - 0.5, z - 0.3), iron)
+        box((0.26, 0.26, 0.36), (x, face - 0.5, z - 0.3), mat("glass", GLASS))
     if along_y:
         turn(math.pi / 2)
 
@@ -331,6 +352,9 @@ PROPS = {
     "dwall_pipes_y": (lambda: wall(along_y=True, fittings="pipes", seed=3), 288),
     "dwall_grate_x": (lambda: wall(fittings="grate"), 288),
     "dwall_grate_y": (lambda: wall(along_y=True, fittings="grate"), 288),
+    "dwall_blood_y": (lambda: wall(along_y=True, fittings="blood", seed=4), 288),
+    "dwall_blood2_y": (lambda: wall(along_y=True, fittings="blood", seed=5), 288),
+    "dwall_lamp_x": (lambda: wall(fittings="lamp", seed=6), 288),
     "dpillar": (pillar, 224),
     "pipe_x": (pipe, 128),
     "pipe_y": (lambda: pipe(along_y=True), 128),
