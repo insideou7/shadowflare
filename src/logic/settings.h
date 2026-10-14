@@ -19,7 +19,7 @@ struct Settings {
     // Volumes run from 0 (silent) to kMaxVolume. The original stores
     // DirectSound attenuation, -10000 to 0 hundredths of a decibel.
     static constexpr int kMaxVolume = 10;
-    // Cheats tab: the experience rates to pick from, in percent; 100 is
+    // Debug tab: the experience rates to pick from, in percent; 100 is
     // the game as it comes.
     static constexpr std::array<int, 5> kXpRates{100, 200, 500, 1000, 2000};
     static constexpr int kXpRateNormal = 100;
@@ -44,9 +44,11 @@ struct Settings {
     // Ours: with the original game's files, draw its maps and characters
     // with the open content's art (F12 swaps while playing).
     bool ourArt = false;
-    // Ours, on the Cheats tab: hero experience is multiplied by this, in
+    // Ours, on the Debug tab: hero experience is multiplied by this, in
     // percent. Original mode always plays at 100.
     int xpRate = kXpRateNormal;
+    // Ours, on the Debug tab: the frame rate in the top left corner.
+    bool showFps = false;
     // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
     int zoom = kMaxZoom;
 

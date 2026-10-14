@@ -153,7 +153,7 @@ void Game::teachSpell(int spell, int level) {
 }
 
 void Game::trainSpell(int spell) {
-    // The Cheats tab's experience rate counts each use that many times.
+    // The Debug tab's experience rate counts each use that many times.
     if (!spells_.train(magic_, spell, xpRate() / Settings::kXpRateNormal)) return;
     log::info("{} is now level {}", magic_.spell(spell).name, spells_.castLevel(spell));
     showMessage(std::format("{} is now level {}", magic_.spell(spell).name, spells_.castLevel(spell)));

@@ -2,7 +2,7 @@
 // Help window (H), laid out after the original's: each row names a setting
 // with its choices to the right, the chosen one bright. Rows the engine
 // cannot do yet (no sound) are shown dimmed. A second tab, ours, holds
-// the cheats; original mode turns them all off.
+// debug options and cheats; original mode turns the cheats off.
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -38,7 +38,7 @@ void frame(SDL_Renderer* renderer, const SDL_Rect& r, SDL_Color fill, SDL_Color 
     SDL_RenderDrawRect(renderer, &r);
 }
 
-constexpr const char* kTabNames[] = {"SETTINGS", "CHEATS"};
+constexpr const char* kTabNames[] = {"SETTINGS", "DEBUG"};
 constexpr int kTabGap = 24;
 
 constexpr const char* kTargetLabels[Settings::kTargetCount] = {"ENEM", "ITEM", "OBJ.", "PEOP", "COMP"};
@@ -47,10 +47,10 @@ constexpr const char* kTargetLabels[Settings::kTargetCount] = {"ENEM", "ITEM", "
 
 std::vector<Game::OptionRow> Game::optionRows() const {
     using R = OptionRow;
-    // A new cheat is a row here, with its label, its choices or stepper
-    // text, what setOption or stepOption does with it, and a field in
-    // Settings. Each one must do nothing in original mode.
-    if (optionsTab_ == OptionsTab::Cheats) return {R::XpRate};
+    // A new debug option or cheat is a row here, with its label, its
+    // choices or stepper text, what setOption or stepOption does with it,
+    // and a field in Settings. A cheat must do nothing in original mode.
+    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
@@ -100,6 +100,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::SaveAndExit: return "SAVE AND EXIT";
         case OptionRow::Back: return "BACK";
         case OptionRow::XpRate: return "EXPERIENCE RATE";
+        case OptionRow::ShowFps: return "SHOW FPS";
     }
     return "";
 }
@@ -121,6 +122,7 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
         case OptionRow::SaveImage: return onOff(settings_.saveImageAtEnd);
         case OptionRow::ClickRange: return onOff(settings_.clickRange);
         case OptionRow::OriginalMode: return onOff(originalMode());
+        case OptionRow::ShowFps: return onOff(settings_.showFps);
         case OptionRow::Art:
             chosen = ourArt() ? 1 : 0;
             return {"ORIGINAL", "OURS"};
@@ -270,6 +272,7 @@ void Game::setOption(OptionRow row, int index) {
             setOriginalMode(settings_.originalMode);
             log::info("Original mode {}", originalMode() ? "on" : "off");
             break;
+        case OptionRow::ShowFps: settings_.showFps = index == 0; break;
         case OptionRow::Art:
             settings_.ourArt = index == 1;
             setOurArt(settings_.ourArt);
@@ -510,11 +513,30 @@ void Game::renderOptions() {
             uiText(r.x + 3, y, choices[static_cast<std::size_t>(c)], color);
         }
     }
-    const char* note = optionsTab_ == OptionsTab::Cheats ? "TAB FOR SETTINGS   CHEATS ARE OURS; ORIGINAL MODE TURNS THEM OFF"
-                       : optionsInGame_                  ? "ESC TO GO BACK TO THE GAME   TAB FOR CHEATS   DIM ROWS ARE NOT IN YET"
-                                                         : "ESC TO GO BACK   TAB FOR CHEATS   DIM ROWS ARE NOT IN YET";
+    const char* note = optionsTab_ == OptionsTab::Debug ? "TAB FOR SETTINGS   ORIGINAL MODE TURNS THE EXPERIENCE RATE OFF"
+                       : optionsInGame_                 ? "ESC TO GO BACK TO THE GAME   TAB FOR DEBUG   DIM ROWS ARE NOT IN YET"
+                                                        : "ESC TO GO BACK   TAB FOR DEBUG   DIM ROWS ARE NOT IN YET";
     drawText(renderer_, kOptionsPanel.x + (kOptionsPanel.w - textWidth(note, 1)) / 2, kOptionsPanel.y + kOptionsPanel.h - 14, note,
              kOff, 1);
+}
+
+// The Debug tab's SHOW FPS: frames drawn in the last second, in the top
+// left corner over everything but the pointer.
+void Game::renderFps() {
+    const Uint64 now = SDL_GetTicks64();
+    if (!fpsSince_) fpsSince_ = now;
+    ++fpsFrames_;
+    if (now - fpsSince_ >= 1000) {
+        fps_ = static_cast<int>(fpsFrames_ * 1000 / (now - fpsSince_));
+        fpsSince_ = now;
+        fpsFrames_ = 0;
+    }
+    if (!settings_.showFps) return;
+    // Until the first second is counted there is nothing to show.
+    const std::string text = fps_ ? std::format("FPS {}", fps_) : std::string("FPS --");
+    const SDL_Rect back{2, 2, textWidth(text, 1) + 6, 12};
+    frame(renderer_, back, {0, 0, 0, 170}, {0, 0, 0, 170});
+    drawText(renderer_, 5, 4, text, kOn, 1);
 }
 
 // The Help window: the keys, as the manual's Shortcut Keys page lists

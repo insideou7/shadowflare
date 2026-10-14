@@ -923,6 +923,10 @@ void testSettings() {
           "bad settings are clamped or ignored");
 
     check(defaults.xpRate == 100, "experience comes at the normal rate by default");
+    check(!defaults.showFps, "the frame rate is hidden by default");
+    sf::Settings fps;
+    fps.showFps = true;
+    check(sf::Settings::parse(fps.write()).showFps, "show FPS survives a write and a parse");
     sf::Settings fast;
     fast.xpRate = 1000;
     check(fast.write().find("xp_rate=10\n") != std::string::npos && sf::Settings::parse(fast.write()).xpRate == 1000,

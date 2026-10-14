@@ -129,19 +129,20 @@ change it, Enter steps through it or does it.
 | Save and Return to Title | saves, then shows the title menu |
 | Save and Exit | saves, then quits |
 
-### Cheats tab
+### Debug tab
 
-Ours, not the original's. Tab (or Page Up/Page Down, or a click on the tab
-names at the top) switches between the settings and the cheats. Original
-mode turns every cheat off and dims its row.
+Ours, not the original's: debug options and cheats. Tab (or Page Up/Page
+Down, or a click on the tab names at the top) switches between the settings
+and this tab. Original mode turns every cheat off and dims its row.
 
 | Row | What it does here |
 |---|---|
-| Experience Rate | multiplies the hero's experience from kills and quest rewards, and spell training (each use counts that many times): 1x, 2x, 5x, 10x or 20x, 1x by default. Saved as `xp_rate` in `options.txt`. The original goes up one level at a time and drops whatever is over; above 1x the extra carries over instead, through as many levels as it fills, so a 100% quest reward at 2x is two levels. |
+| Experience Rate | multiplies the hero's experience from kills and quest rewards, and spell training (each use counts that many times): 1x, 2x, 5x, 10x or 20x, 1x by default. A cheat. Saved as `xp_rate` in `options.txt`. The original goes up one level at a time and drops whatever is over; above 1x the extra carries over instead, through as many levels as it fills, so a 100% quest reward at 2x is two levels. |
+| Show FPS | ON shows the frames drawn in the last second in the top left corner, in every mode. Off by default; saved as `show_fps`. |
 
-To add a cheat: give it an `OptionRow` on the Cheats tab in
-`src/game/options.cpp`, a field in `Settings` (`src/logic/settings.h`), and
-make it do nothing in original mode.
+To add an option or cheat: give it an `OptionRow` on the Debug tab in
+`src/game/options.cpp` and a field in `Settings` (`src/logic/settings.h`). A
+cheat must do nothing in original mode.
 
 The options are kept in `options.txt` next to the saves in SDL's settings
 folder. Runs with test flags (`--ticks`, `--walk`, `--no-menu` and so on)
