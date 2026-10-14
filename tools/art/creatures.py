@@ -8,8 +8,9 @@ barbarian, lizard, scorpion, bigscorpion, fire, raptor, dog, smalldog or person<
 PEOPLE table).
 
 (run with a Python that has the `bpy` module). Characters are built from
-simple shapes hung on joints and posed in code (the hero and the goblin are
-MakeHuman bodies driven by the same joints: see mpfb_body.py, which needs
+simple shapes hung on joints and posed in code (the hero, the heroine and
+the goblin are MakeHuman bodies driven by the same joints, and the skeleton's
+bones are laid along a hidden MakeHuman body's: see mpfb_body.py, which needs
 $MPFB_SRC), then rendered from the
 eight directions the engine uses for every frame of every animation.
 Writes <animation>_<direction>_<frame>.png and frames.txt (anchor point and
@@ -27,13 +28,13 @@ import sys
 from pathlib import Path
 
 import bpy
-from mathutils import Euler, Vector
+from mathutils import Euler, Matrix, Quaternion, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import studio  # noqa: E402
 from town import mesh  # noqa: E402
 
-SIZE = {"hero": 200, "heroine": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
+SIZE = {"goblin": 200, "hero": 200, "heroine": 200, "golem": 300, "shaman": 200, "bigspider": 200, "ogre": 220, "demon": 300, "dragon": 400}  # rendered frame size in pixels, 160 unless listed
 HEIGHT = {"goblin": 3.8, "hero": 4.0, "heroine": 3.5, "fly": 2.4, "ghoul": 3.4, "shaman": 4.6, "golem": 9.5, "spider": 2.4,
           "bigspider": 3.6, "ogre": 4.8, "demon": 6.0, "dragon": 9.0}  # for framing
 
@@ -179,73 +180,158 @@ def build_hero():
 
 
 def build_goblin():
-    """The goblin on a MakeHuman body (mpfb_body.py): short, lean and
+    """The goblin on a MakeHuman body (mpfb_body.py): short, thick-set and
     knotted with muscle, green-skinned with big pointed ears and a jutting
-    jaw, in a spiked dark leather vest, an iron cap with a crest of spikes,
-    bracers and a loincloth, swinging a spiked club. It fights crouched,
-    like the hero, so it uses the hero's poses."""
+    jaw. Its hunched back is armoured in a studded black iron shell with
+    big round pauldrons and a row of spikes, it wears an iron cap with a
+    crest of spikes, bracers and a loincloth, and it carries a morning star:
+    a wooden haft with a spiked iron head. It fights in a deep crouch, the
+    morning star held low across its body."""
     import mpfb_body
-    skin = studio.material("goblin skin", (0.46, 0.60, 0.22), (0.24, 0.34, 0.10), scale=30, bump=0.15)
-    vest = studio.material("vest", (0.20, 0.18, 0.17), (0.06, 0.05, 0.05), scale=25, rough=0.6, bump=0.4)
+    skin = studio.material("goblin skin", (0.50, 0.64, 0.22), (0.24, 0.34, 0.10), scale=30, bump=0.15)
+    shell = studio.material("goblin shell", (0.15, 0.14, 0.14), (0.03, 0.03, 0.03), scale=25, rough=0.4, bump=0.5,
+                            grime=0.4)
     cloth = studio.material("loincloth", (0.16, 0.13, 0.11), (0.05, 0.04, 0.03), scale=18, bump=0.3)
-    iron = studio.material("iron", (0.66, 0.66, 0.68), (0.24, 0.24, 0.27), scale=30, rough=0.35, bump=0.3, grime=0.4)
-    wood = studio.material("club", (0.50, 0.28, 0.12), (0.22, 0.11, 0.04), scale=10, stretch=(12, 1, 1))
-    height = 3.1
+    iron = studio.material("iron", (0.78, 0.78, 0.80), (0.28, 0.28, 0.31), scale=30, rough=0.3, bump=0.3, grime=0.4)
+    wood = studio.material("haft", (0.62, 0.34, 0.14), (0.28, 0.13, 0.05), scale=10, stretch=(12, 1, 1))
+    height = 3.0
     ears = []
     for side in ("l", "r"):
         ears += [(f"ears/{side}-ear-shape-pointed.target.gz", 1.0), (f"ears/{side}-ear-scale-incr.target.gz", 1.6),
                  (f"ears/{side}-ear-wing-incr.target.gz", 1.0), (f"ears/{side}-ear-rot-backward.target.gz", 0.8),
                  (f"ears/{side}-ear-trans-up.target.gz", 0.6)]
-    body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.4, muscle=1.0, weight=0.55, height=0.0,
-                                                   proportions=0.1, caucasian=1.0, african=0.0, asian=0.0),
+    body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.4, muscle=1.0, weight=0.8, height=0.0,
+                                                   proportions=0.0, caucasian=1.0, african=0.0, asian=0.0),
                                      ears + [("chin/chin-prognathism-incr.target.gz", 1.0),
                                              ("chin/chin-width-incr.target.gz", 0.6),
                                              ("nose/nose-scale-vert-incr.target.gz", 0.8),
                                              ("nose/nose-point-down.target.gz", 0.6),
                                              ("eyebrows/eyebrows-angle-down.target.gz", 1.0),
                                              ("head/head-scale-horiz-incr.target.gz", 0.4)])
-    mpfb_body.bake_rest(body, armature, arm_out=0.25, elbow_forward=0.25)
+    mpfb_body.bake_rest(body, armature, arm_out=0.30, elbow_forward=0.25)
     mpfb_body.paint(body, lambda centre, bones, normal: skin)
     rig = Rig()
     scale = 1.4
     mpfb_body.bind(rig, body, armature, scale)
-    rig.kind = "hero"
+    rig.kind = "goblin"
     rig.height = height
 
     def pick(centre, part, normal):
         z = centre.z / height
         if part == "torso":
-            return (vest, 0.08) if z >= 0.555 else (cloth, 0.07)
+            return (shell, 0.10 if normal.y > -0.2 else 0.07) if z >= 0.555 else (cloth, 0.07)
+        if part == "upperarm" and z > 0.70:
+            return shell, 0.06
         if part == "thigh" and z > 0.42:
             return cloth, 0.06
-        if part == "forearm":
+        if part == "forearm" and z < 0.50:
             return iron, 0.04
-        if part == "head" and (z > 0.935 or (z > 0.89 and normal.y > 0.2)):
+        if part == "shin" and z < 0.22:
+            return shell, 0.035
+        if part == "head" and (z > 0.95 or (z > 0.92 and normal.y > 0.3)):
             return iron, 0.035
         return None
 
     mpfb_body.shell(body, pick, "goblin gear")
-    # Spikes up the back of the vest and a crest along the cap.
+    # Round iron pauldrons, studs over the back, a row of spikes down it
+    # and a crest of spikes on the cap.
+    for side in ("arm_l", "arm_r"):
+        rig.attach(shape("ball", (0.19, 0.19, 0.13), iron), side, (0, 0, 0.02))
+        rig.attach(shape("ball", (0.16, 0.17, 0.10), shell), side, (0, 0, -0.10))
+        rig.attach(shape("cone", (0.05, 0.05, 0.14), iron), side, (-0.02, 0, 0.16))
+    for k in range(4):
+        for side in (1, -1):
+            rig.attach(shape("ball", (0.035, 0.035, 0.035), iron), "spine",
+                       (-0.24 + 0.02 * k, side * (0.13 + 0.02 * k), 0.30 + 0.10 * k))
+    for k in range(5):
+        rig.attach(shape("cone", (0.06, 0.06, 0.20), iron, rotation=(0, math.radians(-110), 0)), "spine",
+                   (-0.28, 0, 0.20 + 0.10 * k))
     neck = rig.joints["head"].matrix_world.translation.z
     top = (height - neck) / scale
-    for k in range(4):
-        rig.attach(shape("cone", (0.06, 0.06, 0.18), iron, rotation=(0, math.radians(-110), 0)), "spine",
-                   (-0.26, (k % 2 - 0.5) * 0.26, 0.28 + 0.10 * k))
     for k in range(5):
         t = k / 4 - 0.5
-        rig.attach(shape("cone", (0.035, 0.03, 0.10), iron, rotation=(0, math.radians(-25 + 70 * t), 0)), "head",
+        rig.attach(shape("cone", (0.035, 0.03, 0.12), iron, rotation=(0, math.radians(-25 + 70 * t), 0)), "head",
                    (0.02 - 0.22 * t, 0, top - 0.02 - abs(t) * 0.10))
-    # A club with an iron-studded head, held like the hero's sword.
+    # The morning star: a wooden haft with a spike at its butt and a
+    # spiked iron ball at its head.
     g = grip(rig, 0)
-    hang(shape("cylinder", (0.06, 0.06, 0.50), wood, rotation=(0, math.radians(90), 0)), g, (0.32, 0, 0))
-    hang(shape("ball", (0.26, 0.21, 0.21), wood), g, (0.98, 0, 0))
-    hang(shape("cylinder", (0.22, 0.22, 0.04), iron, rotation=(0, math.radians(90), 0)), g, (0.80, 0, 0))
-    for k in range(10):
-        a = 2 * math.pi * k / 10
-        hang(shape("cone", (0.04, 0.04, 0.12), iron, rotation=(a, 0, 0)), g,
-             (0.92 + 0.12 * (k % 2), -0.24 * math.sin(a), 0.24 * math.cos(a)))
-    hang(shape("cone", (0.04, 0.04, 0.12), iron, rotation=(0, math.radians(90), 0)), g, (1.30, 0, 0))
+    hang(shape("cylinder", (0.055, 0.055, 0.62), wood, rotation=(0, math.radians(90), 0)), g, (0.25, 0, 0))
+    hang(shape("cylinder", (0.07, 0.07, 0.04), iron, rotation=(0, math.radians(90), 0)), g, (-0.34, 0, 0))
+    hang(shape("cone", (0.05, 0.05, 0.12), iron, rotation=(0, math.radians(-90), 0)), g, (-0.48, 0, 0))
+    hang(shape("cylinder", (0.08, 0.08, 0.05), iron, rotation=(0, math.radians(90), 0)), g, (0.82, 0, 0))
+    head = Vector((1.06, 0, 0))
+    hang(shape("ball", (0.22, 0.22, 0.22), iron), g, tuple(head))
+    n = 18
+    for k in range(n):  # spikes spread over the ball
+        zz = 1 - 2 * (k + 0.5) / n
+        r = math.sqrt(1 - zz * zz)
+        a = k * math.pi * (3 - math.sqrt(5))
+        d = Vector((r * math.cos(a), r * math.sin(a), zz))
+        spike = shape("cone", (0.045, 0.045, 0.11), iron)
+        spike.rotation_euler = Vector((0, 0, 1)).rotation_difference(d).to_euler()
+        hang(spike, g, tuple(head + d * 0.27))
+    rig.poses = goblin_poses()
     return rig
+
+
+def goblin_stand(animation, s, c):
+    """The goblin's stance, as the original's: a deep crouch with the feet
+    far apart, the back hunched and the head thrust forward, the morning
+    star held low across the body in both hands."""
+    r = {
+        "spine": (0, 0.55 + 0.03 * s, -0.15),
+        "head": (0, -0.50, 0.15),
+        "arm_l": (-0.25, -0.75, 0.2),
+        "elbow_l": (0, -0.75, 0.6),
+        "arm_r": (-0.15, -0.35 - 0.04 * s, 0),
+        "elbow_r": (0, -0.85, 0),
+        "weapon": (0, math.radians(20), 0.9),
+        "leg_l": (0.45, -0.75, 0.25),
+        "knee_l": (0, 1.10, 0),
+        "leg_r": (-0.45, -0.05, -0.25),
+        "knee_r": (0, 0.95 + 0.06 * s, 0),
+    }
+    if animation == "walk":
+        swing = 0.55
+        r["spine"] = (0, 0.50, 0.08 * s)
+        r["leg_l"] = (0.25, -0.45 - swing * s, 0.15)
+        r["leg_r"] = (-0.25, -0.45 + swing * s, -0.15)
+        r["knee_l"] = (0, 0.75 + 0.45 * max(0.0, s), 0)
+        r["knee_r"] = (0, 0.75 + 0.45 * max(0.0, -s), 0)
+    return r
+
+
+def goblin_poses():
+    """The goblin's animations, for pose()."""
+    stand = goblin_stand("idle", 0.0, 1.0)
+    up = hero_key(stand, spine=(0, 0.05, 0.35), head=(0, -0.05, -0.2), arm_r=(-0.3, -2.7, 0), elbow_r=(0, -0.6, 0),
+                  weapon=(0, math.radians(60), 0), arm_l=(0.1, -2.5, 0), elbow_l=(0, -0.6, 0.3),
+                  leg_l=(0.35, -0.45, 0.2), knee_l=(0, 0.6, 0), leg_r=(-0.35, 0.15, -0.2), knee_r=(0, 0.5, 0))
+    down = hero_key(stand, spine=(0, 0.95, -0.2), head=(0, -0.85, 0.1), arm_r=(-0.1, -1.0, 0), elbow_r=(0, -0.2, 0),
+                    weapon=(0, math.radians(70), 0), arm_l=(0.0, -1.0, 0.2), elbow_l=(0, -0.3, 0.3),
+                    leg_l=(0.35, -1.25, 0.2), knee_l=(0, 1.5, 0), leg_r=(-0.35, 0.55, -0.2), knee_r=(0, 0.4, 0))
+    return {
+        "idle": lambda s, c, k: goblin_stand("idle", s, c),
+        "walk": lambda s, c, k: goblin_stand("walk", s, c),
+        # Up over the head, then down onto the ground in front.
+        "attack": [(0.0, stand), (0.45, up), (0.65, down), (0.8, down), (1.0, stand)],
+        "hit": [(0.0, stand),
+                (0.35, hero_key(stand, spine=(0, 0.0, 0.25), head=(0, -0.2, 0), arm_l=(0.5, -1.5, 0),
+                                arm_r=(-0.5, 0.3, 0), knee_l=(0, 0.6, 0), knee_r=(0, 0.5, 0))),
+                (1.0, stand)],
+        # Knocked flat on its back, arms flung out, the weapon dropped.
+        "death": [(0.0, stand),
+                  (0.35, hero_key(stand, root=(0, -0.6, 0), spine=(0, -0.3, 0), head=(0, -0.4, 0),
+                                  arm_l=(0.8, -1.8, 0), arm_r=(-0.8, -1.8, 0), knee_l=(0, 0.6, 0), knee_r=(0, 0.6, 0))),
+                  (0.75, hero_key(stand, root=(0, -1.50, 0), spine=(0, -0.1, 0), head=(0, 0.3, 0),
+                                  arm_l=(1.3, -2.4, 0), elbow_l=(0, 0, 0), arm_r=(-1.3, -2.6, 0), elbow_r=(0, 0, 0),
+                                  weapon=(0, 1.2, 0), leg_l=(0.35, -0.6, 0), knee_l=(0, 0.5, 0),
+                                  leg_r=(-0.3, -0.2, 0), knee_r=(0, 0.3, 0))),
+                  (1.0, hero_key(stand, root=(0, -1.55, 0), spine=(0, 0.0, 0), head=(0, 0.35, 0.3),
+                                 arm_l=(1.4, -2.5, 0), elbow_l=(0, 0, 0), arm_r=(-1.3, -2.7, 0), elbow_r=(0, 0, 0),
+                                 weapon=(0, 1.4, 0), leg_l=(0.35, -0.4, 0), knee_l=(0, 0.3, 0),
+                                 leg_r=(-0.3, -0.1, 0), knee_r=(0, 0.2, 0)))],
+    }
 
 
 def build_hero_shapes():
@@ -1422,62 +1508,378 @@ def boar_pose(rig, animation, t, frames):
     rig.pose(r, offset)
 
 
+def lathe(name, a, b, profile, mat, flat=1.0, sides=10):
+    """A solid of revolution from world point a to b; profile is (t, radius)
+    pairs along it (t from 0 at a to 1 at b). flat squashes it sideways."""
+    a, b = Vector(a), Vector(b)
+    length = (b - a).length
+    verts, faces = [], []
+    for t, r in profile:
+        for k in range(sides):
+            ang = 2 * math.pi * k / sides
+            verts.append((r * math.cos(ang), r * flat * math.sin(ang), t * length))
+    n = len(profile)
+    for i in range(n - 1):
+        for k in range(sides):
+            faces.append((i * sides + k, i * sides + (k + 1) % sides, (i + 1) * sides + (k + 1) % sides,
+                          (i + 1) * sides + k))
+    faces.append(tuple(reversed(range(sides))))
+    faces.append(tuple(range((n - 1) * sides, n * sides)))
+    data = bpy.data.meshes.new(name)
+    data.from_pydata(verts, [], faces)
+    obj = bpy.data.objects.new(name, data)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.location = a
+    obj.rotation_euler = Vector((0, 0, 1)).rotation_difference(b - a).to_euler()
+    studio.smooth(obj)
+    return studio.assign(obj, mat)
+
+
+def long_bone(a, b, r, mat):
+    """A limb bone from a to b: a shaft, thinnest in the middle, between
+    knobbly ends."""
+    return lathe("bone", a, b, [(0.0, 0.3 * r), (0.03, 1.45 * r), (0.09, 1.6 * r), (0.18, 1.0 * r), (0.5, 0.8 * r),
+                                (0.82, 1.0 * r), (0.91, 1.55 * r), (0.97, 1.4 * r), (1.0, 0.3 * r)], mat, flat=0.85)
+
+
+def tube(points, r, mat, name="tube"):
+    """A smooth bent tube through world points (a rib, a collarbone)."""
+    curve = bpy.data.curves.new(name, "CURVE")
+    curve.dimensions = "3D"
+    curve.bevel_depth = r
+    curve.bevel_resolution = 2
+    curve.use_fill_caps = True
+    spline = curve.splines.new("NURBS")
+    spline.points.add(len(points) - 1)
+    for p, q in zip(spline.points, points):
+        p.co = (*q, 1)
+    spline.use_endpoint_u = True
+    spline.order_u = 3
+    obj = bpy.data.objects.new(name, curve)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.data.materials.append(mat)
+    return obj
+
+
+def placed(obj, location):
+    obj.location = location
+    return obj
+
+
+def adopt(child, parent):
+    """Parents child to parent where it stands now."""
+    bpy.context.view_layer.update()
+    child.parent = parent
+    child.matrix_parent_inverse = parent.matrix_world.inverted()
+    return child
+
+
+def chunk(rig, joint, pieces, axis=(0, 0, 1), radius=0.05, throw=1.0):
+    """Gathers pieces (made where they stand in the rest pose) under an
+    empty on a joint. A creature that falls apart when it dies (see
+    fall_apart) drops each chunk as one: axis is its long axis, which ends
+    up lying on the ground, radius how high it then rests and throw how far
+    it is flung."""
+    bpy.context.view_layer.update()
+    corners = [o.matrix_world @ Vector(c) for o in pieces if o.type in ("MESH", "CURVE") for c in o.bound_box]
+    empty = bpy.data.objects.new("chunk", None)
+    bpy.context.scene.collection.objects.link(empty)
+    empty.location = sum(corners, Vector()) / len(corners)
+    adopt(empty, rig.joints[joint])
+    for o in pieces:
+        adopt(o, empty)
+    rig.chunks.append((empty, Vector(axis), radius, throw))
+    return empty
+
+
 def build_skeleton():
-    """A walking skeleton of yellowed bone with a rusty curved sword and a
-    small round wooden shield."""
-    bone = studio.material("bone", (0.78, 0.76, 0.62), (0.34, 0.32, 0.24), scale=20, rough=0.6, bump=0.6)
-    dark = studio.material("socket", (0.05, 0.04, 0.03), scale=10)
-    rust = studio.material("rustblade", (0.86, 0.46, 0.16), (0.40, 0.16, 0.05), scale=30, rough=0.4, bump=0.4)
-    wood = studio.material("shieldwood", (0.42, 0.22, 0.10), (0.18, 0.09, 0.04), scale=12, rough=0.6, stretch=(1, 6, 1))
-    iron = studio.material("iron", (0.50, 0.50, 0.52), (0.16, 0.16, 0.18), scale=24, rough=0.4)
-    rig = Rig(lean=0.12, weapon=60, stance=0.12)
-    rig.joint("hips", "root", (0, 0, 1.0))
-    rig.joint("spine", "hips", (0, 0, 0.05))
-    rig.joint("head", "spine", (0.10, 0, 0.98))
-    rig.joint("arm_l", "spine", (0.0, 0.36, 0.80))
-    rig.joint("arm_r", "spine", (0.0, -0.36, 0.80))
-    rig.joint("leg_l", "hips", (0, 0.15, 0))
-    rig.joint("leg_r", "hips", (0, -0.15, 0))
-    rig.attach(shape("ball", (0.20, 0.30, 0.10), bone), "hips", (0, 0, 0.02))  # pelvis
-    segment(rig, "spine", (0, 0, 0), (0, 0, 0.90), 0.05, bone)
-    for k in range(5):
-        z = 0.42 + 0.09 * k
-        w = 0.24 - 0.02 * abs(k - 2)
-        ring = shape("ball", (0.17, w, 0.025), bone)
-        rig.attach(ring, "spine", (0.03, 0, z))
-    rig.attach(shape("cylinder", (0.03, 0.36, 0.03), bone, rotation=(0, 0, 0)), "spine", (0, 0, 0.82))  # collarbones
-    rig.attach(shape("ball", (0.22, 0.19, 0.23), bone), "head", (0.03, 0, 0.14))
-    rig.attach(shape("ball", (0.09, 0.10, 0.06), bone), "head", (0.13, 0, -0.03))  # jaw
+    """A skeleton warrior on MakeHuman proportions (mpfb_body.py; the body
+    itself is hidden and only lends its joints): every bone modelled, the
+    skull grinning under a black iron helm, a dented black cuirass with
+    round pauldrons and a fauld of plates over the hips. It carries a long
+    rust-red saw-toothed sword and a round brass-bound shield, and when it
+    dies it falls apart into a heap of bones."""
+    import mpfb_body
+    bone = studio.material("bone", (0.86, 0.84, 0.72), (0.50, 0.46, 0.34), scale=25, rough=0.55, bump=0.5)
+    hollow = studio.material("socket", (0.05, 0.04, 0.03), scale=10)
+    iron = studio.material("black iron", (0.34, 0.34, 0.37), (0.09, 0.09, 0.10), scale=22, rough=0.35, bump=0.4,
+                           grime=0.5)
+    rust = studio.material("rust blade", (0.86, 0.50, 0.36), (0.46, 0.18, 0.10), scale=30, rough=0.35, bump=0.5,
+                           stretch=(4, 1, 1))
+    brass = studio.material("shield brass", (0.92, 0.64, 0.22), (0.50, 0.26, 0.06), scale=24, rough=0.3, bump=0.3)
+    bronze = studio.material("shield bronze", (0.52, 0.30, 0.12), (0.22, 0.11, 0.04), scale=24, rough=0.4, bump=0.4)
+    leather = studio.material("grip leather", (0.24, 0.15, 0.09), (0.08, 0.05, 0.03), scale=25, rough=0.6)
+    height = 3.1
+    body, armature = mpfb_body.human(height, dict(gender=1.0, age=0.5, muscle=0.3, weight=0.0, height=0.5,
+                                                   proportions=0.6, caucasian=1.0, african=0.0, asian=0.0))
+    mpfb_body.bake_rest(body, armature, arm_out=0.20, elbow_forward=0.2)
+    rig = Rig()
+    mpfb_body.bind(rig, body, armature, 1.0)
+    body.hide_render = True
+    rig.kind = "skeleton"
+    rig.height = height
+    rig.chunks = []
+    aw = armature.matrix_world
+
+    def H(b):
+        return aw @ armature.data.bones[b].head_local
+
+    def T(b):
+        return aw @ armature.data.bones[b].tail_local
+
+    # Skull, jaw and helm: the head's middle and size from the head bone.
+    top, neck = T("head"), H("head")
+    s = (top.z - neck.z) / 0.30
+    c = Vector((neck.x - 0.03 * s, 0, neck.z + 0.15 * s))
+
+    def at(x, y, z):
+        return c + Vector((x, y, z)) * s
+
+    skull = [placed(shape("ball", (0.150 * s, 0.118 * s, 0.135 * s), bone), at(0, 0, 0.01)),
+             placed(shape("ball", (0.085 * s, 0.090 * s, 0.075 * s), bone), at(0.085, 0, -0.085)),
+             placed(shape("ball", (0.075 * s, 0.085 * s, 0.035 * s), bone, rotation=(0, math.radians(-15), 0)),
+                    at(0.075, 0, -0.165)),
+             placed(shape("box", (0.012 * s, 0.055 * s, 0.018 * s), bone), at(0.145, 0, -0.130))]
     for side in (1, -1):
-        rig.attach(shape("ball", (0.04, 0.045, 0.045), dark), "head", (0.18, 0.07 * side, 0.14))
-    for side in ("arm_l", "arm_r"):
-        segment(rig, side, (0, 0, 0), (0, 0, -0.75), 0.055, bone)
-        rig.attach(shape("ball", (0.05, 0.05, 0.05), bone), side, (0, 0, -0.38))
-        rig.attach(shape("ball", (0.06, 0.04, 0.07), bone), side, (0, 0, -0.78))
-    for side in ("leg_l", "leg_r"):
-        segment(rig, side, (0, 0, 0), (0, 0, -0.95), 0.065, bone)
-        rig.attach(shape("ball", (0.06, 0.06, 0.06), bone), side, (0, 0, -0.48))
-        rig.attach(shape("box", (0.11, 0.05, 0.03), bone), side, (0.06, 0, -0.97))
-    rig.joint("weapon", "arm_r", (0, 0, -0.78))
-    rig.attach(shape("cylinder", (0.025, 0.025, 0.09), wood, rotation=(0, math.radians(90), 0)), "weapon", (0.03, 0, 0))
-    rig.attach(shape("box", (0.02, 0.10, 0.02), iron), "weapon", (0.13, 0, 0))
-    blade = []
-    for i in range(6):
-        a = (0.15 + 0.15 * i, 0, 0.012 * i * i)
-        b = (0.15 + 0.15 * (i + 1), 0, 0.012 * (i + 1) ** 2)
-        segment(rig, "weapon", a, b, 0.06 - 0.005 * i, rust)
-    rig.joint("shield", "arm_l", (0.12, 0.08, -0.55))
-    rig.attach(shape("cylinder", (0.38, 0.38, 0.04), wood, rotation=(math.radians(90), 0, 0)), "shield", (0, 0.04, 0))
-    rig.attach(shape("cylinder", (0.40, 0.40, 0.025), iron, rotation=(math.radians(90), 0, 0)), "shield", (0, 0.02, 0))
-    rig.attach(shape("ball", (0.09, 0.05, 0.09), iron), "shield", (0, 0.08, 0))
-    # Scraps of blackened armour: shoulder plates and a belt.
-    armour = studio.material("blackarmour", (0.17, 0.16, 0.16), (0.04, 0.04, 0.04), scale=20, rough=0.4)
-    for side in ("arm_l", "arm_r"):
-        rig.attach(shape("ball", (0.13, 0.12, 0.08), armour), side, (0, 0, 0.0))
-    rig.attach(shape("cylinder", (0.20, 0.27, 0.06), armour), "hips", (0, 0, 0.10))
-    rig.arms = "guard"
-    rig.joints["root"].scale = (1.3, 1.3, 1.3)
+        skull.append(placed(shape("ball", (0.035 * s, 0.035 * s, 0.032 * s), hollow), at(0.122, 0.048 * side, -0.035)))
+        skull.append(placed(shape("ball", (0.04 * s, 0.03 * s, 0.025 * s), bone), at(0.105, 0.085 * side, -0.075)))
+    skull.append(placed(shape("ball", (0.012 * s, 0.014 * s, 0.022 * s), hollow), at(0.152, 0, -0.085)))
+    skull.append(placed(shape("box", (0.006 * s, 0.050 * s, 0.004 * s), hollow), at(0.152, 0, -0.130)))
+    # The helm: a round iron cap with a brim and a ridge over the crown.
+    skull.append(placed(shape("ball", (0.178 * s, 0.150 * s, 0.140 * s), iron), at(-0.012, 0, 0.065)))
+    brim = placed(shape("cylinder", (0.205 * s, 0.180 * s, 0.012 * s), iron, rotation=(0, math.radians(-12), 0)),
+                  at(-0.02, 0, 0.035))
+    skull.append(brim)
+    skull.append(placed(shape("box", (0.15 * s, 0.012 * s, 0.03 * s), iron), at(-0.01, 0, 0.19)))
+    for side in (1, -1):
+        skull.append(placed(shape("box", (0.05 * s, 0.012 * s, 0.07 * s), iron), at(-0.02, 0.150 * side, -0.05)))
+    chunk(rig, "head", skull, axis=(1, 0, 0), radius=0.14 * s)
+    # Neck and spine: a chain of vertebrae with spines down the back.
+    spine = [H("pelvis") + Vector((-0.04, 0, 0.12)), H("spine_02"), H("spine_03"), T("spine_03"), H("neck_01")]
+    pts = []
+    for (a, b) in zip(spine, spine[1:]):
+        for k in range(4):
+            pts.append(a.lerp(b, k / 4))
+    neck_pts = [H("neck_01").lerp(H("head"), k / 4) for k in range(1, 4)]
+    back = []
+    for i, p in enumerate(pts):
+        w = 0.042 + 0.012 * (1 - i / len(pts))
+        back.append(placed(shape("ball", (w, w * 1.15, 0.022), bone), p + Vector((-0.06, 0, 0))))
+        back.append(placed(shape("cone", (0.014, 0.012, 0.035), bone, rotation=(0, math.radians(-120), 0)),
+                           p + Vector((-0.11, 0, -0.01))))
+    # Ribs: pairs curving round from the spine to the breastbone.
+    sternum_top, sternum_bottom = Vector((0.13, 0, 2.70 * height / 3.4)), Vector((0.15, 0, 2.38 * height / 3.4))
+    for i in range(7):
+        u = i / 6
+        z = (2.70 - 0.36 * u) * height / 3.4
+        w = 0.13 + 0.09 * math.sin(math.pi * min(1.0, 0.25 + u * 0.75))
+        front = 0.10 + 0.06 * math.sin(math.pi * min(1.0, 0.2 + u * 0.6))
+        for side in (1, -1):
+            rib = tube([(-0.06, 0.03 * side, z), (-0.07, 0.6 * w * side, z + 0.01), (0.0, w * side, z - 0.03),
+                        (0.10, 0.75 * w * side, z - 0.07), (front + 0.02, 0.04 * side, z - 0.10)], 0.016, bone, "rib")
+            chunk(rig, "spine", [rib], axis=(1, 0, 0), radius=0.03, throw=1.3)
+    chunk(rig, "spine", back, axis=(0, 0, 1), radius=0.05)
+    back = [placed(shape("box", (0.02, 0.03, (sternum_top.z - sternum_bottom.z) / 2), bone),
+                   (sternum_top + sternum_bottom) / 2 + Vector((0.0, 0, -0.06)))]
+    for side in ("l", "r"):
+        back.append(tube([H(f"clavicle_{side}") + Vector((0.08, 0, -0.05)), H(f"clavicle_{side}").lerp(T(f"clavicle_{side}"), 0.5)
+                          + Vector((0.07, 0, 0.0)), T(f"clavicle_{side}") + Vector((0.0, 0, 0.02))], 0.018, bone, "clavicle"))
+    # The cuirass over the upper chest, with a ridge down its front.
+    chunk(rig, "spine", back, axis=(0, 1, 0), radius=0.03, throw=1.3)
+    chest = (H("spine_03") + T("spine_03")) / 2 + Vector((0.03, 0, 0.12))
+    back = []
+    back.append(placed(shape("ball", (0.22, 0.29, 0.25), iron), chest))
+    back.append(placed(shape("box", (0.03, 0.02, 0.18), iron, rotation=(math.radians(45), 0, 0)),
+                       chest + Vector((0.18, 0, 0.0))))
+    for side in (1, -1):  # lames under the arms
+        back.append(placed(shape("ball", (0.15, 0.08, 0.10), iron), chest + Vector((0.0, 0.20 * side, -0.14))))
+    chunk(rig, "spine", back, axis=(0, 0, 1), radius=0.14)
+    neck = [placed(shape("ball", (0.032, 0.035, 0.02), bone), p + Vector((-0.02, 0, 0))) for p in neck_pts]
+    chunk(rig, "head", neck, radius=0.03)
+    # The pelvis, with a fauld of iron plates hanging over its front.
+    hip = H("pelvis")
+    pelvis = [placed(shape("ball", (0.05, 0.065, 0.085), bone), hip + Vector((-0.08, 0, 0.02)))]
+    for side in (1, -1):
+        pelvis.append(placed(shape("ball", (0.05, 0.11, 0.10), bone, rotation=(math.radians(-25 * side), 0, 0)),
+                             hip + Vector((-0.02, 0.12 * side, 0.08))))
+        pelvis.append(placed(shape("ball", (0.045, 0.045, 0.045), bone), H(f"thigh_{'l' if side > 0 else 'r'}")))
+        pelvis.append(tube([hip + Vector((-0.02, 0.15 * side, -0.02)), hip + Vector((0.07, 0.12 * side, -0.08)),
+                            hip + Vector((0.10, 0.02 * side, -0.07))], 0.022, bone, "pubis"))
+    pelvis.append(placed(shape("cylinder", (0.17, 0.22, 0.035), iron), hip + Vector((-0.01, 0, 0.12))))
+    for k in range(3):
+        y = (k - 1) * 0.13
+        pelvis.append(placed(shape("box", (0.02, 0.065, 0.11), iron, rotation=(0, math.radians(-12), 0)),
+                             hip + Vector((0.16, y, -0.02))))
+    chunk(rig, "hips", pelvis, axis=(0, 1, 0), radius=0.10)
+    for side in ("l", "r"):
+        sy = 1 if side == "l" else -1
+        arm = [long_bone(H(f"upperarm_{side}"), T(f"upperarm_{side}"), 0.042, bone),
+               placed(shape("ball", (0.16, 0.16, 0.11), iron), H(f"upperarm_{side}") + Vector((0, 0.03 * sy, 0.02))),
+               placed(shape("ball", (0.14, 0.145, 0.08), iron), H(f"upperarm_{side}") + Vector((0, 0.05 * sy, -0.09)))]
+        chunk(rig, f"arm_{side}", arm, radius=0.08)
+        e, w = H(f"lowerarm_{side}"), T(f"lowerarm_{side}")
+        fore = [long_bone(e + Vector((0.015, 0, 0)), w + Vector((0.02, 0.0, 0)), 0.030, bone),
+                long_bone(e + Vector((-0.02, 0.01 * sy, 0)), w + Vector((-0.01, 0.015 * sy, 0)), 0.024, bone),
+                ]
+        chunk(rig, f"elbow_{side}", fore, radius=0.04)
+        fore = [placed(shape("ball", (0.035, 0.03, 0.03), bone), H(f"hand_{side}") + Vector((0, 0, -0.03)))]
+        for f in ("thumb", "index", "middle", "ring", "pinky"):
+            joints = [H(f"hand_{side}") + Vector((0, 0, -0.04))] + [H(f"{f}_0{k}_{side}") for k in (1, 2, 3)] + [T(f"{f}_03_{side}")]
+            if f == "thumb":
+                joints = joints[1:]
+            for a, b in zip(joints, joints[1:]):
+                fore.append(long_bone(a, b, 0.008, bone))
+        chunk(rig, f"elbow_{side}", fore, radius=0.03, throw=1.4)
+        thigh = [long_bone(H(f"thigh_{side}"), T(f"thigh_{side}"), 0.056, bone),
+                 placed(shape("ball", (0.075, 0.08, 0.07), iron), T(f"thigh_{side}") + Vector((0.06, 0, 0.0)))]
+        chunk(rig, f"leg_{side}", thigh, radius=0.06)
+        k, a = H(f"calf_{side}"), T(f"calf_{side}")
+        shin = [long_bone(k + Vector((0.01, 0, 0)), a + Vector((0.01, 0, 0)), 0.044, bone),
+                long_bone(k + Vector((-0.03, 0.03 * sy, -0.03)), a + Vector((-0.02, 0.03 * sy, 0.01)), 0.022, bone),
+                ]
+        chunk(rig, f"knee_{side}", shin, radius=0.04)
+        shin = [placed(shape("ball", (0.07, 0.05, 0.035), bone), H(f"foot_{side}") + Vector((-0.02, 0, -0.06)))]
+        heel, ball, toe = H(f"foot_{side}") + Vector((0, 0, -0.07)), H(f"ball_{side}"), T(f"ball_{side}")
+        for t in range(5):
+            spread = (t - 2) * 0.026
+            b1 = ball + Vector((0, spread, 0.0))
+            shin.append(long_bone(heel + Vector((0.04, spread * 0.4, 0)), b1, 0.010, bone))
+            shin.append(long_bone(b1, toe + Vector((-0.02 * abs(t - 1), spread * 1.1, -0.01)), 0.009, bone))
+        chunk(rig, f"knee_{side}", shin, axis=(1, 0, 0), radius=0.03, throw=1.2)
+    # The sword: a long rust-red blade with saw teeth along both edges.
+    g = grip(rig, 0)
+    hang(shape("cylinder", (0.03, 0.03, 0.13), leather, rotation=(0, math.radians(90), 0)), g, (0.02, 0, 0))
+    hang(shape("ball", (0.045, 0.045, 0.045), iron), g, (-0.14, 0, 0))
+    hang(shape("box", (0.03, 0.17, 0.03), iron), g, (0.17, 0, 0))
+    length, width = 1.75, 0.055
+    blade = hang(shape("box", (length / 2, width, 0.014), rust), g, (0.20 + length / 2, 0, 0))
+    blade.modifiers.clear()
+    hang(shape("cone", (0.014, width, 0.20), rust, rotation=(0, math.radians(90), 0)), g, (0.20 + length + 0.20, 0, 0))
+    for k in range(11):
+        x = 0.32 + k * (length - 0.15) / 10
+        for side in (1, -1):
+            tooth = hang(shape("cone", (0.030, 0.010, 0.050), rust, rotation=(math.radians(-90 * side), 0, 0)), g,
+                         (x + 0.02 * side, side * (width + 0.03), 0))
+            tooth.rotation_euler.z = math.radians(-20)
+    rig.chunks.append((g, Vector((1, 0, 0)), 0.03, 2.2))
+    # The shield on the left forearm: brass over a bronze rim, an iron boss.
+    e, w = H("lowerarm_l"), T("lowerarm_l")
+    centre = e.lerp(w, 0.5) + Vector((0.13, 0.06, 0))
+    out = (0, math.radians(90), 0)
+    shield = [placed(shape("cylinder", (0.46, 0.46, 0.035), bronze, rotation=out), centre),
+              placed(shape("cylinder", (0.42, 0.42, 0.03), brass, rotation=out), centre + Vector((0.025, 0, 0))),
+              placed(shape("cylinder", (0.27, 0.27, 0.03), bronze, rotation=out), centre + Vector((0.035, 0, 0))),
+              placed(shape("cylinder", (0.22, 0.22, 0.03), brass, rotation=out), centre + Vector((0.045, 0, 0))),
+              placed(shape("ball", (0.08, 0.11, 0.11), iron), centre + Vector((0.07, 0, 0)))]
+    for k in range(10):
+        a = 2 * math.pi * k / 10
+        shield.append(placed(shape("ball", (0.025, 0.025, 0.025), iron),
+                             centre + Vector((0.05, 0.35 * math.cos(a), 0.35 * math.sin(a)))))
+    chunk(rig, "elbow_l", shield, axis=(0, 0, 1), radius=0.04, throw=1.8)
+    rig.poses = skeleton_poses()
+    rig.animations = dict(ANIMATIONS, death=(16, False))
     return rig
+
+
+def skeleton_stand(animation, s, c):
+    """The skeleton waits as the original's does: nearly upright on
+    slightly bent knees, the sword hanging low and forward in its right
+    hand, the shield held out at its left."""
+    r = {
+        "spine": (0, 0.22 + 0.015 * s, 0),
+        "head": (0, -0.10, 0),
+        "arm_l": (0.30, -0.20, 0),
+        "elbow_l": (-0.2, -0.55, 0),
+        "arm_r": (-0.30, -0.15 - 0.03 * s, 0),
+        "elbow_r": (0, -0.45, 0),
+        "weapon": (0, math.radians(10), -0.8),
+        "leg_l": (0.22, -0.40, 0.1),
+        "knee_l": (0, 0.55, 0),
+        "leg_r": (-0.22, 0.05, -0.1),
+        "knee_r": (0, 0.45 + 0.03 * s, 0),
+    }
+    if animation == "walk":
+        swing = 0.55
+        r["spine"] = (0, 0.15, 0.06 * s)
+        r["leg_l"] = (0.06, -swing * s, 0)
+        r["leg_r"] = (-0.06, swing * s, 0)
+        r["knee_l"] = (0, 0.15 + 0.6 * max(0.0, s), 0)
+        r["knee_r"] = (0, 0.15 + 0.6 * max(0.0, -s), 0)
+        r["arm_r"] = (-0.15, -0.15 - 0.10 * s, 0)
+        r["weapon"] = (0, math.radians(15), -0.6)
+    return r
+
+
+def skeleton_poses():
+    """The skeleton's animations, for pose()."""
+    stand = skeleton_stand("idle", 0.0, 1.0)
+    return {
+        "idle": lambda s, c, k: skeleton_stand("idle", s, c),
+        "walk": lambda s, c, k: skeleton_stand("walk", s, c),
+        # The big swing: the sword drawn back and up over the head, then
+        # brought down in front in a long lunge.
+        "attack": [
+            (0.0, stand),
+            (0.25, hero_key(stand, spine=(0, -0.15, 0.35), head=(0, 0.1, -0.3), arm_r=(-0.30, -2.9, 0),
+                            elbow_r=(0, -0.5, 0), weapon=(0, math.radians(80), 0), arm_l=(0.6, -1.0, 0))),
+            (0.50, hero_key(stand, spine=(0, 0.85, -0.25), head=(0, -0.6, 0.15), arm_r=(-0.10, -1.2, 0),
+                            elbow_r=(0, -0.1, 0), weapon=(0, math.radians(40), 0), arm_l=(0.7, -0.4, 0),
+                            leg_l=(0.15, -1.3, 0.1), knee_l=(0, 1.4, 0), leg_r=(-0.15, 0.9, -0.1), knee_r=(0, 0.15, 0))),
+            (0.75, hero_key(stand, spine=(0, 0.80, -0.2), head=(0, -0.55, 0.1), arm_r=(-0.10, -1.0, 0),
+                            elbow_r=(0, -0.1, 0), weapon=(0, math.radians(45), 0), arm_l=(0.7, -0.4, 0),
+                            leg_l=(0.15, -1.3, 0.1), knee_l=(0, 1.4, 0), leg_r=(-0.15, 0.9, -0.1), knee_r=(0, 0.15, 0))),
+            (1.0, stand),
+        ],
+        "hit": [
+            (0.0, stand),
+            (0.35, hero_key(stand, spine=(0, -0.45, 0.2), head=(0, -0.35, 0), arm_l=(0.6, -1.6, 0),
+                            arm_r=(-0.5, 0.4, 0), leg_l=(0.2, -0.6, 0.1), knee_l=(0, 0.5, 0))),
+            (1.0, stand),
+        ],
+    }
+
+
+def fall_apart(rig, k):
+    """Death for a creature held together by nothing: from its stance each
+    chunk (see chunk()) drops to the ground, the higher ones a little
+    later, turning to lie flat and scattering, the weapons flung furthest."""
+    import random
+    root = rig.joints["root"]
+    if not getattr(rig, "fallen", None):
+        rig.pose(rig.poses["idle"](0.0, 1.0, 0.0))
+        plant(rig)
+        root.rotation_euler = (0, 0, 0)
+        bpy.context.view_layer.update()
+        lift = root.location.z
+        rig.fallen = []
+        rng = random.Random(7)
+        for empty, axis, radius, throw in rig.chunks:
+            m = empty.matrix_world.copy()
+            empty.parent = root
+            empty.matrix_parent_inverse = Matrix()
+            a = rng.uniform(0, 2 * math.pi)
+            drift = Vector((math.cos(a) * 1.2 - 0.3, math.sin(a) * 1.3, 0)) * throw * rng.uniform(0.5, 1.2)
+            rig.fallen.append((empty, m, axis, radius, drift, rng.uniform(-0.6, 0.6), rng.uniform(0.0, 0.12)))
+        rig.lift = lift
+    root.location = (0, 0, 0)
+    root.rotation_euler = (0, 0, 0)
+    for empty, m, axis, radius, drift, spin, delay in rig.fallen:
+        p0 = m.to_translation()
+        q0 = m.to_quaternion()
+        late = delay * 0.5 + 0.10 * min(1.0, p0.z / 3.0)
+        u = max(0.0, min(1.0, (k - late) / 0.42))
+        long = q0 @ axis
+        flat = Vector((long.x, long.y, 0))
+        if flat.length < 0.2:
+            flat = Vector((math.cos(spin * 5), math.sin(spin * 5), 0))
+        q1 = long.rotation_difference(flat.normalized()) @ q0
+        q1 = Quaternion((0, 0, 1), spin) @ q1
+        z = radius + (p0.z - radius) * (1 - u * u)
+        if u >= 1:  # a little bounce after landing
+            z += 0.05 * max(0.0, math.sin(math.pi * min(1.0, (k - late - 0.5) / 0.15)))
+        p = Vector((p0.x + drift.x * u, p0.y + drift.y * u, max(radius, z)))
+        empty.matrix_basis = Matrix.Translation(p) @ q0.slerp(q1, min(1.0, u * 1.2)).to_matrix().to_4x4() @ \
+            Matrix.Diagonal(m.to_scale()).to_4x4()
 
 
 def build_barbarian():
@@ -1616,7 +2018,7 @@ def build_lizard():
 BUILDERS.update({"boar": lambda: build_boar(), "boarrider": lambda: build_boar(rider=True),
                  "skeleton": build_skeleton, "barbarian": build_barbarian, "lizard": build_lizard})
 HEIGHT.update({"boar": 3.6, "boarrider": 6.0, "skeleton": 3.6, "barbarian": 6.8, "lizard": 8.0})
-SIZE.update({"boar": 240, "boarrider": 280, "barbarian": 300, "lizard": 340})
+SIZE.update({"skeleton": 200, "boar": 240, "boarrider": 280, "barbarian": 300, "lizard": 340})
 
 
 def build_scorpion(giant=False):
@@ -2256,6 +2658,21 @@ def pose(rig, animation, t, frames):
     if getattr(rig, "kind", None) == "fire":
         fire_pose(rig, animation, t, frames)
         return
+    poses = getattr(rig, "poses", None)
+    if poses and (animation in poses or animation == "death"):
+        k = min(1.0, t * frames / max(1, frames - 1))
+        if animation == "death" and getattr(rig, "chunks", None):
+            fall_apart(rig, k)
+            return
+        p = poses[animation]
+        r = keyframes(p, k) if isinstance(p, list) else p(s, c, k)
+        rig.pose(r)
+        if "root" in r:
+            rig.joints["root"].rotation_euler = Euler(r["root"])
+            ground(rig)
+        else:
+            plant(rig)
+        return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
     if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
@@ -2441,6 +2858,14 @@ def plant(rig):
     bpy.context.view_layer.update()
     low = min((o.matrix_world @ Vector(corner)).z for name in ("knee_l", "knee_r")
               for o in rig.joints[name].children if o.type == "MESH" for corner in o.bound_box)
+    rig.joints["root"].location.z -= low
+
+
+def ground(rig):
+    """Moves the rig down (or up) until its lowest point touches the ground."""
+    bpy.context.view_layer.update()
+    low = min((o.matrix_world @ Vector(corner)).z for o in bpy.data.objects
+              if o.type == "MESH" and not o.hide_render and o.name != "shadow catcher" for corner in o.bound_box)
     rig.joints["root"].location.z -= low
 
 
