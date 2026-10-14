@@ -670,23 +670,14 @@ bool Game::shopClick(int x, int y, bool right) {
         closeShop();
         return true;
     }
-    if (i < 0) return true;
+    if (i < 0 || right) return true;
     const Item item = stock.goods[static_cast<std::size_t>(i)].item;
     const int price = buyPrice(item, modifierPrices_);
     if (inventory_.gold() < price) {
         showMessage("You're running short of money.");
         return true;
     }
-    // A right click buys as the original does (0x44b020): a mine joins the
-    // ones carried while there is room for it, a consumable marked for the
-    // belt goes there first, and anything else goes in the bag. Mines are
-    // counted, not kept in the bag, whichever button buys them.
-    if (item.def->isMine()) {
-        if (!pickUpMine()) {
-            showMessage("No room for more mines");
-            return true;
-        }
-    } else if (!(right ? inventory_.pickUp(item) : inventory_.add(item))) {
+    if (!inventory_.add(item)) {
         showMessage("No room in the bag");
         return true;
     }

@@ -17,10 +17,8 @@ and are dimmed in the Help window and the Settings Menu.
 | Right click | cast the chosen spell at the cursor; with the attack chosen (F9) attack the monster under it |
 
 In a shop, a left click on the shop's goods buys into the bag and an item
-dropped on the shop is sold. A right click on the goods buys too, as the
-original's does (0x44b020): a belt potion goes in the belt first, a mine
-joins the mines carried. A right click on an item in the bag sells it in
-one go; that is ours (`rightClickSells`), and in original mode a right
+dropped on the shop is sold. A right click on an item in the bag sells it
+in one go; that is ours (`rightClickSells`), and in original mode a right
 click in the bag uses the item as it does anywhere else.
 
 What a click picks when things overlap is set by Click Priority in the

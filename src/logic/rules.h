@@ -44,7 +44,7 @@ struct Rules {
     // Right clicking an item in the bag while a shop is open sells it. In
     // the original a right click there only uses a consumable, as it does
     // anywhere (0x44a6f0); to sell, the item is picked up and put on the
-    // shop. Buying with a right click is the original's (0x44b020).
+    // shop.
     bool rightClickSells = true;
 
     bool originalMode() const {
