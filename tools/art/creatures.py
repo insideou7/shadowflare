@@ -2271,7 +2271,8 @@ def pose(rig, animation, t, frames):
     if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
         k = min(1.0, t * frames / max(1, frames - 1))
         if animation == "attack":
-            r = keyframes(GOBLIN_ATTACK if getattr(rig, "goblin", False) else HERO_ATTACK, k)
+            r = keyframes(GOBLIN_ATTACK if getattr(rig, "goblin", False)
+                          else HEROINE_ATTACK if getattr(rig, "heroine", False) else HERO_ATTACK, k)
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
         elif animation == "idle" and getattr(rig, "heroine", False):
@@ -2438,7 +2439,8 @@ GOBLIN_ATTACK = [
 # stance, the sword drawn back low behind him with the shield thrust out in
 # front as he sinks onto his front knee, then swung up behind his head as he
 # springs up, and over into a long lunge, body flat out over the front knee,
-# the sword thrust straight at the target and the shield flung up behind.
+# the sword thrust straight ahead of his middle at the target and the shield
+# flung up behind.
 # Arm angles past pi keep each swing going the way it travels (back and up,
 # then over the top and forward) instead of through the hips.
 HERO_ATTACK = [
@@ -2460,18 +2462,51 @@ HERO_ATTACK = [
                     elbow_r=(0, -1.0, 0), weapon=(0, math.radians(90), 0), arm_l=(0.35, -1.8, 0),
                     elbow_l=(-1.0, 0, 0), leg_l=(0.12, -1.00, 0.1), knee_l=(0, 0.4, 0),
                     leg_r=(-0.12, 0.60, -0.1), knee_r=(0, 0.9, 0))),
-    (0.67, hero_key(GUARD, spine=(0, 0.70, -0.15), head=(0, -0.55, 0.05), arm_r=(-0.15, 4.18, 0),
+    (0.67, hero_key(GUARD, spine=(0, 0.70, -0.15), head=(0, -0.55, 0.05), arm_r=(0.15, 4.18, 0),
                     elbow_r=(0, -0.2, 0), weapon=(0, math.radians(86), 0), arm_l=(0.20, -3.6, 0),
                     elbow_l=(-0.7, 0.8, 0.2), leg_l=(0.12, -1.25, 0.1), knee_l=(0, 1.3, 0),
                     leg_r=(-0.12, 1.00, -0.1), knee_r=(0, 0.2, 0))),
-    (0.778, hero_key(GUARD, spine=(0, 1.20, -0.20), head=(0, -0.90, 0.10), arm_r=(-0.10, 4.33, 0),
-                    elbow_r=(0, 0, 0), weapon=(0, math.radians(55), 0), arm_l=(0.0, -4.2, 0),
+    (0.778, hero_key(GUARD, spine=(0, 1.20, -0.20), head=(0, -0.90, 0.10), arm_r=(0.30, 4.25, 0),
+                    elbow_r=(0, 0, 0), weapon=(0, math.radians(50), 0), arm_l=(0.0, -4.2, 0),
                     elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
                     leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
-    (1.0, hero_key(GUARD, spine=(0, 1.15, -0.20), head=(0, -0.85, 0.10), arm_r=(-0.10, 4.30, 0),
-                   elbow_r=(0, -0.05, 0), weapon=(0, math.radians(58), 0), arm_l=(0.0, -4.1, 0),
+    (1.0, hero_key(GUARD, spine=(0, 1.15, -0.20), head=(0, -0.85, 0.10), arm_r=(0.30, 4.22, 0),
+                   elbow_r=(0, -0.05, 0), weapon=(0, math.radians(53), 0), arm_l=(0.0, -4.1, 0),
                    elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
                    leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
+]
+# The heroine's attack, her own like the original's, over the same ten
+# frames with the blow on frame 7: from standing with the sword held low
+# out to her side, she draws it back low behind her, raises it up behind
+# her shoulder as she steps into a lunge, cuts down and across in front as
+# she drops onto her back knee with the shield raised over her head, thrusts
+# it straight ahead, and ends kneeling with the sword held up across her
+# body to her left.
+STAND = heroine_stand(0.0)
+KNEEL = dict(leg_l=(0.12, -1.45, 0.1), knee_l=(0, 1.5, 0), leg_r=(-0.12, 0.15, -0.1), knee_r=(0, 1.6, 0))
+SHIELD_UP = dict(arm_l=(0.0, -3.5, 0), elbow_l=(-0.6, 1.5, 0.5))
+HEROINE_ATTACK = [
+    (0.0, hero_key(STAND, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
+    (0.111, hero_key(STAND, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
+    (0.222, hero_key(STAND, spine=(0, 0.05, 0.3), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
+                     weapon=(0, math.radians(135), 0.3), knee_l=(0, 0.3, 0), knee_r=(0, 0.3, 0))),
+    (0.333, hero_key(STAND, spine=(0, 0.05, 0.3), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
+                     weapon=(0, math.radians(135), 0.3), knee_l=(0, 0.3, 0), knee_r=(0, 0.3, 0))),
+    (0.444, hero_key(STAND, spine=(0, 0.15, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
+                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.0, 0.1), knee_l=(0, 1.1, 0),
+                     leg_r=(-0.12, 0.6, -0.1), knee_r=(0, 0.4, 0))),
+    (0.556, hero_key(STAND, spine=(0, 0.15, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
+                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.0, 0.1), knee_l=(0, 1.1, 0),
+                     leg_r=(-0.12, 0.6, -0.1), knee_r=(0, 0.4, 0))),
+    # Arm angles past pi keep the cut going over the top of the shoulder.
+    (0.667, hero_key(STAND, spine=(0, 0.45, -0.2), arm_r=(0.0, 5.53, 0), elbow_r=(0, -1.25, 0),
+                     weapon=(0, math.radians(125), 0.6), arm_l=(0.2, -3.0, 0), elbow_l=(-0.7, 0.8, 0.2), **KNEEL)),
+    (0.778, hero_key(STAND, spine=(0, 0.5, -0.3), arm_r=(0.6, 5.03, 0), elbow_r=(0, -0.875, 0),
+                     weapon=(0, math.radians(95), 1.5), **SHIELD_UP, **KNEEL)),
+    (0.889, hero_key(STAND, spine=(0, 0.2, -0.1), arm_r=(0.4, 4.91, 0), elbow_r=(0, -1.5, 0),
+                     weapon=(0, math.radians(30), 1.5), **SHIELD_UP, **KNEEL)),
+    (1.0, hero_key(STAND, spine=(0, 0.2, -0.1), arm_r=(0.4, 4.91, 0), elbow_r=(0, -1.5, 0),
+                   weapon=(0, math.radians(30), 1.5), **SHIELD_UP, **KNEEL)),
 ]
 # Struck: doubled over, then thrown back with the shield arm flung up, and
 # back into the stance.
