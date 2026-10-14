@@ -19,7 +19,8 @@ std::optional<CharacterModel> CharacterModel::load(const FileSystem& data, const
     if (auto text = data.read(stem + ".anim")) {
         try {
             auto anim = open::parseAnimation(*text);
-            auto body = loadSheet(data, folderOf(stem) + anim.sheet);
+            // Trimmed: our renders are mostly see-through.
+            auto body = loadSheet(data, folderOf(stem) + anim.sheet, true);
             if (!body) return std::nullopt;
             CharacterModel model;
             model.animations = std::move(anim.set);

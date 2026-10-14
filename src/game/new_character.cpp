@@ -82,9 +82,7 @@ int litOf(int pattern) {
 void Game::setHero(HeroSex sex, std::string name) {
     heroSex_ = sex;
     heroName_ = std::move(name);
-    auto& model = playerModels()[static_cast<int>(sex)];
-    const auto& fallback = playerModels()[static_cast<int>(HeroSex::Male)];
-    if (player_) player_->setModel(model ? &*model : fallback ? &*fallback : nullptr);
+    if (player_) player_->setModel(heroModel(sex));
 }
 
 void Game::openNewCharacter() {
