@@ -182,10 +182,10 @@ These sounds belong to things the engine does not have yet:
   in the magic window (0x44a8f0) and the online menus. The shop's unpaid
   hand and right-click buying (0x4480c0, 0x44b020), and picking up into
   the hand while the item window is open (0x449ef0), are also missing.
-- **Fights the engine lacks.** The Warrior's combos and axe spin
-  (0x4364e0-0x437910), monsters freezing the hero (0x443cb0, 119), the revive item
-  (17), life absorption (0x459690, 61) and the companion's idle animation
-  (0x461230, 88).
+- **Fights.** The Warrior's combo shouts (0x60-0x65) and swings, the
+  ice on a frozen hero (119), the Elixir (17) and the companion's idle
+  (88) are played (docs/combat.md, docs/partners.md), as is life
+  absorption (61).
 
 ## The open pack's sounds and music
 

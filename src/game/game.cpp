@@ -442,6 +442,7 @@ void Game::placePlayer() {
 
 void Game::placePlayerAt(double screenX, double screenY) {
     heroStun_.reset();
+    combo_.reset();
     const auto& g = map_->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
     int left, top, right, bottom;
@@ -759,11 +760,18 @@ void Game::handleEvent(const SDL_Event& event) {
                 break;
             }
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
-                if (spells_.knows(spells_.selected)) {
+                double aimX, aimY;
+                screenToWorld(pixelX(event.button.x), pixelY(event.button.y), aimX, aimY);
+                // A Warrior holding the left button combos (or spins) with
+                // the right whatever spell is chosen (0x448740); with the
+                // attack chosen (F9) the right button alone does (0x441c00).
+                if (mouseHeld_ && startCombo(aimX, aimY)) {
+                } else if (spells_.knows(spells_.selected)) {
                     // The right button casts the chosen spell at the cursor.
                     double wx, wy;
                     screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
                     startCast(wx, wy);
+                } else if (startCombo(aimX, aimY)) {
                 } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
                            target.kind == Settings::kEnemy) {
                     // With the attack chosen (F9) it strikes the monster under it.
@@ -1027,7 +1035,14 @@ void Game::tickPlayer() {
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
         heroStun_.reset();
+        player_->held = false;
+        player_->grey = false;
         player_->play(chart::kIdle);
+    }
+    // The Warrior's combo or spin runs to its end (states 11-18).
+    if (combo_) {
+        tickCombo();
+        return;
     }
     // A hit or a punch plays out before anything else happens.
     const int current = player_->chart();
@@ -1449,6 +1464,8 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     } else {
         playerHp_ -= damage;
     }
+    // The Elixir in the bag brings the hero straight back (0x443cb0).
+    if (playerHp_ <= 0 && reviveWithElixir()) return;
     if (playerHp_ <= 0) {
         // No death animation or game over yet: start the map again.
         log::info("The player was defeated");
@@ -1495,7 +1512,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     }
     // A blow does not interrupt the player's own swing or a flinch already
     // playing, or a crowd of monsters could keep them from ever fighting back.
-    if (flinch && !casting_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
+    if (flinch && !casting_ && !combo_ && player_->chart() != chart::kPlayerPunch && player_->chart() != chart::kPlayerHit) {
         player_->restart(chart::kPlayerHit);
         walkTarget_.reset();
     }

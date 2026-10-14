@@ -58,6 +58,10 @@ constexpr int kExplosionSpray = 10000000;  // Character/OPTION
 // A freezing stun's ice (Character/OPTION): closing in, the four blocks
 // (one chosen at random) and breaking away.
 constexpr int kFreezeStart = 11000028, kFreezeHold = 11000029, kFreezeEnd = 11000033;
+// Standing by the hero (0x461230): after 180 of the original's ticks a
+// kind whose table 60 column 6 is set plays its idle chart 9 (a dog
+// scratches or yawns) with voice 0x58, and at 210 goes back to standing.
+constexpr int kIdleChart = 9, kIdleStart = 180, kIdleEnd = 210, kIdleVoice = 0x58;
 
 // r is the enemy's box around (ex, ey).
 template <class Rect>
@@ -342,9 +346,33 @@ void Game::tickPartner() {
     } else {
         p.walkDelay = 5;
         p.state = State::Idle;
-        c.play(chart::kIdle);
+        tickPartnerIdle();
+        c.tick();
+        return;
     }
+    p.idleTicks = 0;
     c.tick();
+}
+
+void Game::tickPartnerIdle() {
+    Partner& p = *partner_;
+    Character& c = p.character;
+    const double before = p.idleTicks;
+    p.idleTicks += kOriginalTicksPerTick;
+    const auto* t = tables_.find(60);
+    const bool fidgets = t && partnerRecord_.kind < t->rows && t->cols > 6 && t->value(partnerRecord_.kind, 6) != 0;
+    // The open pack's dog has no chart 9: it just stands.
+    if (!fidgets || !c.hasChart(kIdleChart) || p.idleTicks >= kIdleEnd) {
+        if (!fidgets || p.idleTicks >= kIdleEnd) p.idleTicks = 0;
+        c.play(chart::kIdle);
+        return;
+    }
+    if (p.idleTicks < kIdleStart) {
+        c.play(chart::kIdle);
+        return;
+    }
+    if (before < kIdleStart) playSound(kIdleVoice, c.x, c.y);
+    c.play(kIdleChart);
 }
 
 // A bite that came off (0x460251): the partner's hit against the monster's

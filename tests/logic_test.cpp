@@ -12,6 +12,7 @@
 
 #include "logic/ai_select.h"
 #include "logic/archery.h"
+#include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -1230,6 +1231,32 @@ void testMixer() {
     check(out[0] > 1600 && out[0] < 1700, "quieter by its attenuation");
 }
 
+void testCombat() {
+    using sf::WarriorMove;
+    check(sf::warriorMove(0) == WarriorMove::Sword && sf::warriorMove(3) == WarriorMove::GreatSword, "swords combo");
+    check(sf::warriorMove(1) == WarriorMove::Spin, "axes and maces spin");
+    check(sf::warriorMove(2) == WarriorMove::None && sf::warriorMove(4) == WarriorMove::None, "staffs and bowguns do not");
+    check(sf::comboChart(WarriorMove::Sword, 1) == 5 && sf::comboChart(WarriorMove::Sword, 3) == 8, "sword combo charts 5, 7, 8");
+    check(sf::comboChart(WarriorMove::GreatSword, 2) == 17, "great sword combo charts 15, 17, 18");
+    check(sf::comboShout(1, false) == 0x60 && sf::comboShout(3, true) == 0x65, "combo shouts");
+    check(sf::attackSpeedStep(3, false) == 4 && sf::attackSpeedStep(0, true) == 9, "attack speed step, 9 in power mode");
+    check(sf::comboSpeed(0) == 0.8 && sf::comboSpeed(9) == 1.7 && sf::spinSpeed(4) == 1.0, "combo and spin speeds");
+    check(sf::comboLunge(0) == 0 && sf::comboLunge(6) == 60 && sf::comboLunge(7) == 0, "the lunge grows to 60, then stops");
+    // Wind-up 9, turn 8, recovery 19.
+    auto f = sf::spinFrame(8, 2, 9, 8, 19);
+    check(f.chart == 21 && f.frame == 8 && !f.turning, "spin winds up");
+    f = sf::spinFrame(9, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 1 && f.turning, "the turn starts from the facing");
+    f = sf::spinFrame(32, 2, 9, 8, 19);
+    check(f.chart == 22 && f.frame == 0, "three turns");
+    f = sf::spinFrame(33, 2, 9, 8, 19);
+    check(f.chart == 23 && f.frame == 0 && f.turning && !f.done, "blows go on one frame past the turn");
+    check(sf::spinFrame(51, 2, 9, 8, 19).done && !sf::spinFrame(50, 2, 9, 8, 19).done, "spin ends on chart 23's last frame");
+    check(sf::inSwing(0, 2, sf::kComboSpread) && sf::inSwing(0, 6, sf::kComboSpread), "combo catches two steps either side");
+    check(!sf::inSwing(0, 3, sf::kComboSpread) && sf::inSwing(0, 4, sf::kAllRound), "spin catches all round");
+    check(sf::inSwing(7, 0, sf::kSwingSpread) && !sf::inSwing(7, 1, sf::kSwingSpread), "swing wraps round");
+}
+
 int main() {
     testItemLabels();
     testMixer();
@@ -1266,6 +1293,7 @@ int main() {
     testTrapGeometry();
     testTrapShots();
     testArchery();
+    testCombat();
     testScriptTrapsAndEffects();
     if (failures == 0) std::puts("all logic tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;

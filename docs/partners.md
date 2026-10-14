@@ -59,6 +59,12 @@ When its health runs out it falls and comes back next to the hero after
 98000002). Its health carries over from one map to the next. `HEALLIFE`
 fills it too, but does not bring a fallen partner back.
 
+Waiting by the hero (0x461230), it counts the original's ticks; at 180 a
+kind whose table 60 column 6 is set (all but the Hawk) plays chart 9, a
+dog's scratch or yawn, with voice 0x58, and at 210 it stands again and
+the count starts over. The open pack's dogs have no chart 9 and just
+stand.
+
 The gauge is Bar.njp pattern 30 (frame, at 0, 395), 29 (the bar) and 31 or
 32 (ACTIVE or INACTIVE, at 56, 392). The bar blinks below 30% health.
 
