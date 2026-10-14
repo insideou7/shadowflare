@@ -1,0 +1,10 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+[message 1]
+Dusty Ruins, B4F
+
+[sentence arrive]
+on=start
+SETCOMPASSES msg:1

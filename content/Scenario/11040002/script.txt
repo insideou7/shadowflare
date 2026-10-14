@@ -1,0 +1,61 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+[message 1]
+Remains of Reincarnation
+
+[message 2]
+Remains of Reincarnation, Inner Rooms
+
+[message 3]
+Remains of Reincarnation, Great Hall
+
+[message 4]
+Remains of Reincarnation, Sunlit Chamber
+
+[sentence arrive]
+on=start
+SETFLAG temp:50 0
+GETENTRYPOINT temp:52
+IF temp:52 < 0 @arrive-none
+IF temp:52 = 0 @arrive-0
+IF temp:52 = 1 @arrive-1
+IF temp:52 = 2 @arrive-2
+IF temp:52 = 3 @arrive-3
+IF temp:52 = 4 @arrive-4
+IF temp:52 = 5 @arrive-5
+
+[sentence arrive-none]
+SETCOMPASSES msg:1
+
+[sentence arrive-0]
+SETCOMPASSES msg:2
+
+[sentence arrive-1]
+SETCOMPASSES msg:2
+
+[sentence arrive-2]
+SETCOMPASSES msg:3
+
+[sentence arrive-3]
+SETCOMPASSES msg:3
+
+[sentence arrive-4]
+SETCOMPASSES msg:4
+
+[sentence arrive-5]
+SETCOMPASSES msg:4
+
+# Mission 8 (search the Remains of Reincarnation) is done once its last guards (monsters 0 to 6) are dead, as in
+# the original, where the hall's sealed door opens then.
+[sentence mission-check]
+on=tick
+IF quest:8 ! 2 @mission-look
+
+[sentence mission-look]
+CHECKENEMYLIVE 14000000 14000006 temp:51
+IF temp:51 = -1 @mission-done
+
+[sentence mission-done]
+SETQUESTFLAG 8 2 1

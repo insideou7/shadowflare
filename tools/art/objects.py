@@ -1,7 +1,9 @@
 """Scenario objects in ShadowFlare's style, rendered with studio.py: the
 chests, crates, dungeon doors, floor buttons, levers and pads a scenario
 places (Character/OBJECT/<kind>/Pattern.njp in the original), each in the
-states the game switches between (closed and open, up and down).
+states the game switches between (closed and open, up and down), and the
+enemy holes (goblin burrows that bring nearby monsters back until the hero
+breaks them: hole, hole_open while one comes back, hole_broken).
 
     python tools/art/objects.py [--blend] <output folder> [piece ...]
 
@@ -12,9 +14,12 @@ not the model's origin: it is moved so the model's outline (without its
 shadow) sits where the original picture's box sits about its anchor, the
 middle of its bottom edge on the middle of the original's. The boxes below
 are the original pictures' sizes and offsets (x, y, width, height) only.
+Props without a box (the holes) are anchored on the model's origin, the
+middle of the object's rectangle.
 """
 
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -255,7 +260,100 @@ def pad(colour):
         ball(0.06, (1.15 * math.cos(a), 1.15 * math.sin(a), 0.2), mat("rivet", RIVET))
 
 
-# name: (builder, image size, the original picture's box, wall pitch)
+EARTH = dict(colour=(0.42, 0.31, 0.20), dark=(0.17, 0.11, 0.07), scale=9, bump=0.7, grime=0.3)
+PIT = dict(colour=(0.10, 0.07, 0.05), dark=(0.02, 0.015, 0.01), scale=10, bump=0.5)
+ROCK = dict(colour=(0.52, 0.49, 0.44), dark=(0.20, 0.18, 0.16), scale=7, bump=0.7, grime=0.25)
+STAKE = dict(colour=(0.46, 0.33, 0.19), dark=(0.18, 0.11, 0.05), scale=8, stretch=(1, 1, 8), bump=0.6, grime=0.3)
+HOLE_R = 1.25  # the opening; the ring of stones round it makes the burrow about 450 world units across
+
+
+def rock(r, at, m, rng, squash=0.6):
+    """A rough, flat-faced stone."""
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1, radius=r, location=at)
+    o = bpy.context.object
+    for v in o.data.vertices:
+        v.co *= rng.uniform(0.75, 1.15)
+    o.scale = (rng.uniform(0.9, 1.3), rng.uniform(0.8, 1.1), squash)
+    o.rotation_euler = (rng.uniform(-0.3, 0.3), rng.uniform(-0.3, 0.3), rng.uniform(0, math.pi))
+    return studio.assign(o, m)
+
+
+def stake(at, lean, height, m, broken=False):
+    """A sharpened wooden stake driven into the ground, leaning outward
+    (lean: the direction in radians it leans towards)."""
+    from mathutils import Vector
+
+    tilt = math.radians(20)
+    up = Vector((math.sin(tilt) * math.cos(lean), math.sin(tilt) * math.sin(lean), math.cos(tilt)))
+    rot = up.to_track_quat("Z", "Y").to_euler()
+    h = height * (0.45 if broken else 1)
+    base = Vector((at[0], at[1], 0))
+    cyl(0.09, h, base + up * (h / 2), m, rot=rot, verts=7)
+    if not broken:
+        cyl(0.09, 0.25, base + up * (h + 0.125), m, rot=rot, verts=7, r2=0.0)
+
+
+def hole(state="shut"):
+    """A goblin burrow: a dark pit in a low ring of dug earth, rough stones
+    piled round its lip and a few sharpened stakes; open, it glows red-orange
+    from deep inside; broken, it has caved in under a heap of earth and
+    tumbled stones."""
+    rng = random.Random(7)
+    earth, pit, stone, wood = mat("earth", EARTH), mat("pit", PIT), mat("rock", ROCK), mat("stake", STAKE)
+    broken = state == "broken"
+    # The dug-up earth round the hole: a low, lumpy ring.
+    bpy.ops.mesh.primitive_torus_add(major_radius=HOLE_R + 0.35, minor_radius=0.5, major_segments=28,
+                                     minor_segments=10, location=(0, 0, 0))
+    ring = bpy.context.object
+    ring.scale = (1, 1, 0.55)
+    for v in ring.data.vertices:
+        v.co.z *= rng.uniform(0.8, 1.25)
+    studio.smooth(studio.assign(ring, earth))
+    if broken:
+        # Caved in: a heap of loose earth fills the opening.
+        ball(HOLE_R + 0.1, (0, 0, 0.02), earth, scale=(1, 0.95, 0.22))
+        for k in range(7):
+            a = rng.uniform(0, 2 * math.pi)
+            d = rng.uniform(0, 0.8)
+            rock(rng.uniform(0.18, 0.3), (d * math.cos(a), d * math.sin(a), 0.22), stone, rng)
+    else:
+        # The throat of the burrow, sloping down into the dark.
+        bpy.ops.mesh.primitive_cone_add(vertices=28, radius1=HOLE_R * 0.55, radius2=HOLE_R + 0.15, depth=0.24,
+                                        location=(0, 0, 0.13), end_fill_type="NOTHING")
+        studio.smooth(studio.assign(bpy.context.object, pit))
+        if state == "open":
+            core = glow("burrow fire", (1.0, 0.36, 0.08), 6.0)
+            cyl(HOLE_R * 0.6, 0.02, (0, 0, 0.02), core, verts=28)
+            cyl(HOLE_R * 0.95, 0.02, (0, 0, 0.012), glow("burrow glow", (0.85, 0.20, 0.05), 1.5), verts=28)
+            light = bpy.data.lights.new("burrow light", "POINT")
+            light.energy = 220
+            light.color = (1.0, 0.45, 0.15)
+            light.shadow_soft_size = 0.5
+            lo = bpy.data.objects.new("burrow light", light)
+            bpy.context.scene.collection.objects.link(lo)
+            lo.location = (0, 0, 0.12)
+        else:
+            cyl(HOLE_R * 0.7, 0.02, (0, 0, 0.02), mat("deep", dict(colour=(0.02, 0.015, 0.01), scale=4, bump=0)),
+                verts=28)
+    # Stones piled round the lip.
+    n = 16
+    for k in range(n):
+        a = 2 * math.pi * k / n + rng.uniform(-0.12, 0.12)
+        d = HOLE_R + 0.35 + rng.uniform(-0.12, 0.2)
+        if broken and k % 3 == 0:
+            d -= 0.5  # tumbled in
+        rock(rng.uniform(0.2, 0.32), (d * math.cos(a), d * math.sin(a), 0.22 + rng.uniform(0, 0.08)), stone, rng)
+    # Sharpened stakes round the back and sides, none in front of the hole.
+    for k, a in enumerate((45, 95, 140, 185, 230)):  # the camera looks from 315 degrees
+        a = math.radians(a)
+        d = HOLE_R + 0.85
+        stake((d * math.cos(a), d * math.sin(a)), a, rng.uniform(0.85, 1.15), wood, broken=broken and k % 2 == 0)
+    if broken:
+        # A snapped stake lying across the heap.
+        cyl(0.06, 1.0, (0.2, -0.3, 0.32), wood, rot=(math.radians(84), 0, math.radians(30)), verts=7)
+
+
+# name: (builder, image size, the original picture's box or None, wall pitch)
 PROPS = {
     "obj_chest_x": (chest, 96, (-23, -24, 49, 52), False),
     "obj_chest_open_x": (lambda: chest(open_=True), 112, (-23, -38, 59, 66), False),
@@ -289,6 +387,9 @@ PROPS = {
     "obj_lever_down_y": (lambda: lever(down=True, along_y=True), 96, (-16, -14, 36, 29), False),
     "obj_pad_blue": (lambda: pad((0.25, 0.55, 1.0)), 96, (-29, -41, 63, 46), False),
     "obj_pad_red": (lambda: pad((1.0, 0.18, 0.22)), 96, (-29, -41, 63, 46), False),
+    "hole": (hole, 160, None, False),
+    "hole_open": (lambda: hole("open"), 160, None, False),
+    "hole_broken": (lambda: hole("broken"), 160, None, False),
 }
 
 
@@ -319,18 +420,23 @@ def main():
     listing = out / "objects.txt"
     anchors = dict(l.split(" ", 1) for l in listing.read_text().split("\n") if l) if listing.exists() else {}
     for name in names:
-        build, size, (x0, y0, w, h), wall = PROPS[name]
+        build, size, original, wall = PROPS[name]
         _mats.clear()
         scene = studio.reset(samples=32)
         build()
         if wall:  # the original's doors, like its walls, cast no shadows
             bpy.data.objects["shadow catcher"].hide_render = True
-        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3),
+        studio.camera(scene, size, size, target=(0, 0, size / studio.PIXELS_PER_UNIT * 0.3 if original else 0.4),
                       elevation=studio.WALL_ELEVATION if wall else None)
         left, top, right, bottom = outline(scene)
-        # The image point the object's position goes on: the outline's
-        # bottom middle where the original's is.
-        ax, ay = (left + right) / 2 - (x0 + w / 2), bottom - (y0 + h)
+        if original:
+            # The image point the object's position goes on: the outline's
+            # bottom middle where the original's is.
+            x0, y0, w, h = original
+            ax, ay = (left + right) / 2 - (x0 + w / 2), bottom - (y0 + h)
+        else:
+            ax, ay = studio.anchor(scene)
+            w, h = "-", "-"
         if blend:
             studio.save_blend(out / f"{name}.blend")
         studio.render(scene, str(out / f"{name}.png"))

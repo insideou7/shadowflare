@@ -379,9 +379,25 @@ void Game::spawnActors() {
     actors_.clear();
     attackTarget_.reset();
     if (scenarioDir_.empty()) return;
+    // A monster of kind -1 has no picture: the original's Enemy Holes, a
+    // burrow drawn by the objects round it that brings its monsters back
+    // until the hero breaks it. It stands where it is placed, can be hit
+    // and dies like any other (its script swaps the objects).
+    static const CharacterModel kUnseen;
     for (const auto& p : control_.placements) {
         // Map objects (chests, doors) and items come later.
-        if (p.kind < 0 || p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
+        if (p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
+        if (p.kind < 0) {
+            if (p.group != ScenarioControl::Group::Enemy) continue;
+            Actor actor{p, Character(&kUnseen)};
+            actor.active = p.startsActive();
+            actor.character.x = p.x;
+            actor.character.y = p.y;
+            actor.hp = actor.maxHp = std::max(1, p.stats.hp);
+            nameOpenEnemy(actor);
+            actors_.push_back(std::move(actor));
+            continue;
+        }
         const char* folder = p.group == ScenarioControl::Group::Enemy ? "ENEMY" : "PEOPLE";
         int kind = p.kind;
         if (p.group == ScenarioControl::Group::Person && kind >= ScenarioControl::kPartnerBase) {
@@ -886,7 +902,13 @@ void Game::tick() {
         }
         if (!actor.active) continue;
         if (actor.hostile() && player_) {
-            if (actor.aiList >= 0) {
+            if (actor.placement.kind < 0) {
+                // An Enemy Hole never moves or strikes; a blow only stops it a moment.
+                if (actor.state == Actor::State::Hit && (actor.stunTicks -= kOriginalTicksPerTick) <= 0) {
+                    endStun(actor);
+                    actor.state = Actor::State::Idle;
+                }
+            } else if (actor.aiList >= 0) {
                 tickEnemyAi(actor);
             } else {
                 tickEnemy(actor);

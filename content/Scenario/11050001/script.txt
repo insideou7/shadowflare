@@ -1,0 +1,279 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+object=12348,12143,12508,12303,hole0,hole,hidden
+object=12348,12143,12508,12303,hole0-open,hole_open,hidden
+object=12348,12143,12508,12303,hole0-broken,hole_broken,hidden
+temp=901,-1
+temp=902,-1
+object=12250,2481,12410,2641,hole1,hole,hidden
+object=12250,2481,12410,2641,hole1-open,hole_open,hidden
+object=12250,2481,12410,2641,hole1-broken,hole_broken,hidden
+temp=911,-1
+temp=912,-1
+object=2725,2456,2885,2616,hole2,hole,hidden
+object=2725,2456,2885,2616,hole2-open,hole_open,hidden
+object=2725,2456,2885,2616,hole2-broken,hole_broken,hidden
+temp=921,-1
+temp=922,-1
+object=2717,12015,2877,12175,hole3,hole,hidden
+object=2717,12015,2877,12175,hole3-open,hole_open,hidden
+object=2717,12015,2877,12175,hole3-broken,hole_broken,hidden
+temp=931,-1
+temp=932,-1
+
+[message 1]
+Immortal Remains, B2F
+
+[sentence arrive]
+on=start
+SETCOMPASSES msg:1
+
+# Burrows (written by tools/content/enemy_holes.py)
+#
+# Each burrow brings its monsters back, one at a time, while it
+# stands: every 200 ticks, if one of them is dead, the burrow glows
+# and it climbs back out. Breaking the burrow ends it. temp:<n> flags
+# from 900 on: the tick count, the glow left, the monster
+# coming back, whether the burrow is still standing, set up.
+
+[sentence hole0-start]
+on=start
+IF temp:904 = 0 @hole0-setup
+
+[sentence hole0-setup]
+SETFLAG temp:904 1
+SETFLAG shown:hole0 1
+
+# Monsters 14000001 to 14000005 are this burrow's.
+[sentence hole0-tick]
+on=tick
+CHECKENEMYLIVE 14000000 14000000 temp:903
+IF temp:900 = 180 @hole0-wake
+IF temp:900 = 200 @hole0-revive
+IF temp:903 ! -1 @hole0-glow
+ADD temp:900 1
+
+[sentence hole0-wake]
+IF temp:903 ! -1 @hole0-look
+
+[sentence hole0-look]
+CHECKENEMYDEAD 14000001 14000005 temp:902
+IF temp:902 ! -1 @hole0-open
+
+[sentence hole0-open]
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 1
+SETFLAG temp:901 40
+CREATEEFFECT 20007 x:hole0 y:hole0 0 -1
+CREATEEFFECT 20008 x:hole0 y:hole0 0 -1
+PLAYSOUND 27 0 x:hole0 y:hole0
+
+[sentence hole0-revive]
+IF temp:902 ! -1 @hole0-bring
+SETFLAG temp:900 0
+
+[sentence hole0-bring]
+IF temp:903 ! -1 @hole0-rise
+
+[sentence hole0-rise]
+RESSURECT temp:902 x:hole0 y:hole0 7
+
+[sentence hole0-glow]
+IF temp:901 > -1 @hole0-fade
+
+[sentence hole0-fade]
+IF temp:901 = 0 @hole0-shut
+SUB temp:901 1
+
+[sentence hole0-shut]
+SETFLAG shown:hole0 1
+SETFLAG shown:hole0-open 0
+
+[sentence hole0-broken]
+on=enemy-dead 14000000
+PLAYSOUND 28 0 x:hole0 y:hole0
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 0
+SETFLAG shown:hole0-broken 1
+
+[sentence hole1-start]
+on=start
+IF temp:914 = 0 @hole1-setup
+
+[sentence hole1-setup]
+SETFLAG temp:914 1
+SETFLAG shown:hole1 1
+
+# Monsters 14000007 to 14000011 are this burrow's.
+[sentence hole1-tick]
+on=tick
+CHECKENEMYLIVE 14000006 14000006 temp:913
+IF temp:910 = 180 @hole1-wake
+IF temp:910 = 200 @hole1-revive
+IF temp:913 ! -1 @hole1-glow
+ADD temp:910 1
+
+[sentence hole1-wake]
+IF temp:913 ! -1 @hole1-look
+
+[sentence hole1-look]
+CHECKENEMYDEAD 14000007 14000011 temp:912
+IF temp:912 ! -1 @hole1-open
+
+[sentence hole1-open]
+SETFLAG shown:hole1 0
+SETFLAG shown:hole1-open 1
+SETFLAG temp:911 40
+CREATEEFFECT 20007 x:hole1 y:hole1 0 -1
+CREATEEFFECT 20008 x:hole1 y:hole1 0 -1
+PLAYSOUND 27 0 x:hole1 y:hole1
+
+[sentence hole1-revive]
+IF temp:912 ! -1 @hole1-bring
+SETFLAG temp:910 0
+
+[sentence hole1-bring]
+IF temp:913 ! -1 @hole1-rise
+
+[sentence hole1-rise]
+RESSURECT temp:912 x:hole1 y:hole1 7
+
+[sentence hole1-glow]
+IF temp:911 > -1 @hole1-fade
+
+[sentence hole1-fade]
+IF temp:911 = 0 @hole1-shut
+SUB temp:911 1
+
+[sentence hole1-shut]
+SETFLAG shown:hole1 1
+SETFLAG shown:hole1-open 0
+
+[sentence hole1-broken]
+on=enemy-dead 14000006
+PLAYSOUND 28 0 x:hole1 y:hole1
+SETFLAG shown:hole1 0
+SETFLAG shown:hole1-open 0
+SETFLAG shown:hole1-broken 1
+
+[sentence hole2-start]
+on=start
+IF temp:924 = 0 @hole2-setup
+
+[sentence hole2-setup]
+SETFLAG temp:924 1
+SETFLAG shown:hole2 1
+
+# Monsters 14000013 to 14000017 are this burrow's.
+[sentence hole2-tick]
+on=tick
+CHECKENEMYLIVE 14000012 14000012 temp:923
+IF temp:920 = 180 @hole2-wake
+IF temp:920 = 200 @hole2-revive
+IF temp:923 ! -1 @hole2-glow
+ADD temp:920 1
+
+[sentence hole2-wake]
+IF temp:923 ! -1 @hole2-look
+
+[sentence hole2-look]
+CHECKENEMYDEAD 14000013 14000017 temp:922
+IF temp:922 ! -1 @hole2-open
+
+[sentence hole2-open]
+SETFLAG shown:hole2 0
+SETFLAG shown:hole2-open 1
+SETFLAG temp:921 40
+CREATEEFFECT 20007 x:hole2 y:hole2 0 -1
+CREATEEFFECT 20008 x:hole2 y:hole2 0 -1
+PLAYSOUND 27 0 x:hole2 y:hole2
+
+[sentence hole2-revive]
+IF temp:922 ! -1 @hole2-bring
+SETFLAG temp:920 0
+
+[sentence hole2-bring]
+IF temp:923 ! -1 @hole2-rise
+
+[sentence hole2-rise]
+RESSURECT temp:922 x:hole2 y:hole2 7
+
+[sentence hole2-glow]
+IF temp:921 > -1 @hole2-fade
+
+[sentence hole2-fade]
+IF temp:921 = 0 @hole2-shut
+SUB temp:921 1
+
+[sentence hole2-shut]
+SETFLAG shown:hole2 1
+SETFLAG shown:hole2-open 0
+
+[sentence hole2-broken]
+on=enemy-dead 14000012
+PLAYSOUND 28 0 x:hole2 y:hole2
+SETFLAG shown:hole2 0
+SETFLAG shown:hole2-open 0
+SETFLAG shown:hole2-broken 1
+
+[sentence hole3-start]
+on=start
+IF temp:934 = 0 @hole3-setup
+
+[sentence hole3-setup]
+SETFLAG temp:934 1
+SETFLAG shown:hole3 1
+
+# Monsters 14000019 to 14000023 are this burrow's.
+[sentence hole3-tick]
+on=tick
+CHECKENEMYLIVE 14000018 14000018 temp:933
+IF temp:930 = 180 @hole3-wake
+IF temp:930 = 200 @hole3-revive
+IF temp:933 ! -1 @hole3-glow
+ADD temp:930 1
+
+[sentence hole3-wake]
+IF temp:933 ! -1 @hole3-look
+
+[sentence hole3-look]
+CHECKENEMYDEAD 14000019 14000023 temp:932
+IF temp:932 ! -1 @hole3-open
+
+[sentence hole3-open]
+SETFLAG shown:hole3 0
+SETFLAG shown:hole3-open 1
+SETFLAG temp:931 40
+CREATEEFFECT 20007 x:hole3 y:hole3 0 -1
+CREATEEFFECT 20008 x:hole3 y:hole3 0 -1
+PLAYSOUND 27 0 x:hole3 y:hole3
+
+[sentence hole3-revive]
+IF temp:932 ! -1 @hole3-bring
+SETFLAG temp:930 0
+
+[sentence hole3-bring]
+IF temp:933 ! -1 @hole3-rise
+
+[sentence hole3-rise]
+RESSURECT temp:932 x:hole3 y:hole3 7
+
+[sentence hole3-glow]
+IF temp:931 > -1 @hole3-fade
+
+[sentence hole3-fade]
+IF temp:931 = 0 @hole3-shut
+SUB temp:931 1
+
+[sentence hole3-shut]
+SETFLAG shown:hole3 1
+SETFLAG shown:hole3-open 0
+
+[sentence hole3-broken]
+on=enemy-dead 14000018
+PLAYSOUND 28 0 x:hole3 y:hole3
+SETFLAG shown:hole3 0
+SETFLAG shown:hole3-open 0
+SETFLAG shown:hole3-broken 1

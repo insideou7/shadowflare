@@ -207,6 +207,10 @@ void testScenario() {
     const auto& t = thrower.control.placements.at(0).stats;
     check(t.shotKind == 1 && t.shotHeight == 250 && t.shotSpeed == 50 && t.shotStart == 200 && t.shotSlot == 0, "what an enemy throws");
     check(full.control.placements.at(0).stats.shotKind == -1, "an enemy throws nothing without shot=");
+    // A burrow (the original's Enemy Hole) is a monster of kind -1 with no model.
+    const auto burrow = sf::open::parseScenario(bytes("enemy=-1,5,6,3,600,0,0,none,2,100,100,200,50,50,0,50,50,0\n"));
+    const auto& b = burrow.control.placements.at(0);
+    check(b.group == sf::ScenarioControl::Group::Enemy && b.kind == -1 && b.stats.hp == 600, "a burrow is a kind -1 monster");
     expectRejected("enemy shot", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,shot=1/250/50\n",
                    [](auto& d) { sf::open::parseScenario(d); });
     expectRejected("unknown enemy field", "enemy=1,5,6,0,30,4,480,goblin,2,0,0,0,7,20,50,0,0,1,fury=3\n",

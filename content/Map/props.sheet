@@ -271,3 +271,6 @@ frame=640,5345,128,128,64,93,pipe_corner_s
 frame=768,5345,128,128,64,93,pipe_corner_n
 frame=896,5345,128,128,64,93,pipe_corner_w
 frame=1024,5345,128,128,64,93,pipe_corner_e
+frame=0,5745,160,160,80,86,hole
+frame=162,5745,160,160,80,86,hole_open
+frame=324,5745,160,160,80,86,hole_broken

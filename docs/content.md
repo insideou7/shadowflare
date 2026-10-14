@@ -192,6 +192,12 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 | `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
 | `shot=` | what one attack throws instead of striking: kind/height/speed/start/attack (see docs/archery.md) | throws nothing |
 
+A monster of kind -1 has no picture: it is a burrow, the original's Enemy
+Hole. It never moves or strikes but can be hit and dies like any other
+monster; objects of the scenario's script draw it, and the script brings
+its monsters back out of it while it stands (see "The first area" below).
+`enemies.txt` names it.
+
 Every monster in the pack has the original's numbers.
 `tools/content/enemy_stats.py` copies them from the player's own copy:
 each monster on a map laid out after an original area gets the numbers of
@@ -591,6 +597,27 @@ and the other way round, and drawing them laid over each other:
 
     python3 tools/content/map_overlay.py <game folder> content overlay.png
 
+The first area's quests are the original's, in our own words: missions
+0 to 10 (`missions.txt`) are given, cleared and rewarded by the same people,
+in the same order and for the same reasons, with the same `save:` and
+`quest:` flags, so a game saved mid-quest goes on in either data. The quest
+items and rewards keep the original's item codes (`items.txt`), and the
+monsters that carry a quest item drop it from lists 400 to 402
+(`drops.txt`). Each field and dungeon script names the room the hero comes
+into and has the hero remark on it, as the original's do; the boss rooms of
+the Dusty Ruins and the four dungeons clear their mission when their last
+monster dies.
+
+The original's Enemy Holes are burrows in ours: 24 of them in the Dusty
+Ruins, the Sea of Trees and the dungeons round Cold Svalt Town. Each brings
+its monsters back one at a time, every 200 ticks, glowing as one climbs out,
+until the hero breaks it. `tools/content/enemy_holes.py` writes them (the
+`enemy=-1` lines in the original's order among the monsters, the burrow's
+objects and the script that runs it, after the original's script) from the
+player's own copy; run it after `first_area.py` and `enemy_stats.py`:
+
+    python3 tools/content/enemy_holes.py <game folder> content
+
 A game saved in any of these areas goes on with the other data: a hero
 saved in the original's Remote Town loads in ours at the same spot, and
 back, with what the area map (N) has seen of each area. Each of our maps
@@ -626,7 +653,8 @@ which is run but not copied:
     export MPFB_SRC=$PWD/mpfb2/src/mpfb
 
 `build_pack.py` writes the ground, floors, props and text files
-(`tools/content/first_area.py` and `enemy_stats.py` then lay out the maps);
+(`tools/content/first_area.py`, `enemy_stats.py` and `enemy_holes.py` then
+lay out the maps);
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. `trim_sheets.py` then
 cuts the see-through space from round each character frame (only after

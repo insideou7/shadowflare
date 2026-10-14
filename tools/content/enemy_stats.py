@@ -64,7 +64,8 @@ def main():
     game, out = Path(sys.argv[1]), Path(sys.argv[2])
     if not (game / "Scenario").is_dir():
         game = next(p.parent for p in game.rglob("Scenario") if (p.parent / "Map").is_dir())
-    kinds = {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()}
+    # -1: the Enemy Holes enemy_holes.py puts in, which have no pictures.
+    kinds = {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()} | {-1}
 
     originals = {}
     for sc in sorted((game / "Scenario").iterdir()):
