@@ -522,7 +522,7 @@ void Game::updateCamera() {
     int sx, sy;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
     const bool left = showStatus_ || magicOpen_ || warpOpen_ || mapOpen_ || openShop_.has_value();
-    const bool right = showInventory_;
+    const bool right = rightWindowOpen();
     const double w = viewWidth();
     double centre = w / 2.0;
     if (!missionsOpen_ && left != right) centre = right ? w / 4.0 : w * 3 / 4.0;
@@ -626,7 +626,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         closeAreaMap();
                     } else if (openShop_) {
                         if (!hand_) closeShop();
-                    } else if (showInventory_) {
+                    } else if (rightWindowOpen()) {
                         closeInventory();
                     } else if (showStatus_) {
                         showStatus_ = false;
@@ -671,7 +671,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     } else if (showInventory_) {
                         closeInventory();
                     } else {
-                        showInventory_ = true;
+                        openItemWindow();
                         closeWarpWindow();
                     }
                     break;
@@ -712,7 +712,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         notYet("Companions");
                     }
                     break;
-                case SDLK_x: notYet("The special items window"); break;
+                case SDLK_x: toggleSpecialWindow(); break;
                 case SDLK_m: toggleMagicWindow(); break;
                 case SDLK_q: toggleMissions(); break;
                 case SDLK_n: toggleAreaMap(); break;
@@ -741,6 +741,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && spellBarClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && panelClick(event.button.x, event.button.y)) break;
+            if (specialWindowClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // While Identify waits for an item, the right button calls it
             // off (0x445a40) and casts nothing.
@@ -797,6 +798,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::closeInventory() {
     showInventory_ = false;
+    specialOpen_ = false;
     identifying_ = false;  // closing the window ends Identify (0x41e4f0)
     // Closing the panel puts a held item back, or drops it.
     if (hand_) {

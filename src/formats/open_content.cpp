@@ -1070,7 +1070,12 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
         } else if (key == "glow") {
             item->glowLayer = lines.toInt(value);
         } else if (key == "page") {
-            item->specialPage = lines.toInt(value);
+            // page, then its place there in cells: page=3,0,0
+            const auto v = lines.ints(value);
+            if (v.size() != 1 && v.size() != 3) lines.fail("page= takes a page, or a page and its place x,y");
+            item->specialPage = v[0];
+            item->specialX = v.size() == 3 ? v[1] : 0;
+            item->specialY = v.size() == 3 ? v[2] : 0;
         } else if (key == "two-handed") {
             item->twoHandedFlag = lines.toInt(value) != 0;
         } else if (key == "effect") {

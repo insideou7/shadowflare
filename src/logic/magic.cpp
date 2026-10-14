@@ -41,9 +41,23 @@ ElementLevels discElementLevels(int x, int y) {
     ElementLevels levels{};
     for (int e = 0; e < kElementCount; ++e) {
         const double d = std::hypot(static_cast<double>(x - kDiscAnchors[e][0]), static_cast<double>(y - kDiscAnchors[e][1]));
-        levels[static_cast<std::size_t>(e)] = (20000 - static_cast<int>(d)) / 1000;
+        levels[static_cast<std::size_t>(e)] = (20000 - static_cast<int>(d)) / 2000;
     }
     return levels;
+}
+
+void moveOnDisc(int& x, int& y, int element, int distance) {
+    if (element < 0 || element >= kElementCount || distance <= 0) return;
+    const int ax = kDiscAnchors[element][0], ay = kDiscAnchors[element][1];
+    const double dx = ax - x, dy = ay - y;
+    if (static_cast<int>(std::hypot(dx, dy)) <= distance) {
+        x = ax;
+        y = ay;
+        return;
+    }
+    const double angle = std::atan2(dy, dx);
+    x += static_cast<int>(std::cos(angle) * distance);
+    y += static_cast<int>(std::sin(angle) * distance);
 }
 
 ElementLevels elementLevels(const ElementLevels& base, const ElementLevels& worn) {

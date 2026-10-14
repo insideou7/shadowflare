@@ -227,7 +227,7 @@ void Game::releaseSpell() {
             // bag is identified (0x43f8d0).
             spawnEffect(kIdentifyGlow, player_->x, player_->y).followsPlayer = true;
             identifying_ = true;
-            showInventory_ = true;
+            openItemWindow();
             closeWarpWindow();
             showMessage("Choose an item to identify");
             break;
@@ -961,8 +961,8 @@ std::vector<Game::BarIcon> Game::spellBarLayout() const {
     std::vector<BarIcon> icons;
     if (!player_ || missionsOpen_ || menuOpen_) return icons;
     const bool left = showStatus_ || magicOpen_ || openShop_.has_value() || mapOpen_ || warpOpen_;
-    if (left && showInventory_) return icons;
-    int x = left ? 344 : showInventory_ ? 124 : 224;
+    if (left && rightWindowOpen()) return icons;
+    int x = left ? 344 : rightWindowOpen() ? 124 : 224;
     for (int b = 0; b < kSpellBarSize; ++b) {
         if (b % 4 == 0) x += 4;
         const int spell = spells_.bar[static_cast<std::size_t>(b)];

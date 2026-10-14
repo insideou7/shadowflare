@@ -155,7 +155,7 @@ void Game::toggleMissions() {
         return;
     }
     if (openShop_ || dialogue_) return;
-    if (showInventory_) closeInventory();
+    if (rightWindowOpen()) closeInventory();
     showStatus_ = false;
     closeMagicWindow();
     helpOpen_ = false;
@@ -202,7 +202,7 @@ bool Game::missionsClick(int x, int y, bool right) {
 
 // A click on the lock or on the mission's name toggles the list.
 bool Game::missionHudClick(int x, int y) {
-    if (missionsOpen_ || showInventory_ || openShop_) return false;
+    if (missionsOpen_ || rightWindowOpen() || openShop_) return false;
     const int lift = kHudLift;
     if (anyMissionTaken() && x >= kLockX && x < kLockX + 24 && y >= kNameY - lift && y < kNameY + 16 - lift) {
         toggleMissions();
@@ -290,7 +290,7 @@ void Game::renderMissions() {
 // The lock and the newest mission's name over the bottom right of the
 // screen; hidden while a window covers that side.
 void Game::renderMissionHud() {
-    if (!player_ || missionsOpen_ || showInventory_ || openShop_ || menuOpen_) return;
+    if (!player_ || missionsOpen_ || rightWindowOpen() || openShop_ || menuOpen_) return;
     const int lift = kHudLift;
     if (anyMissionTaken()) {
         // StatusIcon.njp pattern 0, or our pack's lock.

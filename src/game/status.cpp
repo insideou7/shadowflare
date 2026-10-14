@@ -157,8 +157,9 @@ void Game::renderStatus() {
 
     // The element levels as bars, Status.njp 0x24 (level -10) to 0x38 (+10)
     // a row of 16 pixels apart, and the hero's place on the attribute disc,
-    // pattern 0x39, pulsing. A new hero stands in the middle (see
-    // playerElements).
+    // pattern 0x39, pulsing, 48 pixels from the middle at the edge of the
+    // disc (0x405750). A new hero stands in the middle; the medicines move
+    // them (see applyConsumable).
     if (window) {
         const ElementLevels levels = playerElements();
         for (int i = 0; i < kElementCount; ++i) {
@@ -173,7 +174,8 @@ void Game::renderStatus() {
             const int phase = static_cast<int>(ticks_ * 30 / kTicksPerSecond % 50);
             const int alpha = phase < 25 ? phase * 255 / 25 : (50 - phase) * 255 / 25;
             SDL_SetTextureAlphaMod(dot->texture, static_cast<Uint8>(alpha));
-            const SDL_Rect dst{dot->originX + 80, dot->originY + 330, dot->width, dot->height};
+            const SDL_Rect dst{dot->originX + 80 + discX_ * 48 / 20000, dot->originY + 330 - discY_ * 48 / 20000, dot->width,
+                               dot->height};
             SDL_RenderCopy(renderer_, dot->texture, nullptr, &dst);
             SDL_SetTextureAlphaMod(dot->texture, 255);
         }

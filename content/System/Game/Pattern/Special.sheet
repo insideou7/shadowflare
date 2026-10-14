@@ -1,0 +1,5 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The special items window (the anchor puts it at x = 320 on the 640 x 480 screen) and its button back to the item window lit up.
+image=Special.png
+frame=0,0,320,416,-320,0
+frame=0,416,67,9,-376,-394

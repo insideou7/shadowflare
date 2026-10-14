@@ -74,6 +74,7 @@ add_executable(shadowflare
     src/game/game.cpp
     src/game/enemy_ai.cpp
     src/game/items.cpp
+    src/game/special_items.cpp
     src/game/saving.cpp
     src/game/title.cpp
     src/game/new_character.cpp

@@ -85,6 +85,7 @@ void Game::chooseMenuItem(MenuItem item) {
 void Game::newGame() {
     forgetVisitedScenarios();
     hand_.reset();
+    specialOpen_ = false;
     inventory_.clear();
     flags_.clear();
     // The first gate, Remote Town's, is known from the start (0x4412dc).
@@ -93,6 +94,7 @@ void Game::newGame() {
     explored_.clear();
     mapOpen_ = false;
     playerLevel_ = 1;
+    discX_ = discY_ = 0;
     career_ = {};
     showStatus_ = false;
     closeMagicWindow();

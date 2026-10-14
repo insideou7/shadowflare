@@ -56,7 +56,7 @@ bool Game::hasPanelArt() {
 
 bool Game::panelClick(int x, int y) {
     if (!player_ || menuOpen_) return false;
-    if (showInventory_ && x >= 320 && y < 416) return false;  // the item window covers the panel's top right
+    if (rightWindowOpen() && x >= 320 && y < 416) return false;  // the item window covers the panel's top right
     if (kMenuButton.has(x, y)) {
         panel_.flash[kFlashMenu] = 2;
         playSound(0x3a);  // (0x445bd0)
@@ -87,7 +87,7 @@ bool Game::panelClick(int x, int y) {
         if (showInventory_) {
             closeInventory();
         } else {
-            showInventory_ = true;
+            openItemWindow();
             closeWarpWindow();
             panel_.flash[kFlashItem] = 2;
         }

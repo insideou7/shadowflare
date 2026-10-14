@@ -52,6 +52,9 @@ struct SaveGame {
     std::optional<int> mines;  // mines in hand; none in saves from before mines
     std::vector<BagEntry> bag;
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
+    // The special items window's items; x is the page. Each goes back to
+    // its own place there.
+    std::vector<BagEntry> special;
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
     ScriptFlags flags;  // the persistent scenario flags
@@ -60,6 +63,7 @@ struct SaveGame {
     bool originalMode = false;
     std::optional<PartnerRecord> partner;  // none in saves from before companions
     int partnerHp = 0;                     // 0 = full (or down, with reviveTicks)
+    int discX = 0, discY = 0;              // the hero's point on the attribute disc
     // What the map shows of each area seen, by scenario folder (or map name
     // for a map without one). The original keeps these in its own files
     // (Save\M<scenario><slot>.msk); ours go in the save.

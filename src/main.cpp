@@ -57,6 +57,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool special = false;     // start with the special items window open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
     std::optional<sf::HeroSex> hero;  // --hero male|female: who plays
@@ -141,6 +142,8 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--special") {
+            options.special = true;
         } else if (arg == "--status") {
             options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
@@ -582,6 +585,7 @@ int main(int argc, char** argv) {
     app.game->setAutoFight(options.autoFight);
     if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
     app.game->setInventoryOpen(options.inventory);
+    if (options.special) app.game->setSpecialWindowOpen(true);
     app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);

@@ -94,7 +94,7 @@ public:
         g_.showStatus_ = false;  // the shop takes the left of the screen
         g_.closeMagicWindow();
         g_.closeWarpWindow();
-        g_.showInventory_ = true;
+        g_.openItemWindow();
     }
     void healLife() override {
         g_.playerHp_ = g_.playerMaxHp();
@@ -185,8 +185,14 @@ public:
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def || g_.inventory_.has(def->cls, code)) return;
         const Item item = Item::make(def, g_.random_);
-        // No special items window yet: the bag, or the ground when it is full.
-        if (!g_.inventory_.add(item) && g_.player_) g_.dropItem(item, g_.player_->x, g_.player_->y);
+        // SETITEMDIRECT is for items kept in the special items window
+        // (0x430ffe case 0x4b); anything else goes in the bag, or on the
+        // ground when it is full.
+        if (def->specialPage >= 0) {
+            g_.inventory_.addSpecial(item);
+        } else if (!g_.inventory_.add(item) && g_.player_) {
+            g_.dropItem(item, g_.player_->x, g_.player_->y);
+        }
     }
     void playerLife(int& hp, int& max) const override {
         hp = g_.playerHp_;
@@ -691,6 +697,13 @@ bool Game::shopClick(int x, int y, bool right) {
     if (item.def->isMine()) {
         if (!pickUpMine()) {
             showMessage("No room for more mines");
+            return true;
+        }
+    } else if (item.def->specialPage >= 0) {
+        // Into the special items window; not sold when one like it is
+        // there already (0x4480c0).
+        if (!inventory_.addSpecial(item)) {
+            showMessage("You already have one");
             return true;
         }
     } else if (!inventory_.add(item)) {
