@@ -9,9 +9,12 @@ is about 3% figure).
 Works on the sheets under Character/ENEMY, Character/PEOPLE,
 Character/PARTNER and Player, after shrink.py: each picture keeps its
 palette and see-through colour, and each frame its anchor, so the game
-draws everything where it did. Other sheets (fonts, the panel, items) are
-left alone, since their frames' sizes can matter. Rewrites the files in
-place and leaves a sheet that is already tight as it is.
+draws everything where it did. Map/props.sheet is only packed tightly,
+each frame keeping its size (tools/content/first_area.py reads the props'
+widths; the game trims them as it loads them); add_props.py grows it with
+gaps, so run this again after it. Other sheets (fonts, the panel, items)
+are left alone, since their frames' sizes can matter. Rewrites the files
+in place and leaves a sheet that is already tight as it is.
 """
 
 import sys
@@ -21,10 +24,11 @@ import numpy as np
 from PIL import Image
 
 FOLDERS = ("Character/ENEMY", "Character/PEOPLE", "Character/PARTNER", "Player")
+PACKED = ("Map/props.sheet",)  # packed, frames kept whole
 WIDTH = 2048  # the packed sheet's width
 
 
-def trim(sheet_path):
+def trim(sheet_path, keep_frames=False):
     lines = sheet_path.read_text().split("\n")
     image_name = next(line[6:] for line in lines if line.startswith("image="))
     image_path = sheet_path.parent / image_name
@@ -53,7 +57,9 @@ def trim(sheet_path):
             continue
         fields = line[6:].split(",")
         x, y, w, h, ax, ay = map(int, fields[:6])
-        if (x, y, w, h) not in cuts:
+        if keep_frames:
+            cuts[(x, y, w, h)] = (x, y, x + w, y + h)
+        elif (x, y, w, h) not in cuts:
             shows = ~see_through[y:y + h, x:x + w]
             rows, cols = np.nonzero(shows.any(axis=1))[0], np.nonzero(shows.any(axis=0))[0]
             if len(rows) == 0:
@@ -65,7 +71,7 @@ def trim(sheet_path):
     if not frames:
         return False
     used = sum((b[2] - b[0]) * (b[3] - b[1]) for b in cuts.values())
-    if used >= 0.8 * sum(w * h for (_, _, w, h) in cuts):
+    if used >= 0.8 * (im.width * im.height if keep_frames else sum(w * h for (_, _, w, h) in cuts)):
         return False
 
     # Shelves, tallest first.
@@ -104,6 +110,9 @@ def main():
         for sheet in sorted((pack / folder).rglob("*.sheet")):
             if trim(sheet):
                 print(f"{sheet.relative_to(pack)}: trimmed")
+    for name in PACKED:
+        if (pack / name).exists() and trim(pack / name, keep_frames=True):
+            print(f"{name}: packed")
 
 
 if __name__ == "__main__":

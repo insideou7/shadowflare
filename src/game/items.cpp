@@ -567,7 +567,11 @@ const SpriteBank* Game::itemBank(const std::string& stem) {
             if (auto njp = data_->read(stem + ".njp")) {
                 it->second = std::make_unique<SpriteBank>(SpriteBank::parse(*njp));
             } else if (data_->exists(stem + ".sheet")) {
-                if (auto sheet = loadSheet(*data_, stem + ".sheet")) it->second = std::make_unique<SpriteBank>(std::move(*sheet));
+                // The props sheet (scenario objects in the open pack) is
+                // trimmed, as the map's own copy is: it is mostly see-through.
+                if (auto sheet = loadSheet(*data_, stem + ".sheet", stem == "Map/props")) {
+                    it->second = std::make_unique<SpriteBank>(std::move(*sheet));
+                }
             }
         } catch (const FormatError& e) {
             log::warn("{}: {}", stem, e.what());

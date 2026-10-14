@@ -92,7 +92,11 @@ const SpriteBank* Map::bank(int index) const {
         bankTried_[index] = true;
         const std::string& file = bankFiles_[index];
         if (open_) {
-            if (auto sheet = loadSheet(*data_, file)) banks_[index] = std::make_unique<SpriteBank>(std::move(*sheet));
+            // Pieces' frames are trimmed (our props sheet is mostly
+            // see-through); the ground's are not, as chips are drawn at their
+            // cell's corner whatever their anchor.
+            const bool ground = std::ranges::any_of(ground_.cells, [&](const auto& c) { return c.bank == index; });
+            if (auto sheet = loadSheet(*data_, file, !ground)) banks_[index] = std::make_unique<SpriteBank>(std::move(*sheet));
         } else if (!file.empty() && file != "?") {
             if (auto raw = data_->read("Map/Pattern/" + file)) {
                 try {

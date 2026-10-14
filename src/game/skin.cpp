@@ -50,7 +50,8 @@ std::unique_ptr<Skin> Skin::load(std::unique_ptr<FileSystem> pack, SDL_Renderer*
     skin->pack_ = std::move(pack);
     skin->renderer_ = renderer;
     if (!skin->file_.props.empty()) {
-        if (auto sheet = loadSheet(*skin->pack_, skin->file_.props)) {
+        // Trimmed: our props are mostly see-through.
+        if (auto sheet = loadSheet(*skin->pack_, skin->file_.props, true)) {
             skin->props_ = std::make_unique<SpriteBank>(std::move(*sheet));
             for (std::size_t i = 0; i < skin->props_->names.size(); ++i) {
                 if (!skin->props_->names[i].empty()) skin->propFrames_[skin->props_->names[i]] = static_cast<int>(i);
