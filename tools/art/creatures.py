@@ -270,6 +270,11 @@ def build_goblin():
         spike = shape("cone", (0.045, 0.045, 0.11), iron)
         spike.rotation_euler = Vector((0, 0, 1)).rotation_difference(d).to_euler()
         hang(spike, g, tuple(head + d * 0.27))
+    # The left hand takes the haft too (see two_hands()): a joint in its palm.
+    aw = armature.matrix_world
+    palm = (aw @ armature.data.bones["hand_l"].head_local + aw @ armature.data.bones["middle_01_l"].head_local) / 2
+    rig.joint("palm_l", "elbow_l", tuple((palm - rig.joints["elbow_l"].matrix_world.translation) / scale))
+    rig.two_hands = (("idle", "walk", "attack"), g, Vector((0.32, 0, 0)))
     rig.poses = goblin_poses()
     return rig
 
@@ -314,7 +319,7 @@ def goblin_poses():
         "idle": lambda s, c, k: goblin_stand("idle", s, c),
         "walk": lambda s, c, k: goblin_stand("walk", s, c),
         # Up over the head, then down onto the ground in front.
-        "attack": [(0.0, stand), (0.45, up), (0.65, down), (0.8, down), (1.0, stand)],
+        "attack": [(0.0, stand), (0.55, up), (0.72, down), (0.86, down), (1.0, stand)],
         "hit": [(0.0, stand),
                 (0.35, hero_key(stand, spine=(0, 0.0, 0.25), head=(0, -0.2, 0), arm_l=(0.5, -1.5, 0),
                                 arm_r=(-0.5, 0.3, 0), knee_l=(0, 0.6, 0), knee_r=(0, 0.5, 0))),
@@ -1764,17 +1769,19 @@ def build_skeleton():
     rig.chunks.append((g, Vector((1, 0, 0)), 0.03, 2.2))
     # The shield on the left forearm: brass over a bronze rim, an iron boss.
     e, w = H("lowerarm_l"), T("lowerarm_l")
-    centre = e.lerp(w, 0.5) + Vector((0.13, 0.06, 0))
-    out = (0, math.radians(90), 0)
+    # It faces out to the left side of the forearm, so it stays upright
+    # whichever way the forearm swings.
+    centre = e.lerp(w, 0.5) + Vector((0, 0.08, 0))
+    out = (math.radians(-90), 0, 0)
     shield = [placed(shape("cylinder", (0.46, 0.46, 0.035), bronze, rotation=out), centre),
-              placed(shape("cylinder", (0.42, 0.42, 0.03), brass, rotation=out), centre + Vector((0.025, 0, 0))),
-              placed(shape("cylinder", (0.27, 0.27, 0.03), bronze, rotation=out), centre + Vector((0.035, 0, 0))),
-              placed(shape("cylinder", (0.22, 0.22, 0.03), brass, rotation=out), centre + Vector((0.045, 0, 0))),
-              placed(shape("ball", (0.08, 0.11, 0.11), iron), centre + Vector((0.07, 0, 0)))]
+              placed(shape("cylinder", (0.42, 0.42, 0.03), brass, rotation=out), centre + Vector((0, 0.025, 0))),
+              placed(shape("cylinder", (0.27, 0.27, 0.03), bronze, rotation=out), centre + Vector((0, 0.035, 0))),
+              placed(shape("cylinder", (0.22, 0.22, 0.03), brass, rotation=out), centre + Vector((0, 0.045, 0))),
+              placed(shape("ball", (0.11, 0.08, 0.11), iron), centre + Vector((0, 0.07, 0)))]
     for k in range(10):
         a = 2 * math.pi * k / 10
         shield.append(placed(shape("ball", (0.025, 0.025, 0.025), iron),
-                             centre + Vector((0.05, 0.35 * math.cos(a), 0.35 * math.sin(a)))))
+                             centre + Vector((0.35 * math.cos(a), 0.05, 0.35 * math.sin(a)))))
     chunk(rig, "elbow_l", shield, axis=(0, 0, 1), radius=0.04, throw=1.8)
     rig.poses = skeleton_poses()
     rig.animations = dict(ANIMATIONS, death=(16, False))
@@ -1788,11 +1795,11 @@ def skeleton_stand(animation, s, c):
     r = {
         "spine": (0, 0.22 + 0.015 * s, 0),
         "head": (0, -0.10, 0),
-        "arm_l": (0.30, -0.20, 0),
-        "elbow_l": (-0.2, -0.55, 0),
-        "arm_r": (-0.30, -0.15 - 0.03 * s, 0),
-        "elbow_r": (0, -0.45, 0),
-        "weapon": (0, math.radians(10), -0.8),
+        "arm_l": (0.25, -0.15, 0),
+        "elbow_l": (0, -1.1, -1.1),
+        "arm_r": (-0.12, -0.10 - 0.03 * s, 0),
+        "elbow_r": (0, -0.40, 0),
+        "weapon": (0, math.radians(-12), -0.25),
         "leg_l": (0.22, -0.40, 0.1),
         "knee_l": (0, 0.55, 0),
         "leg_r": (-0.22, 0.05, -0.1),
@@ -1805,8 +1812,8 @@ def skeleton_stand(animation, s, c):
         r["leg_r"] = (-0.06, swing * s, 0)
         r["knee_l"] = (0, 0.15 + 0.6 * max(0.0, s), 0)
         r["knee_r"] = (0, 0.15 + 0.6 * max(0.0, -s), 0)
-        r["arm_r"] = (-0.15, -0.15 - 0.10 * s, 0)
-        r["weapon"] = (0, math.radians(15), -0.6)
+        r["arm_r"] = (-0.12, -0.10 - 0.10 * s, 0)
+        r["weapon"] = (0, math.radians(-5), -0.25)
     return r
 
 
@@ -2667,6 +2674,8 @@ def pose(rig, animation, t, frames):
         p = poses[animation]
         r = keyframes(p, k) if isinstance(p, list) else p(s, c, k)
         rig.pose(r)
+        if animation in getattr(rig, "two_hands", ((),))[0]:
+            two_hands(rig)
         if "root" in r:
             rig.joints["root"].rotation_euler = Euler(r["root"])
             ground(rig)
@@ -2859,6 +2868,33 @@ def plant(rig):
     low = min((o.matrix_world @ Vector(corner)).z for name in ("knee_l", "knee_r")
               for o in rig.joints[name].children if o.type == "MESH" for corner in o.bound_box)
     rig.joints["root"].location.z -= low
+
+
+def two_hands(rig):
+    """Bends the left arm so its palm (joint palm_l) holds the weapon too, at
+    a point along it: rig.two_hands is (animations, the weapon's grip
+    empty, the point in the grip's space). Two-bone IK, the elbow out to
+    the left and down."""
+    _, g, point = rig.two_hands
+    bpy.context.view_layer.update()
+    J = rig.joints
+    target = g.matrix_world @ point
+    s = J["arm_l"].matrix_world.translation
+    e0 = J["elbow_l"].matrix_world.translation
+    p0 = J["palm_l"].matrix_world.translation
+    l1, l2 = (e0 - s).length, (p0 - e0).length
+    span = target - s
+    d = max(abs(l1 - l2) + 1e-3, min(l1 + l2 - 1e-3, span.length))
+    n = span.normalized()
+    pole = J["spine"].matrix_world.to_3x3() @ Vector((-0.3, 1.0, -1.0))
+    pole = (pole - pole.dot(n) * n).normalized()
+    a = (l1 * l1 - l2 * l2 + d * d) / (2 * d)
+    elbow = s + n * a + pole * math.sqrt(max(0.0, l1 * l1 - a * a))
+    for joint, child, aim in (("arm_l", "elbow_l", elbow - s), ("elbow_l", "palm_l", target - elbow)):
+        bpy.context.view_layer.update()
+        parent = J[joint].parent.matrix_world.to_3x3().normalized()
+        rest = rig.rest[child].normalized()
+        J[joint].rotation_euler = rest.rotation_difference(parent.inverted() @ aim.normalized()).to_euler()
 
 
 def ground(rig):
