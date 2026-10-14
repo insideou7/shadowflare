@@ -52,8 +52,24 @@ struct TrapShot {
     // words 0x76 and 0x77), -1 for none.
     int hitSound = -1;
 };
-// Empty for the kinds no script uses (4-7), which the exe sets up further.
+// Kinds 4-7 are what monsters shoot (no script uses them): 4, 5 and 7 fly
+// as kind 0's arrow, 6 is OPTION 4 with a 320-unit box. Empty for any
+// other kind.
 std::optional<TrapShot> trapShot(int kind, int direction, double angle);
+// The layers of a shot's animation that are turned off once it is made
+// (0x42a300), as a bit mask: the arrow's flame (layer 2) and frost
+// (layer 3) for kinds 0 and 7, the frost for kind 4 (a fire arrow) and the
+// flame for kind 5 (an ice arrow).
+unsigned shotHiddenLayers(int kind);
+
+// What a monster's shot does to the one it hits, beyond the blow
+// (0x45a2f0 fills it in for the shot): the spark, 21007-21009 for the
+// arrows (kinds 0, 4, 5 and 7) and 21000-21003 for the rest, `roll` being
+// 0-3; and an effect played on them as well (hit word 0x4a), 20000 for a
+// fire arrow, 21013 for an ice arrow, else -1. Both are effect
+// controllers, to go through scriptEffectOption.
+int monsterShotSpark(int kind, int roll);
+int monsterShotEffect(int kind);
 
 // The effect a script's effect number plays (CREATEEFFECT and
 // CREATEEFFECTCHAR, through the controllers 0x429ec0 hands to 0x42b860):

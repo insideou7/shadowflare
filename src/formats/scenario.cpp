@@ -72,6 +72,11 @@ ScenarioControl::Placement readPlacement(BinaryReader& in, ScenarioControl::Grou
             p.stats.attackCharts[k] = words[64 + k];
             p.stats.spellCharts[k] = words[67 + k];
         }
+        p.stats.shotKind = words[44];
+        p.stats.shotHeight = words[45];
+        p.stats.shotSpeed = words[46];
+        p.stats.shotStart = words[47];
+        p.stats.shotSlot = words[48];
         p.stats.goldChance = words[49];
         p.stats.goldMin = words[50];
         p.stats.goldMax = words[51];

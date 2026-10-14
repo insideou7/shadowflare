@@ -27,3 +27,77 @@ on=decide attack priority=2 range=..80
 on=decide approach weight=6 duration=40 speed=35 range=..2000
 on=decide wait weight=1 duration=20
 on=approaching attack priority=2 range=..80
+
+# Spell casters: monsters with spells= follow one of these, picked by
+# tools/content/caster_ai.py from the spells they know. Spells that burst
+# round the caster (Hell Fire, Ice Blast) are cast close up, the rest from
+# further off, as the original's casters keep them.
+
+# One spell that flies or reaches (slot a).
+[list mage]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide magic priority=1 weight=2 range=200..1200
+on=decide approach priority=1 weight=3 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+# Two spells that fly or reach: a nearer, b further.
+[list mage-two]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide magic priority=1 weight=2 range=200..700
+on=decide magic2 priority=1 weight=2 range=701..1200
+on=decide approach priority=1 weight=3 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+# A burst close up (a) and a spell from further off (b).
+[list mage-near-far]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide magic priority=2 range=..150
+on=decide magic2 priority=1 weight=2 range=200..1200
+on=decide approach priority=1 weight=3 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+# Three spells: a burst close up (a), then b and c further and further off.
+[list mage-three]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide magic priority=2 range=..150
+on=decide magic2 priority=1 weight=2 range=200..700
+on=decide magic3 priority=1 weight=2 range=701..1300
+on=decide approach priority=1 weight=3 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+# The same with the burst last (c) and the furthest first (a).
+[list mage-three-burst-last]
+walk=40
+on=decide attack priority=2 range=..60
+on=decide magic3 priority=2 range=..150
+on=decide magic2 priority=1 weight=2 range=200..700
+on=decide magic priority=1 weight=2 range=701..1300
+on=decide approach priority=1 weight=3 duration=30 speed=45 range=..1800
+on=decide wander duration=80 speed=20 pause=10 extra=30
+on=approaching attack priority=2 range=..60
+on=hit approach priority=1 duration=20 speed=55 range=..2400
+
+# Throwers: monsters with shot= (tools/content/caster_ai.py gives them
+# this list) keep their distance and throw from there, backing off from a
+# hero who comes close and closing in on one who is far off.
+[list thrower]
+walk=25
+on=decide attack priority=2 range=700..1400
+on=decide retreat priority=2 duration=50 speed=25 range=..699
+on=decide approach priority=1 duration=40 speed=30 range=1401..2400
+on=decide wander duration=60 speed=18 pause=10 extra=25
+on=approaching attack priority=2 range=700..1400
+on=retreating attack priority=2 range=700..1400
+on=hit retreat priority=1 duration=30 speed=30 range=..699

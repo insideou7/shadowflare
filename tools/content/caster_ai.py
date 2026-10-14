@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Give the open pack's spell casters an AI list that casts their spells.
+"""Give the open pack's spell casters an AI list that casts their spells,
+and its throwers one that throws from afar.
 
     python3 tools/content/caster_ai.py <content pack>
 
 Each enemy= line with spells= (enemy_stats.py copies them from the
 original's monsters) gets one of ai.txt's mage lists, by which slots hold a
 spell and whether it bursts round the caster (Hell Fire, Ice Blast; cast
-close up) or flies and reaches (cast from further off). Lines without
-spells keep their list. Run it again after enemy_stats.py.
+close up) or flies and reaches (cast from further off). Each line with
+shot= (a stone or arrow thrown by its first attack) and no spells gets
+ai.txt's thrower list. Other lines keep their list. Run it again after
+enemy_stats.py.
 """
 
 import sys
@@ -32,12 +35,13 @@ def fix_line(line):
     body, sep, comment = line.partition("#")
     fields = [f.strip() for f in body.strip()[len("enemy="):].split(",")]
     named = {f.split("=", 1)[0]: f.split("=", 1)[1] for f in fields[18:] if "=" in f}
-    if "spells" not in named:
+    spells = [int(v) for v in named.get("spells", "-1/-1/-1").split("/")]
+    if any(s >= 0 for s in spells):
+        fields[7] = ai_list(spells)
+    elif "shot" in named and named["shot"].split("/")[4] == "0":
+        fields[7] = "thrower"
+    else:
         return line
-    spells = [int(v) for v in named["spells"].split("/")]
-    if all(s < 0 for s in spells):
-        return line
-    fields[7] = ai_list(spells)
     return "enemy=" + ",".join(fields) + (" " + sep + comment if sep else "")
 
 
