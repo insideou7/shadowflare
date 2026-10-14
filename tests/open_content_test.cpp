@@ -331,6 +331,10 @@ void testScript() {
               drops.entries[0].code == 0 && drops.entries[1].cls == -1 && drops.entries[1].minLevel == 1 &&
               drops.entries[1].maxLevel == 3 && drops.entries[1].code == -1,
           "drop picks");
+    check(list && list->picks[0].quality == 111 && list->picks[1].quality == 111, "picks allow every quality by default");
+    const auto rare = sf::open::parseDrops(bytes("[drops 3]\nchance=5\npick=any,any,2,4,110\n"));
+    check(rare.list(3) && rare.list(3)->picks[0].quality == 110, "a pick's qualities");
+    expectRejected("bad qualities", "[drops 1]\npick=any,any,1,2,121\n", [](auto& d) { sf::open::parseDrops(d); });
     expectRejected("a code needs a class", "[drops 1]\npick=any,5\n", [](auto& d) { sf::open::parseDrops(d); });
     expectRejected("pick outside a list", "pick=consumable,0\n", [](auto& d) { sf::open::parseDrops(d); });
 
@@ -369,6 +373,18 @@ void testItems() {
     const auto* potion = table.find(sf::ItemDef::Class::Consumable, 0);
     check(potion && potion->effect[1] == 50 && potion->width == 1, "item effect");
     check(potion && potion->weight == 0, "load is 0 when left out");
+    const auto magic = sf::open::parseItems(bytes(
+        "[item weapon 100]\nname=Keen Sword\nunidentified=Sword\nquality=1\nmod=attack,6,14\n"
+        "mod=absorption-chance,10,20,50\nelement-mod=thunder,1,2\nfixed-price=1\n"));
+    const auto* keen = magic.find(sf::ItemDef::Class::Weapon, 100);
+    using M = sf::ItemDef;
+    check(keen && keen->quality == 1 && keen->unidentifiedName == "Sword" && keen->fixedPrice, "a magic item");
+    check(keen && keen->modifiers[M::kModAttack].min == 6 && keen->modifiers[M::kModAttack].max == 14 &&
+              keen->modifiers[M::kModAttack].chance == 100 && keen->modifiers[M::kModAbsorptionChance].chance == 50 &&
+              keen->elementModifiers[3].max == 2,
+          "item modifiers");
+    expectRejected("unknown modifier", "[item weapon 1]\nmod=luck,1,2\n", [](auto& d) { sf::open::parseItems(d); });
+    expectRejected("unknown element", "[item weapon 1]\nelement-mod=wood,1,2\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item bad class", "[item hat 1]\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item twice", "[item weapon 1]\n[item weapon 1]\n", [](auto& d) { sf::open::parseItems(d); });

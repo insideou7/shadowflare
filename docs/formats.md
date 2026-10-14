@@ -541,6 +541,14 @@ allow (our engine clears them each roll, except in original mode); and a
 roll whose pick matches nothing makes whatever item the previous roll
 made, or a stale one, which we do not reproduce (it drops nothing).
 
+Rarity comes from the drop weights alone: nearly every pick allows any
+quality, and most equipment records are magic ones (1016 of the 1264
+weapons are a base weapon with a prefix and its modifier ranges, 188 are
+uniques). Weighed by drop weight, a monster's equipment drop is magic
+about 90% of the time, unique 1-3% and normal 5-25% (table 31 row 101,
+item level 1-2: 29% normal, 71% magic; row 138, levels 24-37: 8% normal,
+90% magic, 2% unique). There are no other tiers.
+
 The belt pocket (player +0x518) is a 4 x 2 grid of consumables on the
 panel: the top row's cells start at screen (357, 413), the bottom row's
 at (405, 445), 32 pixels each (0x445bd0, 0x44a5f0). Picking up a
@@ -737,6 +745,32 @@ The elemental modifiers add to the item's elements (0x44fe30). Table 34
 prices them: its first 8 numbers per point of each elemental modifier,
 the next 39 per point of each modifier (modifier 16 on a weapon counts
 as |1 - value|). Saves keep the rolled numbers after the item's wear.
+
+Modifiers at work: every third tick (0x44f2f0, the player's own
+character only) Life Recovery, plus 5 while the Spiritual Heraldry
+(special 98000003) is carried, gives back that many hundredths of a
+percent of the maximum health while the hero lives, never taking it
+below 1; Mental Recovery, plus 5 with the Demon Fang (98000004), plus
+Berserker's and Moon's drains (+0x15dc, +0x15e4), does the same for
+mental power, down to 0, after which Berserker and Moon end (0x443490).
+Fractions carry over in +0x1638 and +0x163c. A monster's blow on the
+hero (0x443cb0) rolls Reflection (0x44f7a0): the Generation of
+Reflection modifiers of everything worn, broken items too, added up as a
+chance in percent, and if it comes up the Reflection Rate of those items
+with a chance; Counter Burst's power adds to it. That share of the blow
+goes back to the monster (half where its word 7 is 100, at least 1), with
+sound 0x3c and option 20014 at the hero, or Counter Burst's own effect.
+Each blow and shot of the hero rolls Absorption the same way (0x44f990,
+Incidents of Absorption and Absorption Rate) into the blow (+0x9c); the
+monster hit then sends five orbs (option 20013, which shows 11000012) to
+the hero with sound 0x3d (0x459690). We found nothing that gives the hero
+health for them; our engine does unless in original mode.
+
+An item's picture carries marks in its bottom right corner (0x465cb0):
+Status.njp pattern 0x11, a question mark, while it is unidentified, and
+above it pattern 0x10, a crack, when a weapon or armour is broken,
+blinking (8 ticks in 16) while less than a tenth of its durability is
+left.
 
 Each item the game makes keeps its own durability left (+0xbc, out of
 +0xb8 from the record) and an identified flag (+0x1c). Magic and unique

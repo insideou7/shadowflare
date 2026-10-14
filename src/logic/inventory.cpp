@@ -608,6 +608,20 @@ int Inventory::modifierEvenBroken(ItemDef::Modifier which) const {
     return total;
 }
 
+int Inventory::chanceModifier(ItemDef::Modifier chance, ItemDef::Modifier amount, int roll) const {
+    const auto& weapon = equipped(EquipSlot::Weapon);
+    const bool shieldHidden = weapon && weapon->def->twoHanded();
+    int chanceTotal = 0, amountTotal = 0;
+    for (int s = 0; s < kEquipSlotCount; ++s) {
+        const auto& worn = equipped_[static_cast<std::size_t>(s)];
+        if (!worn || (static_cast<EquipSlot>(s) == EquipSlot::Shield && shieldHidden)) continue;
+        const int c = worn->modifiers[static_cast<std::size_t>(chance)];
+        chanceTotal += c;
+        if (c != 0) amountTotal += worn->modifiers[static_cast<std::size_t>(amount)];
+    }
+    return roll < chanceTotal ? amountTotal : 0;
+}
+
 std::array<int, 8> Inventory::elements() const {
     const auto& weapon = equipped(EquipSlot::Weapon);
     const bool shieldHidden = weapon && weapon->def->twoHanded();
