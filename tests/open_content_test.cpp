@@ -387,6 +387,15 @@ void testItems() {
               keen->modifiers[M::kModAttack].chance == 100 && keen->modifiers[M::kModAbsorptionChance].chance == 50 &&
               keen->elementModifiers[3].max == 2,
           "item modifiers");
+    check(keen && keen->poolMask == 1, "items are pool 1 when left out");
+    // A second file adds to the table (uniques.txt) and may set pools.
+    auto both = sf::open::parseItems(bytes("[item weapon 1]\nname=A\n"));
+    sf::open::parseItems(bytes("[item weapon 2]\nname=B\npool=2\n"), both);
+    const auto* b = both.find(sf::ItemDef::Class::Weapon, 2);
+    check(both.items.size() == 2 && b && b->poolMask == 2, "a second item file and pool=");
+    const auto drops = sf::open::parseDrops(bytes("[drops 1]\npick=any,any,1,9\npick=any,any,1,9,111,3\n"));
+    check(drops.entries.size() == 2 && drops.entries[0].pool == 1 && drops.entries[1].pool == 3,
+          "picks take pool 1 unless they say otherwise");
     expectRejected("unknown modifier", "[item weapon 1]\nmod=luck,1,2\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("unknown element", "[item weapon 1]\nelement-mod=wood,1,2\n", [](auto& d) { sf::open::parseItems(d); });
     expectRejected("item outside a section", "name=x\n", [](auto& d) { sf::open::parseItems(d); });
@@ -475,6 +484,37 @@ void testPackWeaponsForEveryClass() {
     check(sold.contains(sf::ItemDef::kStaff), "the smith sells a staff (wizard)");
 }
 
+// content/uniques.txt (tools/content/uniques.py) adds the original's
+// unique items to items.txt's, none of them twice, each with our name,
+// one for before it is identified and its own pictures.
+void testPackUniques() {
+    const auto read = [](const char* path) {
+        std::vector<std::uint8_t> data;
+        if (std::FILE* f = std::fopen(path, "rb")) {
+            int c;
+            while ((c = std::fgetc(f)) != EOF) data.push_back(static_cast<std::uint8_t>(c));
+            std::fclose(f);
+        }
+        return data;
+    };
+    auto items = sf::open::parseItems(read(SF_CONTENT_DIR "/items.txt"));
+    const std::size_t before = items.items.size();
+    try {
+        sf::open::parseItems(read(SF_CONTENT_DIR "/uniques.txt"), items);
+    } catch (const sf::FormatError& e) {
+        check(false, e.what());
+    }
+    check(items.items.size() > before, "the pack has the original's unique items");
+    std::set<std::pair<int, int>> pictures;
+    for (std::size_t i = before; i < items.items.size(); ++i) {
+        const auto& def = items.items[i];
+        check(def.quality == 2 && def.fixedPrice && !def.name.empty() && !def.unidentifiedName.empty(),
+              "uniques are quality 2 with a set price and both names");
+        check(def.invBank >= 1 && def.groundFolder >= 8, "uniques have their own pictures");
+        check(pictures.insert({def.invBank, def.invPattern}).second, "no two uniques share a picture");
+    }
+}
+
 void testSkin() {
     const auto skin = sf::open::parseSkin(bytes(
         "props=Map/props.sheet\n"
@@ -520,6 +560,7 @@ int main() {
     testSkin();
     testSounds();
     testPackWeaponsForEveryClass();
+    testPackUniques();
     if (failures == 0) std::puts("all open content tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

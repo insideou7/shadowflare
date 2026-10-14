@@ -1,0 +1,467 @@
+# Our names for the original's unique items (tools/content/uniques.py).
+# <class> <code> <kind> <name>: the kind picks the picture tools/art/uniques.py
+# draws and the name shown before the item is identified. The names are
+# ours; never copy the original's.
+
+# Accessories
+accessory 200000 amulet Huntsman's Amulet
+accessory 200001 amulet Warding Amulet
+accessory 200002 pendant Falconer's Pendant
+accessory 200003 pendant Shepherd's Pendant
+accessory 200004 pendant Twinheart Pendant
+accessory 200005 pendant Tidewall Pendant
+accessory 200006 amulet Oxblood Amulet
+accessory 200007 pendant Riverglass Pendant
+accessory 200008 bracelet Miser's Bangle
+accessory 200009 bracelet Sapper's Bangle
+accessory 200010 bracelet Houndmaster's Cuff
+accessory 200011 bracelet Cinder Cuff
+accessory 200012 bracelet Duskwoven Cuff
+accessory 200013 bracelet Emberlink Bracelet
+accessory 200014 bracelet Chanter's Bracelet
+accessory 200015 bracelet Kennel Bracelet
+accessory 200016 bracelet Psalmist's Bracelet
+accessory 200017 bracelet Loam Sage Bracelet
+accessory 200018 bracelet Brawler's Bracelet
+accessory 200019 bracelet Starwatch Bracelet
+accessory 200020 ring Ironsap Ring
+accessory 200021 ring Hushstone Ring
+accessory 200022 ring Sparkthorn Ring
+accessory 200023 ring Prospector's Band
+accessory 200024 ring Tinker's Band
+accessory 200025 ring Packleader Ring
+accessory 200026 ring Shieldhound Ring
+accessory 200027 ring Fusewright Ring
+accessory 200028 ring Blastcap Ring
+accessory 200029 ring Wayfarer's Ring
+accessory 200030 ring Oakheart Ring
+accessory 200031 ring Wellspring Ring
+accessory 200032 ring Howling Ring
+accessory 200033 ring Spellbane Ring
+accessory 200034 ring Quickhand Ring
+accessory 200035 ring Leechbite Ring
+accessory 200036 ring Thornback Ring
+accessory 200037 ring Lantern Ring
+accessory 200038 ring Mender's Ring
+accessory 200039 ring Scholar's Ring
+accessory 200040 ring Bitterroot Ring
+accessory 200041 ring Dewdrop Ring
+accessory 200042 ring Shade Ring
+accessory 200043 ring Dawn Ring
+accessory 200044 ring Stoutheart Ring
+accessory 200045 ring Thinblood Ring
+accessory 200046 beads Hillshrine Beads
+accessory 200047 bracelet Brightsteel Bracelet
+accessory 200048 bracelet Blackguard Bracelet
+accessory 200049 bracelet Paladin's Bracelet
+accessory 200050 ring Deepdelver Ring
+accessory 200051 crystal Heartfire Shard
+accessory 200052 crystal Deepwater Shard
+accessory 200053 crystal Bedrock Shard
+accessory 200054 crystal Stormcall Shard
+accessory 200055 ring Marksman's Ring
+accessory 200056 ring Nimblefinger Ring
+accessory 200057 ring Warlord's Signet
+accessory 200058 ring Conjurer's Signet
+accessory 200059 ring Pickpocket's Ring
+accessory 200060 ring Whirlwind Ring
+accessory 200061 ring Warbringer Ring
+accessory 200062 ring Staggerbolt Ring
+accessory 200063 locket Apothecary's Locket
+accessory 200064 ring Bastion Ring
+accessory 200065 darkring Soul of the Fleeting Shade
+accessory 200066 darkring Soul of the Burning Eye
+accessory 200067 darkring Soul of the Silent Wall
+accessory 200068 darkring Soul of the Iron Giant
+accessory 200069 darkring Soul of the Deep Well
+accessory 200070 darkring Soul of the Mountain Bull
+accessory 200071 darkring Soul of the Black Powder
+accessory 200072 darkring Soul of the Green Healer
+accessory 200073 darkring Soul of the Blue Sage
+accessory 200074 darkring Soul of the Swift Tongue
+accessory 200075 darkring Bloodthirst Ring
+accessory 200076 darkring Conqueror's Ring
+accessory 200077 darkring Ring of the Old Champion
+accessory 200078 gem Glacier Heart
+accessory 200079 ring Ring of Balance
+accessory 200080 ring Oyster's Gift
+accessory 200081 ring Inkwater Ring
+accessory 200082 gem Sunforged Nugget
+accessory 200083 ring Rainmaiden's Ring
+accessory 30000000 waystone Great Waystone
+accessory 30000001 waystone Waystone of Embers
+accessory 30000002 waystone Waystone of Tides
+accessory 30000003 waystone Waystone of Loam
+accessory 30000004 waystone Waystone of Storms
+accessory 30000005 waystone Waystone of Dawn
+accessory 30000006 waystone Waystone of Dusk
+accessory 30000007 waystone Waystone of Ooze
+accessory 30000008 waystone Waystone of Iron
+
+# Weapons
+weapon 10000000 shortsword Bonecracker
+weapon 10000100 shortsword Nightneedle
+weapon 10000200 longsword Hillbreaker
+weapon 10000300 longsword Sevenfold Brand
+weapon 10000400 shortsword Cinderwisp
+weapon 10000500 shortsword Brinefire
+weapon 10000600 bastard Silverthorn Penance
+weapon 10000700 longsword Queen of Hearts' Blade
+weapon 10000800 longsword Paladin's Oath
+weapon 10000900 curved Ogrebane Tachi
+weapon 10001000 shortsword Smoulder Cutlass
+weapon 10001100 longsword Lightwarden's Blade
+weapon 10001200 bastard Stormmast Sword
+weapon 10001300 curved Mirror of the Smith
+weapon 10001400 longsword Morningbright
+weapon 10001500 longsword Hallowed Edge
+weapon 10001600 longsword Rending Sword
+weapon 11700 longsword Quicksheen Blade
+weapon 11800 bastard Kingmaker
+weapon 14000000 axe Thundergrip
+weapon 14000100 axe Warking's Cleaver
+weapon 4001200 axe Deepforge Might
+weapon 4001300 axe Allfather's Axe
+weapon 15000000 twohand Wallbreaker
+weapon 15000100 twohand Edict of Light
+weapon 5001200 twohand Crownblade
+weapon 5001300 twohand Fiendsworn Blade
+weapon 16000000 greatsword Blackheart
+weapon 16000100 greatsword Nachtklinge
+weapon 6001200 greatsword Hearthrage Heirloom
+weapon 6001300 greatsword World's End
+weapon 11000000 bowgun Greenwarden
+weapon 11000100 bowgun Moonhunter
+weapon 11000200 bowgun Falling Spark
+weapon 11000300 sling Pebblestorm
+weapon 11000400 bowgun Heartpiercer
+weapon 11000500 bowgun Sellsword's Crossbow
+weapon 11000600 sling Roaring Hurler
+weapon 11000700 bowgun Skyfall
+weapon 11000800 bowgun Fatespinner
+weapon 11000900 bowgun Lynx Crossbow
+weapon 11001000 bowgun Halo Crossbow
+weapon 11001100 bowgun Rending Bow
+weapon 1011200 bowgun Quickfire Bolt
+weapon 1011300 bowgun Archer of the Stars
+weapon 12000000 staff Pilgrim's Staff
+weapon 12000100 staff Seven Sisters
+weapon 12000200 staff Hidden Fang
+weapon 12000300 staff Rending Staff
+weapon 13000000 rod Truesilver Rod
+weapon 13000100 rod Twinhound Rod
+weapon 13000200 rod Daystar Rod
+weapon 13000300 rod Worldroot Cane
+weapon 13000400 rod Eldwood Cane
+weapon 13000500 orbrod Eightfold Sceptre
+weapon 13000600 rod Spellwright's Rod
+weapon 3001700 orbrod Deathless Orb
+weapon 3001800 rod Seraph's Rod
+weapon 80000001 shortsword Flamekin Sword
+weapon 80000002 shortsword Tidekin Sword
+weapon 80000003 bastard Djinn Blade
+weapon 80000004 bastard Shieldward Sword
+weapon 80000005 shortsword Underworld Sword
+weapon 80000006 shortsword Whirling Sword
+weapon 80000007 shortsword Cutthroat Sword
+weapon 80000008 rod Rimefield Rod
+weapon 80000009 rod Lunar Rod
+weapon 80000010 bowgun Emberbolt Crossbow
+weapon 80000011 bowgun Ruinbringer Crossbow
+weapon 80000012 bowgun Rimebolt Crossbow
+weapon 80000013 bowgun Duskbolt Bowgun
+weapon 80000014 bowgun Blastbolt Crossbow
+weapon 80000015 bowgun Pit Lord's Crossbow
+weapon 80000016 bowgun Sunstone Bowgun
+weapon 80000017 rod Solar Rod
+weapon 80000018 rod Bound Rod
+weapon 80000019 bowgun Thicket Warden
+weapon 80000020 sling Rockfall Sling
+weapon 80000021 rod Glowcoal Stick
+weapon 80000022 bowgun Ember Marksman
+weapon 80000023 sling Hailstone Hurler
+weapon 80000024 bowgun Icebite Crossbow
+weapon 80000025 bowgun Rime Marksman
+weapon 80000026 bowgun Truesilver Crossbow
+weapon 80000027 rod Truesilver Wand
+weapon 80000028 bowgun Blaze Crossbow
+weapon 80000029 longsword Soulsipper
+weapon 80000030 longsword Gilded Colossus
+weapon 80000031 curved Golden Short Blade
+weapon 80000032 curved Crimson Petal
+weapon 80000033 longsword Moonshadow Blade
+weapon 80000034 longsword Moonbeam Blade
+weapon 80000035 curved Little Light
+weapon 80000036 longsword Riverspirit Sword
+weapon 80000037 bastard Snowstorm
+weapon 80000038 longsword Halfdevil Sword
+weapon 80000039 bastard Stormlord's Sword
+weapon 80000040 bastard Netherlord's Sword
+weapon 80000041 curved Riverbend Tachi
+weapon 80000042 curved Clearspring Tachi
+weapon 80000043 curved Mistcutter
+weapon 80000044 curved Masterwork Short Blade
+weapon 80000045 shortsword Old Rustblade
+weapon 80000046 shortsword Cloudgatherer
+weapon 80000047 bastard Fire and Frost
+weapon 80000048 axe Headsman's Axe
+weapon 80000049 longsword Earthbound Blade
+weapon 80000050 longsword Oozebound Blade
+weapon 80000051 longsword Shadowbound Blade
+weapon 80000052 longsword Lightbound Blade
+weapon 80000053 shortsword Tempest Caller
+weapon 80000054 axe Rendmaw
+weapon 80000055 bastard Wyrmsplitter
+weapon 80000056 bastard Wyrmcleaver
+weapon 80000057 greatsword Night Terror
+weapon 80000058 curved Pressing Cut
+weapon 80000059 axe Runecarved Axe
+weapon 80000060 twohand Headtaker
+weapon 80000061 curved Cursed Smith's Blade
+weapon 80000062 curved Tigerclaw Blade
+weapon 80000063 curved Chanting Skewer
+weapon 80000064 twohand Seaborn Colossus
+weapon 80000065 twohand Skyborn Colossus
+weapon 80000066 rod Starwheel Rod
+weapon 80000067 bowgun Firemount Marksman
+weapon 80000068 bowgun Frostmount Marksman
+weapon 80000069 rod Sage's Cane
+weapon 80000070 bowgun Stalker's Crossbow
+weapon 80000071 bowgun Ranger's Bowgun
+weapon 80000072 bowgun Elfbane Crossbow
+weapon 80000073 sling Oliphant Hurler
+weapon 80000074 shortsword Relicward
+weapon 80000075 longsword Soulmoth
+weapon 80000076 staff Watcher's Staff
+weapon 80000077 longsword Woodcarved Blade
+weapon 80000078 longsword Corsair's Sword
+weapon 80000079 longsword Parrying Blade
+weapon 80000080 longsword Ladder Blade
+weapon 80000081 longsword Clansman's Edge
+weapon 80000082 longsword Adamant Sword
+weapon 80000083 longsword Lifeforce Blade
+weapon 80000084 longsword Elfking's Sword
+weapon 80000085 longsword Herald's Sword
+weapon 80000086 longsword Spellforged Sword
+weapon 80000087 bastard Fiendsplitter
+weapon 80000088 bastard Seraph's Fire
+weapon 80000089 axe Hatchet of the Hills
+weapon 80000090 axe Twinhand Axe
+weapon 80000091 axe Twinblade War Axe
+weapon 80000092 axe Lastward
+weapon 80000093 axe Silverbit Axe
+weapon 80000094 greatsword Soul Gorger
+weapon 80000095 greatsword Young Prince's Sword
+weapon 80000096 greatsword Clockwork Blade
+weapon 80000097 curved Lionheart Blade
+weapon 80000098 curved Springwater Blade
+weapon 80000099 twohand Stalwart Sword
+weapon 80000100 greatsword Spellsunder
+weapon 80000101 curved Riverlord's Blade
+weapon 80000102 curved Hermit Smith's Blade
+weapon 80000103 curved Petalstorm
+weapon 80000104 twohand Ringed Blade
+weapon 80000105 orbrod Lifeforce Orb
+weapon 80000106 orbrod Redglass Orb
+weapon 80000107 orbrod Clearglass Orb
+weapon 80000108 rod Courtier's Rod
+weapon 80000109 rod Lifeforce Rod
+weapon 80000110 rod Wishing Wand
+weapon 80000111 bowgun Lancebolt Bowgun
+weapon 80000112 sling Farshot Sling
+weapon 80000113 bowgun Fine Crossbow
+weapon 80000114 bowgun Rapid Bowgun
+weapon 80000115 bowgun Silver Rapid Bowgun
+weapon 80000116 bowgun Lifeforce Shooter
+weapon 80000117 bowgun Stormhold Bowgun
+weapon 80000118 bowgun Hellmouth
+weapon 80000119 sling Elder Gun
+weapon 80000120 bastard Frost Saviour
+weapon 80000121 bastard Spellflame
+weapon 80000122 bowgun Thorned Rose
+weapon 80000123 mace Silverwhite Mace
+weapon 80000124 rod Twin Serpent Rod
+weapon 80000125 bowgun Barrel Bowgun
+weapon 80000126 bowgun Hornet
+weapon 80000127 bastard Arcbolt Blade
+weapon 80000128 bastard Sparkbolt Blade
+weapon 80000129 curved Sunhill Blade
+weapon 80000130 bastard Duskmoor Blade
+
+# Armour
+armour 1000 cloth Outlaw's Jerkin
+armour 1100 cloth Mane of the Pride
+armour 11000 plate Pinkbloom Cuirass
+armour 11100 plate Starfall Plate
+armour 11200 plate Whitegold Plate
+armour 11300 plate Glassrock Plate
+armour 11400 plate Templar's Plate
+armour 11500 plate Earthmother Plate
+armour 21000 hunter Packrunner Coat
+armour 21100 hunter Nightstalker Garb
+armour 21200 hunter Trapper's Outfit
+armour 21300 hunter Starfall Garb
+armour 21400 hunter Beastlord's Garb
+armour 21500 hunter Galewind Jacket
+armour 31000 robe Hobgoblin Wrap
+armour 31100 robe Bluefire Vestment
+armour 31200 plate Fourfold Warden
+armour 31300 plate Third King's Mantle
+armour 31400 plate Sprite's Plate
+armour 31500 robe Hallowed Vestment
+armour 1001000 roundshield Spellguard Buckler
+armour 1001100 towershield Iron Portcullis
+armour 1001200 boardshield Lakeknight's Shield
+armour 1001300 roundshield Sunknight's Shield
+armour 1001400 towershield Starforged Shield
+armour 1001500 boardshield Templar's Shield
+armour 1001600 roundshield Crescent Shield
+armour 1001700 roundshield Runeward Shield
+armour 1001800 roundshield Greenwood Shield
+armour 1001900 towershield Shadowpath Shield
+armour 1011000 boardshield Skymetal Shield
+armour 1011100 roundshield Rending Shield
+armour 1011200 towershield Furnace Wall
+armour 1011300 boardshield Fiendface Shield
+armour 4001000 book Archmage's Grimoire
+armour 4001100 book Netherlord's Tome
+armour 4001500 book Book of the Dead Stars
+armour 2001000 hood Ironweave Hood
+armour 2001100 helm Rebel Lord's Helm
+armour 2001200 mask Iron Visage
+armour 2001300 hood Tusker's Hide
+armour 2001400 circlet Thoughtstorm Circlet
+armour 2001500 helm Bellringer Helm
+armour 2001700 helm Stormcrown
+armour 2001800 helm Firebird Helm
+armour 2001900 hat Seer's Hat
+armour 3001000 boots Hedgewitch Shoes
+armour 3001100 boots Mad Fox Boots
+armour 3001200 greaves Wanderer God's Greaves
+armour 3001300 greaves Whitegold Greaves
+armour 3001400 greaves Marksman's Greaves
+armour 3001500 boots Glimmering Boots
+armour 3001600 greaves Footman's Greaves
+armour 3001700 boots Wolfpaw Boots
+armour 3001800 boots Moneybags Boots
+armour 3001900 greaves Kingsguard Greaves
+armour 3011000 boots Windhorse Boots
+armour 3011100 boots Meadowland Boots
+armour 80000000 plate Battlemage Plate
+armour 80000001 plate Blackiron Cuirass
+armour 80000002 plate Warden's Plate
+armour 80000003 hat Conjurer's Hat
+armour 80000004 helm Warlord's Helm
+armour 80000005 horned Bullhorn Helm
+armour 80000006 knuckle Clockwork Fist
+armour 80000007 boots Clockwork Boots
+armour 80000008 robe Courtier's Robe
+armour 80000009 mask Bloodied Stage Mask
+armour 80000010 mask Stage Mask
+armour 80000011 roundshield Blackiron Shield
+armour 80000012 roundshield Looking-glass Shield
+armour 80000013 hunter Elfin Coat
+armour 80000014 robe Scarlet Robe
+armour 80000015 hunter Skirmisher's Suit
+armour 80000016 plate Waterforged Armour
+armour 80000017 plate Truesilver Plate
+armour 80000018 plate Thunderclad Armour
+armour 80000019 plate Wheelbound Mantle
+armour 80000020 plate Runeplate
+armour 80000021 plate Redmane Armour
+armour 80000022 roundshield Scaleback Shield
+armour 80000023 boardshield Squire's Shield
+armour 80000024 roundshield Lightwarden's Shield
+armour 80000025 roundshield Tidemirror Shield
+armour 80000026 helm Clansman's Helm
+armour 80000027 helm Truesilver Helm
+armour 80000028 helm Runehelm
+armour 80000029 hat Sagging Hat
+armour 80000030 hat Thinking Cap
+armour 80000031 hat Feathered Hat
+armour 80000032 greaves Gilded Greaves
+armour 80000033 boots Gilded Boots
+armour 80000034 boots Tigerpaw Boots
+armour 80000035 boots Mending Boots
+armour 80000036 greaves Truesilver Greaves
+armour 80000037 boots Sprite's Shoes
+armour 80000038 hunter Darkelf Coat
+armour 80000039 knuckle Mended Clockwork Fist
+armour 80000040 boots Mended Clockwork Boots
+armour 80000041 greaves Tidewalker Greaves
+armour 80000042 greaves Firewalker Greaves
+armour 80000043 plate Lightwarden's Mantle
+armour 80000044 plate Moonlit Plate
+armour 80000045 boots Alchemist's Boots
+armour 80000046 greaves Goldguard Greaves
+armour 80000047 towershield Goldguard Shield
+armour 80000048 helm Goldguard Helm
+armour 80000049 plate Goldguard Mail
+armour 80000050 greaves Blackguard Greaves
+armour 80000051 towershield Blackguard Shield
+armour 80000052 helm Blackguard Helm
+armour 80000053 plate Blackguard Mail
+armour 80000054 greaves Crusader's Greaves
+armour 80000055 towershield Crusader's Shield
+armour 80000056 helm Crusader's Helm
+armour 80000057 plate Crusader's Mail
+armour 80000058 roundshield Eight-span Mirror
+armour 80000059 boots Relicwalker Boots
+armour 80000060 knuckle Garnet Gauntlet
+armour 80000061 mask Grieving Stage Mask
+armour 80000062 plate Seraph's Mantle
+armour 80000063 hat Windcaller's Hat
+armour 80000064 hunter Knight-ranger's Garb
+armour 80000065 plate Gravecaller Armour
+armour 80000066 horned Tuskhorn Helm
+armour 80000067 helm Raider's Helm
+armour 80000068 hood Lionpelt Hood
+armour 80000069 boots Jackalpaw Boots
+armour 80000070 boots Muddy Shoes
+armour 80000071 helm Sleepyhead Helm
+armour 80000072 mask Whitegold Visage
+armour 80000073 cloth Tarred Suit
+armour 80000074 cloth Alchemist's Suit
+armour 80000075 roundshield Manaward Shield
+armour 80000076 roundshield Alchemist's Shield
+armour 80000077 boots Gambler's Boots
+armour 80000078 roundshield Galeward Shield
+armour 80000079 roundshield Clockwork Shield
+armour 80000080 hunter Rimeclad Coat
+armour 80000081 hunter Forkrain Garb
+armour 80000082 plate Farshore Plate
+armour 80000083 plate Gatewarden
+armour 80000084 plate Mourner's Armour
+armour 80000085 hunter Merrow's Armour
+armour 80000086 plate Redbeard
+armour 80000087 chain Ringmail Shirt
+armour 80000088 chain Gilded Ringmail
+armour 80000089 chain Truesilver Ringmail
+armour 80000090 hunter Bloodied Jail Rags
+armour 80000091 robe Witchdoctor's Wrap
+armour 80000092 robe Spellwoven Coat
+armour 80000093 robe Deathriver Robe
+armour 80000094 robe Elder Coat
+armour 80000095 robe Sage's Mantle
+armour 80000096 roundshield Black Ward
+armour 80000097 roundshield Blue Ward
+armour 80000098 roundshield Red Ward
+armour 80000099 roundshield White Ward
+armour 80000100 roundshield Broad Garter
+armour 80000101 towershield Greeneye Shield
+armour 80000102 boardshield Titan's Great Shield
+armour 80000103 roundshield Stormhold Shield
+armour 80000104 roundshield Glassrock Shield
+armour 80000105 roundshield Lifeward
+armour 80000106 book Book of Last Wishes
+armour 80000107 book Scribe God's Book
+armour 80000108 book Drowned Scrolls
+armour 80000109 book Little Key of the Wise King
+armour 80000110 helm Hellwing Helm
+armour 80000111 horned Ramhorn Helm
+armour 80000112 circlet Circlet of Resolve
+armour 80000113 circlet Hidden Circlet
+armour 80000114 boardshield Aegis of the Gods
+armour 80000115 book Hermit's Book
+armour 80000116 book Titan's Book
+armour 80000117 plate Labyrinth Maker

@@ -99,6 +99,23 @@ void Game::loadItems() {
         } catch (const FormatError& e) {
             log::warn("items.txt: {}", e.what());
         }
+        // The original's unique items, with our names and pictures
+        // (tools/content/uniques.py).
+        if (auto uniques = data_->read("uniques.txt")) {
+            ItemTable more;
+            try {
+                open::parseItems(*uniques, more);
+                for (auto& def : more.items) {
+                    if (items_.find(def.cls, def.code)) {
+                        log::warn("uniques.txt: {} is in items.txt too; keeping that one", def.name);
+                    } else {
+                        items_.items.push_back(std::move(def));
+                    }
+                }
+            } catch (const FormatError& e) {
+                log::warn("uniques.txt: {}", e.what());
+            }
+        }
         if (auto drops = data_->read("drops.txt")) {
             try {
                 dropTables_ = open::parseDrops(*drops);

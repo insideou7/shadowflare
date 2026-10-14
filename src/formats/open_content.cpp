@@ -981,11 +981,13 @@ DropTables parseDrops(std::span<const std::uint8_t> text) {
                 continue;
             }
             const auto f = Lines::split(value, ',');
-            if (f.size() != 2 && f.size() != 4 && f.size() != 5) {
-                lines.fail("expected pick=<class>,<code>[,<lowest level>,<highest level>[,<qualities>]]");
+            if (f.size() != 2 && f.size() != 4 && f.size() != 5 && f.size() != 6) {
+                lines.fail("expected pick=<class>,<code>[,<lowest level>,<highest level>[,<qualities>[,<pools>]]]");
             }
             DropTables::Entry e;
-            e.pool = -1;
+            // Like the original's table 31, a pick takes items of pool 1
+            // unless its sixth number lets in others (3: pools 1 and 2).
+            e.pool = f.size() == 6 ? lines.toInt(f[5]) : 1;
             if (f[0] != "any") {
                 const auto cls = kClasses.find(f[0]);
                 if (cls == kClasses.end()) lines.fail(std::format("unknown item class '{}'", f[0]));
@@ -1000,7 +1002,7 @@ DropTables parseDrops(std::span<const std::uint8_t> text) {
             // Which qualities may come, as the original's digits: ones
             // normal, tens magic, hundreds unique; any by default.
             int quality = 111;
-            if (f.size() == 5) {
+            if (f.size() >= 5) {
                 quality = lines.toInt(f[4]);
                 if (quality < 0 || quality > 111 || f[4].find_first_not_of("01") != std::string_view::npos) {
                     lines.fail("qualities are three digits of 0 or 1: unique, magic, normal");
@@ -1033,8 +1035,13 @@ constexpr std::string_view kElementNames[] = {"fire", "water", "earth", "thunder
 
 // [item <class> <code>] sections of key=value lines; see docs/content.md.
 ItemTable parseItems(std::span<const std::uint8_t> text) {
-    Lines lines(text);
     ItemTable table;
+    parseItems(text, table);
+    return table;
+}
+
+void parseItems(std::span<const std::uint8_t> text, ItemTable& table) {
+    Lines lines(text);
     ItemDef* item = nullptr;
     // Up to `max` comma-separated numbers into `out`; the rest stay 0.
     auto numbers = [&](std::string_view value, std::span<std::int32_t> out) {
@@ -1058,7 +1065,7 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item = &table.items.emplace_back();
             item->cls = cls->second;
             item->code = code;
-            item->poolMask = 1;  // drops.txt picks match any pool
+            item->poolMask = 1;  // the pool every drops.txt pick takes from unless it says otherwise
             continue;
         }
         std::string_view key, value;
@@ -1086,6 +1093,8 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             pair(value, item->itemLevel, item->requiredLevel);
         } else if (key == "weight") {
             item->dropWeight = lines.toInt(value);
+        } else if (key == "pool") {
+            item->poolMask = lines.toInt(value);
         } else if (key == "load") {
             item->weight = lines.toInt(value);
         } else if (key == "stats") {
@@ -1133,7 +1142,6 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             lines.fail(std::format("unknown key '{}'", key));
         }
     }
-    return table;
 }
 
 namespace {

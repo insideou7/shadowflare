@@ -415,7 +415,7 @@ spells (run it again after `enemy_stats.py`).
     level=1,1                # item level (for drops), required level
     stats=20,100             # see below; numbers left out are 0
     layer=12                 # hero animation layer shown while worn
-    weight=10                # how often it drops compared with others
+    weight=15000             # how often it drops compared with others (the original's numbers)
     load=30                  # how heavy it is to wear
 
 Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
@@ -462,6 +462,22 @@ and `companion-magic-evasion`. Magic items are made like the original's:
 a base item under a new name, its `unidentified` name the base's, with its
 pictures; see the end of items.txt.
 
+`weight` is in the original's units, so items made from its numbers drop
+as often as there: 15000 or 12000 for a plain item, a few thousand for a
+magic one, 20 to 1000 for a unique. `pool` (1 when left out) is the
+original's drop pool: a few uniques are pool 2, which only the drop lists
+that ask for it give (see drops.txt).
+
+`uniques.txt`, beside items.txt and in the same form, holds the
+original's unique items: their numbers (stats, modifiers, levels, price,
+drop weight and pool) are the original's, the names and pictures ours.
+tools/content/uniques.py writes it from the player's own Item.Ibn and
+tools/content/unique_names.txt; tools/art/uniques.py draws the pictures,
+Item0001-0003.sheet (accessories, weapons, armour) in the bag and
+Character/ITEM/00000008-00000010 on the ground. Hero layers the pack's
+hero does not have yet are drawn as the nearest one it has (a bastard
+sword as the long sword, an axe as the two-handed sword).
+
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with
 either. Every key but the section line may be left out. When the folder
@@ -486,7 +502,9 @@ A pick is a class (or `any` for weapon, armour or accessory), a code (or
 the lowest and highest item level and which qualities may come, as the
 original's digits: ones normal, tens magic, hundreds unique (`111`, any,
 when left out; `11` no uniques; `110` magic or unique only). Quest items
-always may. A mine (`special,1`) goes to the hero's mines, not the bag (see
+always may. A sixth number is the pools it takes from, as the original's
+table 31 (1 when left out; 3 also gives the pool 2 uniques its bosses
+drop). A mine (`special,1`) goes to the hero's mines, not the bag (see
 [mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 
