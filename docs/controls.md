@@ -21,6 +21,13 @@ dropped on the shop is sold. A right click on an item in the bag sells it
 in one go; that is ours (`rightClickSells`), and in original mode a right
 click in the bag uses the item as it does anywhere else.
 
+In the item window, a right click on a weapon, armour or accessory in the
+bag wears it, and what was worn there goes back in the bag (where the new
+item was, if it fits). A right click on a worn item takes it off into the
+bag. That is ours too (`rightClickEquips`); in original mode a right click
+in the bag only uses consumables and one on a worn item does nothing, so
+items are worn by picking them up and dropping them on the figure.
+
 What a click picks when things overlap is set by Click Priority in the
 Settings Menu, and how far from the cursor it reaches by Click Range.
 

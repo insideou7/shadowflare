@@ -479,6 +479,9 @@ private:
     void renderBelt();
     void showMessage(std::string text);
     bool inventoryClick(int x, int y, bool right);
+    // Right click equip and unequip (Rules::rightClickEquips).
+    void equipFromBag(int index);
+    void unequipToBag(EquipSlot slot);
     void dropHand();
     std::optional<std::size_t> groundItemAt(float screenX, float screenY) const;
     const SpriteBank* itemBank(const std::string& stem);

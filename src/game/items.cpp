@@ -144,6 +144,11 @@ bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
         updateEquipment();
         return true;
     }
+    if (def->isMine()) {
+        if (pickUpMine()) return true;
+        log::warn("No room for more mines");
+        return false;
+    }
     if (!inventory_.add(item)) {
         log::warn("No room in the bag for {}", def->name);
         return false;
@@ -483,10 +488,14 @@ bool Game::inventoryClick(int x, int y, bool right) {
         const int cx = (x - kBagX) / kCell, cy = (y - kBagY) / kCell;
         if (right) {
             if (hand_) return true;
+            const int index = inventory_.indexAt(cx, cy);
             if (rules_.rightClickSells && openShop_ && *openShop_ != kStorage) {
-                sellFromBag(inventory_.indexAt(cx, cy));
+                sellFromBag(index);
+            } else if (rules_.rightClickEquips && index >= 0 &&
+                       inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) {
+                equipFromBag(index);
             } else {
-                useItem(inventory_.indexAt(cx, cy));
+                useItem(index);
             }
             return true;
         }
@@ -510,7 +519,11 @@ bool Game::inventoryClick(int x, int y, bool right) {
         return true;
     }
     for (const auto& box : kSlots) {
-        if (!inside(box.rect(), x, y) || right) continue;
+        if (!inside(box.rect(), x, y)) continue;
+        if (right) {
+            if (!hand_ && rules_.rightClickEquips) unequipToBag(box.slot);
+            return true;
+        }
         const ItemDef* held = hand_ ? hand_->def : nullptr;
         switch (inventory_.clickSlot(hand_, box.slot, playerLevel_)) {
             case Inventory::Result::Done:
@@ -525,6 +538,35 @@ bool Game::inventoryClick(int x, int y, bool right) {
         return true;
     }
     return true;
+}
+
+// A right click on a weapon, armour or accessory in the bag wears it, and
+// one on a worn item takes it off (ours, Rules::rightClickEquips).
+void Game::equipFromBag(int index) {
+    const ItemDef& def = *inventory_.bag()[static_cast<std::size_t>(index)].item.def;
+    switch (inventory_.equipFromBag(index, playerLevel_)) {
+        case Inventory::Result::Done:
+            playSound(itemSound(def, kItemEquip));
+            updateEquipment();
+            break;
+        case Inventory::Result::NoRoom: showMessage("No room in the bag"); break;
+        case Inventory::Result::LevelTooLow: showMessage(std::format("Needs level {}", def.requiredLevel)); break;
+        default: break;
+    }
+}
+
+void Game::unequipToBag(EquipSlot slot) {
+    const auto& worn = inventory_.equipped(slot);
+    if (!worn) return;
+    const ItemDef& def = *worn->def;
+    switch (inventory_.unequipToBag(slot)) {
+        case Inventory::Result::Done:
+            playSound(itemSound(def, kItemPut));
+            updateEquipment();
+            break;
+        case Inventory::Result::NoRoom: showMessage("No room in the bag"); break;
+        default: break;
+    }
 }
 
 // An item let go over the Warehouse Transfer Box goes to the warehouse,

@@ -274,10 +274,11 @@ bool Game::loadGameFrom(const std::string& path) {
     clearSpells();
     transportGate_.reset();  // the gate is not saved
     if (const int skipped = save.restore(inventory_, items_)) log::warn("{}: {} saved items are unknown", path, skipped);
-    // Saves from before mines: a new hero's five, and any mines that went
-    // into the bag then.
+    // Saves from before mines start with a new hero's five. Mines that went
+    // into the bag (picked up before mines, or bought before buying counted
+    // them) join the hero's mines while there is room.
     mineCount_ = save.mines.value_or(mines::kStartCount);
-    if (!save.mines) mineCount_ += inventory_.takeAll(ItemDef::Class::Special, 1);
+    while (mineCount_ < mostMines() && inventory_.removeOne(ItemDef::Class::Special, 1)) ++mineCount_;
     if (const int skipped = save.restoreStorage(shops_[kStorage], items_)) {
         log::warn("{}: {} stored items are unknown", path, skipped);
     }

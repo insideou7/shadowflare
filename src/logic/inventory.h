@@ -160,6 +160,14 @@ public:
     Result canEquip(EquipSlot slot, const ItemDef& def, int level) const;
     // Wears an item without checking it; returns what was there.
     std::optional<Item> equip(EquipSlot slot, const Item& item);
+    // A right click on a bag item (ours, Rules::rightClickEquips): wears it
+    // in the slot slotFor picks. What was worn there goes in the bag, where
+    // the new item was if it fits there, otherwise in the first place it
+    // fits; with no room for it nothing changes (NoRoom).
+    Result equipFromBag(int index, int level);
+    // A right click on a worn item: takes it off into the bag's first free
+    // place, or NoRoom.
+    Result unequipToBag(EquipSlot slot);
 
     // Uses one consumable from the bag (right click), removing it. Returns
     // what it was, or null when the entry is not a consumable.

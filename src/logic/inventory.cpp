@@ -334,6 +334,30 @@ std::optional<Item> Inventory::equip(EquipSlot slot, const Item& item) {
     return previous;
 }
 
+Inventory::Result Inventory::equipFromBag(int index, int level) {
+    if (index < 0 || static_cast<std::size_t>(index) >= bag_.size()) return Result::Nothing;
+    const Placed placed = bag_[static_cast<std::size_t>(index)];
+    const auto slot = slotFor(*placed.item.def);
+    if (!slot) return Result::WrongSlot;
+    if (const auto check = canEquip(*slot, *placed.item.def, level); check != Result::Done) return check;
+    bag_.erase(bag_.begin() + index);
+    auto& worn = equipped_[static_cast<int>(*slot)];
+    if (worn && !addAt(*worn, placed.x, placed.y) && !add(*worn)) {
+        bag_.insert(bag_.begin() + index, placed);
+        return Result::NoRoom;
+    }
+    worn = placed.item;
+    return Result::Done;
+}
+
+Inventory::Result Inventory::unequipToBag(EquipSlot slot) {
+    auto& worn = equipped_[static_cast<int>(slot)];
+    if (!worn) return Result::Nothing;
+    if (!add(*worn)) return Result::NoRoom;
+    worn.reset();
+    return Result::Done;
+}
+
 Inventory::Result Inventory::clickSlot(std::optional<Item>& hand, EquipSlot slot, int level) {
     auto& worn = equipped_[static_cast<int>(slot)];
     if (!hand) {
