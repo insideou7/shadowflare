@@ -2278,6 +2278,8 @@ def pose(rig, animation, t, frames):
                 arms = HEROINE_SWORD_ARM if heroine else HERO_SWORD_ARM
                 arm, elbow, (wrist, twist) = arms[round(k * (len(arms) - 1))]
                 r.update(arm_r=arm, elbow_r=elbow, weapon=(0, math.radians(wrist), twist))
+                shields = HEROINE_SHIELD_ARM if heroine else HERO_SHIELD_ARM
+                r["arm_l"], r["elbow_l"] = shields[round(k * (len(shields) - 1))]
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
         elif animation == "idle" and getattr(rig, "heroine", False):
@@ -2443,7 +2445,7 @@ GOBLIN_ATTACK = [
 # The hero's attack, timed like the original's ten frames: a beat in the
 # stance, the sword drawn back low behind him with the shield thrust out in
 # front as he sinks onto his front knee, then swung up behind his head as he
-# springs up, and over into a long lunge, body flat out over the front knee,
+# springs up with his head thrown back, and over into a long lunge, body flat out over the front knee,
 # the sword thrust straight ahead of his middle at the target and the shield
 # flung up behind.
 # Arm angles past pi keep each swing going the way it travels (back and up,
@@ -2459,11 +2461,11 @@ HERO_ATTACK = [
                     elbow_r=(0, -0.2, 0), weapon=(0, math.radians(135), 0), arm_l=(0.30, -1.35, 0),
                     elbow_l=(-1.2, 0.4, 0), leg_l=(0.32, -0.95, 0.2), knee_l=(0, 1.2, 0),
                     leg_r=(-0.32, 0.45, -0.2), knee_r=(0, 0.55, 0))),
-    (0.44, hero_key(GUARD, spine=(0, -0.05, 0.30), head=(0, 0.0, -0.25), arm_r=(-0.30, 2.8, 0),
+    (0.44, hero_key(GUARD, spine=(0, -0.05, 0.30), head=(0, -0.45, -0.15), arm_r=(-0.30, 2.8, 0),
                     elbow_r=(0, -0.2, 0), weapon=(0, math.radians(105), 0), arm_l=(0.35, -1.6, 0),
                     elbow_l=(-1.0, 0.2, 0), leg_l=(0.20, -0.90, 0.1), knee_l=(0, 0.5, 0),
                     leg_r=(-0.20, 0.50, -0.1), knee_r=(0, 0.4, 0))),
-    (0.556, hero_key(GUARD, spine=(0, -0.10, 0.15), head=(0, 0.05, -0.10), arm_r=(-0.25, 2.95, 0),
+    (0.556, hero_key(GUARD, spine=(0, -0.10, 0.15), head=(0, -0.40, -0.05), arm_r=(-0.25, 2.95, 0),
                     elbow_r=(0, -1.0, 0), weapon=(0, math.radians(90), 0), arm_l=(0.35, -1.8, 0),
                     elbow_l=(-1.0, 0, 0), leg_l=(0.12, -1.00, 0.1), knee_l=(0, 0.4, 0),
                     leg_r=(-0.12, 0.60, -0.1), knee_r=(0, 0.9, 0))),
@@ -2471,14 +2473,14 @@ HERO_ATTACK = [
                     elbow_r=(0, -0.2, 0), weapon=(0, math.radians(86), 0), arm_l=(0.20, -3.6, 0),
                     elbow_l=(-0.7, 0.8, 0.2), leg_l=(0.12, -1.25, 0.1), knee_l=(0, 1.3, 0),
                     leg_r=(-0.12, 1.00, -0.1), knee_r=(0, 0.2, 0))),
-    (0.778, hero_key(GUARD, spine=(0, 1.20, -0.20), head=(0, -0.90, 0.10), arm_r=(0.30, 4.25, 0),
+    (0.778, hero_key(GUARD, spine=(0, 1.35, -0.20), head=(0, -0.90, 0.10), arm_r=(0.30, 4.25, 0),
                     elbow_r=(0, 0, 0), weapon=(0, math.radians(50), 0), arm_l=(0.0, -4.2, 0),
-                    elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
-                    leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
-    (1.0, hero_key(GUARD, spine=(0, 1.15, -0.20), head=(0, -0.85, 0.10), arm_r=(0.30, 4.22, 0),
+                    elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.50, 0.1), knee_l=(0, 1.85, 0),
+                    leg_r=(-0.12, 1.40, -0.1), knee_r=(0, 0.05, 0))),
+    (1.0, hero_key(GUARD, spine=(0, 1.30, -0.20), head=(0, -0.85, 0.10), arm_r=(0.30, 4.22, 0),
                    elbow_r=(0, -0.05, 0), weapon=(0, math.radians(53), 0), arm_l=(0.0, -4.1, 0),
-                   elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.40, 0.1), knee_l=(0, 1.6, 0),
-                   leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
+                   elbow_l=(-0.6, 1.5, 0.5), leg_l=(0.12, -1.50, 0.1), knee_l=(0, 1.85, 0),
+                   leg_r=(-0.12, 1.40, -0.1), knee_r=(0, 0.05, 0))),
 ]
 # The heroine's attack, her own like the original's, over the same ten
 # frames with the blow on frame 7: from a crouch with the sword held low
@@ -2517,34 +2519,59 @@ HEROINE_ATTACK = [
     (1.0, hero_key(STAND, spine=(0, 0.2, -0.1), arm_r=(0.4, 4.91, 0), elbow_r=(0, -1.5, 0),
                    weapon=(0, math.radians(30), 1.5), **SHIELD_UP, **KNEEL)),
 ]
-# The sword arm in each frame of the attacks, fitted to the original's:
-# tools/art/match_sword.py measures where the original's sword is (its hilt
-# and the way the blade points) in all eight directions of every frame,
-# finds the 3D line that best gives those pictures, and solves our shoulder,
-# elbow and wrist to hold the blade along it.
+# The sword and shield arms in each frame of the attacks, fitted to the
+# original's: tools/art/match_attack.py measures where the original's sword
+# is (its hilt and the way the blade points) and where its shield is (its
+# middle and the way it faces) in all eight directions of every frame,
+# finds the 3D placing that best gives those pictures, and solves our
+# shoulders, elbows and wrist to hold sword and shield there.
 HERO_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
-    ((-0.3, 0.375, 0), (0, 0.0, 0), (-54, -0.85)),
-    ((-0.3, 0.375, 0), (0, 0.0, 0), (-54, -0.85)),
-    ((0.5, 1.0, 0), (0, 0.0, 0), (171, 0.0)),
-    ((0.5, 1.0, 0), (0, 0.0, 0), (171, 0.0)),
-    ((0.6, 2.0, 0), (0, 0.0, 0), (3, 0.2)),
-    ((0.4, 3.1875, 0), (0, 0.0, 0), (-6, 0.1)),
-    ((0.5, -1.5625, 0), (0, 0.0, 0), (18, 0.0)),
-    ((0.5, -1.5, 0), (0, 0.0, 0), (12, 0.0)),
-    ((0.5, -1.4375, 0), (0, 0.0, 0), (12, 0.05)),
-    ((0.5, -1.4375, 0), (0, 0.0, 0), (9, 0.0)),
+    ((-0.4, 0.0625, -0.6), (0, 0.0, 0), (-39, -0.15)),
+    ((-0.4, 0.0625, -0.6), (0, 0.0, 0), (-39, -0.15)),
+    ((-0.2, 1.0, -0.8), (0, 0.0, 0), (144, 0.45)),
+    ((-0.2, 1.0, -0.8), (0, 0.0, 0), (144, 0.45)),
+    ((-0.2, 1.9375, -0.8), (0, 0.0, 0), (24, -0.1)),
+    ((0.3, 2.9375, -0.8), (0, 0.0, 0), (-3, -0.7)),
+    ((1.3, 4.5, -0.8), (0, 0.0, 0), (30, -0.25)),
+    ((1.4, 4.4375, -0.8), (0, 0.0, 0), (15, -0.25)),
+    ((1.4, 4.5, -0.8), (0, 0.0, 0), (18, -0.2)),
+    ((1.3, 4.5, -0.8), (0, 0.0, 0), (21, -0.25)),
 ]
 HEROINE_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
-    ((0.1, 0.6875, 0), (0, 0.0, 0), (-3, -1.3)),
-    ((0.1, 0.6875, 0), (0, 0.0, 0), (-3, -1.3)),
-    ((0.0, 0.8125, 0), (0, 0.0, 0), (165, 1.15)),
-    ((0.0, 0.8125, 0), (0, 0.0, 0), (165, 1.15)),
-    ((-0.1, 2.625, 0), (0, -1.5, 0), (159, -0.95)),
-    ((-0.1, 2.625, 0), (0, -1.5, 0), (159, -0.95)),
-    ((0.4, 4.375, 0), (0, 0.0, 0), (24, -1.35)),
-    ((1.0, -1.8125, 0), (0, 0.0, 0), (66, -0.85)),
-    ((1.0, -1.5625, 0), (0, 0.0, 0), (30, 1.1)),
-    ((1.0, -1.5625, 0), (0, 0.0, 0), (30, 1.1)),
+    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (0, -1.3)),
+    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (0, -1.3)),
+    ((0.0, 0.8125, 0.0), (0, 0.0, 0), (165, 1.15)),
+    ((0.0, 0.8125, 0.0), (0, 0.0, 0), (165, 1.15)),
+    ((-0.1, 2.625, 0.0), (0, -1.5, 0), (159, -0.95)),
+    ((-0.1, 2.625, 0.0), (0, -1.5, 0), (159, -0.95)),
+    ((0.0, 4.375, 0.4), (0, 0.0, 0), (33, -1.25)),
+    ((0.6, 4.5, 0.4), (0, 0.0, 0), (72, -0.85)),
+    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.8)),
+    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.8)),
+]
+HERO_SHIELD_ARM = [  # frame by frame: arm_l, elbow_l
+    ((-0.35, -0.15, 0.60), (-0.40, -0.50, 0.00)),
+    ((-0.35, -0.15, 0.60), (-0.40, -0.50, 0.00)),
+    ((-0.05, -1.15, -0.80), (-1.20, -0.40, 0.00)),
+    ((-0.05, -1.15, -0.80), (-1.20, -0.40, 0.00)),
+    ((-0.10, -1.27, 0.90), (-1.70, 0.40, 0.70)),
+    ((1.70, -2.40, -0.20), (-1.40, 0.80, -0.35)),
+    ((1.55, -2.38, 0.20), (0.95, 0.80, -0.30)),
+    ((1.20, -2.70, 1.20), (1.35, 1.20, -0.25)),
+    ((1.20, -2.65, 1.20), (1.40, 1.20, -0.25)),
+    ((1.10, -2.45, 1.20), (2.20, 1.20, 0.70)),
+]
+HEROINE_SHIELD_ARM = [  # frame by frame: arm_l, elbow_l
+    ((-0.20, -0.55, 0.80), (-0.20, 0.05, 0.20)),
+    ((-0.20, -0.55, 0.80), (-0.20, 0.05, 0.20)),
+    ((-0.15, -0.65, 0.85), (-1.25, 0.05, 0.20)),
+    ((-0.15, -0.65, 0.85), (-1.25, 0.05, 0.20)),
+    ((-1.60, -0.78, 1.35), (-0.45, 0.60, 0.00)),
+    ((-1.60, -0.78, 1.35), (-0.45, 0.60, 0.00)),
+    ((2.00, -2.67, -0.10), (-1.90, 0.40, 0.00)),
+    ((2.10, -2.70, 0.60), (-2.65, 0.40, 0.00)),
+    ((-1.60, -2.75, 0.50), (-2.65, 0.20, 0.00)),
+    ((-1.60, -2.75, 0.50), (-2.65, 0.20, 0.00)),
 ]
 
 
