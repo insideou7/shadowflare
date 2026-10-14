@@ -324,6 +324,34 @@ point with id `e * 4` and the others at `e * 4 + 1` to `+ 3`. Towns also
 have entries 50 and 100 (ids 200 and 400); entry 50 is where a warp gate
 leads (see The GATE window).
 
+### Leaving a scenario and coming back
+
+The original loads each scenario once a game. Starting or loading a game
+(0x41d3f0) makes a record for every scenario folder (0x425e30). The first
+visit loads the scenario's `Scenario.Mct` and `Scenario.Scs` into that
+record (0x426000, 0x427b50). Later visits find it loaded and skip the
+loading. Leaving a scenario (0x426200) only takes the party out of it and
+lowers its player count. Nothing else unloads a scenario until the game is
+started or loaded again.
+
+So everything in the record stays as it was left until then, whichever way
+the hero leaves and comes back: an exit, a warp gate or Transport.
+
+- **Monsters.** A killed monster stays in the scenario with no health. It
+  stays dead until a script's `RESSURECT` brings it back. The scripts of
+  13 scenarios do that, putting a monster back at an object's position
+  (`CPOSX`/`CPOSY` of object 30000 and up).
+- **Other characters.** People and objects stay as they were.
+- **Items.** Items on the ground stay where they were dropped.
+- **Flags.** TEMP and NET flags keep their values. Object opacity
+  (`SETCHARTRANS`) is kept too.
+
+Event 7 still runs on every visit. The map's ground and pieces are read
+again each time (`ReadMapFile`).
+
+A saved game does not keep any of this. After loading, every scenario is
+as its files have it.
+
 ## Scenario scripts: `Scenario/<id>/Scenario.Scs` (`RKC_RPG_SCRIPT::ReadBinary`)
 
 The event script for a scenario, compiled from a text language whose
@@ -448,8 +476,9 @@ Activity flags: every placement's record carries three flags (see the
 Record above). Each scenario load puts them in the NET flags, as
 100,000,000 + id (whether the character or object is there),
 300,000,000 + id and 200,000,000 + id, after the script's own NET flags
-(0x4300e0). Out of network play the NET flags start again at every load,
-like TEMP ones. `SETACTIVE id` sets all three to 1 and `SETINACTIVE id`
+(0x4300e0). Out of network play the NET flags belong to the scenario,
+like TEMP ones, and are kept with it (see Leaving a scenario and coming
+back). `SETACTIVE id` sets all three to 1 and `SETINACTIVE id`
 to 0; scripts also read and set them directly, such as a
 lever's `NET[110040000]`.
 

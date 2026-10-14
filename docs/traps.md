@@ -123,8 +123,9 @@ The command does nothing if the enemy is alive.
 These read and write a scenario object's opacity, 0-1000, at object +0xf4.
 It is the same opacity the object is drawn with (0x45ddd0), so a script can
 fade a door or a wall out. They work on objects only. `GETCHARTRANS` leaves
-its variable alone for anything else. The opacity starts again from the
-scenario file each time the scenario is entered.
+its variable alone for anything else. The opacity starts from the scenario
+file and is kept, like the rest of the scenario, until the game is started
+or loaded again (see "Leaving a scenario and coming back" in formats.md).
 
 ## `STARTVISUAL picture`
 

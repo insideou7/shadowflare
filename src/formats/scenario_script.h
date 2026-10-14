@@ -133,7 +133,7 @@ struct ScenarioScript {
 
     std::vector<std::pair<std::int32_t, std::int32_t>> tempFlags;  // id, initial value
     // NET flags and their starting values. Out of network play they too
-    // start again at every scenario load (0x4300e0).
+    // belong to the scenario (0x4300e0), which is loaded once a game.
     std::vector<std::pair<std::int32_t, std::int32_t>> netFlags;
     std::map<std::int32_t, std::string> messages;                  // dialogue text by id
     std::vector<Trigger> triggers;
