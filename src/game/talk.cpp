@@ -661,21 +661,7 @@ bool Game::shopClick(int x, int y, bool right) {
         return true;
     }
     if (hand_) {
-        // Selling: the shop takes the item and pays a quarter of its value.
-        if (hand_->def->quality == 3 || hand_->def->isGold()) {
-            showMessage("Not for sale");
-            return true;
-        }
-        const int price = sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count);
-        // The gold goes in the bag; with no room for it there is no sale.
-        if (!inventory_.addGold(price)) {
-            showMessage("No room in the bag");
-            return true;
-        }
-        playSound(itemSound(*hand_->def, kItemTake));  // (0x4480c0)
-        stock.add(*hand_);
-        showMessage(std::format("Sold for {} gold", price));
-        hand_.reset();
+        sellHand();
         return true;
     }
     // A right click anywhere else in the window leaves the shop.
@@ -684,14 +670,23 @@ bool Game::shopClick(int x, int y, bool right) {
         closeShop();
         return true;
     }
-    if (i < 0 || right) return true;
+    if (i < 0) return true;
     const Item item = stock.goods[static_cast<std::size_t>(i)].item;
     const int price = buyPrice(item, modifierPrices_);
     if (inventory_.gold() < price) {
         showMessage("You're running short of money.");
         return true;
     }
-    if (!inventory_.add(item)) {
+    // A right click buys as the original does (0x44b020): a mine joins the
+    // ones carried while there is room for it, a consumable marked for the
+    // belt goes there first, and anything else goes in the bag. Mines are
+    // counted, not kept in the bag, whichever button buys them.
+    if (item.def->isMine()) {
+        if (!pickUpMine()) {
+            showMessage("No room for more mines");
+            return true;
+        }
+    } else if (!(right ? inventory_.pickUp(item) : inventory_.add(item))) {
         showMessage("No room in the bag");
         return true;
     }
@@ -699,6 +694,36 @@ bool Game::shopClick(int x, int y, bool right) {
     playSound(itemSound(*item.def, kItemTake));  // as the original takes it into the hand (0x4480c0)
     stock.goods.erase(stock.goods.begin() + i);
     return true;
+}
+
+// Selling: the shop takes the item and pays a quarter of its value.
+bool Game::sellHand() {
+    if (!openShop_ || *openShop_ == kStorage || !hand_) return false;
+    if (hand_->def->quality == 3 || hand_->def->isGold()) {
+        showMessage("Not for sale");
+        return false;
+    }
+    const int price = sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count);
+    // The gold goes in the bag; with no room for it there is no sale.
+    if (!inventory_.addGold(price)) {
+        showMessage("No room in the bag");
+        return false;
+    }
+    playSound(itemSound(*hand_->def, kItemTake));  // (0x4480c0)
+    shops_[*openShop_].add(*hand_);
+    showMessage(std::format("Sold for {} gold", price));
+    hand_.reset();
+    return true;
+}
+
+// Takes the item up and puts it on the shop in one click; if the shop will
+// not have it, it goes back where it was.
+void Game::sellFromBag(int index) {
+    if (hand_ || index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
+    const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
+    const int x = placed.x, y = placed.y;
+    if (inventory_.clickBag(hand_, x, y) != Inventory::Result::Done || !hand_) return;
+    if (!sellHand()) inventory_.clickBag(hand_, x, y);
 }
 
 void Game::closeShop() {

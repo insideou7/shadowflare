@@ -114,6 +114,8 @@ Options:
   `--experience <percent>` start with the EXP gauge that full (screenshots of the panel)
 - `--talk <id>` walk up to a character and speak to them (in-game id, e.g. 12000001)
 - `--answers <a,b,...>` answer the next messages with these options (-1 = none)
+- `--click <tick>:<left|right>:<x>,<y>` click a mouse button at that tick, in
+  screen pixels (repeatable), e.g. to buy and sell in a shop
 - `--use <id>` use a scenario object (a chest, lever or door) from where the
   player stands, as clicking it does; `--hold <id>` holds the left button on
   one (a Brain Globe counts down while the hero is within reach)

@@ -180,7 +180,7 @@ These sounds belong to things the engine does not have yet:
   window (0x40f9e0), the card game (0x40da90, 0x2c, 0x40 and 0x41), the
   gold split box (0x4429b0, 0x55), clearing a bar slot with a right click
   in the magic window (0x44a8f0) and the online menus. The shop's unpaid
-  hand and right-click buying (0x4480c0, 0x44b020), and picking up into
+  hand (0x4480c0), and picking up into
   the hand while the item window is open (0x449ef0), are also missing.
 - **Fights the engine lacks.** The Warrior's combos and axe spin
   (0x4364e0-0x437910), monsters freezing the hero (0x443cb0, 119), the revive item
