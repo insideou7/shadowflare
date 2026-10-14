@@ -1,0 +1,77 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+[message 1]
+Remains of Reincarnation
+
+[message 2]
+Remains of Reincarnation, Ground Hall
+
+[message 3]
+Remains of Reincarnation, B1F
+
+[message 4]
+Remains of Reincarnation, 1F
+
+[message 5]
+Remains of Reincarnation, 2F
+
+[message 6]
+Remains of Reincarnation, 3F
+
+[message 7]
+Remains of Reincarnation, Upper Hall
+
+[sentence arrive]
+on=start
+SETFLAG temp:50 0
+GETENTRYPOINT temp:52
+IF temp:52 < 0 @arrive-none
+IF temp:52 = 0 @arrive-0
+IF temp:52 = 1 @arrive-1
+IF temp:52 = 2 @arrive-2
+IF temp:52 = 3 @arrive-3
+IF temp:52 = 4 @arrive-4
+IF temp:52 = 5 @arrive-5
+IF temp:52 = 6 @arrive-6
+IF temp:52 = 7 @arrive-7
+IF temp:52 = 8 @arrive-8
+IF temp:52 = 9 @arrive-9
+IF temp:52 = 10 @arrive-10
+
+[sentence arrive-none]
+SETCOMPASSES msg:1
+
+[sentence arrive-0]
+SETCOMPASSES msg:2
+
+[sentence arrive-1]
+SETCOMPASSES msg:2
+
+[sentence arrive-2]
+SETCOMPASSES msg:3
+
+[sentence arrive-3]
+SETCOMPASSES msg:4
+
+[sentence arrive-4]
+SETCOMPASSES msg:4
+
+[sentence arrive-5]
+SETCOMPASSES msg:5
+
+[sentence arrive-6]
+SETCOMPASSES msg:5
+
+[sentence arrive-7]
+SETCOMPASSES msg:6
+
+[sentence arrive-8]
+SETCOMPASSES msg:2
+
+[sentence arrive-9]
+SETCOMPASSES msg:3
+
+[sentence arrive-10]
+SETCOMPASSES msg:7

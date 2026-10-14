@@ -194,6 +194,12 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 | `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
 | `shot=` | what one attack throws instead of striking: kind/height/speed/start/attack (see docs/archery.md) | throws nothing |
 
+A monster of kind -1 has no picture: it is a burrow, the original's Enemy
+Hole. It never moves or strikes but can be hit and dies like any other
+monster; objects of the scenario's script draw it, and the script brings
+its monsters back out of it while it stands (see "The first area" below).
+`enemies.txt` names it.
+
 Every monster in the pack has the original's numbers.
 `tools/content/enemy_stats.py` copies them from the player's own copy:
 each monster on a map laid out after an original area gets the numbers of
@@ -410,7 +416,7 @@ spells (run it again after `enemy_stats.py`).
     level=1,1                # item level (for drops), required level
     stats=20,100             # see below; numbers left out are 0
     layer=12                 # hero animation layer shown while worn
-    weight=10                # how often it drops compared with others
+    weight=15000             # how often it drops compared with others (the original's numbers)
     load=30                  # how heavy it is to wear
 
 Classes are `weapon`, `armour`, `accessory`, `consumable` and `special`
@@ -432,9 +438,11 @@ level: fire, water, earth, thunder, holy, dark, gel or metal),
 `fixed-price=1` (modifiers add nothing to its price, as uniques'),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-`glow` (a second hero layer), `page` (the special items page a quest item,
-gem or the like is kept on, as the original's are; such items never go to
-the warehouse) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
+`glow` (a second hero layer), `page=page,x,y` (the special items window's
+section a quest item, gem or the like is kept on, and its own cell there,
+as the original's are; 0 quest items, 9 x 2 cells, 1 gems, 9 x 1, 2
+stones and cards, 9 x 1, 3 medicines, 9 x 2; such items are never in the
+bag and never go to the warehouse; see docs/formats.md) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
 (kind 0 stone, 1 arrow, 2 fire arrow, 3 ice arrow; see docs/archery.md). The item window weighs the `load` of
 everything worn against the hero's strength, as the original does.
 An item with a `load` of 60 or more also sounds heavy when it is taken or
@@ -456,6 +464,22 @@ giving back health), `gold` (percent more gold dropped), `mine-power`,
 and `companion-magic-evasion`. Magic items are made like the original's:
 a base item under a new name, its `unidentified` name the base's, with its
 pictures; see the end of items.txt.
+
+`weight` is in the original's units, so items made from its numbers drop
+as often as there: 15000 or 12000 for a plain item, a few thousand for a
+magic one, 20 to 1000 for a unique. `pool` (1 when left out) is the
+original's drop pool: a few uniques are pool 2, which only the drop lists
+that ask for it give (see drops.txt).
+
+`uniques.txt`, beside items.txt and in the same form, holds the
+original's unique items: their numbers (stats, modifiers, levels, price,
+drop weight and pool) are the original's, the names and pictures ours.
+tools/content/uniques.py writes it from the player's own Item.Ibn and
+tools/content/unique_names.txt; tools/art/uniques.py draws the pictures,
+Item0001-0003.sheet (accessories, weapons, armour) in the bag and
+Character/ITEM/00000008-00000010 on the ground. Hero layers the pack's
+hero does not have yet are drawn as the nearest one it has (a bastard
+sword as the long sword, an axe as the two-handed sword).
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with
@@ -481,7 +505,9 @@ A pick is a class (or `any` for weapon, armour or accessory), a code (or
 the lowest and highest item level and which qualities may come, as the
 original's digits: ones normal, tens magic, hundreds unique (`111`, any,
 when left out; `11` no uniques; `110` magic or unique only). Quest items
-always may. A mine (`special,1`) goes to the hero's mines, not the bag (see
+always may. A sixth number is the pools it takes from, as the original's
+table 31 (1 when left out; 3 also gives the pool 2 uniques its bosses
+drop). A mine (`special,1`) goes to the hero's mines, not the bag (see
 [mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 
@@ -595,6 +621,27 @@ and the other way round, and drawing them laid over each other:
 
     python3 tools/content/map_overlay.py <game folder> content overlay.png
 
+The first area's quests are the original's, in our own words: missions
+0 to 10 (`missions.txt`) are given, cleared and rewarded by the same people,
+in the same order and for the same reasons, with the same `save:` and
+`quest:` flags, so a game saved mid-quest goes on in either data. The quest
+items and rewards keep the original's item codes (`items.txt`), and the
+monsters that carry a quest item drop it from lists 400 to 402
+(`drops.txt`). Each field and dungeon script names the room the hero comes
+into and has the hero remark on it, as the original's do; the boss rooms of
+the Dusty Ruins and the four dungeons clear their mission when their last
+monster dies.
+
+The original's Enemy Holes are burrows in ours: 24 of them in the Dusty
+Ruins, the Sea of Trees and the dungeons round Cold Svalt Town. Each brings
+its monsters back one at a time, every 200 ticks, glowing as one climbs out,
+until the hero breaks it. `tools/content/enemy_holes.py` writes them (the
+`enemy=-1` lines in the original's order among the monsters, the burrow's
+objects and the script that runs it, after the original's script) from the
+player's own copy; run it after `first_area.py` and `enemy_stats.py`:
+
+    python3 tools/content/enemy_holes.py <game folder> content
+
 A game saved in any of these areas goes on with the other data: a hero
 saved in the original's Remote Town loads in ours at the same spot, and
 back, with what the area map (N) has seen of each area. Each of our maps
@@ -630,7 +677,8 @@ which is run but not copied:
     export MPFB_SRC=$PWD/mpfb2/src/mpfb
 
 `build_pack.py` writes the ground, floors, props and text files
-(`tools/content/first_area.py` and `enemy_stats.py` then lay out the maps);
+(`tools/content/first_area.py`, `enemy_stats.py` and `enemy_holes.py` then
+lay out the maps);
 `shrink.py` turns the renders into 256-colour pictures, as the original's
 are, which keeps content/ about a tenth of the size. `trim_sheets.py` then
 cuts the see-through space from round each character frame (only after

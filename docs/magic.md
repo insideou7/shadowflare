@@ -15,9 +15,13 @@ and metal): the opposite of `e` is `e ^ 1` (0x412a40 works it out as
 `e / 2 * 2 - e % 2 + 1`).
 
 The hero has a level in each, from -10 to 10. Their own levels come from a
-point on the attribute disc (player + 0x1d4): each element has an anchor
-on a circle of radius 20000 and the level is (20000 - distance) / 1000
-(0x44fba0). A new hero stands in the middle, so all start at 0. Worn
+point on the attribute disc (player + 0x74, copied to + 0x1d4 with the
+rest of the stats by 0x44ea60): each element has an anchor on a circle of
+radius 20000 and the level is (20000 - distance) / 2000 (0x44fba0), 10 on
+the anchor and -10 on the opposite one. A new hero stands in the middle,
+so all start at 0. The element medicines move the point 4000 units
+straight towards their element's anchor, or onto it when it is closer
+(0x44fd10), and White Medicine puts it back in the middle (0x44a240). Worn
 weapons and armour add their element array (item + 0xc8, eight i32), and
 the sum is kept in -10..10 (0x44fca0, 0x44fe30).
 

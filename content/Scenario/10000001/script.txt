@@ -1,0 +1,6 @@
+# Near the Remote Town. The red goblin chief (monster 0) is the healer's
+# first errand: beating it clears mission 0.
+
+[sentence chief-down]
+on=enemy-dead 14000000
+SETQUESTFLAG 0 2 1

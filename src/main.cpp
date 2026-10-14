@@ -75,6 +75,7 @@ struct Options {
     };
     std::vector<Gift> gifts;  // items to start with, for testing
     bool inventory = false;   // start with the inventory panel open
+    bool special = false;     // start with the special items window open
     bool status = false;      // start with the status window open
     bool noMenu = false;      // go straight into the game
     std::optional<sf::HeroSex> hero;  // --hero male|female: who plays
@@ -163,6 +164,8 @@ Options parseArgs(int argc, char** argv) {
             }
         } else if (arg == "--inventory") {
             options.inventory = true;
+        } else if (arg == "--special") {
+            options.special = true;
         } else if (arg == "--status") {
             options.status = true;
         } else if (arg == "--save-file" && i + 1 < argc) {
@@ -513,12 +516,20 @@ void frame(void* userData) {
         }
     }
 
+#ifdef __EMSCRIPTEN__
+    // In a browser the saves are files in memory; the page copies them to
+    // the browser's storage every few seconds.
+    if (app.frames % 120 == 0) EM_ASM({ Module.sf.syncSaves(); });
+#endif
+
     ++app.frames;
     const bool ticksDone = app.ticks >= 0 && static_cast<long>(app.game->tickCount()) >= app.ticks;
     if (app.game->wantsQuit() || ticksDone || (app.maxFrames >= 0 && app.frames >= app.maxFrames)) {
         app.running = false;
 #ifdef __EMSCRIPTEN__
+        // Back to the page's start screen, once the saves are kept.
         emscripten_cancel_main_loop();
+        EM_ASM({ if (Module.sfGameExit) Module.sfGameExit(); });
 #endif
     }
 }
@@ -534,7 +545,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
+#ifdef __EMSCRIPTEN__
+    // The browser goes on calling frame() after main() has given up its
+    // stack, so the app cannot live there.
+    static App app;
+#else
     App app;
+#endif
     app.maxFrames = options.maxFrames;
     app.ticks = options.ticks;
     app.clicks = options.clicks;
@@ -637,6 +654,7 @@ int main(int argc, char** argv) {
     app.game->setAutoFight(options.autoFight);
     if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
     app.game->setInventoryOpen(options.inventory);
+    if (options.special) app.game->setSpecialWindowOpen(true);
     app.game->setStatusOpen(options.status);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);

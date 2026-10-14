@@ -108,6 +108,7 @@ std::string SaveGame::write() const {
         out += '\n';
     }
     if (mp) out += std::format("mp={}\n", *mp);
+    if (discX != 0 || discY != 0) out += std::format("disc={},{}\n", discX, discY);
     if (mines) out += std::format("mines={}\n", *mines);
     if (spells) {
         // spell=number,level,uses for each spell learned; bar= the spells
@@ -138,6 +139,9 @@ std::string SaveGame::write() const {
     // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
     for (const auto& e : belt) out += std::format("belt={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+    for (const auto& e : special) {
+        out += std::format("special={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+    }
     for (const auto& e : storage) {
         out += std::format("stored={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
     }
@@ -257,9 +261,14 @@ SaveGame SaveGame::parse(std::string_view text) {
         } else if (key == "flag") {
             const auto v = numbers(value, 3, lineNumber);
             save.flags[{static_cast<std::int32_t>(v[0]), static_cast<std::int32_t>(v[1])}] = static_cast<std::int32_t>(v[2]);
-        } else if (key == "bag" || key == "belt" || key == "stored") {
+        } else if (key == "disc") {
+            const auto v = numbers(value, 2, lineNumber);
+            save.discX = static_cast<int>(v[0]);
+            save.discY = static_cast<int>(v[1]);
+        } else if (key == "bag" || key == "belt" || key == "stored" || key == "special") {
             const auto v = numbers(value, 5, lineNumber, 7 + kMaxModifierNumbers);
-            (key == "bag" ? save.bag : key == "belt" ? save.belt : save.storage).push_back({readRef(v, 2, lineNumber), static_cast<int>(v[3]), static_cast<int>(v[4])});
+            auto& list = key == "bag" ? save.bag : key == "belt" ? save.belt : key == "special" ? save.special : save.storage;
+            list.push_back({readRef(v, 2, lineNumber), static_cast<int>(v[3]), static_cast<int>(v[4])});
         } else if (key == "wear") {
             const auto v = numbers(value, 4, lineNumber, 6 + kMaxModifierNumbers);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
@@ -291,6 +300,10 @@ void SaveGame::store(const Inventory& inventory) {
     gold = inventory.looseGold();
     bag.clear();
     for (const auto& p : inventory.bag()) bag.push_back({ref(p.item), p.x, p.y});
+    special.clear();
+    for (int page = 0; page < Inventory::kSpecialPages; ++page) {
+        for (const auto& p : inventory.specialPage(page)) special.push_back({ref(p.item), page, p.y});
+    }
     belt.clear();
     for (int y = 0; y < Inventory::kBeltHeight; ++y) {
         for (int x = 0; x < Inventory::kBeltWidth; ++x) {
@@ -313,8 +326,18 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
     inventory.clear();
     int skipped = 0;
     auto find = [&](const ItemRef& r) { return items.find(static_cast<ItemDef::Class>(r.cls), r.code); };
+    for (const auto& e : special) {
+        const ItemDef* def = find(e.item);
+        if (!def || !inventory.addSpecial(toItem(def, e.item))) ++skipped;
+    }
     for (const auto& e : bag) {
         const ItemDef* def = find(e.item);
+        // Saves from before the special items window kept such items in
+        // the bag; they go to their page now (one of each).
+        if (def && def->specialPage >= 0) {
+            inventory.addSpecial(toItem(def, e.item));
+            continue;
+        }
         if (!def || !inventory.addAt(toItem(def, e.item), e.x, e.y)) ++skipped;
     }
     for (const auto& e : belt) {

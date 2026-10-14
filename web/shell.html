@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShadowFlare (open)</title>
+<style>
+  :root { color-scheme: dark; --bg: #0d0b09; --panel: #1b1713; --text: #e8dfcf; --muted: #a39782; --accent: #d9a54a; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 16px/1.5 Georgia, serif; }
+  #start { max-width: 34rem; margin: 0 auto; padding: 3rem 1rem; }
+  h1 { color: var(--accent); font-weight: normal; letter-spacing: .08em; margin: 0 0 .25rem; }
+  p { margin: .5rem 0; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .choice { background: var(--panel); border: 1px solid #3a3127; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+  [hidden] { display: none !important; }
+  button, .button { display: inline-block; font: inherit; color: var(--bg); background: var(--accent); border: 0; border-radius: 4px; padding: .5rem 1rem; cursor: pointer; }
+  button:disabled, .button.disabled { opacity: .5; cursor: default; pointer-events: none; }
+  button.quiet { background: transparent; color: var(--muted); border: 1px solid #3a3127; }
+  label.check { display: block; margin-top: .5rem; font-size: .9rem; color: var(--muted); }
+  #status { min-height: 1.5em; color: var(--accent); }
+  #canvas { display: none; position: fixed; inset: 0; margin: auto; background: #000; outline: none;
+            width: min(100vw, calc(100vh * 4 / 3)); height: min(100vh, calc(100vw * 3 / 4)); image-rendering: pixelated; }
+  body.playing #start { display: none; }
+  body.playing #canvas { display: block; }
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>ShadowFlare</h1>
+  <p class="muted">An open reimplementation of the 2001 action RPG, running in your browser.</p>
+
+  <div class="choice">
+    <p>Play the open game: our own maps, art, sound and story.</p>
+    <button id="play-open" disabled>Play the open game</button>
+  </div>
+
+  <div class="choice">
+    <p>Play the original with your own copy of ShadowFlare. Pick the game's folder (the one with Map and System in it, or any folder above it).</p>
+    <button id="play-saved" hidden disabled>Play with my saved files</button>
+    <label class="button disabled" id="pick-label">Choose my ShadowFlare folder
+      <input type="file" id="picker" webkitdirectory directory multiple hidden disabled>
+    </label>
+    <label class="check"><input type="checkbox" id="keep" checked> Keep the files in this browser for next time</label>
+    <button id="forget" class="quiet" hidden>Forget my saved files</button>
+    <p class="muted">Your files stay on this computer. They are never uploaded anywhere.</p>
+  </div>
+
+  <p id="status">Loading…</p>
+  <p class="muted">Saves are kept in this browser. Esc opens the settings in the game.</p>
+</div>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<script>
+  const statusLine = document.getElementById('status');
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    print: function (text) { console.log(text); },
+    printErr: function (text) { console.warn(text); },
+    setStatus: function (text) {
+      // "Downloading data... (12/58)" while the open pack comes down.
+      const m = text.match(/\((\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)/);
+      statusLine.textContent = m ? 'Downloading the game… ' + Math.round(100 * m[1] / m[2]) + '%' : text;
+    },
+    onRuntimeInitialized: function () { ready(); },
+    // The engine asks for this when the player quits.
+    sfGameExit: function () {
+      Module.sf.syncSaves().finally(function () { location.reload(); });
+    },
+  };
+  window.addEventListener('pagehide', function () { if (Module.sf) Module.sf.syncSaves(); });
+  window.onerror = function (message) { statusLine.textContent = 'Something went wrong: ' + message; };
+
+  function ready() {
+    statusLine.textContent = '';
+    document.getElementById('play-open').disabled = false;
+    document.getElementById('picker').disabled = false;
+    document.getElementById('pick-label').classList.remove('disabled');
+    if (Module.sf.hasSavedOriginals()) {
+      document.getElementById('play-saved').hidden = false;
+      document.getElementById('play-saved').disabled = false;
+      document.getElementById('forget').hidden = false;
+    }
+  }
+
+  function play(args) {
+    document.body.classList.add('playing');
+    Module.canvas.focus();
+    Module.sf.start(args);
+  }
+
+  document.getElementById('play-open').onclick = function () { play([]); };
+
+  document.getElementById('play-saved').onclick = async function () {
+    statusLine.textContent = 'Loading your saved files…';
+    if (await Module.sf.loadSavedOriginals()) {
+      play(['--data', '/originals']);
+    } else {
+      statusLine.textContent = 'Your saved files are gone. Please choose the folder again.';
+    }
+  };
+
+  document.getElementById('forget').onclick = async function () {
+    await Module.sf.forgetOriginals();
+    document.getElementById('play-saved').hidden = true;
+    document.getElementById('forget').hidden = true;
+    statusLine.textContent = 'Your files are no longer kept in this browser.';
+  };
+
+  document.getElementById('picker').onchange = async function (event) {
+    const files = event.target.files;
+    if (!files.length) return;
+    const keep = document.getElementById('keep').checked;
+    const ok = await Module.sf.useOriginals(files, keep, function (done, total, keeping) {
+      statusLine.textContent = keeping ? 'Keeping your files in this browser…'
+                                       : 'Reading your files… ' + Math.round(100 * done / Math.max(total, 1)) + '%';
+    });
+    if (ok) {
+      play(['--data', '/originals']);
+    } else {
+      statusLine.textContent = 'No ShadowFlare game in that folder (it needs the Map and System folders).';
+    }
+  };
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

@@ -18,7 +18,7 @@ ground=7,0
 level=1,1
 stats=20,100
 layer=12
-weight=30
+weight=15000
 load=25
 
 [item weapon 5000000]
@@ -32,7 +32,7 @@ ground=7,1
 level=3,1
 stats=45,90
 layer=19
-weight=12
+weight=6000
 load=170
 
 [item armour 0]
@@ -46,7 +46,7 @@ ground=7,2
 level=1,1
 stats=0,0,20,20,0,0,10,20
 layer=5
-weight=30
+weight=15000
 load=60
 
 [item armour 1000000]
@@ -60,7 +60,7 @@ ground=7,3
 level=1,1
 stats=0,0,8,10,0,0,8,10
 layer=9
-weight=30
+weight=15000
 load=35
 
 [item armour 2000000]
@@ -73,7 +73,7 @@ icon=0,4
 ground=7,4
 level=1,1
 stats=0,0,5,10,0,0,10,10
-weight=24
+weight=12000
 load=15
 
 [item armour 3000000]
@@ -86,7 +86,7 @@ icon=0,5
 ground=7,5
 level=1,1
 stats=0,0,6,10,0,0,10,10
-weight=24
+weight=12000
 load=15
 
 [item accessory 1000000]
@@ -97,7 +97,7 @@ price=600
 icon=0,6
 ground=7,6
 level=2,1
-weight=12
+weight=6000
 
 [item consumable 0]
 name=Healing Potion
@@ -107,7 +107,7 @@ icon=0,7
 ground=7,7
 level=1,0
 effect=1,50              # may go in the belt, restores 50 health
-weight=20
+weight=10000
 
 [item consumable 10000000]
 name=Mana Potion
@@ -117,7 +117,7 @@ icon=0,8
 ground=7,8
 level=1,0
 effect=1,0,50            # restores 50 mental power
-weight=20
+weight=10000
 
 [item special 0]
 name=Gold
@@ -143,7 +143,7 @@ ground=7,10
 level=2,1
 stats=32,95
 layer=17
-weight=18
+weight=9000
 load=45
 
 [item weapon 2000000]
@@ -157,7 +157,7 @@ ground=7,11
 level=2,1
 stats=14,100,0,0,30,100
 layer=18
-weight=12
+weight=6000
 load=25
 
 [item weapon 1000010]
@@ -171,7 +171,7 @@ ground=7,14
 level=3,3
 stats=30,80
 layer=16
-weight=24
+weight=12000
 load=30
 shot=1,0,100             # one arrow
 
@@ -186,7 +186,7 @@ ground=7,12
 level=4,1
 stats=0,0,40,0
 layer=6
-weight=9
+weight=4500
 load=130
 
 # Magic items: a base item with one or two modifiers rolled when it drops
@@ -207,7 +207,7 @@ ground=7,0
 level=2,2
 stats=20,100
 layer=12
-weight=9
+weight=4500
 load=25
 mod=attack,6,14
 
@@ -224,7 +224,7 @@ ground=7,0
 level=2,2
 stats=20,100
 layer=12
-weight=9
+weight=4500
 load=25
 mod=attack-speed,10,30
 
@@ -241,7 +241,7 @@ ground=7,10
 level=3,2
 stats=32,95
 layer=17
-weight=6
+weight=3000
 load=45
 mod=attack,8,18
 
@@ -258,7 +258,7 @@ ground=7,10
 level=4,3
 stats=32,95
 layer=17
-weight=6
+weight=3000
 load=45
 mod=absorption-chance,10,20
 mod=absorption-rate,5,10
@@ -276,7 +276,7 @@ ground=7,1
 level=4,3
 stats=45,90
 layer=19
-weight=6
+weight=3000
 load=170
 mod=attack,15,30
 mod=stun-chance,10,20
@@ -294,7 +294,7 @@ ground=7,11
 level=3,2
 stats=14,100,0,0,30,100
 layer=18
-weight=6
+weight=3000
 load=25
 mod=magic-attack,10,20
 mod=max-mp,10,30,50
@@ -312,7 +312,7 @@ ground=7,11
 level=4,3
 stats=14,100,0,0,30,100
 layer=18
-weight=6
+weight=3000
 load=25
 mod=magic-level,1,1
 mod=mental-cost,1,3
@@ -330,7 +330,7 @@ ground=7,14
 level=4,3
 stats=30,80
 layer=16
-weight=9
+weight=4500
 load=30
 shot=1,0,100
 mod=hit,10,25
@@ -348,7 +348,7 @@ ground=7,2
 level=2,2
 stats=0,0,20,20,0,0,10,20
 layer=5
-weight=9
+weight=4500
 load=60
 mod=life-recovery,5,10
 
@@ -365,7 +365,7 @@ ground=7,2
 level=2,2
 stats=0,0,20,20,0,0,10,20
 layer=5
-weight=9
+weight=4500
 load=60
 mod=defense,5,12
 
@@ -382,7 +382,7 @@ ground=7,3
 level=3,2
 stats=0,0,8,10,0,0,8,10
 layer=9
-weight=9
+weight=4500
 load=35
 mod=reflection-chance,10,20
 mod=reflection-rate,20,40
@@ -399,7 +399,7 @@ icon=0,4
 ground=7,4
 level=2,2
 stats=0,0,5,10,0,0,10,10
-weight=9
+weight=4500
 load=15
 mod=mental-recovery,5,10
 mod=max-mp,5,20,50
@@ -416,7 +416,7 @@ icon=0,5
 ground=7,5
 level=2,2
 stats=0,0,6,10,0,0,10,10
-weight=9
+weight=4500
 load=15
 mod=walk-speed,10,30
 
@@ -433,7 +433,7 @@ ground=7,12
 level=4,3
 stats=0,0,40,0
 layer=6
-weight=3
+weight=1500
 load=130
 mod=magic-defense,10,25
 
@@ -447,7 +447,7 @@ price=600
 icon=0,6
 ground=7,6
 level=3,2
-weight=6
+weight=3000
 mod=gold,10,30
 
 [item accessory 1000101]
@@ -460,7 +460,7 @@ price=600
 icon=0,6
 ground=7,6
 level=3,2
-weight=6
+weight=3000
 mod=max-hp,10,30
 
 # Unique items: one of a kind, with set modifiers and a set price, rarer
@@ -480,7 +480,7 @@ ground=7,10
 level=4,3
 stats=32,95
 layer=17
-weight=1
+weight=500
 load=45
 mod=attack,25,25
 mod=hit,15,15
@@ -501,7 +501,7 @@ ground=7,3
 level=4,3
 stats=0,0,8,10,0,0,8,10
 layer=9
-weight=1
+weight=500
 load=35
 mod=defense,15,15
 mod=max-hp,30,30
@@ -519,8 +519,141 @@ fixed-price=1
 icon=0,6
 ground=7,6
 level=3,2
-weight=1
+weight=500
 mod=max-mp,40,40
 mod=mental-recovery,10,10
 mod=chant-speed,10,10
 mod=magic-level,1,1
+
+# The first area's quest items and rewards (docs/content.md). Codes are the
+# original's where they are free, so the missions carry over between the
+# two; the two swords take 90000010 and 90000011, as 90000000 is a unique
+# here. Names and looks are ours; what each does is the original's.
+
+[item special 99000000]
+name=Merchant's Sapphire
+quality=3
+size=1,1
+price=800
+icon=0,15
+ground=7,15
+page=0
+
+[item special 99000001]
+name=Shrine Stone
+quality=3
+size=1,1
+price=1600
+icon=0,16
+ground=7,16
+page=0
+
+[item special 99000002]
+name=Keepsake Ruby
+quality=3
+size=1,1
+price=4000
+icon=0,17
+ground=7,17
+page=0
+
+[item accessory 1100000]
+name=Might Charm
+quality=3
+subtype=0
+size=1,1
+price=4000
+fixed-price=1
+icon=0,18
+ground=7,18
+level=999,5
+weight=0
+load=2
+mod=attack,2,2
+mod=defense,2,2
+mod=strength,10,10
+
+[item accessory 1100001]
+name=Shrine Charm
+quality=3
+subtype=0
+size=1,1
+price=4000
+fixed-price=1
+icon=0,19
+ground=7,19
+level=999,5
+weight=0
+load=2
+mod=magic-attack,3,3
+mod=magic-defense,3,3
+mod=magic-hit,3,3
+mod=magic-evasion,3,3
+
+[item accessory 1100002]
+name=Blast Charm
+quality=3
+subtype=0
+size=1,1
+price=4000
+fixed-price=1
+icon=0,20
+ground=7,20
+level=999,5
+weight=0
+load=2
+mod=mine-power,10,10
+mod=mine-count,3,3
+
+[item accessory 1100003]
+name=Warding Cross
+quality=3
+subtype=0
+size=1,1
+price=4000
+fixed-price=1
+icon=0,21
+ground=7,21
+level=999,5
+weight=0
+load=2
+mod=attack,-20,-20
+mod=defense,20,20
+
+[item weapon 90000010]
+name=Scarlet Dirk
+quality=3
+subtype=0
+size=1,3
+price=1000
+fixed-price=1
+durability=200
+icon=0,22
+ground=7,22
+level=999,1
+stats=10,120,0,0,0,0,0,0,50
+layer=12
+weight=0
+load=10
+mod=high-damage,1,1
+
+[item weapon 90000011]
+name=Old Knight's Sword
+quality=3
+subtype=0
+size=1,4
+price=5000
+fixed-price=1
+durability=400
+icon=0,23
+ground=7,23
+level=999,16
+stats=60,100
+layer=17
+weight=0
+load=70
+mod=attack,80,80
+mod=hit,30,30
+mod=attack-speed,25,25
+mod=max-hp,50,50
+mod=strength,10,10

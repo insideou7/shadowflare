@@ -1,0 +1,126 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+object=21934,10917,22094,11077,hole0,hole,hidden
+object=21934,10917,22094,11077,hole0-open,hole_open,hidden
+object=21934,10917,22094,11077,hole0-broken,hole_broken,hidden
+temp=901,-1
+temp=902,-1
+
+[message 1]
+Cold Ruins
+
+[message 2]
+Cold Ruins, B2F
+
+[message 3]
+Cold Ruins, Little Chamber
+
+[message 4]
+Cold Ruins, B3F
+
+[sentence arrive]
+on=start
+SETFLAG temp:50 0
+GETENTRYPOINT temp:52
+IF temp:52 < 0 @arrive-none
+IF temp:52 = 0 @arrive-0
+IF temp:52 = 1 @arrive-1
+IF temp:52 = 2 @arrive-2
+IF temp:52 = 3 @arrive-3
+IF temp:52 = 4 @arrive-4
+IF temp:52 = 5 @arrive-5
+IF temp:52 = 6 @arrive-6
+
+[sentence arrive-none]
+SETCOMPASSES msg:1
+
+[sentence arrive-0]
+SETCOMPASSES msg:2
+
+[sentence arrive-1]
+SETCOMPASSES msg:4
+
+[sentence arrive-2]
+SETCOMPASSES msg:2
+
+[sentence arrive-3]
+SETCOMPASSES msg:2
+
+[sentence arrive-4]
+SETCOMPASSES msg:3
+
+[sentence arrive-5]
+SETCOMPASSES msg:4
+
+[sentence arrive-6]
+SETCOMPASSES msg:4
+
+# Burrows (written by tools/content/enemy_holes.py)
+#
+# Each burrow brings its monsters back, one at a time, while it
+# stands: every 200 ticks, if one of them is dead, the burrow glows
+# and it climbs back out. Breaking the burrow ends it. temp:<n> flags
+# from 900 on: the tick count, the glow left, the monster
+# coming back, whether the burrow is still standing, set up.
+
+[sentence hole0-start]
+on=start
+IF temp:904 = 0 @hole0-setup
+
+[sentence hole0-setup]
+SETFLAG temp:904 1
+SETFLAG shown:hole0 1
+
+# Monsters 14000001 to 14000005 are this burrow's.
+[sentence hole0-tick]
+on=tick
+CHECKENEMYLIVE 14000000 14000000 temp:903
+IF temp:900 = 180 @hole0-wake
+IF temp:900 = 200 @hole0-revive
+IF temp:903 ! -1 @hole0-glow
+ADD temp:900 1
+
+[sentence hole0-wake]
+IF temp:903 ! -1 @hole0-look
+
+[sentence hole0-look]
+CHECKENEMYDEAD 14000001 14000005 temp:902
+IF temp:902 ! -1 @hole0-open
+
+[sentence hole0-open]
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 1
+SETFLAG temp:901 40
+CREATEEFFECT 20007 x:hole0 y:hole0 0 -1
+CREATEEFFECT 20008 x:hole0 y:hole0 0 -1
+PLAYSOUND 27 0 x:hole0 y:hole0
+
+[sentence hole0-revive]
+IF temp:902 ! -1 @hole0-bring
+SETFLAG temp:900 0
+
+[sentence hole0-bring]
+IF temp:903 ! -1 @hole0-rise
+
+[sentence hole0-rise]
+RESSURECT temp:902 x:hole0 y:hole0 7
+
+[sentence hole0-glow]
+IF temp:901 > -1 @hole0-fade
+
+[sentence hole0-fade]
+IF temp:901 = 0 @hole0-shut
+SUB temp:901 1
+
+[sentence hole0-shut]
+SETFLAG shown:hole0 1
+SETFLAG shown:hole0-open 0
+
+[sentence hole0-broken]
+on=enemy-dead 14000000
+PLAYSOUND 28 0 x:hole0 y:hole0
+SETFLAG shown:hole0 0
+SETFLAG shown:hole0-open 0
+SETFLAG shown:hole0-broken 1

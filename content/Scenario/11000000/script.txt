@@ -5,6 +5,13 @@
 object=2241,3926,2538,4177,gate
 object=1040,2537,3340,5037,gate-ground
 
+# The warehouse by the merchant's (the original's object 300, which opens
+# the hero's storage), drawn as a long crate.
+object=10065,10590,10385,10910,warehouse,long_crate
+
+# The healer's last line (msg:182 when she heals).
+temp=16,-1
+
 [message 1]
 Cold Svalt Town
 
@@ -92,3 +99,1454 @@ IF temp:42 ! 3 @rust-on
 
 [sentence rust-on]
 SETACTIVE rust
+
+# ---------------------------------------------------------------------------
+# Cold Svalt Town's people, in the original's order (scenario 1000000), in
+# our own words. Flags follow the original: save:11 the commander (1 met,
+# 2 the area's last reward given), save:71 the first area finished,
+# save:12-20 and save:102 "met" (and moods) of the others, quest:4 the
+# widow's ruby, quest:5 the old knight's errand, quest:6-10 the commander's
+# missions.
+#
+# Temp flags, as the original uses them: temp:2 which box of the person
+# talking is showing (closing it shows the next), temp:1 the answer to a
+# menu, temp:15 "already answered" in a chain of IFs, temp:4/5 where a
+# reward lands, temp:6-14 scratch, temp:16 the healer's last line,
+# temp:17 which of the merchant's boxes is showing.
+
+# Arriving through the warp gate plays its sound there.
+[sentence arrive]
+on=start
+INITTRADE 0 2
+GETENTRYPOINT temp:6
+IF temp:6 = 50 @arrive-gate
+
+[sentence arrive-gate]
+PLAYSOUND 53 0 x:gate y:gate
+
+# ---- The commander: the missions of the area -------------------------------
+
+[message 100]
+Welcome. I command the garrison here in Cold Svalt Town.
+
+[message 101]
+Remote Town's commander sent word ahead of you.
+He spoke well of your skill, and I mean to put it to use.
+
+[message 102]
+First, let me tell you how things stand.
+
+[message 103]
+Goblins raided us not long ago. Raids are nothing new
+up here, but the way they fight has changed.
+
+[message 104]
+They used to strike wherever they pleased. Now they come
+in good order, as if someone were giving them commands.
+I would like to believe I am wrong about that.
+
+[message 105]
+Your task is to thin out the goblins around town.
+There are ruins nearby; do not go deep into them.
+The goblins nest there and have reshaped the halls
+to suit themselves.
+
+[message 106]
+Don't push yourself too hard.
+
+[message 107]
+Back again? No news has come in.
+You have done good work.
+
+[message 108]
+While you stay in town, treat our people well.
+
+[message 109]
+There you are. I was hoping you'd come by.
+A new report reached us a little while ago.
+
+[message 110]
+Our scouts say something enormous has made its lair
+in the Cold Ruins, northwest of town.
+
+[message 111]
+Thanks to you, the goblins nearby have gone quiet.
+Consider your first task done.
+
+[message 112]
+Here is your next one: clear the monsters
+out of the Cold Ruins.
+
+[message 113]
+Some of my soldiers are on their way there too.
+Good luck.
+
+[message 114]
+Well done. The soldiers told me how hard you fought.
+Take this for your trouble.
+
+[message 115]
+Another matter: we have lost touch with the scouts
+we sent to the Purgatory of Judgments. Go there,
+find out what became of them, and destroy
+any monsters you meet.
+
+[message 116]
+Between the golem in the Cold Ruins and everything else,
+the monsters grow more restless by the day.
+Watch yourself.
+
+[message 117]
+You're back in one piece! We owe you a great deal.
+Here is your reward.
+
+[message 118]
+Putting the Cold Ruins and the Purgatory of Judgments
+side by side, it looks as if the monsters start
+by taking over old ruins and making them their dens.
+
+[message 119]
+Not far from here lie the Remains of Reincarnation.
+We have nothing certain yet, but monsters are surely
+stirring there as well.
+
+[message 120]
+So here is your new task: search the Remains of
+Reincarnation and wipe out any monsters or demons
+you come across.
+
+[message 121]
+I know you're worn out, but we need you.
+It's the only way this town will know peace again.
+
+[message 122]
+Thank you. Your work never fails to impress me.
+This is for you.
+
+[message 123]
+You say a passage deep in the Remains of Reincarnation
+leads on to other lands. I'm sending scouts to look.
+
+[message 124]
+I want you to scout that land too.
+If you find anything, report to me at once.
+
+[message 125]
+I'm relying on you. Good luck.
+
+[message 126]
+Good work. Your report caught my eye. I never knew
+the Remains of Reincarnation led anywhere. This new
+place may be the Immortal Remains of the old stories.
+
+[message 127]
+Likely as not, the monsters of this region keep their
+stronghold there. I have a task for you.
+
+[message 128]
+Go to the Immortal Remains and search them.
+Destroy whatever monsters you find.
+
+[message 129]
+This may be our last battle. Every soldier we have
+has gone to the Immortal Remains. I'm counting on you
+to fight alongside them.
+
+[message 130]
+Outstanding! Word is you brought down the gargoyles
+of legend. You have our thanks. Please take this reward.
+
+[message 131]
+Peace seems to have come back to these parts. Rest
+while you can, or, if you want more training, try the
+Tower of Ordeal. The wizard on the west side of town
+can tell you about it.
+
+[message 133]
+Your next orders have come in. Travel to the mining
+town far to the south of Remote Town and report there.
+
+[sentence commander]
+on=talk commander
+C_STOP commander
+C_SETANGLETO commander 0
+IF save:11 ! 0 @commander-known
+IF save:11 = 0 @commander-first
+
+[sentence commander-known]
+IF save:11 = 2 @commander-orders
+IF save:11 = 1 @commander-missions
+
+# The area is done: on to the next.
+[sentence commander-orders]
+TALK msg:133 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+IF save:71 = 0 @commander-area-done
+
+[sentence commander-area-done]
+SETFLAG save:71 1
+
+# A mission finished is rewarded, one under way is asked after; the
+# Cold Ruins are given once the widow has her ruby back, as in the
+# original.
+[sentence commander-missions]
+SETFLAG temp:15 0
+IF quest:10 = 2 @commander-done10
+IF quest:9 = 2 @commander-done9
+IF quest:8 = 2 @commander-done8
+IF quest:7 = 2 @commander-done7
+IF quest:6 = 2 @commander-done6
+IF quest:10 = 1 @commander-on10
+IF quest:9 = 1 @commander-on9
+IF quest:8 = 1 @commander-on8
+IF quest:7 = 1 @commander-on7
+IF quest:6 = 1 @commander-on6
+IF quest:4 = 2 @commander-ruby
+IF temp:15 = 0 @commander-quiet
+
+[sentence commander-done10]
+TALK msg:130 -1 0 -1 -1 -1
+SETFLAG temp:2 80
+SETFLAG temp:15 1
+SETFLAG save:11 2
+SETFLAG temp:4 x:commander
+SETFLAG temp:5 y:commander
+CREATEITEM 4 0 temp:4 temp:5 10000 10000
+
+[sentence commander-done9]
+IF quest:10 = 0 @commander-reward9
+
+[sentence commander-reward9]
+TALK msg:126 -1 0 -1 -1 -1
+SETFLAG temp:2 70
+SETFLAG temp:15 1
+
+[sentence commander-done8]
+IF quest:9 = 0 @commander-reward8
+
+[sentence commander-reward8]
+TALK msg:122 -1 0 -1 -1 -1
+SETFLAG temp:2 60
+SETFLAG temp:15 1
+SETFLAG temp:4 x:commander
+SETFLAG temp:5 y:commander
+CREATEITEM 4 0 temp:4 temp:5 6000 6000
+
+[sentence commander-done7]
+IF quest:8 = 0 @commander-reward7
+
+[sentence commander-reward7]
+TALK msg:117 -1 0 -1 -1 -1
+SETFLAG temp:2 50
+SETFLAG temp:15 1
+SETFLAG temp:4 x:commander
+SETFLAG temp:5 y:commander
+CREATEITEM 4 0 temp:4 temp:5 4000 4000
+
+[sentence commander-done6]
+IF quest:7 = 0 @commander-reward6
+
+[sentence commander-reward6]
+TALK msg:114 -1 0 -1 -1 -1
+SETFLAG temp:2 40
+SETFLAG temp:15 1
+SETFLAG temp:4 x:commander
+SETFLAG temp:5 y:commander
+CREATEITEM 4 0 temp:4 temp:5 2000 2000
+
+[sentence commander-on10]
+TALK msg:129 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+SETFLAG temp:15 1
+
+[sentence commander-on9]
+TALK msg:125 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+SETFLAG temp:15 1
+
+[sentence commander-on8]
+TALK msg:121 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+SETFLAG temp:15 1
+
+[sentence commander-on7]
+TALK msg:116 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+SETFLAG temp:15 1
+
+[sentence commander-on6]
+TALK msg:113 -1 0 -1 -1 -1
+SETFLAG temp:2 0
+SETFLAG temp:15 1
+
+[sentence commander-ruby]
+IF quest:6 = 0 @commander-news
+
+[sentence commander-news]
+TALK msg:109 -1 0 -1 -1 -1
+SETFLAG temp:2 30
+SETFLAG temp:15 1
+
+[sentence commander-quiet]
+TALK msg:107 -1 0 -1 -1 -1
+SETFLAG temp:2 20
+
+[sentence commander-first]
+TALK msg:100 -1 0 -1 -1 -1
+SETFLAG temp:2 10
+SETFLAG save:11 1
+
+# Each check comes before the one whose sentence would make it true.
+[sentence commander-end]
+on=talk-end commander
+IF temp:2 = 0 @commander-free
+IF temp:2 = 81 @commander-farewell
+IF temp:2 = 80 @commander-c80
+IF temp:2 = 71 @commander-c71
+IF temp:2 = 70 @commander-c70
+IF temp:2 = 61 @commander-c61
+IF temp:2 = 60 @commander-c60
+IF temp:2 = 52 @commander-c52
+IF temp:2 = 51 @commander-c51
+IF temp:2 = 50 @commander-c50
+IF temp:2 = 40 @commander-c40
+IF temp:2 = 32 @commander-c32
+IF temp:2 = 31 @commander-c31
+IF temp:2 = 30 @commander-c30
+IF temp:2 = 20 @commander-c20
+IF temp:2 = 15 @commander-c15
+IF temp:2 = 14 @commander-c14
+IF temp:2 = 13 @commander-c13
+IF temp:2 = 12 @commander-c12
+IF temp:2 = 11 @commander-c11
+IF temp:2 = 10 @commander-c10
+
+[sentence commander-free]
+C_MOVABLE commander
+
+# The area's last mission rewarded: the story pages.
+[sentence commander-farewell]
+C_MOVABLE commander
+STARTVISUAL 0
+
+[sentence commander-c80]
+SETFLAG temp:2 81
+TALK msg:131 -1 0 -1 -1 -1
+
+[sentence commander-c71]
+SETFLAG temp:2 0
+TALK msg:128 -1 0 -1 -1 -1
+SETQUESTFLAG 10 1 0
+DRAWQUESTNAME 10
+
+[sentence commander-c70]
+SETFLAG temp:2 71
+TALK msg:127 -1 0 -1 -1 -1
+
+[sentence commander-c61]
+SETFLAG temp:2 0
+TALK msg:124 -1 0 -1 -1 -1
+SETQUESTFLAG 9 1 0
+DRAWQUESTNAME 9
+
+[sentence commander-c60]
+SETFLAG temp:2 61
+TALK msg:123 -1 0 -1 -1 -1
+
+[sentence commander-c52]
+SETFLAG temp:2 0
+TALK msg:120 -1 0 -1 -1 -1
+SETQUESTFLAG 8 1 0
+DRAWQUESTNAME 8
+
+[sentence commander-c51]
+SETFLAG temp:2 52
+TALK msg:119 -1 0 -1 -1 -1
+
+[sentence commander-c50]
+SETFLAG temp:2 51
+TALK msg:118 -1 0 -1 -1 -1
+
+# (The original leaves temp:2 at 41 here, which keeps the commander
+# standing still after; 0 lets him go.)
+[sentence commander-c40]
+SETFLAG temp:2 0
+TALK msg:115 -1 0 -1 -1 -1
+SETQUESTFLAG 7 1 0
+DRAWQUESTNAME 7
+
+[sentence commander-c32]
+SETFLAG temp:2 0
+TALK msg:112 -1 0 -1 -1 -1
+SETQUESTFLAG 6 1 0
+DRAWQUESTNAME 6
+
+[sentence commander-c31]
+SETFLAG temp:2 32
+TALK msg:111 -1 0 -1 -1 -1
+
+[sentence commander-c30]
+SETFLAG temp:2 31
+TALK msg:110 -1 0 -1 -1 -1
+
+[sentence commander-c20]
+SETFLAG temp:2 0
+TALK msg:108 -1 0 -1 -1 -1
+
+[sentence commander-c15]
+SETFLAG temp:2 0
+TALK msg:106 -1 0 -1 -1 -1
+
+[sentence commander-c14]
+SETFLAG temp:2 15
+TALK msg:105 -1 0 -1 -1 -1
+
+[sentence commander-c13]
+SETFLAG temp:2 14
+TALK msg:104 -1 0 -1 -1 -1
+
+[sentence commander-c12]
+SETFLAG temp:2 13
+TALK msg:103 -1 0 -1 -1 -1
+
+[sentence commander-c11]
+SETFLAG temp:2 12
+TALK msg:102 -1 0 -1 -1 -1
+
+[sentence commander-c10]
+SETFLAG temp:2 11
+TALK msg:101 -1 0 -1 -1 -1
+
+# ---- The soldier from the south (save:12: 1 met, 2 praised the hero) -------
+
+[message 134]
+I'm from the south, so this cold cuts right through me.
+I'm heading home the moment this mission is over.
+
+[message 135]
+Have you met the merchant here?
+His brother keeps a shop in Remote Town.
+
+[message 136]
+Hey, good work! You cleared the monsters
+out of those ruins, didn't you?
+
+[message 137]
+Look after yourself. The commander here
+works his soldiers to the bone.
+
+[message 138]
+The soldiers have been trading an odd rumor lately:
+"When the snow stops falling, a gargoyle comes."
+
+[message 139]
+Come to think of it, it hasn't snowed in days.
+
+[sentence soldier]
+on=talk soldier
+C_STOP soldier
+C_SETANGLETO soldier 0
+IF save:12 ! 0 @soldier-known
+IF save:12 = 0 @soldier-first
+
+[sentence soldier-known]
+SETFLAG temp:15 0
+IF save:12 = 2 @soldier-rumor
+IF save:12 = 1 @soldier-ruins
+IF temp:15 = 0 @soldier-merchant
+
+[sentence soldier-rumor]
+SETFLAG temp:2 20
+TALK msg:138 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence soldier-ruins]
+IF quest:7 ! 0 @soldier-praise
+
+[sentence soldier-praise]
+SETFLAG temp:2 10
+TALK msg:136 -1 0 -1 -1 -1
+SETFLAG save:12 2
+SETFLAG temp:15 1
+
+[sentence soldier-merchant]
+SETFLAG temp:2 0
+TALK msg:135 -1 0 -1 -1 -1
+
+[sentence soldier-first]
+SETFLAG temp:2 0
+TALK msg:134 -1 0 -1 -1 -1
+SETFLAG save:12 1
+
+[sentence soldier-end]
+on=talk-end soldier
+IF temp:2 = 0 @soldier-free
+IF temp:2 = 20 @soldier-snow
+IF temp:2 = 10 @soldier-careful
+
+[sentence soldier-free]
+C_MOVABLE soldier
+
+[sentence soldier-snow]
+SETFLAG temp:2 0
+TALK msg:139 -1 0 -1 -1 -1
+
+[sentence soldier-careful]
+SETFLAG temp:2 0
+TALK msg:137 -1 0 -1 -1 -1
+
+# ---- The commander's guard (save:13) ---------------------------------------
+
+[message 140]
+I'm one of the commander's guards.
+
+[message 141]
+The commander is a fine man.
+Follow his lead and you won't go wrong.
+
+[sentence guard]
+on=talk guard
+C_STOP guard
+C_SETANGLETO guard 0
+IF save:13 ! 0 @guard-known
+IF save:13 = 0 @guard-first
+
+[sentence guard-known]
+SETFLAG temp:2 0
+TALK msg:141 -1 0 -1 -1 -1
+
+[sentence guard-first]
+SETFLAG temp:2 0
+TALK msg:140 -1 0 -1 -1 -1
+SETFLAG save:13 1
+
+[sentence guard-end]
+on=talk-end guard
+IF temp:2 = 0 @guard-free
+
+[sentence guard-free]
+C_MOVABLE guard
+
+# ---- The boy who wants to be a knight (save:14) ----------------------------
+
+[message 142]
+Hey, you're new around here, aren't you?
+
+[message 143]
+I'm going to be a knight one day!
+
+[message 144]
+The old man up in the north of town used to be a knight.
+Imagine being a knight. That would be the best!
+
+[message 145]
+The lady over there is so sad.
+Could you cheer her up?
+
+[message 146]
+She's smiling again.
+Thank you so much!
+
+[sentence boy]
+on=talk boy
+C_STOP boy
+C_SETANGLETO boy 0
+IF save:14 ! 0 @boy-known
+IF save:14 = 0 @boy-first
+
+[sentence boy-known]
+IF quest:4 = 2 @boy-glad
+IF quest:4 ! 2 @boy-worried
+
+[sentence boy-glad]
+SETFLAG temp:2 0
+TALK msg:146 -1 0 -1 -1 -1
+
+[sentence boy-worried]
+SETFLAG temp:2 0
+TALK msg:145 -1 0 -1 -1 -1
+
+[sentence boy-first]
+SETFLAG temp:2 10
+TALK msg:142 -1 0 -1 -1 -1
+SETFLAG save:14 1
+
+[sentence boy-end]
+on=talk-end boy
+IF temp:2 = 0 @boy-free
+IF temp:2 = 11 @boy-b11
+IF temp:2 = 10 @boy-b10
+
+[sentence boy-free]
+C_MOVABLE boy
+
+[sentence boy-b11]
+SETFLAG temp:2 0
+TALK msg:144 -1 0 -1 -1 -1
+
+[sentence boy-b10]
+SETFLAG temp:2 11
+TALK msg:143 -1 0 -1 -1 -1
+
+# ---- The widow: her keepsake ruby (save:15, quest:4) -----------------------
+
+[message 147]
+Who are you?
+
+[message 148]
+Are you one of the new hired swords?
+
+[message 149]
+The man I was going to marry died in the last attack.
+I don't know what to do with myself anymore...
+
+[message 150]
+They say the ice beast that prowls northwest of town
+killed him. The ruby he always carried was gone from
+his body. It was a keepsake the two of us shared.
+
+[message 151]
+Could you find that ruby and bring it back to me?
+Please, whatever it takes.
+
+[message 152]
+Please, bring the ruby back to me.
+
+[message 153]
+That's it... that's our ruby! Thank you, thank you.
+Now he can finally rest.
+
+[message 154]
+Please take this as my thanks for finding it.
+I'm truly grateful.
+
+[message 155]
+Thank you again for bringing the ruby home.
+
+[sentence widow]
+on=talk widow
+C_STOP widow
+C_SETANGLETO widow 0
+IF save:15 ! 0 @widow-known
+IF save:15 = 0 @widow-first
+
+[sentence widow-known]
+SETFLAG temp:15 0
+IF quest:4 = 2 @widow-thanks
+IF quest:4 = 1 @widow-ruby
+IF temp:15 = 0 @widow-story
+
+[sentence widow-thanks]
+SETFLAG temp:2 0
+TALK msg:155 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence widow-ruby]
+CHECKITEMEXIST 4 99000002 temp:6
+IF temp:6 = 1 @widow-ruby-back
+IF temp:6 = 0 @widow-waiting
+
+[sentence widow-ruby-back]
+DELETEITEM 4 99000002
+SETFLAG temp:2 30
+TALK msg:153 -1 0 -1 -1 -1
+SETQUESTFLAG 4 2 0
+SETFLAG temp:15 1
+
+[sentence widow-waiting]
+SETFLAG temp:2 0
+TALK msg:152 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence widow-story]
+SETFLAG temp:2 20
+TALK msg:150 -1 0 -1 -1 -1
+
+[sentence widow-first]
+SETFLAG temp:2 10
+TALK msg:147 -1 0 -1 -1 -1
+SETFLAG save:15 1
+
+[sentence widow-end]
+on=talk-end widow
+IF temp:2 = 0 @widow-free
+IF temp:2 = 30 @widow-gift
+IF temp:2 = 20 @widow-ask
+IF temp:2 = 11 @widow-w11
+IF temp:2 = 10 @widow-w10
+
+[sentence widow-free]
+C_MOVABLE widow
+
+# Her thanks, the Warding Cross, lands beside her.
+[sentence widow-gift]
+SETFLAG temp:2 0
+TALK msg:154 -1 0 -1 -1 -1
+SETFLAG temp:4 x:widow
+ADD temp:4 200
+SETFLAG temp:5 y:widow
+CREATEITEM 2 1100003 temp:4 temp:5 -1 -1
+
+[sentence widow-ask]
+SETFLAG temp:2 0
+TALK msg:151 -1 0 -1 -1 -1
+SETQUESTFLAG 4 1 0
+DRAWQUESTNAME 4
+
+[sentence widow-w11]
+SETFLAG temp:2 0
+TALK msg:149 -1 0 -1 -1 -1
+
+[sentence widow-w10]
+SETFLAG temp:2 11
+TALK msg:148 -1 0 -1 -1 -1
+
+# ---- The old knight: his errand (save:16, quest:5) -------------------------
+# He asks only once the hero is past level 15; he takes the Scarlet Dirk
+# (weapon 90000010) from Remote Town's merchant and gives his old sword
+# (weapon 90000011).
+
+[message 156]
+Ah, you must be the new hired sword! I've been waiting.
+Sit down and hear my tale!
+
+[message 157]
+In my younger days I was a knight, and I cut down
+monsters by the dozen!
+
+[message 158]
+The soldiers today are soft next to me!
+How can a few goblins take them so long?
+
+[message 159]
+Now then...
+Hey, where are you off to?
+
+[message 160]
+Come back for the rest of my tale?
+...Wait, where are you going?
+
+[message 161]
+There you are.
+...No, hold on a moment. This one matters.
+
+[message 162]
+You look like a warrior with a future.
+I have a favor to ask.
+
+[message 163]
+I ordered something from the merchant in Remote Town,
+but with the monsters about, it never came.
+
+[message 164]
+You're strong; fetch it for me. I'm too old for the road.
+If this body still moved the way it used to,
+I'd go myself.
+
+[message 165]
+I'm counting on you!
+
+[message 166]
+Ah, you brought it, just as you promised.
+What a fine young warrior you are.
+
+[message 167]
+Here, this blade served me in my youth. It's a good one,
+and with your skill you'll handle it well.
+
+[sentence knight]
+on=talk knight
+C_STOP knight
+C_SETANGLETO knight 0
+IF save:16 ! 0 @knight-known
+IF save:16 = 0 @knight-first
+
+[sentence knight-known]
+SETFLAG temp:15 0
+IF quest:5 = 1 @knight-errand
+IF quest:5 = 0 @knight-level
+IF temp:15 = 0 @knight-again
+
+[sentence knight-errand]
+CHECKITEMEXIST 0 90000010 temp:6
+IF temp:6 = 1 @knight-delivered
+IF temp:6 = 0 @knight-waiting
+
+[sentence knight-delivered]
+DELETEITEM 0 90000010
+SETFLAG temp:2 30
+TALK msg:166 -1 0 -1 -1 -1
+SETQUESTFLAG 5 2 0
+SETFLAG temp:15 1
+
+[sentence knight-waiting]
+SETFLAG temp:2 0
+TALK msg:165 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence knight-level]
+GETPLAYERLEVEL temp:6
+IF temp:6 > 15 @knight-favor
+
+[sentence knight-favor]
+SETFLAG temp:2 20
+TALK msg:161 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence knight-again]
+SETFLAG temp:2 0
+TALK msg:160 -1 0 -1 -1 -1
+
+[sentence knight-first]
+SETFLAG temp:2 10
+TALK msg:156 -1 0 -1 -1 -1
+SETFLAG save:16 1
+
+[sentence knight-end]
+on=talk-end knight
+IF temp:2 = 0 @knight-free
+IF temp:2 = 30 @knight-reward
+IF temp:2 = 23 @knight-k23
+IF temp:2 = 22 @knight-k22
+IF temp:2 = 21 @knight-k21
+IF temp:2 = 20 @knight-k20
+IF temp:2 = 12 @knight-k12
+IF temp:2 = 11 @knight-k11
+IF temp:2 = 10 @knight-k10
+
+[sentence knight-free]
+C_MOVABLE knight
+
+[sentence knight-reward]
+SETFLAG temp:2 0
+TALK msg:167 -1 0 -1 -1 -1
+SETFLAG temp:4 x:knight
+ADD temp:4 200
+SETFLAG temp:5 y:knight
+CREATEITEM 0 90000011 temp:4 temp:5 -1 -1
+
+[sentence knight-k23]
+SETFLAG temp:2 0
+TALK msg:165 -1 0 -1 -1 -1
+SETQUESTFLAG 5 1 0
+DRAWQUESTNAME 5
+
+[sentence knight-k22]
+SETFLAG temp:2 23
+TALK msg:164 -1 0 -1 -1 -1
+
+[sentence knight-k21]
+SETFLAG temp:2 22
+TALK msg:163 -1 0 -1 -1 -1
+
+[sentence knight-k20]
+SETFLAG temp:2 21
+TALK msg:162 -1 0 -1 -1 -1
+
+[sentence knight-k12]
+SETFLAG temp:2 0
+TALK msg:159 -1 0 -1 -1 -1
+
+[sentence knight-k11]
+SETFLAG temp:2 12
+TALK msg:158 -1 0 -1 -1 -1
+
+[sentence knight-k10]
+SETFLAG temp:2 11
+TALK msg:157 -1 0 -1 -1 -1
+
+# ---- The mother looking for her daughter (save:17) -------------------------
+
+[message 168]
+...Where has my little girl gone?
+
+[message 169]
+How strange...
+She was right here a moment ago.
+
+[message 170]
+Please, find my daughter!
+
+[sentence mother]
+on=talk mother
+C_STOP mother
+C_SETANGLETO mother 0
+IF save:17 ! 0 @mother-known
+IF save:17 = 0 @mother-first
+
+[sentence mother-known]
+SETFLAG temp:2 0
+TALK msg:170 -1 0 -1 -1 -1
+
+[sentence mother-first]
+SETFLAG temp:2 10
+TALK msg:168 -1 0 -1 -1 -1
+SETFLAG save:17 1
+
+[sentence mother-end]
+on=talk-end mother
+IF temp:2 = 0 @mother-free
+IF temp:2 = 10 @mother-m10
+
+[sentence mother-free]
+C_MOVABLE mother
+
+[sentence mother-m10]
+SETFLAG temp:2 0
+TALK msg:169 -1 0 -1 -1 -1
+
+# ---- The merchant, brother of Remote Town's (save:18) ----------------------
+# Trade (list 2 of shops.txt), identify for 100 gold, or repair, as in the
+# original. temp:17 says which box is showing: 0 the menu, 1 the repair
+# list, 2 too little gold to repair, 3 nothing to repair (both back to the
+# repair list), 4 the identify question, 5 too little gold to identify,
+# 6 nothing to identify. temp:6-12 hold the repair prices (hand, head,
+# body, shield, legs, all worn, the bag).
+
+[message 171]
+Care to trade? Or I can repair or appraise your things.
+~Trade~
+~Identify items~
+~Repair items~
+~Leave~
+
+[message 172]
+~Weapon             %9d gold~
+~Head               %9d gold~
+~Body               %9d gold~
+~Shield             %9d gold~
+~Legs               %9d gold~
+~Everything worn    %9d gold~
+~Everything carried %9d gold~
+~Leave~
+
+[message 173]
+Looks like you're short of gold.
+
+[message 174]
+That one doesn't need any work.
+
+[message 175]
+Appraising costs %d gold. All right?
+~Yes~  ~No~
+
+[message 176]
+You have nothing that needs appraising.
+
+[message 177]
+I keep a shop here in town.
+
+[message 178]
+My brother wrote to me about you. You've slain a good
+many monsters, haven't you? Glad to meet you.
+
+[sentence merchant]
+on=talk merchant
+C_STOP merchant
+C_SETANGLETO merchant 0
+IF save:18 = 1 @merchant-menu
+IF save:18 = 0 @merchant-first
+
+[sentence merchant-menu]
+TALK msg:171 temp:1 0 3 -1 -1
+SETFLAG temp:2 -1
+
+[sentence merchant-first]
+TALK msg:177 -1 0 -1 -1 -1
+SETFLAG temp:2 10
+SETFLAG save:18 1
+
+[sentence merchant-end]
+on=talk-end merchant
+IF temp:2 = 0 @merchant-free
+IF temp:2 = 10 @merchant-brother
+IF temp:2 = -1 @merchant-answer
+
+[sentence merchant-free]
+C_MOVABLE merchant
+
+[sentence merchant-brother]
+SETFLAG temp:2 0
+TALK msg:178 -1 0 -1 -1 -1
+
+[sentence merchant-answer]
+IF temp:17 = 6 @merchant-close
+IF temp:17 = 5 @merchant-close
+IF temp:17 = 4 @merchant-identify-yes
+IF temp:17 = 3 @merchant-back
+IF temp:17 = 2 @merchant-back
+IF temp:17 = 1 @merchant-repair
+IF temp:17 = 0 @merchant-choice
+SETFLAG temp:1 -1
+
+[sentence merchant-close]
+C_MOVABLE merchant
+SETFLAG temp:17 0
+SETFLAG temp:1 -1
+
+[sentence merchant-identify-yes]
+IF temp:1 ! 0 @merchant-close
+IF temp:1 = 0 @merchant-identify-pay
+
+[sentence merchant-identify-pay]
+GETTOTALGOLD temp:6
+SETFLAG temp:7 0
+IF temp:6 < 100 @merchant-identify-poor
+IF temp:7 = 0 @merchant-identify-do
+
+[sentence merchant-identify-poor]
+TALK msg:173 temp:1 0 -1 -1 -1
+SETFLAG temp:17 5
+SETFLAG temp:7 1
+
+[sentence merchant-identify-do]
+PAYGOLD 100
+IDENTIFY
+C_MOVABLE merchant
+SETFLAG temp:17 0
+SETFLAG temp:1 -1
+
+# Back to the repair list (with temp:17 0 and temp:1 2, the check after
+# this in merchant-answer shows it again).
+[sentence merchant-back]
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-repair]
+GETREPAIRPRICE 0 temp:6
+GETREPAIRPRICE 1 temp:7
+GETREPAIRPRICE 2 temp:8
+GETREPAIRPRICE 3 temp:9
+GETREPAIRPRICE 4 temp:10
+SETFLAG temp:11 0
+ADD temp:11 temp:6
+ADD temp:11 temp:7
+ADD temp:11 temp:8
+ADD temp:11 temp:9
+ADD temp:11 temp:10
+GETREPAIRPRICE -1 temp:12
+GETTOTALGOLD temp:15
+SETFLAG temp:14 temp:1
+IF temp:14 = 0 @merchant-fix0
+IF temp:14 = 1 @merchant-fix1
+IF temp:14 = 2 @merchant-fix2
+IF temp:14 = 3 @merchant-fix3
+IF temp:14 = 4 @merchant-fix4
+IF temp:14 = 5 @merchant-fixworn
+IF temp:14 = 6 @merchant-fixbag
+IF temp:14 = 7 @merchant-close
+
+[sentence merchant-poor]
+TALK msg:173 temp:1 0 -1 -1 -1
+SETFLAG temp:17 2
+SETFLAG temp:13 1
+
+[sentence merchant-fine]
+TALK msg:174 temp:1 0 -1 -1 -1
+SETFLAG temp:17 3
+
+[sentence merchant-fix0]
+IF temp:6 ! 0 @merchant-fix0-cost
+IF temp:6 = 0 @merchant-fine
+
+[sentence merchant-fix0-cost]
+SETFLAG temp:13 0
+IF temp:6 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fix0-do
+
+[sentence merchant-fix0-do]
+REPAIR 0
+PAYGOLD temp:6
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fix1]
+IF temp:7 ! 0 @merchant-fix1-cost
+IF temp:7 = 0 @merchant-fine
+
+[sentence merchant-fix1-cost]
+SETFLAG temp:13 0
+IF temp:7 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fix1-do
+
+[sentence merchant-fix1-do]
+REPAIR 1
+PAYGOLD temp:7
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fix2]
+IF temp:8 ! 0 @merchant-fix2-cost
+IF temp:8 = 0 @merchant-fine
+
+[sentence merchant-fix2-cost]
+SETFLAG temp:13 0
+IF temp:8 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fix2-do
+
+[sentence merchant-fix2-do]
+REPAIR 2
+PAYGOLD temp:8
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fix3]
+IF temp:9 ! 0 @merchant-fix3-cost
+IF temp:9 = 0 @merchant-fine
+
+[sentence merchant-fix3-cost]
+SETFLAG temp:13 0
+IF temp:9 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fix3-do
+
+[sentence merchant-fix3-do]
+REPAIR 3
+PAYGOLD temp:9
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fix4]
+IF temp:10 ! 0 @merchant-fix4-cost
+IF temp:10 = 0 @merchant-fine
+
+[sentence merchant-fix4-cost]
+SETFLAG temp:13 0
+IF temp:10 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fix4-do
+
+[sentence merchant-fix4-do]
+REPAIR 4
+PAYGOLD temp:10
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fixworn]
+IF temp:11 ! 0 @merchant-fixworn-cost
+IF temp:11 = 0 @merchant-fine
+
+[sentence merchant-fixworn-cost]
+SETFLAG temp:13 0
+IF temp:11 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fixworn-do
+
+[sentence merchant-fixworn-do]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:11
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-fixbag]
+IF temp:12 ! 0 @merchant-fixbag-cost
+IF temp:12 = 0 @merchant-fine
+
+[sentence merchant-fixbag-cost]
+SETFLAG temp:13 0
+IF temp:12 > temp:15 @merchant-poor
+IF temp:13 = 0 @merchant-fixbag-do
+
+[sentence merchant-fixbag-do]
+REPAIR -1
+PAYGOLD temp:12
+SETFLAG temp:17 0
+SETFLAG temp:1 2
+
+[sentence merchant-choice]
+IF temp:1 = 0 @merchant-trade
+IF temp:1 = 1 @merchant-identify
+IF temp:1 = 2 @merchant-repair-list
+IF temp:1 = 3 @merchant-leave
+
+[sentence merchant-trade]
+INITTRADE 0 2
+TRADE 0
+C_MOVABLE merchant
+SETFLAG temp:17 0
+
+[sentence merchant-identify]
+CHECKUNOPINIONITEM temp:6
+IF temp:6 = 1 @merchant-identify-ask
+IF temp:6 = 0 @merchant-identify-none
+
+[sentence merchant-identify-ask]
+SETMSGDEFINE 100
+TALK msg:175 temp:1 0 1 -1 -1
+SETFLAG temp:17 4
+
+[sentence merchant-identify-none]
+TALK msg:176 temp:1 0 -1 -1 -1
+SETFLAG temp:17 6
+
+[sentence merchant-repair-list]
+GETREPAIRPRICE 0 temp:6
+GETREPAIRPRICE 1 temp:7
+GETREPAIRPRICE 2 temp:8
+GETREPAIRPRICE 3 temp:9
+GETREPAIRPRICE 4 temp:10
+SETFLAG temp:11 0
+ADD temp:11 temp:6
+ADD temp:11 temp:7
+ADD temp:11 temp:8
+ADD temp:11 temp:9
+ADD temp:11 temp:10
+GETREPAIRPRICE -1 temp:12
+SETMSGDEFINE temp:6 temp:7 temp:8 temp:9 temp:10 temp:11 temp:12
+TALK msg:172 temp:1 0 7 -1 -1
+SETFLAG temp:17 1
+
+[sentence merchant-leave]
+C_MOVABLE merchant
+SETFLAG temp:17 0
+
+# ---- The healer: heals for nothing (save:19) -------------------------------
+
+[message 179]
+I tend the hurt and the weary here,
+with the help of the holy spirits.
+
+[message 180]
+Come to me whenever you're wounded or worn out.
+
+[message 181]
+...And it costs nothing.
+
+[message 182]
+Holy spirits, wash these wounds away!
+
+[message 183]
+You look well enough to me.
+
+[sentence healer]
+on=talk healer
+C_STOP healer
+C_SETANGLETO healer 0
+IF save:19 = 1 @healer-look
+IF save:19 = 0 @healer-first
+
+# Anyone short of health or mind, the hero or the companion, is healed.
+[sentence healer-look]
+SETFLAG temp:2 -1
+SETFLAG temp:8 0
+GETPLAYERLIFE temp:6 temp:7
+IF temp:6 ! temp:7 @healer-needed
+GETPLAYERMENTAL temp:6 temp:7
+IF temp:6 ! temp:7 @healer-needed
+GETPARTNERLIFE temp:6 temp:7
+IF temp:6 ! temp:7 @healer-needed
+IF temp:8 = 1 @healer-pray
+IF temp:8 = 0 @healer-well
+
+[sentence healer-needed]
+SETFLAG temp:8 1
+
+[sentence healer-pray]
+SETFLAG temp:16 msg:182
+TALK msg:182 -1 0 -1 -1 -1
+
+[sentence healer-well]
+SETFLAG temp:16 msg:183
+TALK temp:16 -1 0 -1 -1 -1
+
+[sentence healer-first]
+TALK msg:179 -1 0 -1 -1 -1
+SETFLAG temp:2 10
+SETFLAG save:19 1
+
+[sentence healer-end]
+on=talk-end healer
+IF temp:2 = 0 @healer-free
+IF temp:2 = 11 @healer-h11
+IF temp:2 = 10 @healer-h10
+IF temp:2 = -1 @healer-after
+
+[sentence healer-free]
+C_MOVABLE healer
+
+[sentence healer-h11]
+SETFLAG temp:2 0
+TALK msg:181 -1 0 -1 -1 -1
+
+[sentence healer-h10]
+SETFLAG temp:2 11
+TALK msg:180 -1 0 -1 -1 -1
+
+[sentence healer-after]
+C_MOVABLE healer
+IF temp:16 = msg:182 @healer-heal
+
+# (The original also has her play her casting motion, C_ACTIONREQ healer
+# 4, which the engine does not carry out yet.)
+[sentence healer-heal]
+HEALLIFE
+HEALMENTAL
+PLAYSOUND 24 0 x:healer y:healer
+
+# ---- The wizard: the ruins and the Tower of Ordeal (save:20) ---------------
+
+[message 184]
+I'm a wizard, though not much of one.
+
+[message 185]
+Newly hired, are you?
+...Hm. There's a light in your eyes.
+
+[message 186]
+Let me tell you something worth knowing.
+
+[message 187]
+Three ruins and a tower lie around this town:
+the Cold Ruins to the northwest,
+the Purgatory of Judgments to the southeast,
+the Remains of Reincarnation to the southwest,
+and the Tower of Ordeal to the north.
+
+[message 188]
+Our forebears raised towns and walls to keep watch over
+the ruins, yet monsters have made all three their dens.
+Be wary of them.
+
+The Tower of Ordeal is kept by wizards.
+Go there if you want to test your strength.
+
+[message 189]
+I don't like what I sense in the creatures around here.
+They could do far more harm than goblins and other small
+fry. Take care of yourself.
+
+[message 190]
+I hear you beat the gargoyles of the Immortal Remains.
+That is no small feat.
+
+[message 191]
+Would you like harder training in the Tower of Ordeal,
+north of town? I'll let my fellow wizards know about you.
+
+[message 192]
+Good luck.
+
+[sentence wizard]
+on=talk wizard
+C_STOP wizard
+C_SETANGLETO wizard 0
+IF save:20 ! 0 @wizard-known
+IF save:20 = 0 @wizard-first
+
+[sentence wizard-known]
+SETFLAG temp:15 0
+IF save:20 = 2 @wizard-luck
+IF save:20 = 1 @wizard-done
+IF temp:15 = 0 @wizard-warn
+
+[sentence wizard-luck]
+SETFLAG temp:2 0
+TALK msg:192 -1 0 -1 -1 -1
+SETFLAG temp:15 1
+
+[sentence wizard-done]
+IF quest:10 = 2 @wizard-praise
+
+[sentence wizard-praise]
+SETFLAG temp:2 20
+TALK msg:190 -1 0 -1 -1 -1
+SETFLAG save:20 2
+SETFLAG temp:15 1
+
+[sentence wizard-warn]
+SETFLAG temp:2 0
+TALK msg:189 -1 0 -1 -1 -1
+
+[sentence wizard-first]
+SETFLAG temp:2 10
+TALK msg:184 -1 0 -1 -1 -1
+SETFLAG save:20 1
+
+[sentence wizard-end]
+on=talk-end wizard
+IF temp:2 = 0 @wizard-free
+IF temp:2 = 20 @wizard-tower
+IF temp:2 = 13 @wizard-w13
+IF temp:2 = 12 @wizard-w12
+IF temp:2 = 11 @wizard-w11
+IF temp:2 = 10 @wizard-w10
+
+[sentence wizard-free]
+C_MOVABLE wizard
+
+[sentence wizard-tower]
+SETFLAG temp:2 0
+TALK msg:191 -1 0 -1 -1 -1
+
+[sentence wizard-w13]
+SETFLAG temp:2 0
+TALK msg:188 -1 0 -1 -1 -1
+
+[sentence wizard-w12]
+SETFLAG temp:2 13
+TALK msg:187 -1 0 -1 -1 -1
+
+[sentence wizard-w11]
+SETFLAG temp:2 12
+TALK msg:186 -1 0 -1 -1 -1
+
+[sentence wizard-w10]
+SETFLAG temp:2 11
+TALK msg:185 -1 0 -1 -1 -1
+
+# ---- The ornament smith (save:102) -----------------------------------------
+# The first time he introduces himself over two boxes. After that the
+# original opens its recoloring window (CHANGECOLOR), which the engine does
+# not carry out yet; until it does, he repeats his offer instead.
+
+[message 196]
+Hello there. I'm a smith, though I mostly make ornaments.
+
+[message 197]
+How about a new color for your gear?
+A fresh look does wonders for the spirits.
+
+[sentence jeweler]
+on=talk jeweler
+IF save:102 = 1 @jeweler-color
+IF save:102 = 0 @jeweler-first
+
+[sentence jeweler-color]
+# CHANGECOLOR
+C_STOP jeweler
+C_SETANGLETO jeweler 0
+SETFLAG temp:2 1
+SETFLAG temp:3 msg:197
+TALK temp:3 -1 0 -1 -1 -1
+
+[sentence jeweler-first]
+SETFLAG temp:3 msg:196
+SETFLAG temp:2 0
+SETFLAG save:102 1
+C_STOP jeweler
+C_SETANGLETO jeweler 0
+TALK temp:3 -1 0 -1 -1 -1
+
+[sentence jeweler-end]
+on=talk-end jeweler
+IF temp:2 = 1 @jeweler-last
+IF temp:2 = -1 @jeweler-free
+IF temp:2 ! -1 @jeweler-next
+
+[sentence jeweler-last]
+SETFLAG temp:2 -1
+
+[sentence jeweler-free]
+C_MOVABLE jeweler
+
+[sentence jeweler-next]
+ADD temp:2 1
+ADD temp:3 1
+TALK temp:3 -1 0 -1 -1 -1
+
+# ---- The warehouse: the hero's storage -------------------------------------
+
+[sentence warehouse]
+on=talk warehouse
+STORAGE

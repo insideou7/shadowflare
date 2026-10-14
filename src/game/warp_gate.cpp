@@ -86,7 +86,7 @@ std::vector<int> Game::warpGatesFound() const {
 // screen. Opening it closes every other window (0x4170f0).
 void Game::openWarpGate(int gate, int page) {
     if (warpOpen_ || openShop_ || !player_) return;
-    if (showInventory_) closeInventory();
+    if (rightWindowOpen()) closeInventory();
     showStatus_ = false;
     closeMissions();
     closeAreaMap();
@@ -114,7 +114,7 @@ void Game::chooseWarpGate(int row) {
     log::info("Warp gate {} \"{}\": to scenario {}, entry {}", found[index], gate->name, gate->scenario, gate->entry);
     playSound(0x3a);  // (0x40c950)
     closeWarpWindow();
-    if (showInventory_) closeInventory();
+    if (rightWindowOpen()) closeInventory();
     showStatus_ = false;
     closeMissions();
     closeAreaMap();

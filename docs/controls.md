@@ -62,7 +62,7 @@ monsters; its people and objects have no names to show.
 | Space | companion active / inactive (or click its gauge at the bottom left); see [partners.md](partners.md) | yes |
 | S | status window | yes |
 | I | items window | yes |
-| X | special items window | no |
+| X | special items window (quest items, gems, stones and cards, medicines); see [formats.md](formats.md#the-special-items-window) | yes |
 | M | magic window, the STATUS window's other tab; drag spells to its bar for F1-F8; see [magic.md](magic.md#the-magic-window) | yes |
 | Q | mission list; see below | yes |
 | N | map (the arrow keys scroll it, Enter centers it) | yes |

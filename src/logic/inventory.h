@@ -133,6 +133,26 @@ public:
     // +0x518): consumables only. Keys 1-4 use the top row, 5-8 the bottom.
     static constexpr int kBeltWidth = 4, kBeltHeight = 2;
 
+    // The special items window (X; player +0x548): four sections of cells
+    // where quest items, gems, stones and cards, and the element medicines
+    // are kept, each item at its own place (ItemDef::specialPage and its
+    // place there). They are never in the bag. Sections: 0 quest items
+    // 9 x 2, 1 gems 9 x 1, 2 stones and cards 9 x 1, 3 medicines 9 x 2
+    // (the table at 0x407170).
+    static constexpr int kSpecialPages = 4;
+    static constexpr int kSpecialWidth = 9;
+    static constexpr int kSpecialHeights[kSpecialPages] = {2, 1, 1, 2};
+    const std::vector<Placed>& specialPage(int page) const { return special_[static_cast<std::size_t>(page)]; }
+    // Puts an item kept on a special page at its place there (0x449ef0,
+    // SETITEMDIRECT): false, with nothing changed, when it has no page or
+    // one like it (class and code) is there already.
+    bool addSpecial(const Item& item);
+    bool hasSpecial(ItemDef::Class cls, std::int32_t code) const;
+    // The entry of a special page covering a cell, or -1.
+    int specialIndexAt(int page, int x, int y) const;
+    // Takes an entry off a special page (a medicine used up).
+    void removeSpecial(int page, int index);
+
     const std::vector<Placed>& bag() const { return bag_; }
     const std::optional<Item>& equipped(EquipSlot slot) const { return equipped_[static_cast<int>(slot)]; }
     // Dyes what is worn in `slot`, if anything (the Change Color window).
@@ -161,7 +181,8 @@ public:
     // The bag entry covering a cell, or -1.
     int indexAt(int x, int y) const;
     // Puts an item in the first place it fits, column by column from the
-    // left. Gold joins the bag's gold (see addGold). False when the bag is
+    // left. Gold joins the bag's gold (see addGold), and an item kept on a
+    // special page goes there (see addSpecial). False when the bag is
     // full.
     bool add(const Item& item);
     bool addAt(const Item& item, int x, int y);
@@ -257,11 +278,13 @@ public:
     std::vector<EquipSlot> wearFromShot();
 
     bool hasUnidentified() const;
-    bool carries(ItemDef::Class cls, std::int32_t code) const;  // in the bag  // CHECKUNOPINIONITEM (0x43397d)
+    // Such an item on a special page or in the bag.
+    bool carries(ItemDef::Class cls, std::int32_t code) const;
     // Takes every such item out of the bag; returns how many there were.
     int takeAll(ItemDef::Class cls, std::int32_t code);
-    // CHECKITEMEXIST and DELETEITEM: such an item in the bag or worn, and
-    // taking the first one away, from the bag before what is worn.
+    // CHECKITEMEXIST and DELETEITEM: such an item on a special page, in the
+    // bag or worn, and taking the first one away, looking in that order
+    // (0x430ffe cases 0x3a and 0x3b).
     bool has(ItemDef::Class cls, std::int32_t code) const;
     bool removeOne(ItemDef::Class cls, std::int32_t code);
     void identifyAll();            // IDENTIFY: everything worn and in the bag (0x432296)
@@ -325,6 +348,7 @@ public:
 
 private:
     std::vector<Placed> bag_;
+    std::array<std::vector<Placed>, kSpecialPages> special_;
     std::array<std::optional<Item>, kBeltWidth * kBeltHeight> belt_;
     std::array<std::optional<Item>, kEquipSlotCount> equipped_;
     int weaponSet_ = 0;

@@ -141,6 +141,8 @@ bool Game::saveGame() {
     save.hp = playerHp_;
     save.mp = playerMp_;
     save.mines = mineCount_;
+    save.discX = discX_;
+    save.discY = discY_;
     save.spells = spells_;
     save.spellsOn = spellOn_;
     save.originalMode = originalMode();
@@ -241,6 +243,7 @@ bool Game::loadGameFrom(const std::string& path) {
 
     forgetVisitedScenarios();
     hand_.reset();
+    specialOpen_ = false;
     flags_ = save.flags;
     explored_ = save.explored;
     // Saves from before companions: Kerberos at level 1, at rest.
@@ -256,6 +259,8 @@ bool Game::loadGameFrom(const std::string& path) {
     walkTarget_.reset();
     attackTarget_.reset();
     playerExperience_ = save.experience;
+    discX_ = save.discX;
+    discY_ = save.discY;
     playerLevel_ = std::max(1, save.level);
     // Saves from before classes: a warrior from level 5.
     career_ = save.career && save.career->history.size() == static_cast<std::size_t>(playerLevel_ - 1) ? *save.career

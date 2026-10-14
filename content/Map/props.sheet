@@ -307,3 +307,6 @@ frame=194,6067,192,191,96,104,fallen_g
 frame=0,6260,98,158,49,123,dwall_blood_y
 frame=100,6260,104,158,49,123,dwall_blood2_y
 frame=206,6260,98,158,49,123,dwall_lamp_x
+frame=0,6420,160,160,80,86,hole
+frame=162,6420,160,160,80,86,hole_open
+frame=324,6420,160,160,80,86,hole_broken

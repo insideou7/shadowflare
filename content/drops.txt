@@ -138,3 +138,21 @@ pick=special,1          # Mine (into the hero's mines, not the bag)
 pick=any,any,3,4         # a weapon, armour or ring of item level 3-4, by weight
 pick=any,any,3,4
 pick=any,any,3,4
+
+# The first area's quest items, each always left by the one monster that
+# carries it, as the original's drop lists 6, 23 and 56 are.
+
+[drops 400]
+rolls=1
+chance=100
+pick=special,99000000    # Merchant's Sapphire: the goblin chief south-west of Remote Town
+
+[drops 401]
+rolls=1
+chance=100
+pick=special,99000001    # Shrine Stone: the spiked goblin on the Dusty Ruins' last floor
+
+[drops 402]
+rolls=1
+chance=100
+pick=special,99000002    # Keepsake Ruby: the ice beast north-west of Cold Svalt Town

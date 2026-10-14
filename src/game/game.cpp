@@ -376,9 +376,25 @@ void Game::spawnActors() {
     actors_.clear();
     attackTarget_.reset();
     if (scenarioDir_.empty()) return;
+    // A monster of kind -1 has no picture: the original's Enemy Holes, a
+    // burrow drawn by the objects round it that brings its monsters back
+    // until the hero breaks it. It stands where it is placed, can be hit
+    // and dies like any other (its script swaps the objects).
+    static const CharacterModel kUnseen;
     for (const auto& p : control_.placements) {
         // Map objects (chests, doors) and items come later.
-        if (p.kind < 0 || p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
+        if (p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
+        if (p.kind < 0) {
+            if (p.group != ScenarioControl::Group::Enemy) continue;
+            Actor actor{p, Character(&kUnseen)};
+            actor.active = p.startsActive();
+            actor.character.x = p.x;
+            actor.character.y = p.y;
+            actor.hp = actor.maxHp = std::max(1, p.stats.hp);
+            nameOpenEnemy(actor);
+            actors_.push_back(std::move(actor));
+            continue;
+        }
         const char* folder = p.group == ScenarioControl::Group::Enemy ? "ENEMY" : "PEOPLE";
         int kind = p.kind;
         if (p.group == ScenarioControl::Group::Person && kind >= ScenarioControl::kPartnerBase) {
@@ -523,7 +539,7 @@ void Game::updateCamera() {
     int sx, sy;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
     const bool left = showStatus_ || magicOpen_ || warpOpen_ || mapOpen_ || openShop_.has_value();
-    const bool right = showInventory_;
+    const bool right = rightWindowOpen();
     const double w = viewWidth();
     double centre = w / 2.0;
     if (!missionsOpen_ && left != right) centre = right ? w / 4.0 : w * 3 / 4.0;
@@ -630,7 +646,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         closeAreaMap();
                     } else if (openShop_) {
                         if (!hand_) closeShop();
-                    } else if (showInventory_) {
+                    } else if (rightWindowOpen()) {
                         closeInventory();
                     } else if (showStatus_) {
                         showStatus_ = false;
@@ -675,7 +691,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     } else if (showInventory_) {
                         closeInventory();
                     } else {
-                        showInventory_ = true;
+                        openItemWindow();
                         closeWarpWindow();
                     }
                     break;
@@ -716,7 +732,7 @@ void Game::handleEvent(const SDL_Event& event) {
                         notYet("Companions");
                     }
                     break;
-                case SDLK_x: notYet("The special items window"); break;
+                case SDLK_x: toggleSpecialWindow(); break;
                 case SDLK_m: toggleMagicWindow(); break;
                 case SDLK_q: toggleMissions(); break;
                 case SDLK_n: toggleAreaMap(); break;
@@ -745,6 +761,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (event.button.button == SDL_BUTTON_LEFT && mineButtonClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && spellBarClick(event.button.x, event.button.y)) break;
             if (event.button.button == SDL_BUTTON_LEFT && panelClick(event.button.x, event.button.y)) break;
+            if (specialWindowClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             if (inventoryClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // While Identify waits for an item, the right button calls it
             // off (0x445a40) and casts nothing.
@@ -808,6 +825,7 @@ void Game::handleEvent(const SDL_Event& event) {
 
 void Game::closeInventory() {
     showInventory_ = false;
+    specialOpen_ = false;
     identifying_ = false;  // closing the window ends Identify (0x41e4f0)
     // Closing the panel puts a held item back, or drops it.
     if (hand_) {
@@ -899,7 +917,13 @@ void Game::tick() {
         }
         if (!actor.active) continue;
         if (actor.hostile() && player_) {
-            if (actor.aiList >= 0) {
+            if (actor.placement.kind < 0) {
+                // An Enemy Hole never moves or strikes; a blow only stops it a moment.
+                if (actor.state == Actor::State::Hit && (actor.stunTicks -= kOriginalTicksPerTick) <= 0) {
+                    endStun(actor);
+                    actor.state = Actor::State::Idle;
+                }
+            } else if (actor.aiList >= 0) {
                 tickEnemyAi(actor);
             } else {
                 tickEnemy(actor);

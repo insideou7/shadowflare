@@ -1,0 +1,23 @@
+# Written for the open pack after the original's script for this place:
+# the area's name as the hero arrives (by the entry they came in by),
+# what the hero says on arriving, and the missions finished here.
+
+[message 1]
+Dusty Ruins, Deepest Hall
+
+[sentence arrive]
+on=start
+SETCOMPASSES msg:1
+
+# Mission 3 (clear the Dusty Ruins) is done once its last guards (monsters 0 to 7) are dead, as in
+# the original, where the hall's sealed door opens then.
+[sentence mission-check]
+on=tick
+IF quest:3 ! 2 @mission-look
+
+[sentence mission-look]
+CHECKENEMYLIVE 14000000 14000007 temp:51
+IF temp:51 = -1 @mission-done
+
+[sentence mission-done]
+SETQUESTFLAG 3 2 1
