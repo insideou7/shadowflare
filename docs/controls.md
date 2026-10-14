@@ -29,7 +29,9 @@ its name over it: a monster's name sits in a box that is its health (dark
 red for what it has left, black for what it has lost) behind its
 element's orb; people, objects and items have a navy box, items in their
 quality's colour. Neither shows over the panel or a window, as in the
-original (0x416bb0, 0x40ee70). In the open pack, `enemies.txt` names the
+original (0x416bb0, 0x40ee70). A chest, lever, door or item under it also
+gets a light gold outline, so what can be used stands out; that is ours,
+and original mode leaves it out. In the open pack, `enemies.txt` names the
 monsters; its people and objects have no names to show.
 
 ## Keys

@@ -139,6 +139,10 @@ MapObject Game::objectFootprint(const SceneObject& o) const {
 void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha) {
     const auto& p = placementOf(o);
     if (!p.look.drawn() || !objectState(o, kShown)) return;
+    // The one under the pointer is drawn brighter (0x40ee70); a chart's
+    // brightness is set with the characters'.
+    const int glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
+    const SDL_Color* outline = glow > 0 && rules_.outlineUnderPointer ? &kHoverOutline : nullptr;
     if (o.animation) {
         if (!shadows) o.animation->draw(renderer_, sprites_, camX, camY, shadowAlpha, std::max(1, int{perMille(p.look.opacity)}));
         return;
@@ -147,7 +151,7 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
     const int pattern = o.prop >= 0 ? o.prop : p.look.pattern;
     if (skin_ && o.prop < 0) {
         if (const auto* pieces = skin_->scenarioObject(p.kind, pattern)) {
-            if (!shadows) skin_->renderScenarioObject(p.x, p.y, *pieces, camX, camY);
+            if (!shadows) skin_->renderScenarioObject(p.x, p.y, *pieces, camX, camY, glow, outline);
             return;
         }
     }
@@ -163,12 +167,29 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
         SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
         SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
     } else {
+        if (outline) drawOutline(*bank, pattern, sx - camX, sy - camY, *outline);
         SDL_SetTextureColorMod(sprite->texture, perMille(p.look.r), perMille(p.look.g), perMille(p.look.b));
         SDL_SetTextureAlphaMod(sprite->texture, perMille(p.look.opacity));
     }
     SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+    if (!shadows && glow > 0) {
+        // A second copy added on top brightens it.
+        SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
+        SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(glow * perMille(p.look.opacity) / 1000));
+        SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+        SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+    }
     SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
     SDL_SetTextureAlphaMod(sprite->texture, 255);
+}
+
+void Game::drawOutline(const SpriteBank& bank, int pattern, int x, int y, SDL_Color color) {
+    const SpriteTexture* ring = sprites_.outline(bank, pattern);
+    if (!ring) return;
+    const SDL_Rect dst{x + ring->originX, y + ring->originY, ring->width, ring->height};
+    SDL_SetTextureColorMod(ring->texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(ring->texture, color.a);
+    SDL_RenderCopy(renderer_, ring->texture, nullptr, &dst);
 }
 
 SDL_Rect Game::sceneObjectPicture(const SceneObject& o) {

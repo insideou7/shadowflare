@@ -584,16 +584,19 @@ bool Game::drawPanelPicture() {
 }
 
 void Game::renderGroundItems(int camX, int camY) {
-    std::vector<const GroundItem*> order;
-    for (const auto& g : groundItems_) order.push_back(&g);
+    std::vector<GroundItem*> order;
+    for (auto& g : groundItems_) order.push_back(&g);
     std::ranges::stable_sort(order, [](const GroundItem* a, const GroundItem* b) { return a->x + a->y < b->x + b->y; });
-    for (const GroundItem* g : order) {
+    for (GroundItem* g : order) {
+        // The one under the pointer is drawn brighter (0x40ee70).
+        const int glow = hovered(Settings::kItem, static_cast<std::size_t>(g - groundItems_.data())) ? kHoverGlow : 0;
         int sx, sy;
         worldToScreen(static_cast<int>(g->x), static_cast<int>(g->y), sx, sy);
         sx -= camX;
         sy -= camY;
         if (sx < -128 || sy < -128 || sx > viewWidth() + 128 || sy > viewHeight() + 128) continue;
         if (g->sprite) {
+            g->sprite->glow = glow;
             g->sprite->draw(renderer_, sprites_, camX, camY);
             continue;
         }
@@ -601,8 +604,17 @@ void Game::renderGroundItems(int camX, int camY) {
         const SpriteBank* bank =
             def.groundFolder >= 0 ? itemBank(std::format("Character/ITEM/{:08d}/Pattern", def.groundFolder)) : nullptr;
         if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, def.groundPicture, false) : nullptr) {
+            if (glow > 0 && rules_.outlineUnderPointer) drawOutline(*bank, def.groundPicture, sx, sy, kHoverOutline);
             SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            if (glow > 0) {
+                // A second copy added on top brightens it.
+                SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
+                SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(glow * 255 / 1000));
+                SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+                SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
+                SDL_SetTextureAlphaMod(sprite->texture, 255);
+            }
             continue;
         }
         // No picture: a small diamond.

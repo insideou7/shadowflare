@@ -1414,10 +1414,16 @@ void Game::renderMap() {
     renderGroundItems(camX, camY);
 
     // The one under the pointer is drawn brighter (0x40ee70 adds 300 to
-    // its red, green and blue).
+    // its red, green and blue): a character, a chest, lever or door, or an
+    // item on the ground.
     updateHover();
-    for (auto& a : actors_) a.character.glow = 0;
-    if (const Actor* lit = hoveredActor()) actors_[static_cast<std::size_t>(lit - actors_.data())].character.glow = kHoverGlow;
+    for (std::size_t i = 0; i < actors_.size(); ++i) {
+        const bool lit = hovered(Settings::kEnemy, i) || hovered(Settings::kPerson, i);
+        actors_[i].character.glow = lit ? kHoverGlow : 0;
+    }
+    for (auto& o : sceneObjects_) {
+        if (o.animation) o.animation->glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
+    }
 
     // Objects and characters, back to front. Shadows go first so nothing
     // stands under one; characters draw their own shadows.

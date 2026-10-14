@@ -254,8 +254,9 @@ Options parseArgs(int argc, char** argv) {
             if (on == "enemy") options.pointerOn = sf::Settings::kEnemy;
             else if (on == "person") options.pointerOn = sf::Settings::kPerson;
             else if (on == "item") options.pointerOn = sf::Settings::kItem;
+            else if (on == "object") options.pointerOn = sf::Settings::kObject;
             else if (std::sscanf(argv[i], "%f,%f", &p.x, &p.y) == 2) options.pointer = p;
-            else sf::log::warn("--pointer expects x,y, enemy, person or item");
+            else sf::log::warn("--pointer expects x,y, enemy, person, item or object");
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {

@@ -73,9 +73,12 @@ inline constexpr int kPartnerGaugeY = 395;
 // The belt pocket's cells on the screen, as the original's clicks find them
 // (0x445bd0, 0x44a5f0): the top row's left edge, and the bottom row's,
 // which sits a cell and a half further right.
-// How much brighter the character under the pointer is drawn, per mille
-// (0x40ee70).
+// How much brighter what is under the pointer is drawn, per mille
+// (0x40ee70): a character, a chest, lever or door, or an item.
 inline constexpr int kHoverGlow = 300;
+// The light outline around a chest, lever, door or item under the pointer
+// (ours; Rules::outlineUnderPointer).
+inline constexpr SDL_Color kHoverOutline{255, 224, 140, 210};
 inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBeltCell = 32;
 
 // For now the game is a map viewer with a walking player: it loads a level
@@ -637,6 +640,9 @@ private:
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
+    // The outline of a pattern drawn with its anchor at (x, y) on the view,
+    // for what is under the pointer (Rules::outlineUnderPointer).
+    void drawOutline(const SpriteBank& bank, int pattern, int x, int y, SDL_Color color);
     // Where drawSceneObject puts its picture, in map pixels, as objectPicture.
     SDL_Rect sceneObjectPicture(const SceneObject& o);
     bool workingObject(std::int32_t id) const;
@@ -1191,6 +1197,8 @@ private:
     void followPointerTarget();
     void updateHover();
     const Actor* hoveredActor() const;
+    // Whether the pointer is on this one (a Settings::Target and its index).
+    bool hovered(int kind, std::size_t index) const { return hoverOn_ && hover_.kind == kind && hover_.index == index; }
     void renderClickSquare();
     void renderHoverName();
     void renderPointer();

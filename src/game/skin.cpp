@@ -11,6 +11,7 @@
 #include "game/content.h"
 #include "game/map.h"
 #include "platform/filesystem.h"
+#include "render/sprite_cache.h"
 
 namespace sf {
 
@@ -73,8 +74,10 @@ std::unique_ptr<Skin> Skin::load(std::unique_ptr<FileSystem> pack, SDL_Renderer*
 
 Skin::~Skin() {
     setMap(nullptr);
-    for (auto& [name, texture] : propTextures_) {
-        if (texture) SDL_DestroyTexture(texture);
+    for (auto* textures : {&propTextures_, &propOutlines_}) {
+        for (auto& [name, texture] : *textures) {
+            if (texture) SDL_DestroyTexture(texture);
+        }
     }
 }
 
@@ -245,11 +248,12 @@ const std::vector<open::Skin::Piece>* Skin::scenarioObject(int kind, int pattern
     return rule == bank->second.end() ? nullptr : &rule->second;
 }
 
-void Skin::renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY) {
+void Skin::renderScenarioObject(int worldX, int worldY, const std::vector<open::Skin::Piece>& pieces, int camX, int camY, int glow,
+                                const SDL_Color* outline) {
     if (!props_ || pieces.empty()) return;
     int footX, footY;
     worldToScreen(worldX, worldY, footX, footY);
-    renderPieces(pieces, footX, footY, camX, camY);
+    renderPieces(pieces, footX, footY, camX, camY, glow, outline);
 }
 
 // Our props stand where the original piece's picture ends at the bottom,
@@ -287,9 +291,17 @@ SDL_Texture* Skin::propTexture(const std::string& prop, int& frame) {
     return it->second;
 }
 
-void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY) {
+void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY, int glow,
+                        const SDL_Color* outline) {
     SDL_Rect view;
     SDL_RenderGetViewport(renderer_, &view);
+    struct Placed {
+        const open::Skin::Piece* piece;
+        SDL_Texture* texture;
+        SDL_Rect dst;
+        SDL_RendererFlip flip;
+    };
+    std::vector<Placed> placed;
     for (const auto& piece : pieces) {
         int frame;
         SDL_Texture* texture = propTexture(piece.prop, frame);
@@ -301,8 +313,40 @@ void Skin::renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX,
         // Mirrored, the anchor stays put and the picture turns about it.
         SDL_Rect dst{footX + dx + (piece.mirror ? -x - w : x) - camX, footY + dy + y - camY, w, h};
         if (dst.x + dst.w < 0 || dst.y + dst.h < 0 || dst.x >= view.w || dst.y >= view.h) continue;
-        SDL_RenderCopyEx(renderer_, texture, nullptr, &dst, 0, nullptr, piece.mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE);
+        placed.push_back({&piece, texture, dst, piece.mirror ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE});
     }
+    // The outline goes under all the pieces, so it rings only their shape
+    // as a whole.
+    if (outline) {
+        for (const auto& p : placed) {
+            SDL_Texture* ring = propOutline(p.piece->prop);
+            if (!ring) continue;
+            const SDL_Rect around{p.dst.x - kOutlineWidth, p.dst.y - kOutlineWidth, p.dst.w + 2 * kOutlineWidth, p.dst.h + 2 * kOutlineWidth};
+            SDL_SetTextureColorMod(ring, outline->r, outline->g, outline->b);
+            SDL_SetTextureAlphaMod(ring, outline->a);
+            SDL_RenderCopyEx(renderer_, ring, nullptr, &around, 0, nullptr, p.flip);
+        }
+    }
+    for (const auto& p : placed) {
+        SDL_RenderCopyEx(renderer_, p.texture, nullptr, &p.dst, 0, nullptr, p.flip);
+        if (glow > 0) {
+            // A second copy added on top brightens it.
+            SDL_SetTextureBlendMode(p.texture, SDL_BLENDMODE_ADD);
+            SDL_SetTextureAlphaMod(p.texture, static_cast<Uint8>(std::min(1000, glow) * 255 / 1000));
+            SDL_RenderCopyEx(renderer_, p.texture, nullptr, &p.dst, 0, nullptr, p.flip);
+            SDL_SetTextureBlendMode(p.texture, SDL_BLENDMODE_BLEND);
+            SDL_SetTextureAlphaMod(p.texture, 255);
+        }
+    }
+}
+
+SDL_Texture* Skin::propOutline(const std::string& prop) {
+    auto [it, inserted] = propOutlines_.try_emplace(prop, nullptr);
+    if (inserted) {
+        const auto found = propFrames_.find(prop);
+        if (found != propFrames_.end() && props_) it->second = makeTexture(renderer_, outlineOf(props_->render(found->second, false)));
+    }
+    return it->second;
 }
 
 }  // namespace sf
