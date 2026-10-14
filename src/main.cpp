@@ -21,6 +21,7 @@
 #include "game/game.h"
 #include "game/skin.h"
 #include "platform/audio.h"
+#include "platform/crash_log.h"
 #include "platform/filesystem.h"
 
 namespace {
@@ -288,6 +289,15 @@ Options parseArgs(int argc, char** argv) {
             else if (on == "object") options.pointerOn = sf::Settings::kObject;
             else if (std::sscanf(argv[i], "%f,%f", &p.x, &p.y) == 2) options.pointer = p;
             else sf::log::warn("--pointer expects x,y, enemy, person, item or object");
+        } else if (arg == "--crash-test") {
+            // Crashes on purpose, to check that crash.txt is written.
+            std::vector<int> none;
+            volatile std::size_t index = 3;
+#if defined(_DEBUG)
+            none[index] = 1;  // a Debug build's "vector subscript out of range"
+#endif
+            sf::log::error("Crashing on purpose (--crash-test), index {}", static_cast<std::size_t>(index));
+            std::abort();
         } else if (arg == "--auto-fight") {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
@@ -472,6 +482,7 @@ void frame(void* userData) {
 }  // namespace
 
 int main(int argc, char** argv) {
+    sf::crash::install();
     const Options options = parseArgs(argc, argv);
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0) {

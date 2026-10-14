@@ -66,6 +66,7 @@ add_executable(shadowflare
     src/core/log.cpp
     src/platform/filesystem.cpp
     src/platform/audio.cpp
+    src/platform/crash_log.cpp
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
@@ -100,6 +101,9 @@ add_executable(shadowflare
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
+if(WIN32)
+    target_link_libraries(shadowflare PRIVATE dbghelp)
+endif()
 
 foreach(target sf_formats sf_logic shadowflare)
     if(MSVC)
