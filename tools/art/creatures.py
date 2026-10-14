@@ -2271,8 +2271,13 @@ def pose(rig, animation, t, frames):
     if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
         k = min(1.0, t * frames / max(1, frames - 1))
         if animation == "attack":
+            heroine = getattr(rig, "heroine", False)
             r = keyframes(GOBLIN_ATTACK if getattr(rig, "goblin", False)
-                          else HEROINE_ATTACK if getattr(rig, "heroine", False) else HERO_ATTACK, k)
+                          else HEROINE_ATTACK if heroine else HERO_ATTACK, k)
+            if not getattr(rig, "goblin", False):
+                arms = HEROINE_SWORD_ARM if heroine else HERO_SWORD_ARM
+                arm, elbow, (wrist, twist) = arms[round(k * (len(arms) - 1))]
+                r.update(arm_r=arm, elbow_r=elbow, weapon=(0, math.radians(wrist), twist))
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
         elif animation == "idle" and getattr(rig, "heroine", False):
@@ -2476,28 +2481,32 @@ HERO_ATTACK = [
                    leg_r=(-0.12, 1.25, -0.1), knee_r=(0, 0.05, 0))),
 ]
 # The heroine's attack, her own like the original's, over the same ten
-# frames with the blow on frame 7: from standing with the sword held low
+# frames with the blow on frame 7: from a crouch with the sword held low
 # out to her side, she draws it back low behind her, raises it up behind
 # her shoulder as she steps into a lunge, cuts down and across in front as
 # she drops onto her back knee with the shield raised over her head, thrusts
 # it straight ahead, and ends kneeling with the sword held up across her
 # body to her left.
 STAND = heroine_stand(0.0)
+# Her fighting crouch at the start of the attack: knees bent, feet apart,
+# leaning a little into it.
+CROUCH = hero_key(STAND, spine=(0, 0.2, -0.2), head=(0, -0.15, 0.15), leg_l=(0.25, -0.6, 0.15), knee_l=(0, 0.8, 0),
+                  leg_r=(-0.25, 0.25, -0.15), knee_r=(0, 0.7, 0))
 KNEEL = dict(leg_l=(0.12, -1.45, 0.1), knee_l=(0, 1.5, 0), leg_r=(-0.12, 0.15, -0.1), knee_r=(0, 1.6, 0))
 SHIELD_UP = dict(arm_l=(0.0, -3.5, 0), elbow_l=(-0.6, 1.5, 0.5))
 HEROINE_ATTACK = [
-    (0.0, hero_key(STAND, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
-    (0.111, hero_key(STAND, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
-    (0.222, hero_key(STAND, spine=(0, 0.05, 0.3), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
-                     weapon=(0, math.radians(135), 0.3), knee_l=(0, 0.3, 0), knee_r=(0, 0.3, 0))),
-    (0.333, hero_key(STAND, spine=(0, 0.05, 0.3), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
-                     weapon=(0, math.radians(135), 0.3), knee_l=(0, 0.3, 0), knee_r=(0, 0.3, 0))),
-    (0.444, hero_key(STAND, spine=(0, 0.15, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
-                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.0, 0.1), knee_l=(0, 1.1, 0),
-                     leg_r=(-0.12, 0.6, -0.1), knee_r=(0, 0.4, 0))),
-    (0.556, hero_key(STAND, spine=(0, 0.15, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
-                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.0, 0.1), knee_l=(0, 1.1, 0),
-                     leg_r=(-0.12, 0.6, -0.1), knee_r=(0, 0.4, 0))),
+    (0.0, hero_key(CROUCH, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
+    (0.111, hero_key(CROUCH, arm_r=(-0.4, 0.125, 0), elbow_r=(0, -0.625, 0), weapon=(0, math.radians(140), 1.1))),
+    (0.222, hero_key(CROUCH, spine=(0, 0.25, 0.2), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
+                     weapon=(0, math.radians(135), 0.3))),
+    (0.333, hero_key(CROUCH, spine=(0, 0.25, 0.2), arm_r=(-0.2, 0.75, 0), elbow_r=(0, -0.5, 0),
+                     weapon=(0, math.radians(135), 0.3))),
+    (0.444, hero_key(STAND, spine=(0, 0.3, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
+                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.3, 0.1), knee_l=(0, 1.45, 0),
+                     leg_r=(-0.12, 0.9, -0.1), knee_r=(0, 0.2, 0))),
+    (0.556, hero_key(STAND, spine=(0, 0.3, 0.4), arm_r=(0.2, 2.375, 0), elbow_r=(0, -1.5, 0),
+                     weapon=(0, math.radians(165), 0), leg_l=(0.12, -1.3, 0.1), knee_l=(0, 1.45, 0),
+                     leg_r=(-0.12, 0.9, -0.1), knee_r=(0, 0.2, 0))),
     # Arm angles past pi keep the cut going over the top of the shoulder.
     (0.667, hero_key(STAND, spine=(0, 0.45, -0.2), arm_r=(0.0, 5.53, 0), elbow_r=(0, -1.25, 0),
                      weapon=(0, math.radians(125), 0.6), arm_l=(0.2, -3.0, 0), elbow_l=(-0.7, 0.8, 0.2), **KNEEL)),
@@ -2508,6 +2517,37 @@ HEROINE_ATTACK = [
     (1.0, hero_key(STAND, spine=(0, 0.2, -0.1), arm_r=(0.4, 4.91, 0), elbow_r=(0, -1.5, 0),
                    weapon=(0, math.radians(30), 1.5), **SHIELD_UP, **KNEEL)),
 ]
+# The sword arm in each frame of the attacks, fitted to the original's:
+# tools/art/match_sword.py measures where the original's sword is (its hilt
+# and the way the blade points) in all eight directions of every frame,
+# finds the 3D line that best gives those pictures, and solves our shoulder,
+# elbow and wrist to hold the blade along it.
+HERO_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
+    ((-0.3, 0.375, 0), (0, 0.0, 0), (-54, -0.85)),
+    ((-0.3, 0.375, 0), (0, 0.0, 0), (-54, -0.85)),
+    ((0.5, 1.0, 0), (0, 0.0, 0), (171, 0.0)),
+    ((0.5, 1.0, 0), (0, 0.0, 0), (171, 0.0)),
+    ((0.6, 2.0, 0), (0, 0.0, 0), (3, 0.2)),
+    ((0.4, 3.1875, 0), (0, 0.0, 0), (-6, 0.1)),
+    ((0.5, -1.5625, 0), (0, 0.0, 0), (18, 0.0)),
+    ((0.5, -1.5, 0), (0, 0.0, 0), (12, 0.0)),
+    ((0.5, -1.4375, 0), (0, 0.0, 0), (12, 0.05)),
+    ((0.5, -1.4375, 0), (0, 0.0, 0), (9, 0.0)),
+]
+HEROINE_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
+    ((0.1, 0.6875, 0), (0, 0.0, 0), (-3, -1.3)),
+    ((0.1, 0.6875, 0), (0, 0.0, 0), (-3, -1.3)),
+    ((0.0, 0.8125, 0), (0, 0.0, 0), (165, 1.15)),
+    ((0.0, 0.8125, 0), (0, 0.0, 0), (165, 1.15)),
+    ((-0.1, 2.625, 0), (0, -1.5, 0), (159, -0.95)),
+    ((-0.1, 2.625, 0), (0, -1.5, 0), (159, -0.95)),
+    ((0.4, 4.375, 0), (0, 0.0, 0), (24, -1.35)),
+    ((1.0, -1.8125, 0), (0, 0.0, 0), (66, -0.85)),
+    ((1.0, -1.5625, 0), (0, 0.0, 0), (30, 1.1)),
+    ((1.0, -1.5625, 0), (0, 0.0, 0), (30, 1.1)),
+]
+
+
 # Struck: doubled over, then thrown back with the shield arm flung up, and
 # back into the stance.
 HERO_HIT = [
