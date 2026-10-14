@@ -594,7 +594,10 @@ are, which keeps content/ about a tenth of the size. `trim_sheets.py` then
 cuts the see-through space from round each character frame (only after
 shrinking does it show: the renders' faint shadow haze fills each frame)
 and packs the frames tightly, so the game loads a character's sheet about
-five times faster. The item pictures
+five times faster. It also packs `Map/props.sheet` tightly but keeps each
+prop's frame whole (`first_area.py` reads their widths; the game trims
+them as it loads them); run it again after `add_props.py`, which adds new
+props on a strip of their own. The item pictures
 and the interface (inventory panel, shop window, speech balloon, area map window and
 font) are kept in content/ and rebuilt on their own:
 
