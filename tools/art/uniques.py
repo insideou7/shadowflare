@@ -81,6 +81,14 @@ KINDS = {
     "curved": (1.26, "upright"), "twohand": (1.20, "upright"), "greatsword": (1.20, "upright"),
     "axe": (1.20, "upright"), "mace": (1.20, "upright"), "bowgun": (1.56, "upright"), "sling": (1.68, "upright"),
     "staff": (0.85, "upright"), "rod": (1.38, "upright"), "orbrod": (1.38, "upright"),
+    # Armour: body armour, shields and books stand up like weapons and lie
+    # on their backs on the ground; hats and boots stand on the ground.
+    "cloth": (0.95, "upright"), "plate": (0.95, "upright"), "hunter": (0.95, "upright"),
+    "robe": (0.95, "upright"), "chain": (0.95, "upright"), "roundshield": (1.1, "upright"),
+    "towershield": (1.0, "upright"), "boardshield": (1.0, "upright"), "book": (1.5, "upright"),
+    "knuckle": (1.4, "thing"), "helm": (1.4, "thing"), "hat": (1.4, "thing"), "hood": (1.4, "thing"),
+    "mask": (1.4, "thing"), "circlet": (1.8, "thing"), "horned": (1.4, "thing"), "boots": (1.3, "thing"),
+    "greaves": (1.3, "thing"),
 }
 
 # Weapon kind -> (length of the blade or head, its width).
@@ -320,6 +328,16 @@ def build_accessory(item):
     return made
 
 
+def firm(obj):
+    """A box with softly rounded edges, not swollen."""
+    obj.modifiers["soft"].levels = 1
+    obj.modifiers["soft"].render_levels = 1
+    bevel = obj.modifiers.new("bevel", "BEVEL")
+    bevel.width = 0.02
+    obj.modifiers.move(len(obj.modifiers) - 1, 0)
+    return obj
+
+
 def hard(obj):
     """Keeps a box's edges sharp (blades, axe heads)."""
     obj.modifiers["soft"].levels = 0
@@ -529,6 +547,195 @@ def build_weapon(item):
     return made
 
 
+def cloth_material(colour, rng, name="cloth", shade=0.75):
+    c = tuple(min(1, x * shade + 0.08) for x in jitter(colour, rng, 0.05))
+    return studio.material(f"{name} {rng.random():.4f}", c, tuple(x * 0.4 for x in c), scale=25, rough=0.8, bump=0.4)
+
+
+def build_armour(item):
+    """Builds a piece of armour: body armour, shields and books standing
+    up facing -Y; helmets, gauntlets and boots on the ground."""
+    shape = creatures.shape
+    metal_info, colour, glow, rng = look(item)
+    kind = item["kind"]
+    metal = metal_material(metal_info, rng)
+    gem = stone_material(colour, glow, rng)
+    steel = steel_material(item, colour, rng)
+    made = []
+    add = made.append
+    if kind in ("cloth", "plate", "hunter", "robe", "chain"):
+        if kind == "plate":
+            body = steel
+        elif kind == "chain":
+            c = metal_info[2]
+            body = studio.material(f"rings {rng.random()}", c, tuple(x * 0.3 for x in c), scale=180, rough=0.4, bump=1.0)
+        elif kind == "cloth":
+            body = leather_material(rng) if rng.random() < 0.5 else cloth_material(colour, rng, shade=0.5)
+        else:
+            body = cloth_material(colour, rng, shade=0.6 if kind == "robe" else 0.45)
+        trim = metal if kind != "cloth" else leather_material(rng)
+        add(put(firm(shape("box", (0.23, 0.13, 0.2), body)), (0, 0, 0.7)))      # chest
+        add(put(firm(shape("box", (0.2, 0.115, 0.12), body)), (0, 0, 0.46)))    # waist
+        for side in (-1, 1):  # short sleeves
+            add(put(shape("cylinder", (0.075, 0.075, 0.1), body, rotation=(0, side * math.radians(35), 0)),
+                    (side * 0.27, 0, 0.8)))
+        add(put(shape("cylinder", (0.09, 0.06, 0.03), studio.material("inside", (0.08, 0.06, 0.05), scale=10)),
+                (0, 0.01, 0.9)))  # the neck
+        add(put(shape("cylinder", (0.21, 0.125, 0.03), trim), (0, 0, 0.36)))  # belt
+        add(put(shape("box", (0.03, 0.01, 0.025), metal), (0, -0.13, 0.36)))  # buckle
+        if kind == "robe":
+            add(put(shape("flare", (0.34, 0.2, 0.2), body), (0, 0, 0.14)))
+            add(put(shape("box", (0.03, 0.01, 0.38), trim), (0, -0.135, 0.5)))
+        else:
+            hem = 0.27 if kind == "plate" else 0.24
+            add(put(shape("flare", (hem, hem * 0.58, 0.09), body if kind != "plate" else trim), (0, 0, 0.26)))
+        if kind in ("plate", "chain") or rng.random() < 0.4:
+            for side in (-1, 1):  # pauldrons
+                r = 0.12 if kind == "plate" else 0.09
+                add(put(shape("ball", (r * 1.1, r, r * 0.7), steel if kind == "plate" else trim), (side * 0.27, 0, 0.86)))
+        if kind == "plate":
+            style = rng.choice(("ridge", "cross", "gem", "sun"))
+            if style == "ridge":
+                add(put(shape("box", (0.02, 0.02, 0.22), metal), (0, -0.135, 0.7)))
+            elif style == "cross":
+                add(put(shape("box", (0.02, 0.012, 0.16), metal), (0, -0.135, 0.7)))
+                add(put(shape("box", (0.1, 0.012, 0.02), metal), (0, -0.135, 0.76)))
+            elif style == "sun":
+                add(put(shape("cylinder", (0.07, 0.07, 0.012), metal, rotation=(math.radians(90), 0, 0)),
+                        (0, -0.135, 0.72)))
+            add(put(shape("ball", (0.035, 0.02, 0.035), gem), (0, -0.145, 0.72)))
+        else:
+            add(put(shape("ball", (0.03, 0.02, 0.03), gem), (0.1, -0.135, 0.8)))  # a brooch
+            if kind == "hunter":
+                add(put(shape("box", (0.02, 0.01, 0.27), leather_material(rng), rotation=(0, 0.6, 0)),
+                        (0, -0.135, 0.66)))  # a strap across the chest
+        if rng.random() < 0.5 or kind == "robe":
+            add(torus(0.1, 0.03, cloth_material(colour, rng, "collar", 0.4) if kind != "plate" else steel,
+                      location=(0, 0.01, 0.91)))
+        return made
+    if kind in ("roundshield", "towershield", "boardshield"):
+        face = steel if rng.random() < 0.5 else cloth_material(colour, rng, "paint", 0.55)
+        if kind == "roundshield":
+            r = 0.3
+            add(shape("cylinder", (r, r, 0.03), face, rotation=(math.radians(90), 0, 0)))
+            add(torus(r, 0.022, metal, (math.radians(90), 0, 0)))
+            top = r
+        elif kind == "towershield":
+            add(hard(shape("box", (0.24, 0.03, 0.42), face)))
+            for side in (-1, 1):
+                add(put(hard(shape("box", (0.02, 0.035, 0.42), metal)), (side * 0.24, 0, 0)))
+                add(put(hard(shape("box", (0.26, 0.035, 0.02), metal)), (0, 0, side * 0.42)))
+            top = 0.42
+        else:
+            add(put(hard(shape("box", (0.26, 0.03, 0.18), face)), (0, 0, 0.12)))
+            tip = hard(shape("cone", (0.26, 0.03, 0.26), face, rotation=(math.pi, 0, 0)))
+            tip.data.update()
+            add(put(tip, (0, 0, -0.32)))
+            add(put(hard(shape("box", (0.28, 0.035, 0.02), metal)), (0, 0, 0.3)))
+            top = 0.3
+        emblem = rng.choice(("boss", "cross", "ring", "stripes"))
+        if emblem == "boss":
+            add(put(shape("ball", (0.08, 0.05, 0.08), metal), (0, -0.04, 0)))
+            add(put(shape("ball", (0.035, 0.03, 0.035), gem), (0, -0.085, 0)))
+        elif emblem == "cross":
+            add(put(hard(shape("box", (0.035, 0.012, top * 0.75), metal)), (0, -0.035, 0)))
+            add(put(hard(shape("box", (top * 0.5, 0.012, 0.035), metal)), (0, -0.035, top * 0.2)))
+            add(put(shape("ball", (0.03, 0.02, 0.03), gem), (0, -0.05, top * 0.2)))
+        elif emblem == "ring":
+            add(torus(0.12, 0.016, metal, (math.radians(90), 0, 0), (0, -0.035, 0)))
+            add(put(shape("ball", (0.05, 0.03, 0.05), gem), (0, -0.04, 0)))
+        else:
+            for dx in (-0.08, 0.08):
+                add(put(hard(shape("box", (0.025, 0.012, top * 0.7), cloth_material(colour, rng, "stripe", 0.9))),
+                        (dx, -0.035, 0)))
+        return made
+    if kind == "book":
+        cover = cloth_material(colour, rng, "cover", 0.45)
+        add(hard(shape("box", (0.17, 0.05, 0.23), cover)))
+        pages = studio.material("pages", (0.9, 0.86, 0.72), scale=80)
+        add(put(hard(shape("box", (0.16, 0.042, 0.215), pages)), (0.012, 0, 0)))
+        for sx in (-1, 1):
+            for sz in (-1, 1):
+                add(put(shape("box", (0.03, 0.052, 0.03), metal), (sx * 0.15, 0, sz * 0.21)))
+        add(put(shape("cylinder", (0.06, 0.06, 0.008), metal, rotation=(math.radians(90), 0, 0)), (0, -0.052, 0.02)))
+        add(put(shape("ball", (0.035, 0.015, 0.035), gem), (0, -0.06, 0.02)))
+        return made
+    if kind == "knuckle":
+        add(put(shape("cylinder", (0.09, 0.09, 0.14), steel, rotation=(0, math.radians(90), 0)), (-0.12, 0, 0.1)))
+        add(put(shape("box", (0.09, 0.1, 0.07), steel), (0.1, 0, 0.08)))
+        for k in range(4):
+            add(put(shape("ball", (0.03, 0.025, 0.03), metal), (0.2, -0.075 + 0.05 * k, 0.12)))
+        add(put(torus(0.095, 0.015, metal, (0, math.radians(90), 0)), (-0.03, 0, 0.1)))
+        add(put(shape("ball", (0.035, 0.035, 0.03), gem), (0.08, 0, 0.16)))
+        return made
+    if kind in ("helm", "horned", "hat", "hood", "mask", "circlet"):
+        if kind == "hat":
+            felt = cloth_material(colour, rng, "felt", 0.45)
+            add(put(shape("cylinder", (0.32, 0.32, 0.015), felt), (0, 0, 0.02)))
+            add(put(shape("cone", (0.17, 0.17, 0.2 + rng.uniform(0, 0.15)), felt), (0, 0, 0.2)))
+            add(put(shape("cylinder", (0.175, 0.175, 0.025), metal), (0, 0, 0.06)))
+            add(put(shape("ball", (0.03, 0.02, 0.03), gem), (0, -0.17, 0.07)))
+            if rng.random() < 0.5:  # a feather
+                add(put(shape("ball", (0.03, 0.02, 0.16), cloth_material(colour, rng, "feather", 1.0),
+                              rotation=(0, 0.6, 0)), (0.12, 0.05, 0.2)))
+        elif kind == "hood":
+            hide = leather_material(rng) if rng.random() < 0.5 else cloth_material(colour, rng, "hide", 0.5)
+            add(put(shape("ball", (0.22, 0.24, 0.21), hide), (0, 0, 0.26)))
+            add(put(shape("flare", (0.26, 0.25, 0.13), hide), (0, 0, 0.13)))
+            add(put(shape("cylinder", (0.225, 0.245, 0.03), metal), (0, 0, 0.27)))
+            add(put(shape("ball", (0.035, 0.035, 0.035), gem), (0, -0.235, 0.27)))
+        elif kind == "mask":
+            face = steel if rng.random() < 0.6 else cloth_material(colour, rng, "lacquer", 0.9)
+            m = shape("ball", (0.17, 0.08, 0.22), face)
+            add(put(m, (0, 0, 0.22)))
+            dark = studio.material("eye", (0.02, 0.02, 0.02), scale=10)
+            for side in (-1, 1):
+                add(put(shape("ball", (0.035, 0.02, 0.018), dark), (side * 0.065, -0.07, 0.27)))
+            add(put(shape("box", (0.05, 0.02, 0.008), dark), (0, -0.075, 0.12)))
+            add(put(shape("ball", (0.025, 0.015, 0.025), gem), (0, -0.075, 0.38)))
+        elif kind == "circlet":
+            add(torus(0.17, 0.016, metal, location=(0, 0, 0.03)))
+            for k in range(rng.choice((3, 5))):
+                a = -math.pi / 2 + (k - 1) * 0.35
+                add(put(shape("cone", (0.02, 0.02, 0.04), metal), (0.17 * math.cos(a), 0.17 * math.sin(a), 0.07)))
+            add(put(faceted((0.04, 0.03, 0.04), gem), (0, -0.18, 0.05)))
+        else:
+            add(put(shape("ball", (0.22, 0.24, 0.22), steel), (0, 0, 0.22)))
+            add(put(shape("cylinder", (0.225, 0.245, 0.04), metal), (0, 0, 0.12)))
+            slit = studio.material("slit", (0.03, 0.02, 0.02), scale=10)
+            if rng.random() < 0.5:
+                add(put(shape("box", (0.12, 0.02, 0.018), slit), (0, -0.235, 0.22)))  # an eye slit
+                add(put(shape("box", (0.015, 0.03, 0.08), metal), (0, -0.25, 0.17)))
+            else:
+                add(put(shape("box", (0.13, 0.03, 0.08), slit), (0, -0.225, 0.14)))  # an open face
+                add(put(shape("box", (0.02, 0.02, 0.09), metal), (0, -0.25, 0.14)))  # nose guard
+            if kind == "horned":
+                for side in (-1, 1):
+                    add(put(shape("cone", (0.05, 0.05, 0.18), studio.material("horn", (0.85, 0.80, 0.65), scale=30),
+                                  rotation=(0, side * math.radians(55), 0)), (side * 0.3, 0, 0.36)))
+            elif rng.random() < 0.6:
+                crest = cloth_material(colour, rng, "plume", 0.9)
+                add(put(shape("ball", (0.03, 0.2, 0.08), crest), (0, 0.02, 0.45)))
+            add(put(shape("ball", (0.03, 0.02, 0.03), gem), (0, -0.245, 0.2)))
+        return made
+    # Boots and greaves: a pair standing side by side.
+    greaves = kind == "greaves"
+    upper = steel if greaves else (leather_material(rng) if rng.random() < 0.6 else cloth_material(colour, rng, "suede", 0.5))
+    for side in (1, -1):
+        x = 0.16 * side
+        add(put(shape("cylinder", (0.12, 0.12, 0.22), upper), (x, 0, 0.3)))
+        add(put(shape("cylinder", (0.135, 0.135, 0.04), metal), (x, 0, 0.52)))
+        add(put(shape("box", (0.11, 0.24, 0.07), upper if not greaves else leather_material(rng)), (x, -0.1, 0.07)))
+        if greaves:
+            add(put(shape("ball", (0.07, 0.04, 0.09), steel), (x, -0.11, 0.33)))  # knee plate
+        add(put(shape("ball", (0.025, 0.015, 0.025), gem), (x, -0.125, 0.4)))
+    if rng.random() < 0.4:  # little wings
+        for side in (1, -1):
+            add(put(shape("cone", (0.03, 0.08, 0.06), cloth_material((0.95, 0.95, 0.95), rng, "wing", 1.0),
+                          rotation=(0, side * math.radians(80), 0)), (0.3 * side, 0, 0.42)))
+    return made
+
+
 def render_item(item, out, name):
     from mathutils import Vector
 
@@ -538,7 +745,8 @@ def render_item(item, out, name):
     catcher = bpy.data.objects["shadow catcher"]
     handle = bpy.data.objects.new("item", None)
     scene.collection.objects.link(handle)
-    objects = build_weapon(item) if build == "upright" else build_accessory(item)
+    builder = {"weapon": build_weapon, "armour": build_armour, "accessory": build_accessory}[item["class"]]
+    objects = builder(item)
     for o in objects:
         o.parent = handle
     studio.camera(scene, w * CELL, h * CELL)

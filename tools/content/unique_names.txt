@@ -287,3 +287,181 @@ weapon 80000127 bastard Arcbolt Blade
 weapon 80000128 bastard Sparkbolt Blade
 weapon 80000129 curved Sunhill Blade
 weapon 80000130 bastard Duskmoor Blade
+
+# Armour
+armour 1000 cloth Outlaw's Jerkin
+armour 1100 cloth Mane of the Pride
+armour 11000 plate Pinkbloom Cuirass
+armour 11100 plate Starfall Plate
+armour 11200 plate Whitegold Plate
+armour 11300 plate Glassrock Plate
+armour 11400 plate Templar's Plate
+armour 11500 plate Earthmother Plate
+armour 21000 hunter Packrunner Coat
+armour 21100 hunter Nightstalker Garb
+armour 21200 hunter Trapper's Outfit
+armour 21300 hunter Starfall Garb
+armour 21400 hunter Beastlord's Garb
+armour 21500 hunter Galewind Jacket
+armour 31000 robe Hobgoblin Wrap
+armour 31100 robe Bluefire Vestment
+armour 31200 plate Fourfold Warden
+armour 31300 plate Third King's Mantle
+armour 31400 plate Sprite's Plate
+armour 31500 robe Hallowed Vestment
+armour 1001000 roundshield Spellguard Buckler
+armour 1001100 towershield Iron Portcullis
+armour 1001200 boardshield Lakeknight's Shield
+armour 1001300 roundshield Sunknight's Shield
+armour 1001400 towershield Starforged Shield
+armour 1001500 boardshield Templar's Shield
+armour 1001600 roundshield Crescent Shield
+armour 1001700 roundshield Runeward Shield
+armour 1001800 roundshield Greenwood Shield
+armour 1001900 towershield Shadowpath Shield
+armour 1011000 boardshield Skymetal Shield
+armour 1011100 roundshield Rending Shield
+armour 1011200 towershield Furnace Wall
+armour 1011300 boardshield Fiendface Shield
+armour 4001000 book Archmage's Grimoire
+armour 4001100 book Netherlord's Tome
+armour 4001500 book Book of the Dead Stars
+armour 2001000 hood Ironweave Hood
+armour 2001100 helm Rebel Lord's Helm
+armour 2001200 mask Iron Visage
+armour 2001300 hood Tusker's Hide
+armour 2001400 circlet Thoughtstorm Circlet
+armour 2001500 helm Bellringer Helm
+armour 2001700 helm Stormcrown
+armour 2001800 helm Firebird Helm
+armour 2001900 hat Seer's Hat
+armour 3001000 boots Hedgewitch Shoes
+armour 3001100 boots Mad Fox Boots
+armour 3001200 greaves Wanderer God's Greaves
+armour 3001300 greaves Whitegold Greaves
+armour 3001400 greaves Marksman's Greaves
+armour 3001500 boots Glimmering Boots
+armour 3001600 greaves Footman's Greaves
+armour 3001700 boots Wolfpaw Boots
+armour 3001800 boots Moneybags Boots
+armour 3001900 greaves Kingsguard Greaves
+armour 3011000 boots Windhorse Boots
+armour 3011100 boots Meadowland Boots
+armour 80000000 plate Battlemage Plate
+armour 80000001 plate Blackiron Cuirass
+armour 80000002 plate Warden's Plate
+armour 80000003 hat Conjurer's Hat
+armour 80000004 helm Warlord's Helm
+armour 80000005 horned Bullhorn Helm
+armour 80000006 knuckle Clockwork Fist
+armour 80000007 boots Clockwork Boots
+armour 80000008 robe Courtier's Robe
+armour 80000009 mask Bloodied Stage Mask
+armour 80000010 mask Stage Mask
+armour 80000011 roundshield Blackiron Shield
+armour 80000012 roundshield Looking-glass Shield
+armour 80000013 hunter Elfin Coat
+armour 80000014 robe Scarlet Robe
+armour 80000015 hunter Skirmisher's Suit
+armour 80000016 plate Waterforged Armour
+armour 80000017 plate Truesilver Plate
+armour 80000018 plate Thunderclad Armour
+armour 80000019 plate Wheelbound Mantle
+armour 80000020 plate Runeplate
+armour 80000021 plate Redmane Armour
+armour 80000022 roundshield Scaleback Shield
+armour 80000023 boardshield Squire's Shield
+armour 80000024 roundshield Lightwarden's Shield
+armour 80000025 roundshield Tidemirror Shield
+armour 80000026 helm Clansman's Helm
+armour 80000027 helm Truesilver Helm
+armour 80000028 helm Runehelm
+armour 80000029 hat Sagging Hat
+armour 80000030 hat Thinking Cap
+armour 80000031 hat Feathered Hat
+armour 80000032 greaves Gilded Greaves
+armour 80000033 boots Gilded Boots
+armour 80000034 boots Tigerpaw Boots
+armour 80000035 boots Mending Boots
+armour 80000036 greaves Truesilver Greaves
+armour 80000037 boots Sprite's Shoes
+armour 80000038 hunter Darkelf Coat
+armour 80000039 knuckle Mended Clockwork Fist
+armour 80000040 boots Mended Clockwork Boots
+armour 80000041 greaves Tidewalker Greaves
+armour 80000042 greaves Firewalker Greaves
+armour 80000043 plate Lightwarden's Mantle
+armour 80000044 plate Moonlit Plate
+armour 80000045 boots Alchemist's Boots
+armour 80000046 greaves Goldguard Greaves
+armour 80000047 towershield Goldguard Shield
+armour 80000048 helm Goldguard Helm
+armour 80000049 plate Goldguard Mail
+armour 80000050 greaves Blackguard Greaves
+armour 80000051 towershield Blackguard Shield
+armour 80000052 helm Blackguard Helm
+armour 80000053 plate Blackguard Mail
+armour 80000054 greaves Crusader's Greaves
+armour 80000055 towershield Crusader's Shield
+armour 80000056 helm Crusader's Helm
+armour 80000057 plate Crusader's Mail
+armour 80000058 roundshield Eight-span Mirror
+armour 80000059 boots Relicwalker Boots
+armour 80000060 knuckle Garnet Gauntlet
+armour 80000061 mask Grieving Stage Mask
+armour 80000062 plate Seraph's Mantle
+armour 80000063 hat Windcaller's Hat
+armour 80000064 hunter Knight-ranger's Garb
+armour 80000065 plate Gravecaller Armour
+armour 80000066 horned Tuskhorn Helm
+armour 80000067 helm Raider's Helm
+armour 80000068 hood Lionpelt Hood
+armour 80000069 boots Jackalpaw Boots
+armour 80000070 boots Muddy Shoes
+armour 80000071 helm Sleepyhead Helm
+armour 80000072 mask Whitegold Visage
+armour 80000073 cloth Tarred Suit
+armour 80000074 cloth Alchemist's Suit
+armour 80000075 roundshield Manaward Shield
+armour 80000076 roundshield Alchemist's Shield
+armour 80000077 boots Gambler's Boots
+armour 80000078 roundshield Galeward Shield
+armour 80000079 roundshield Clockwork Shield
+armour 80000080 hunter Rimeclad Coat
+armour 80000081 hunter Forkrain Garb
+armour 80000082 plate Farshore Plate
+armour 80000083 plate Gatewarden
+armour 80000084 plate Mourner's Armour
+armour 80000085 hunter Merrow's Armour
+armour 80000086 plate Redbeard
+armour 80000087 chain Ringmail Shirt
+armour 80000088 chain Gilded Ringmail
+armour 80000089 chain Truesilver Ringmail
+armour 80000090 hunter Bloodied Jail Rags
+armour 80000091 robe Witchdoctor's Wrap
+armour 80000092 robe Spellwoven Coat
+armour 80000093 robe Deathriver Robe
+armour 80000094 robe Elder Coat
+armour 80000095 robe Sage's Mantle
+armour 80000096 roundshield Black Ward
+armour 80000097 roundshield Blue Ward
+armour 80000098 roundshield Red Ward
+armour 80000099 roundshield White Ward
+armour 80000100 roundshield Broad Garter
+armour 80000101 towershield Greeneye Shield
+armour 80000102 boardshield Titan's Great Shield
+armour 80000103 roundshield Stormhold Shield
+armour 80000104 roundshield Glassrock Shield
+armour 80000105 roundshield Lifeward
+armour 80000106 book Book of Last Wishes
+armour 80000107 book Scribe God's Book
+armour 80000108 book Drowned Scrolls
+armour 80000109 book Little Key of the Wise King
+armour 80000110 helm Hellwing Helm
+armour 80000111 horned Ramhorn Helm
+armour 80000112 circlet Circlet of Resolve
+armour 80000113 circlet Hidden Circlet
+armour 80000114 boardshield Aegis of the Gods
+armour 80000115 book Hermit's Book
+armour 80000116 book Titan's Book
+armour 80000117 plate Labyrinth Maker

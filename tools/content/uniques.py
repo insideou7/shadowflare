@@ -39,7 +39,11 @@ UNIDENTIFIED = {"ring": "Ring", "darkring": "Ring", "amulet": "Amulet", "pendant
                 "waystone": "Stone", "shortsword": "Short Sword", "longsword": "Long Sword",
                 "bastard": "Bastard Sword", "curved": "Curved Sword", "twohand": "Two-handed Sword",
                 "greatsword": "Great Sword", "axe": "Axe", "mace": "Mace", "bowgun": "Bowgun", "sling": "Slingshot",
-                "staff": "Staff", "rod": "Rod", "orbrod": "Orb Rod"}
+                "staff": "Staff", "rod": "Rod", "orbrod": "Orb Rod", "cloth": "Cloth Armour", "plate": "Plate Mail",
+                "hunter": "Hunting Coat", "robe": "Robe", "chain": "Chain Mail", "roundshield": "Round Shield",
+                "towershield": "Tower Shield", "boardshield": "Kite Shield", "book": "Book",
+                "knuckle": "Knuckle Guard", "helm": "Helm", "hat": "Hat", "hood": "Hood", "mask": "Mask",
+                "circlet": "Circlet", "horned": "Horned Helm", "boots": "Boots", "greaves": "Greaves"}
 
 # Hero layers the open pack's hero does not have yet, drawn as the nearest
 # one it has: bastard sword as long sword, rod and staff, great sword and
