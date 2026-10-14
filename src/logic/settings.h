@@ -19,9 +19,10 @@ struct Settings {
     // Volumes run from 0 (silent) to kMaxVolume. The original stores
     // DirectSound attenuation, -10000 to 0 hundredths of a decibel.
     static constexpr int kMaxVolume = 10;
-    // Cheats tab: the experience rate in percent, 0.5x to 5.0x in steps of
-    // 0.5x; 100 is the game as it comes.
-    static constexpr int kXpRateMin = 50, kXpRateMax = 500, kXpRateStep = 50, kXpRateNormal = 100;
+    // Cheats tab: the experience rates to pick from, in percent; 100 is
+    // the game as it comes.
+    static constexpr std::array<int, 5> kXpRates{100, 200, 500, 1000, 2000};
+    static constexpr int kXpRateNormal = 100;
     // Ours: how big the world is drawn, in percent. Each notch of the
     // scroll wheel moves it kZoomStep, from 100 (the original's view)
     // out to kMinZoom.
@@ -55,7 +56,7 @@ struct Settings {
     void putFirst(int target);
     // Where a kind of target is in the click priority, 0 = first.
     int rank(int target) const;
-    // Snaps a rate in percent to the nearest step within the range.
+    // The highest of kXpRates no more than `percent` (the lowest below it).
     static int clampXpRate(int percent);
 
     std::string write() const;

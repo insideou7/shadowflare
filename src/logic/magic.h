@@ -221,7 +221,9 @@ struct SpellBook {
     static SpellBook replay(const MagicTables& t, const std::vector<HeroClass>& history);
 
     // One use towards the spell's next level (0x44f6f0). True when it went up.
-    bool train(const MagicTables& t, int spell);
+    // `times` counts it as that many uses (the experience-rate cheat), and
+    // then it may go up more than one level.
+    bool train(const MagicTables& t, int spell, int times = 1);
     // The level a spell is cast at (0x451e60): its own, +2 in power mode,
     // at most 20, plus what equipment adds, at most 30.
     int castLevel(int spell, bool powerMode = false, int equipmentBonus = 0) const;
