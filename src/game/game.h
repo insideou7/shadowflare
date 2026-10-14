@@ -495,6 +495,7 @@ private:
     void dropHand();
     std::optional<std::size_t> groundItemAt(float screenX, float screenY) const;
     const SpriteBank* itemBank(const std::string& stem);
+    void drawItemMarks(const Item& item, const SDL_Rect& area);
     void drawItemPicture(const ItemDef& def, const SDL_Rect& area);
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
