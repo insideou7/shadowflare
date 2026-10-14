@@ -1,4 +1,4 @@
-# Bowguns and the hunter's volley
+# Bowguns, the hunter's volley and monsters' shots
 
 How ShadowFlare.exe shoots bowguns (Item.Ibn weapon subtype 5) and how the
 engine copies it. Addresses are in ShadowFlare.exe. The code is in
@@ -113,11 +113,63 @@ already scaled by the percent above, in the tone for a raised stat.
 Hovering it shows "Revision of Attack (Not for Hunters):-N%" in a black box
 with a white edge. The engine draws both the same way.
 
+## Monsters' stones and arrows (0x45a2f0)
+
+Slingshot goblins (Character/ENEMY/00000002) throw stones and dark elves
+(00000010) shoot arrows. Words 44-48 of a monster's scenario record say
+what it throws (see [formats.md](formats.md)):
+
+| Word | Monster + | What | Goblins | Elves |
+|---|---|---|---|---|
+| 44 | 0x184 | shot controller, -1 for none | 1 | 0, 4, 5 or 7 |
+| 45 | 0x190 | height | 250 | 250 |
+| 46 | 0x188 | speed a tick | 50 or 60 | 80-115 |
+| 47 | 0x18c | how far out it starts | 200 | 200 |
+| 48 | 0x194 | the attack that throws | 0 | 0 |
+
+The dragons and the fallen angel (12 and 24) have kind 6 on their second
+attack.
+
+- **The throw.** As the attack whose number is word 48 begins, the
+  monster aims at the hero where they stand (+0x260). On each frame of its
+  chart with status bit 0x40 (frame 27 of the goblin's 50), it hands a shot
+  to 0x42fdc0 instead of striking. The shot starts word 47 out along that
+  line, word 45 up, and flies word 46 a tick. It carries the attack's
+  power and hit (words 23-25 and 29-31) and the monster's element.
+- **The kinds** (0x429ec0, 0x42a300), the same controllers trap shots use
+  ([traps.md](traps.md)):
+  - 1 is the stone, Character/OPTION/00000001: 40 frames of a small
+    turning pebble with no direction.
+  - 0, 4, 5 and 7 are the arrow, OPTION/00000000, facing where it flies.
+    0 and 7 hide the flame and frost layers, 4 shows the flame, and 5 the
+    frost.
+  - 6 is OPTION/00000004 with a 320-unit box; the others have a ±30 box.
+  - All of them stop at walls and are spent on the nearest one in their
+    box.
+- **The hit.** It hurts players, companions and objects (mask 0x13).
+  The hero takes the attack's blow, as from a melee strike, and shows a
+  spark: 11000020-22 for an arrow, else 11000000, 01, 02 or 09. A fire
+  arrow (4) also plays effect 20000 (OPTION 10000011) on them, and an ice
+  arrow (5) effect 21013 (OPTION 11000026). The shot's sound is voice 7,
+  or 20 for kind 6.
+- **Not copied yet.** Kinds 5 and 7 also set hit word 3 to 1 and 2,
+  which put the hero in states the engine does not have (+0x324,
+  +0x15f0). Kind 6 names effect 21023 in its shot, use not traced. Words
+  52-60 go into the shot's hit struct too and are not decoded.
+
+The engine follows this in `Game::throwShot` (src/game/traps.cpp), with
+the shot run as a trap's. The open pack's slingshot goblins have
+`shot=1/250/50/200/0` and the `thrower` AI list (content/ai.txt), which
+tools/content/caster_ai.py gives any monster with a shot. Their charts
+have no 0x40 frame, so the stone leaves halfway through the attack.
+
 ## Ours
 
 - A shot that leaves the map's walkability grid is removed. The original
   flies it on into nothing.
 - The open pack's hero has no shooting chart, so it plays the punch chart
   instead. The open pack has no bowgun item yet.
+- A monster's shot that misses is also removed once it leaves the
+  judge grid.
 - Nothing here changes the original's rules, so original mode has nothing
   to switch.

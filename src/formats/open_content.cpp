@@ -461,6 +461,15 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                         p.stats.speed = lines.toInt(v);
                     } else if (key == "word7") {
                         p.stats.word7 = lines.toInt(v);
+                    } else if (key == "shot") {
+                        // kind/height/speed/start/attack, as words 44-48
+                        const auto parts = Lines::split(v, '/');
+                        if (parts.size() != 5) lines.fail("shot needs five values kind/height/speed/start/attack");
+                        p.stats.shotKind = lines.toInt(parts[0]);
+                        p.stats.shotHeight = lines.toInt(parts[1]);
+                        p.stats.shotSpeed = lines.toInt(parts[2]);
+                        p.stats.shotStart = lines.toInt(parts[3]);
+                        p.stats.shotSlot = lines.toInt(parts[4]);
                     } else if (key == "stun") {
                         std::array<std::int32_t, 3> stun{};
                         three(stun);
@@ -1011,6 +1020,8 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item->heroLayer = lines.toInt(value);
         } else if (key == "glow") {
             item->glowLayer = lines.toInt(value);
+        } else if (key == "page") {
+            item->specialPage = lines.toInt(value);
         } else if (key == "two-handed") {
             item->twoHandedFlag = lines.toInt(value) != 0;
         } else if (key == "effect") {

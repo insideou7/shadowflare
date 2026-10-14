@@ -44,6 +44,7 @@ struct GroundRule {
     struct Entry {
         const MaterialTexture* texture = nullptr;  // null = black
         Rgb colour;                                // its typical colour in the original
+        Rgb average;                               // the texture's average colour (black for none)
     };
     std::vector<Entry> entries;
 };
@@ -56,5 +57,14 @@ struct GroundRule {
 // are matched, so speckles in the original do not show through.
 std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin, const std::vector<std::uint32_t>& original,
                                        const std::vector<std::int16_t>& rule, const std::vector<GroundRule>& rules);
+
+// A texture's average colour.
+Rgb averageColour(const MaterialTexture& texture);
+
+// What paintGround paints on average where the smoothed original colour is
+// (r, g, b): the entries' average colours, mixed as paintGround mixes their
+// textures. For pictures of a whole map, where painting it all would be slow.
+// `weights` is room to work in, kept between calls.
+Rgb averagePainted(const GroundRule& rule, float r, float g, float b, std::vector<float>& weights);
 
 }  // namespace sf

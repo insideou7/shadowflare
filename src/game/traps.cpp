@@ -65,7 +65,7 @@ void Game::fireTrap(const ScriptHost::TrapFire& f) {
     e.trap = Effect::Trap{*shot, f.kind, f.power, f.fixedDamage, f.stun};
     // Kind 0 is the plain arrow: its flame and frost layers are turned off
     // once it is made (0x42a300), as for a bowgun's.
-    if (f.kind == 0) e.hiddenLayers = 1u << 2 | 1u << 3;
+    e.hiddenLayers = shotHiddenLayers(f.kind);
 }
 
 // One of the original's ticks of a trap's shot (0x45e1e0): it hurts where
@@ -77,17 +77,20 @@ void Game::stepTrap(Effect& e) {
         const bool heroIn = playerHp_ > 0 && overlaps(e.x, e.y, shot.box, player_->x, player_->y, kHeroJudge);
         const bool partnerIn = partnerAlive() && partnerRecord_.active &&
                                overlaps(e.x, e.y, shot.box, partner_->character.x, partner_->character.y, kPartnerJudge);
+        const bool thrown = e.trap->thrower >= 0;
+        const auto hitHero = [&] { thrown ? shotHitsPlayer(e) : trapHitsPlayer(e); };
+        const auto hitPartner = [&] { thrown ? shotHitsPartner(e) : trapHitsPartner(e); };
         if (shot.hitsAll) {
-            if (heroIn) trapHitsPlayer(e);
-            if (partnerIn) trapHitsPartner(e);
+            if (heroIn) hitHero();
+            if (partnerIn) hitPartner();
         } else if (heroIn || partnerIn) {
             // Only the nearest one in the box is hurt, and the shot is spent.
             const double heroGap = heroIn ? std::hypot(player_->x - e.x, player_->y - e.y) : INFINITY;
             const double partnerGap = partnerIn ? std::hypot(partner_->character.x - e.x, partner_->character.y - e.y) : INFINITY;
             if (heroGap <= partnerGap) {
-                trapHitsPlayer(e);
+                hitHero();
             } else {
-                trapHitsPartner(e);
+                hitPartner();
             }
             if (shot.diesOnHit) e.dead = true;
         }
@@ -98,6 +101,78 @@ void Game::stepTrap(Effect& e) {
     moveShot(e, shot.box, shot.diesOnWall);
     ++e.age;
     if (e.life >= 0 && e.age >= e.life) e.dead = true;
+    // Ours: a monster's shot that misses is gone once it leaves the map's
+    // judge grid (the original would fly it on into nothing).
+    if (e.trap->thrower >= 0 && map_) {
+        const auto& g = map_->ground();
+        const double left = (g.judgeX - 1) * g.magX, top = (g.judgeY - 1) * g.magY;
+        const double right = (g.judgeX + g.judgeWidth + 1) * g.magX, bottom = (g.judgeY + g.judgeHeight + 1) * g.magY;
+        if (e.x < left || e.x > right || e.y < top || e.y > bottom) e.dead = true;
+    }
+}
+
+// The stone or arrow leaves the monster's hand on its attack's striking
+// frame (0x45a2f0, handed to 0x42fdc0 and the shot controllers 0x429ec0
+// and 0x42a300): it starts `shotStart` out from the monster along the
+// line to where the hero stood as the attack began, `shotHeight` up, and
+// flies `shotSpeed` a tick until it hits the hero, the companion or a wall.
+// It carries the attack's power, hit and the monster's element.
+void Game::throwShot(Actor& enemy, int slot) {
+    const auto& st = enemy.placement.stats;
+    const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
+    // The original's angles have world y up, the engine's down.
+    const double up = -enemy.aim;
+    const auto shot = trapShot(st.shotKind, 8, up);
+    if (!shot) {
+        log::warn("Monster {} shoots kind {}, which is not carried out", enemy.gameId(), st.shotKind);
+        return;
+    }
+    const double x = enemy.character.x + std::trunc(std::cos(up) * st.shotStart);
+    const double y = enemy.character.y - std::trunc(std::sin(up) * st.shotStart);
+    Effect& e = spawnEffect(shot->option, x, y);
+    e.facing = shot->direction;
+    e.height = st.shotHeight;
+    e.angle = enemy.aim;
+    e.speed = st.shotSpeed;
+    e.life = -1;
+    e.hiddenLayers = shotHiddenLayers(st.shotKind);
+    Effect::Trap t;
+    t.shot = *shot;
+    t.kind = st.shotKind;
+    t.power = st.attacks[k];
+    t.thrower = static_cast<int>(&enemy - actors_.data());
+    t.hit = st.hits[k];
+    t.element = st.element;
+    e.trap = t;
+    log::info("Monster {} throws a kind {} shot", enemy.gameId(), st.shotKind);
+}
+
+// A monster's shot on the hero: the blow of the attack that threw it, as
+// strikePlayer deals one (0x443cb0 by way of 0x45e1e0), with the shot's
+// spark and sound where it lands, and a fire or ice arrow's effect.
+void Game::shotHitsPlayer(const Effect& e) {
+    const HeroStats stats = playerStats();
+    if (random_.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) return;
+    playSound(e.trap->shot.hitSound, e.x, e.y);
+    int defense = stats[HeroStats::kDefense];
+    if (power_.active()) defense = defense * 12 / 10;
+    if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
+    if (const int option = scriptEffectOption(monsterShotSpark(e.trap->kind, random_.next(4))); option > 0) {
+        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+    }
+    if (const int option = scriptEffectOption(monsterShotEffect(e.trap->kind)); option > 0) {
+        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+    }
+    Actor* thrower = static_cast<std::size_t>(e.trap->thrower) < actors_.size() ? &actors_[static_cast<std::size_t>(e.trap->thrower)] : nullptr;
+    hurtPlayer(damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, random_.next(3)), false, thrower);
+}
+
+// The same shot on an ACTIVE companion, as strikePartner's blow.
+void Game::shotHitsPartner(const Effect& e) {
+    const PartnerStats& st = partner_->stats;
+    if (random_.next(100) >= hitChance(e.trap->hit, st.evasion)) return;
+    playSound(e.trap->shot.hitSound, e.x, e.y);
+    hurtPartner(spellDamage(e.trap->power, e.trap->element, st.element, st.defense, random_.next(3), random_.next(4)));
 }
 
 // A trap's blow on the hero (0x443cb0 by way of 0x45e1e0): it must beat

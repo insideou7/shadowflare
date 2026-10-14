@@ -58,10 +58,14 @@ std::optional<TrapShot> trapShot(int kind, int direction, double angle) {
         case 0:
         case 1:
         case 3:
+        case 4:
+        case 5:
+        case 7:
             // Arrows and the like: a 61-unit square that flies until it hits
-            // the nearest one in it or a wall. Kind 1 has no direction and
-            // kind 3 always faces where it flies.
-            s.option = kind;
+            // the nearest one in it or a wall. Kind 1 (the stone) has no
+            // direction and kind 3 always faces where it flies; 4, 5 and 7
+            // are kind 0's arrow.
+            s.option = kind == 1 || kind == 3 ? kind : 0;
             s.direction = kind == 1 ? 8 : kind == 3 || direction == 8 ? directionOfAngle(angle) : direction;
             s.box = {-30, -30, 30, 30};
             s.diesOnHit = true;
@@ -86,8 +90,39 @@ std::optional<TrapShot> trapShot(int kind, int direction, double angle) {
             s.lastsItsAnimation = true;
             s.hitsAll = true;
             return s;
+        case 6:
+            // A big shot (OPTION 4) with a 320-unit box, facing its way.
+            s.option = 4;
+            s.direction = direction == 8 ? directionOfAngle(angle) : direction;
+            s.box = {-160, -160, 159, 159};
+            s.diesOnHit = true;
+            s.diesOnWall = true;
+            s.hitSound = 20;
+            return s;
         default: return std::nullopt;
     }
+}
+
+unsigned shotHiddenLayers(int kind) {
+    constexpr unsigned kFlame = 1u << 2, kFrost = 1u << 3;
+    switch (kind) {
+        case 0:
+        case 7: return kFlame | kFrost;
+        case 4: return kFrost;
+        case 5: return kFlame;
+        default: return 0;
+    }
+}
+
+int monsterShotSpark(int kind, int roll) {
+    const bool arrow = kind == 0 || kind == 4 || kind == 5 || kind == 7;
+    return arrow ? 21007 + std::clamp(roll, 0, 3) % 3 : 21000 + std::clamp(roll, 0, 3);
+}
+
+int monsterShotEffect(int kind) {
+    if (kind == 4) return 20000;
+    if (kind == 5) return 21013;
+    return -1;
 }
 
 int scriptEffectOption(int controller) {

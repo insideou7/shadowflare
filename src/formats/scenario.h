@@ -62,6 +62,13 @@ struct ScenarioControl {
             // 0x11c), and each spell, less 7 (words 67-69, + 0x164), as
             // 0x45a749 and 0x45ac90 read them.
             std::array<std::int32_t, 3> attackCharts{0, 1, 2}, spellCharts{};
+            // What it throws or shoots (words 44-48, monster + 0x184, 0x190,
+            // 0x188, 0x18c and 0x194; 0x45a2f0 reads them): the shot
+            // controller (0x429ec0; 1 a stone, 0, 4, 5 and 7 arrows, -1
+            // none), how high it flies, its speed a tick, how far out from
+            // the monster it starts, and the attack (0-2) that throws it
+            // instead of striking.
+            std::int32_t shotKind = -1, shotHeight = 0, shotSpeed = 0, shotStart = 0, shotSlot = 0;
             std::int32_t magicEvasion = 0;  // word 12; what spells must beat (0x45eb2b)
             // Word 7 (monster + 0xdc), meaning unknown; Counter Burst
             // reflects half as much onto monsters where it is 100.

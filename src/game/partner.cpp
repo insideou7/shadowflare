@@ -89,6 +89,12 @@ PartnerStats Game::partnerStats() const {
     return s;
 }
 
+std::vector<int> Game::partnerLayers(const CharacterModel& m, const std::vector<int>& before) {
+    std::vector<int> layers = allLayers(m);
+    if (std::ranges::find(before, kStreakLayer) == before.end()) std::erase(layers, kStreakLayer);
+    return layers;
+}
+
 void Game::spawnPartner() {
     const int carried = partner_ ? partner_->hp : partnerHpCarried_;
     partner_.reset();
@@ -102,11 +108,7 @@ void Game::spawnPartner() {
     p.character.x = player_->x;
     p.character.y = player_->y;
     p.character.direction = player_->direction;
-    p.character.visibleLayers.clear();
-    if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
-        for (std::size_t i = 0; i < m->animations.charts[0].directions[0].layers.size(); ++i)
-            if (static_cast<int>(i) != kStreakLayer) p.character.visibleLayers.push_back(static_cast<int>(i));
-    }
+    p.character.visibleLayers = partnerLayers(*m);
     auto tint = [](int perMille) { return static_cast<Uint8>(std::clamp(perMille * 255 / 1000, 0, 255)); };
     p.character.tint = {tint(k.tint[0]), tint(k.tint[1]), tint(k.tint[2]), 255};
     p.stats = partnerStats();

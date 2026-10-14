@@ -838,6 +838,8 @@ void testMagic() {
           "original mode draws no outline around what is under the pointer");
     check(sf::Rules::ours().rightClickSells && !sf::Rules::original().rightClickSells,
           "selling from the bag with a right click is ours alone");
+    check(sf::Rules::ours().noEmptyGoldInWarehouse && !sf::Rules::original().noEmptyGoldInWarehouse,
+          "original mode leaves empty gold in the warehouse");
 }
 
 void testPowerMode() {
@@ -999,7 +1001,20 @@ void testTrapShots() {
     const auto jet = sf::trapShot(2, 3, 0);
     check(jet && jet->hitsAll && jet->lastsItsAnimation && jet->hitFrom == 5 && jet->hitTo == 30 && jet->box.top == -360,
           "a fire jet burns its whole length from tick 5 to 30");
-    check(sf::trapShot(1, 4, 0)->direction == 8 && !sf::trapShot(5, 0, 0), "kind 1 has no facing; kinds 4-7 are not fired");
+    check(sf::trapShot(1, 4, 0)->direction == 8 && sf::trapShot(1, 4, 0)->option == 1 && !sf::trapShot(8, 0, 0),
+          "kind 1 (the stone) has no facing; kind 8 is not fired");
+    const auto fireArrow = sf::trapShot(4, 8, 0), big = sf::trapShot(6, 8, 0);
+    check(fireArrow && fireArrow->option == 0 && fireArrow->direction == 1 && fireArrow->box.right == 30 && sf::trapShot(7, 8, 0)->option == 0,
+          "kinds 4, 5 and 7 fly as kind 0's arrow");
+    check(big && big->option == 4 && big->box.left == -160 && big->box.right == 159 && big->hitSound == 20 && big->diesOnWall,
+          "kind 6 is OPTION 4 with a 320-unit box");
+    check(sf::shotHiddenLayers(0) == 12 && sf::shotHiddenLayers(7) == 12 && sf::shotHiddenLayers(4) == 8 &&
+              sf::shotHiddenLayers(5) == 4 && sf::shotHiddenLayers(1) == 0,
+          "a plain arrow hides flame and frost, a fire arrow the frost, an ice arrow the flame");
+    check(sf::monsterShotSpark(1, 3) == 21003 && sf::monsterShotSpark(4, 1) == 21008 && sf::monsterShotSpark(0, 3) == 21007,
+          "a monster's stone sparks as a stone, its arrows as arrows");
+    check(sf::monsterShotEffect(4) == 20000 && sf::monsterShotEffect(5) == 21013 && sf::monsterShotEffect(1) == -1,
+          "fire and ice arrows play their effect on the one hit");
     check(sf::scriptEffectOption(21003) == 11000009 && sf::scriptEffectOption(22000) == 12000000 && sf::scriptEffectOption(1) == 0,
           "effect numbers name OPTION folders");
     check(sf::trapHitOption(0, 1) == 11000021 && sf::trapHitOption(2, 3) == 11000009, "the sparks of a trap's hit");

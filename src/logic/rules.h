@@ -46,11 +46,15 @@ struct Rules {
     // anywhere (0x44a6f0); to sell, the item is picked up and put on the
     // shop.
     bool rightClickSells = true;
+    // Gold put in the Warehouse Transfer Box that exactly fills the
+    // warehouse's gold stacks leaves a Gold item of 0 behind, which the
+    // original puts down in the warehouse (0x446320). Ours drops it.
+    bool noEmptyGoldInWarehouse = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer && !rightClickSells;
+               !outlineUnderPointer && !rightClickSells && !noEmptyGoldInWarehouse;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -64,6 +68,7 @@ struct Rules {
         r.zoomOut = false;
         r.outlineUnderPointer = false;
         r.rightClickSells = false;
+        r.noEmptyGoldInWarehouse = false;
         return r;
     }
 };
