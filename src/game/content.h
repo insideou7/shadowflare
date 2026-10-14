@@ -15,7 +15,8 @@ class FileSystem;
 std::string folderOf(const std::string& path);
 
 // Loads a .sheet and the image it names as a sprite bank; logs and
-// returns nothing when either is missing or broken.
-std::optional<SpriteBank> loadSheet(const FileSystem& data, const std::string& path);
+// returns nothing when either is missing or broken. `trim` as for
+// open::makeSpriteBank.
+std::optional<SpriteBank> loadSheet(const FileSystem& data, const std::string& path, bool trim = false);
 
 }  // namespace sf
