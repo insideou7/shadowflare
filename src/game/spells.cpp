@@ -203,7 +203,7 @@ void Game::startCast(double worldX, double worldY) {
     // with it too (0x43d290, 0x43a260).
     int chart = spell == kHeal || spell == kMoon || spell == kTransport ? chart::kPlayerHeal : chart::kPlayerCast;
     if (!player_->hasChart(chart)) chart = player_->hasChart(chart::kPlayerCast) ? chart::kPlayerCast : chart::kPlayerPunch;
-    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active()));
+    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active(), overloaded(playerStats())));
     // Transport's gate appears as the cast begins.
     if (kind == Kind::Transport) openTransportGate();
     if (kind == Kind::Cast) {

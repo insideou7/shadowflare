@@ -894,8 +894,17 @@ void testPowerMode() {
           "Berserker, Moon and Energy Shield can't be cast in power mode");
 
     const auto t = sf::MagicTables::standard();
-    check(sf::walkSpeedFactor(128) == 1.0 && sf::walkSpeedFactor(0) < 1.0, "walking speed 128 is the normal step");
-    check(std::abs(sf::walkSpeedFactor(0, true) - 4.0 / 3.0) < 1e-9, "power mode walks at the fastest step");
+    check(sf::heroMoveSpeed(128, false) == 20 && sf::heroMoveSpeed(128, true) == 40, "a new hero walks 20 and runs 40 a tick");
+    check(sf::heroMoveSpeed(0, false) == 15 && sf::heroMoveSpeed(255, false) == 25 && sf::heroMoveSpeed(300, true) == 52,
+          "the walk is 20 times the step, cut to a whole number, and the run twice it");
+    check(sf::heroMoveSpeed(200, false) == 24 && sf::heroMoveSpeed(180, false) == 23, "steps 6 and 7 walk 23 and 24");
+    check(sf::heroMoveSpeed(0, false, true) == 26 && sf::heroMoveSpeed(0, true, true) == 53, "power mode walks 26 and runs 53");
+    check(sf::heroMoveSpeed(128, true, false, true) == 26 && sf::heroMoveSpeed(128, true, true, true) == 53,
+          "carrying too much drops to the bottom step, except in power mode");
+    check(sf::attackSpeedFactor(t, 100, false, true) == 0.3 && sf::attackSpeedFactor(t, 100, true, true) == 2.0,
+          "carrying too much swings at the slowest step, except in power mode");
+    check(sf::castSpeedFactor(t, sf::kFireBall, 80, true, true) == sf::castSpeedFactor(t, sf::kFireBall, 0, true),
+          "power mode casts at the fastest step even when carrying too much");
     check(sf::attackSpeedFactor(t, 0, true) == 2.0 && sf::attackSpeedFactor(t, 0) < 2.0, "power mode attacks at the fastest step");
     check(sf::attackSpeedFactor(t, 255) >= sf::attackSpeedFactor(t, 0), "faster attack speed, faster swings");
 }

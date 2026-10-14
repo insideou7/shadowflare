@@ -19,14 +19,11 @@ namespace sf {
 
 namespace {
 
-// Walking speed in world units per tick. Not yet taken from the original;
-// nor is running, which is ours at twice the walk.
-constexpr double kWalkSpeed = kPlayerWalkSpeed;
-constexpr double kRunSpeed = 140.0;
-
 // Monsters take their health, attack and defense from the scenario file.
 // Blows follow the original's rules (see strikeEnemy and strikePlayer).
-constexpr double kEnemySpeed = 35.0;
+// One with no AI list walks at 20 an original tick, the original's commonest
+// approach speed in Control.aid (the hero walks at 20 too).
+constexpr double kEnemySpeed = 20.0 * kOriginalTicksPerTick;
 // OPTION animations: the flash of Reflection (option 20014) and the orbs of
 // Absorption (option 20013).
 constexpr int kReflectGlow = 11000013, kAbsorbOrb = 11000012;
@@ -1022,7 +1019,8 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
 // A swing of the hero's weapon, as fast as their attack speed (power mode:
 // the fastest).
 void Game::swing() {
-    player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, playerStats()[HeroStats::kAttackSpeed], power_.active()));
+    const HeroStats stats = playerStats();
+    player_->restart(chart::kPlayerPunch, attackSpeedFactor(magic_, stats[HeroStats::kAttackSpeed], power_.active(), overloaded(stats)));
     blowLanded_ = false;
     shouted_ = false;
     swingTicks_ = 0;
@@ -1258,9 +1256,11 @@ void Game::tickPlayer() {
 
     // Run when RUN is chosen (R), or while Ctrl is held.
     const bool running = runMode_ || (SDL_GetModState() & KMOD_CTRL) != 0;
-    // Walking speed picks a step of the original's scale; power mode the
-    // fastest.
-    const double speed = (running ? kRunSpeed : kWalkSpeed) * walkSpeedFactor(playerStats()[HeroStats::kWalkSpeed], power_.active());
+    // The original's step for this walking speed, in its ticks; power mode
+    // the fastest, and the slowest when the hero wears more than they can
+    // carry.
+    const HeroStats stats = playerStats();
+    const double speed = heroMoveSpeed(stats[HeroStats::kWalkSpeed], running, power_.active(), overloaded(stats)) * kOriginalTicksPerTick;
     const double length = std::hypot(dx, dy);
     if (length > 1.0) {
         const double step = std::min(speed, walkTarget_ ? length : speed);

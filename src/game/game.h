@@ -70,8 +70,6 @@ inline constexpr int kTicksPerSecond = 20;
 // The original runs 30 ticks a second, so each engine tick is 1.5 of them.
 inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 
-// The hero's step in world units per tick. Not yet taken from the original.
-inline constexpr double kPlayerWalkSpeed = 70.0;
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
 // The belt pocket's cells on the screen, as the original's clicks find them
@@ -300,13 +298,13 @@ private:
         // Control.aid state; aiList -1 = no list, use the simple chase.
         int aiList = -1;
         int action = -1;
-        int actionTicks = 0;
+        double actionTicks = 0;  // the original's ticks since the action began
         int event = AiControl::kDecide;
         AiControl::Entry entry;
         bool struck = false;  // the current attack has landed
         double aim = 0;       // where its spell goes, radians in world space (monster + 0x260)
         double wanderX = 0, wanderY = 0;
-        int wanderPause = 0;
+        double wanderPause = 0;
         bool active = true;   // SETINACTIVE hides a character
         bool stopped = false;  // C_STOP holds it still while it talks
         std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
@@ -476,6 +474,9 @@ private:
     HeroStats playerStats() const;
     HeroStats playerStats(int& chantSpeed) const;  // and the chant speed with them
     ElementLevels playerElements() const;
+    // Wearing more than their strength can carry slows the hero's walk,
+    // swing and chant to the bottom step (0x445630, 0x450c60, 0x450d40).
+    bool overloaded(const HeroStats& stats) const { return inventory_.wornWeight() > stats[HeroStats::kStrength]; }
     int playerAttack() const { return playerStats()[HeroStats::kAttack]; }
     int playerDefense() const { return playerStats()[HeroStats::kDefense]; }
     int playerHit() const { return playerStats()[HeroStats::kHit]; }
