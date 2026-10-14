@@ -147,19 +147,23 @@ Options:
 
 Run the unit tests with `ctest --test-dir build`.
 
-### Browser build (later)
+### Browser build
 
-The main loop runs one frame per call, so the same code builds with Emscripten:
+The same code builds for the browser with Emscripten (WebAssembly). Open
+`build-web/shadowflare.html` from a web server, not from disk:
 
-    emcmake cmake -S . -B build-web
+    emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF
     cmake --build build-web
+    python3 -m http.server -d build-web 8000   # then http://localhost:8000/shadowflare.html
 
-Players will still need to supply their own game files.
+The page plays the open game, or the original from the player's own copy
+picked with a folder picker. See [docs/web.md](docs/web.md).
 
 ## Layout
 
     src/core/       logging and shared helpers
     src/platform/   OS boundary: file access (all data goes through FileSystem)
+    web/            the browser build's page and its JavaScript side
     src/formats/    readers for the original data files (no SDL dependency)
     src/render/     turning decoded sprites into textures
     src/logic/      game rules without SDL: scripts, AI choice, movement

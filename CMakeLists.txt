@@ -8,6 +8,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
 
+if(EMSCRIPTEN)
+    # The format readers report bad data by throwing, and Emscripten turns
+    # catching off unless asked. Wasm's own exceptions are the fast kind.
+    add_compile_options(-fwasm-exceptions)
+    add_link_options(-fwasm-exceptions)
+endif()
+
 # Data file readers: no SDL dependency, so they can be tested on their own.
 add_library(sf_formats STATIC
     src/formats/rclib.cpp
@@ -139,10 +146,19 @@ if(BUILD_TESTING)
 endif()
 
 if(EMSCRIPTEN)
-    # Emscripten ships its own SDL2 port.
+    # The browser build (docs/web.md): Emscripten's own SDL2 port, the open
+    # content packed into shadowflare.data, and a page (web/shell.html) that
+    # starts the open game or the player's own files from a folder picker.
     target_compile_options(shadowflare PRIVATE -sUSE_SDL=2)
-    target_link_options(shadowflare PRIVATE -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sFORCE_FILESYSTEM=1)
-    set_target_properties(shadowflare PROPERTIES SUFFIX ".html")
+    target_link_options(shadowflare PRIVATE
+        -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4GB -sSTACK_SIZE=4MB
+        -sFORCE_FILESYSTEM=1 -lidbfs.js -sINVOKE_RUN=0 -sENVIRONMENT=web
+        -sEXPORTED_RUNTIME_METHODS=callMain
+        --preload-file ${CMAKE_SOURCE_DIR}/content@/content
+        --pre-js ${CMAKE_SOURCE_DIR}/web/pre.js
+        --shell-file ${CMAKE_SOURCE_DIR}/web/shell.html)
+    set_target_properties(shadowflare PROPERTIES SUFFIX ".html"
+        LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/pre.js;${CMAKE_SOURCE_DIR}/web/shell.html")
 else()
     find_package(SDL2 CONFIG QUIET)
     if(NOT SDL2_FOUND AND SFE_FETCH_SDL)
