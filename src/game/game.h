@@ -235,6 +235,11 @@ public:
     // player is, or holds the left button on one (for scripted tests).
     void useObject(std::int32_t id) { runEvent(ScenarioScript::kOnTalk, id); }
     void holdObject(std::int32_t id) { heldObject_ = id; }
+    // Holds the left button down at the pointer (--hold-button, with --pointer).
+    void pressLeftButton() {
+        pressed_ = true;
+        mouseHeld_ = true;
+    }
     void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
     // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
     void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
@@ -345,6 +350,10 @@ private:
     // A map object with a talk script (the warehouse) under the mouse,
     // as an index into control_.placements.
     std::optional<std::size_t> objectAt(float screenX, float screenY) const;
+    // Any shown, usable map object under the mouse, talk script or not
+    // (a CCHECK switch has none).
+    std::optional<std::size_t> usableObjectAt(float screenX, float screenY) const;
+    std::optional<std::size_t> objectAt(float screenX, float screenY, bool talks) const;
     bool shopClick(int x, int y, bool right);
     // The shop takes the item in hand and pays for it; false, with the
     // item still in hand, when it will not.
@@ -1183,7 +1192,8 @@ private:
     PartnerRecord partnerRecord_;
     std::optional<Partner> partner_;
     int partnerHpCarried_ = 0;  // its health across a map change (+0x156c); 0 = full
-    bool mouseHeld_ = false;
+    bool mouseHeld_ = false;  // the left button walks or fights while down
+    bool pressed_ = false;    // --hold-button: the left button stays down
     bool showJudge_ = false;
     bool autoFight_ = false;
 

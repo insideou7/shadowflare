@@ -125,7 +125,8 @@ Options:
   screen pixels (repeatable), e.g. to buy and sell in a shop
 - `--use <id>` use a scenario object (a chest, lever or door) from where the
   player stands, as clicking it does; `--hold <id>` holds the left button on
-  one (a Brain Globe counts down while the hero is within reach)
+  one (a Brain Globe counts down while the hero is within reach); `--hold-button`
+  holds the left button down at the pointer (`--pointer`) the whole run
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--quest-flag <id>=<state>` set a mission's flag first (1 taken, 2 cleared)
 - `--missions` start with the mission list open; `--missions=<n>` with mission n's description open

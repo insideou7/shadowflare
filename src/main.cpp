@@ -80,6 +80,7 @@ struct Options {
     std::vector<int> answers; // replies to the first messages, -1 = none
     std::vector<int> use;  // objects to use from where the player stands
     int hold = -1;          // an object the left button holds down
+    bool press = false;     // the left button held down at the pointer all along
     std::vector<std::pair<int, int>> saveFlags;  // SAVE[id] = value before the start
     std::vector<std::pair<int, int>> questFlags;  // QUEST[id] = state (1 taken, 2 cleared)
     std::optional<int> missions;  // open the mission list (-1, or a mission's description)
@@ -179,6 +180,8 @@ Options parseArgs(int argc, char** argv) {
             options.use.push_back(static_cast<int>(std::strtol(argv[++i], nullptr, 10)));
         } else if (arg == "--hold" && i + 1 < argc) {
             options.hold = static_cast<int>(std::strtol(argv[++i], nullptr, 10));
+        } else if (arg == "--hold-button") {
+            options.press = true;
         } else if (arg == "--save-flag" && i + 1 < argc) {
             int id = 0, value = 0;
             if (std::sscanf(argv[++i], "%d=%d", &id, &value) == 2) options.saveFlags.emplace_back(id, value);
@@ -657,6 +660,7 @@ int main(int argc, char** argv) {
     if (options.talk >= 0) app.game->talkToId(options.talk);
     for (const int id : options.use) app.game->useObject(id);
     if (options.hold >= 0) app.game->holdObject(options.hold);
+    if (options.press) app.game->pressLeftButton();
     if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
     // After the cast, so a walk can follow it (into a Transport gate).

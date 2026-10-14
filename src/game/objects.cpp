@@ -211,17 +211,18 @@ SDL_Rect Game::sceneObjectPicture(const SceneObject& o) {
 // CCHECK (0x4346b0): the left button is held on the object, which is shown
 // and usable, and the hero stands within reach of its rectangle.
 bool Game::workingObject(std::int32_t id) const {
-    if (!player_ || (!mouseHeld_ && heldObject_ != id)) return false;
+    // The button itself, not mouseHeld_: a click on an object with a talk
+    // script stops the hold from walking, but the button is still down.
+    const bool down = pressed_ || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0;
+    if (!player_ || (!down && heldObject_ != id)) return false;
     const auto* o = sceneObject(id);
     if (!o || !objectState(*o, kShown) || !objectState(*o, kUsable)) return false;
     const auto& p = placementOf(*o);
     if (heldObject_ != id) {
-        int mx, my;
-        SDL_GetMouseState(&mx, &my);
-        float lx, ly;
-        SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
+        const auto at = pointerPosition();
+        if (!at) return false;
         double wx, wy;
-        screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
+        screenToWorld(pixelX(at->x), pixelY(at->y), wx, wy);
         if (!inside(p, wx, wy)) return false;
     }
     const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));

@@ -1068,10 +1068,15 @@ void Game::tickPlayer() {
     // strike in place, at whatever is in reach.
     const bool stayPut = (SDL_GetModState() & KMOD_SHIFT) != 0;
     if (mouseHeld_) {
-        int mx, my;
-        SDL_GetMouseState(&mx, &my);
         float lx, ly;
-        SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
+        if (const auto at = pointerPosition()) {
+            lx = at->x;
+            ly = at->y;
+        } else {
+            int mx, my;
+            SDL_GetMouseState(&mx, &my);
+            SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
+        }
         const auto target = clickTarget(lx, ly, (1u << Settings::kEnemy) | (1u << Settings::kItem));
         attackTarget_.reset();
         talkTarget_.reset();
@@ -1096,6 +1101,20 @@ void Game::tickPlayer() {
         } else if (target.kind == Settings::kItem) {
             // Walking onto an item picks it up.
             walkTarget_.emplace(groundItems_[target.index].x, groundItems_[target.index].y);
+        } else if (const auto object = usableObjectAt(lx, ly)) {
+            // Held on a chest or switch, the hero goes up to it and then
+            // stays put while the button is down (0x449240: in reach, they
+            // only turn to it; holding steers only a walk under way), so
+            // CCHECK switches can be held down.
+            const auto& p = control_.placements[*object];
+            const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));
+            const double ny = std::clamp(player_->y, double(p.y + p.rect[1]), double(p.y + p.rect[3]));
+            if (std::hypot(nx - player_->x, ny - player_->y) <= kTalkRange) {
+                walkTarget_.reset();
+                player_->faceTowards(p.x - player_->x, p.y - player_->y);
+            } else {
+                walkTarget_.emplace(nx, ny);
+            }
         } else {
             double wx, wy;
             screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
