@@ -127,7 +127,7 @@ void Game::followPointerTarget() {
     if (pointerOnKind_ == Settings::kItem) {
         for (const auto& g : groundItems_) consider(g.x, g.y, 8);
     } else if (pointerOnKind_ == Settings::kObject) {
-        // The middle of each object a click would go for.
+        // The middle of each usable object, where a click would go.
         for (std::size_t i = 0; i < control_.placements.size(); ++i) {
             const auto& p = control_.placements[i];
             if (p.group != ScenarioControl::Group::Object) continue;
@@ -135,7 +135,7 @@ void Game::followPointerTarget() {
             int sx, sy;
             worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
             const auto [px, py] = onScreen(sx, sy);
-            if (objectAt(px, py) == i) consider(x, y, 0);
+            if (usableObjectAt(px, py) == i) consider(x, y, 0);
         }
     } else {
         for (const auto& a : actors_) {

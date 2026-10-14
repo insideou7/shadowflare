@@ -300,6 +300,14 @@ const ScenarioControl::Placement* Game::placementById(std::int32_t id) const {
 }
 
 std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
+    return objectAt(screenX, screenY, true);
+}
+
+std::optional<std::size_t> Game::usableObjectAt(float screenX, float screenY) const {
+    return objectAt(screenX, screenY, false);
+}
+
+std::optional<std::size_t> Game::objectAt(float screenX, float screenY, bool talks) const {
     if (!script_) return std::nullopt;
     double wx, wy;
     screenToWorld(pixelX(screenX), pixelY(screenY), wx, wy);
@@ -311,6 +319,7 @@ std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
         // Only what is shown and usable answers a click (0x45e080).
         const auto* o = sceneObject(id);
         if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) continue;
+        if (!talks) return i;
         for (const auto& t : script_->triggers) {
             if (t.event == ScenarioScript::kOnTalk && t.character == id) return i;
         }
