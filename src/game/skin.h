@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 
+#include <array>
 #include <cstdint>
 #include <list>
 #include <map>
@@ -75,6 +76,14 @@ private:
     const MaterialTexture* material(const std::string& name);
     SDL_Texture* groundChunk(int cx, int cy);
     const SpriteBank::Picture* chip(int bank, int pattern);
+    // A chip's colours as running sums over its picture: entry (x, y) of a
+    // (width + 1) x (height + 1) table adds up the pixels above and left of
+    // it, so any rectangle's total takes four lookups.
+    struct ChipSums {
+        int width = 0, height = 0;
+        std::vector<std::array<std::uint32_t, 3>> rgb;
+    };
+    const ChipSums* chipSums(int bank, int pattern);
     // Draws props with the original piece's foot at (footX, footY), in map pixels.
     void renderPieces(const std::vector<open::Skin::Piece>& pieces, int footX, int footY, int camX, int camY, int glow = 0,
                       const SDL_Color* outline = nullptr);
@@ -101,6 +110,7 @@ private:
     std::vector<std::string> bankName_;  // lower case, .njp for .sdw
     std::vector<GroundRule> rules_;
     std::map<std::pair<int, int>, SpriteBank::Picture> chips_;
+    std::map<std::pair<int, int>, ChipSums> chipSums_;
     std::map<std::pair<int, int>, std::pair<int, int>> feet_;  // bank, pattern -> foot in the picture
     std::list<std::pair<std::pair<int, int>, SDL_Texture*>> chunks_;
 };

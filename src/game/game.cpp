@@ -508,8 +508,8 @@ double Game::zoom() const {
     return std::clamp(settings_.zoom, Settings::kMinZoom, Settings::kMaxZoom) / 100.0;
 }
 
-int Game::viewWidth() const { return static_cast<int>(std::ceil(kScreenWidth / zoom())); }
-int Game::viewHeight() const { return static_cast<int>(std::ceil(kScreenHeight / zoom())); }
+int Game::viewWidth() const { return shotWidth_ ? shotWidth_ : static_cast<int>(std::ceil(kScreenWidth / zoom())); }
+int Game::viewHeight() const { return shotHeight_ ? shotHeight_ : static_cast<int>(std::ceil(kScreenHeight / zoom())); }
 
 SDL_FPoint Game::onScreen(double px, double py) const {
     const double z = zoom();

@@ -1253,6 +1253,7 @@ private:
     TexturePtr worldTexture_;
     int worldTextureW_ = 0, worldTextureH_ = 0;
     bool fullSize_ = false;
+    int shotWidth_ = 0, shotHeight_ = 0;  // the view's size while the area map's picture is drawn (else 0)
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;

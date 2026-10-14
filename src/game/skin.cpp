@@ -113,6 +113,7 @@ void Skin::setMap(const Map* map) {
     for (auto& [key, texture] : chunks_) SDL_DestroyTexture(texture);
     chunks_.clear();
     chips_.clear();
+    chipSums_.clear();
     feet_.clear();
     bankRule_.clear();
     bankName_.clear();
@@ -205,66 +206,92 @@ SDL_Texture* Skin::groundChunk(int cx, int cy) {
     return texture;
 }
 
+const Skin::ChipSums* Skin::chipSums(int bank, int pattern) {
+    auto [it, inserted] = chipSums_.try_emplace({bank, pattern});
+    if (inserted) {
+        if (const SpriteBank::Picture* pic = chip(bank, pattern)) {
+            ChipSums& sums = it->second;
+            sums.width = pic->width;
+            sums.height = pic->height;
+            const std::size_t stride = static_cast<std::size_t>(pic->width) + 1;
+            sums.rgb.assign(stride * (static_cast<std::size_t>(pic->height) + 1), {0, 0, 0});
+            for (int y = 0; y < pic->height; ++y) {
+                std::array<std::uint32_t, 3> row{0, 0, 0};
+                for (int x = 0; x < pic->width; ++x) {
+                    const std::uint32_t c = pic->argb[static_cast<std::size_t>(y) * pic->width + x];
+                    row[0] += (c >> 16) & 255;
+                    row[1] += (c >> 8) & 255;
+                    row[2] += c & 255;
+                    const auto& above = sums.rgb[static_cast<std::size_t>(y) * stride + x + 1];
+                    sums.rgb[(static_cast<std::size_t>(y) + 1) * stride + x + 1] = {above[0] + row[0], above[1] + row[1], above[2] + row[2]};
+                }
+            }
+        }
+    }
+    return it->second.rgb.empty() ? nullptr : &it->second;
+}
+
 std::vector<std::uint32_t> Skin::groundOverview(int left, int top, int scale, int w, int h) {
     std::vector<std::uint32_t> out(static_cast<std::size_t>(w) * static_cast<std::size_t>(h), 0xff000000u);
     if (!map_ || scale < 1) return out;
     const auto& g = map_->ground();
     if (g.chipWidth <= 0 || g.chipHeight <= 0) return out;
     const int mapW = g.width * g.chipWidth, mapH = g.height * g.chipHeight;
-    // A row of blocks at a time: each block's original colours added up by
-    // the rule painting them (the last for none, kept as they are), then
-    // painted as paintGround paints them on average. Every other pixel each
-    // way is plenty for an average.
-    constexpr int kStep = 2;
-    const std::size_t kinds = rules_.size() + 1, none = rules_.size();
-    std::vector<std::array<unsigned, 4>> sums(static_cast<std::size_t>(w) * kinds);
+    // Each block's original colours added up by the rule painting them
+    // (none: kept as they are), a chip at a time from the chip's running
+    // sums, then painted as paintGround paints them on average.
+    struct Part {
+        std::size_t rule;
+        float r, g, b, count;
+    };
+    const std::size_t none = rules_.size();
+    std::vector<Part> parts;
     std::vector<float> weights;
-    const float n = static_cast<float>(((scale + kStep - 1) / kStep) * ((scale + kStep - 1) / kStep));
+    const float n = static_cast<float>(scale * scale);
     for (int by = 0; by < h; ++by) {
-        std::fill(sums.begin(), sums.end(), std::array<unsigned, 4>{});
-        const int y0 = top + by * scale;
-        for (int py = std::max(0, y0); py < std::min(mapH, y0 + scale); py += kStep) {
-            const int chipY = py / g.chipHeight, iy = py - chipY * g.chipHeight;
-            int lastChipX = -1;
-            const SpriteBank::Picture* pic = nullptr;
-            std::size_t rule = none;
-            for (int bx = 0; bx < w; ++bx) {
-                const int x0 = left + bx * scale;
-                for (int px = std::max(0, x0); px < std::min(mapW, x0 + scale); px += kStep) {
-                    const int chipX = px / g.chipWidth;
-                    if (chipX != lastChipX) {
-                        lastChipX = chipX;
-                        const auto& cell = g.at(chipX, chipY);
-                        pic = chip(cell.bank, cell.pattern);
-                        if (pic && iy >= pic->height) pic = nullptr;
-                        rule = cell.bank >= 0 && static_cast<std::size_t>(cell.bank) < bankRule_.size() && bankRule_[cell.bank] >= 0
-                                   ? static_cast<std::size_t>(bankRule_[cell.bank])
-                                   : none;
+        const int y0 = std::max(0, top + by * scale), y1 = std::min(mapH, top + (by + 1) * scale);
+        for (int bx = 0; bx < w; ++bx) {
+            const int x0 = std::max(0, left + bx * scale), x1 = std::min(mapW, left + (bx + 1) * scale);
+            parts.clear();
+            for (int cy = y0 / g.chipHeight; cy * g.chipHeight < y1; ++cy) {
+                for (int cx = x0 / g.chipWidth; cx * g.chipWidth < x1; ++cx) {
+                    const auto& cell = g.at(cx, cy);
+                    const ChipSums* sums = chipSums(cell.bank, cell.pattern);
+                    if (!sums) continue;
+                    // The block's part of this chip, in the chip's pixels,
+                    // as far as its picture goes (past it is black).
+                    const int ax = std::max(x0 - cx * g.chipWidth, 0), ay = std::max(y0 - cy * g.chipHeight, 0);
+                    const int bx1 = std::min({x1 - cx * g.chipWidth, g.chipWidth, sums->width});
+                    const int by1 = std::min({y1 - cy * g.chipHeight, g.chipHeight, sums->height});
+                    if (bx1 <= ax || by1 <= ay) continue;
+                    const std::size_t stride = static_cast<std::size_t>(sums->width) + 1;
+                    auto at = [&](int x, int y) -> const auto& { return sums->rgb[static_cast<std::size_t>(y) * stride + static_cast<std::size_t>(x)]; };
+                    const auto &a = at(ax, ay), &b = at(bx1, ay), &c = at(ax, by1), &d = at(bx1, by1);
+                    const std::size_t rule = cell.bank >= 0 && static_cast<std::size_t>(cell.bank) < bankRule_.size() && bankRule_[cell.bank] >= 0
+                                                 ? static_cast<std::size_t>(bankRule_[cell.bank])
+                                                 : none;
+                    const float count = static_cast<float>((bx1 - ax) * (by1 - ay));
+                    const float r = static_cast<float>(d[0] - b[0] - c[0] + a[0]), gr = static_cast<float>(d[1] - b[1] - c[1] + a[1]),
+                                bl = static_cast<float>(d[2] - b[2] - c[2] + a[2]);
+                    const auto same = std::ranges::find(parts, rule, &Part::rule);
+                    if (same == parts.end()) {
+                        parts.push_back({rule, r, gr, bl, count});
+                    } else {
+                        same->r += r;
+                        same->g += gr;
+                        same->b += bl;
+                        same->count += count;
                     }
-                    const int ix = px - chipX * g.chipWidth;
-                    const bool drawn = pic && ix < pic->width;
-                    const std::uint32_t c = drawn ? pic->argb[static_cast<std::size_t>(iy) * pic->width + ix] : 0;
-                    auto& s = sums[static_cast<std::size_t>(bx) * kinds + (drawn ? rule : none)];
-                    s[0] += (c >> 16) & 255;
-                    s[1] += (c >> 8) & 255;
-                    s[2] += c & 255;
-                    s[3] += 1;
                 }
             }
-        }
-        for (int bx = 0; bx < w; ++bx) {
             float rgb[3] = {0, 0, 0};
-            for (std::size_t i = 0; i < kinds; ++i) {
-                const auto& s = sums[static_cast<std::size_t>(bx) * kinds + i];
-                if (s[3] == 0) continue;
-                const float count = static_cast<float>(s[3]);
-                const float r = static_cast<float>(s[0]) / count, g = static_cast<float>(s[1]) / count,
-                            b = static_cast<float>(s[2]) / count;
+            for (const Part& p : parts) {
+                const float r = p.r / p.count, g = p.g / p.count, b = p.b / p.count;
                 Rgb c{static_cast<std::uint8_t>(r), static_cast<std::uint8_t>(g), static_cast<std::uint8_t>(b)};
-                if (i != none && !rules_[i].entries.empty()) c = averagePainted(rules_[i], r, g, b, weights);
-                rgb[0] += c.r * count / n;
-                rgb[1] += c.g * count / n;
-                rgb[2] += c.b * count / n;
+                if (p.rule != none && !rules_[p.rule].entries.empty()) c = averagePainted(rules_[p.rule], r, g, b, weights);
+                rgb[0] += c.r * p.count / n;
+                rgb[1] += c.g * p.count / n;
+                rgb[2] += c.b * p.count / n;
             }
             out[static_cast<std::size_t>(by) * static_cast<std::size_t>(w) + static_cast<std::size_t>(bx)] =
                 0xff000000u | static_cast<std::uint32_t>(std::min(255.0f, rgb[0])) << 16 |
