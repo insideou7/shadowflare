@@ -86,12 +86,33 @@ void testPaintGround() {
     check((edge & 0xff) > 0 && (edge >> 16 & 0xff) < 0xff, "colours are smoothed where materials meet");
 }
 
+// The average of what paintGround paints, without painting it.
+void testAveragePainted() {
+    const auto red = uniform(0xffff0000u), blue = uniform(0xff0000ffu);
+    const sf::Rgb redAverage = sf::averageColour(red);
+    check(redAverage.r == 255 && redAverage.g == 0 && redAverage.b == 0, "a texture's average colour");
+    sf::GroundRule rule;
+    rule.entries = {{&red, {40, 50, 10}, {255, 0, 0}}, {&blue, {50, 30, 20}, {0, 0, 255}}};
+    std::vector<float> weights;
+    const sf::Rgb grass = sf::averagePainted(rule, 40, 50, 10, weights);
+    check(grass.r == 255 && grass.b == 0, "grass-coloured ground averages to the grass texture");
+    const sf::Rgb between = sf::averagePainted(rule, 45, 40, 15, weights);
+    check(between.r > 0 && between.b > 0, "between two materials averages to a mix of both");
+    // The same mix paintGround paints there.
+    const int fw = 3;
+    const std::vector<std::uint32_t> original(fw * fw, 0xff2d280fu);
+    const std::vector<std::int16_t> rules(fw * fw, 0);
+    const auto painted = sf::paintGround(0, 0, 1, 1, 1, original, rules, {rule});
+    check((painted[0] >> 16 & 0xff) == between.r && (painted[0] & 0xff) == between.b, "the same mix as paintGround");
+}
+
 }  // namespace
 
 int main() {
     testMaterialTexture();
     testTinted();
     testPaintGround();
+    testAveragePainted();
     if (failures == 0) std::puts("all ground skin tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

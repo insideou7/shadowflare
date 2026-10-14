@@ -1668,14 +1668,16 @@ SDL_Rect Game::objectPicture(const MapObject& o) {
 }
 
 // The map's ground and objects with no one on them, for the map window.
-void Game::renderScenery(int camX, int camY) {
+void Game::renderScenery(int camX, int camY, bool ground) {
     const auto& g = map_->ground();
-    if (g.isoTile > 0) {
-        renderIsoGround(camX, camY);
-    } else if (skin_) {
-        skin_->renderGround(camX, camY);
-    } else {
-        renderChips(camX, camY);
+    if (ground) {
+        if (g.isoTile > 0) {
+            renderIsoGround(camX, camY);
+        } else if (skin_) {
+            skin_->renderGround(camX, camY);
+        } else {
+            renderChips(camX, camY);
+        }
     }
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     for (const bool shadows : {true, false}) {
