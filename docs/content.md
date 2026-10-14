@@ -418,7 +418,9 @@ the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
 quest; only normal items drop; magic and unique ones start unidentified),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
-`glow` (a second hero layer) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
+`glow` (a second hero layer), `page` (the special items page a quest item,
+gem or the like is kept on, as the original's are; such items never go to
+the warehouse) and, for bowguns, `shot=kind,spread,speed[,turn[,pierce]]`
 (kind 0 stone, 1 arrow, 2 fire arrow, 3 ice arrow; see docs/archery.md). The item window weighs the `load` of
 everything worn against the hero's strength, as the original does.
 An item with a `load` of 60 or more also sounds heavy when it is taken or

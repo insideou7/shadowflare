@@ -57,6 +57,41 @@ Inventory::Result ShopStock::click(std::optional<Item>& hand, int x, int y) {
     return Inventory::Result::Done;
 }
 
+bool ShopStock::takeIn(std::optional<Item>& hand, bool emptyGoldStays) {
+    if (!hand) return false;
+    if (hand->def->isGold()) {
+        // The fullest stack short of 10000; of equals, the one put there
+        // last, as the original's list keeps the newest first (0x466cd0).
+        for (;;) {
+            Inventory::Placed* fullest = nullptr;
+            for (auto it = goods.rbegin(); it != goods.rend(); ++it) {
+                if (it->item.def->isGold() && it->item.count < Inventory::kGoldStack &&
+                    (!fullest || it->item.count > fullest->item.count)) {
+                    fullest = &*it;
+                }
+            }
+            if (!fullest) break;
+            const int room = Inventory::kGoldStack - fullest->item.count;
+            // All of it fits only with room to spare (the exe compares
+            // with <): an exact fill goes the long way round.
+            if (hand->count < room) {
+                fullest->item.count += hand->count;
+                hand.reset();
+                return false;
+            }
+            hand->count -= room;
+            fullest->item.count = Inventory::kGoldStack;
+        }
+        if (hand->count == 0 && !emptyGoldStays) {
+            hand.reset();
+            return false;
+        }
+    }
+    if (!add(*hand)) return false;
+    hand.reset();
+    return true;
+}
+
 int ShopStock::indexAt(int x, int y) const {
     for (std::size_t i = 0; i < goods.size(); ++i) {
         const auto& g = goods[i];

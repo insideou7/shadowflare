@@ -1020,6 +1020,8 @@ ItemTable parseItems(std::span<const std::uint8_t> text) {
             item->heroLayer = lines.toInt(value);
         } else if (key == "glow") {
             item->glowLayer = lines.toInt(value);
+        } else if (key == "page") {
+            item->specialPage = lines.toInt(value);
         } else if (key == "two-handed") {
             item->twoHandedFlag = lines.toInt(value) != 0;
         } else if (key == "effect") {
