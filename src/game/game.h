@@ -933,6 +933,7 @@ private:
             int number = 0;  // 0-5, the file save<number + 1>.txt
             std::string file;
             bool damaged = false;
+            bool otherData = false;  // made with the other data (the original's, or the open pack's)
             int level = 1, hp = 0, mp = 0;
             std::int64_t experience = 0;
             HeroSex sex = HeroSex::Male;
@@ -965,6 +966,9 @@ private:
     void adoptOldSave();                  // a save.txt from before slots takes the first free slot
     std::string saveFolder() const;
     bool loadGameFrom(const std::string& path);
+    // Whether a save's area is in this game's data: the original and the
+    // open content pack share the save folder and some map names.
+    bool saveFitsData(const std::string& map, const std::string& scenario) const;
     void saveThumbnail(const std::string& path);
 
     // Missions (missions.cpp): the mission list (Q), the newest mission

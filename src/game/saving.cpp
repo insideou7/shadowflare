@@ -9,6 +9,7 @@
 #include "formats/binary_reader.h"
 #include "game/game.h"
 #include "logic/save_game.h"
+#include "platform/filesystem.h"
 
 namespace sf {
 namespace {
@@ -192,6 +193,15 @@ bool Game::loadGame() {
     return loadGameFrom(saveFile_);
 }
 
+// The map's name alone is not enough: the open pack's look-alike maps take
+// the original's names (f00_01 is Remote Town in both), but its scenarios
+// are numbered apart (Scenario/10000000 against Scenario/00000000), and a
+// hero put down where the other data's map has nothing stands in the dark.
+bool Game::saveFitsData(const std::string& map, const std::string& scenario) const {
+    if (std::ranges::find(mapNames_, map) == mapNames_.end()) return false;
+    return scenario.empty() || data_->exists(scenario + "/scenario.txt") || data_->exists(scenario + "/Scenario.Mct");
+}
+
 bool Game::loadGameFrom(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
@@ -208,15 +218,12 @@ bool Game::loadGameFrom(const std::string& path) {
         showMessage("The saved game is damaged");
         return false;
     }
-    std::size_t index = mapNames_.size();
-    for (std::size_t i = 0; i < mapNames_.size(); ++i) {
-        if (mapNames_[i] == save.map) index = i;
-    }
-    if (index == mapNames_.size()) {
-        log::warn("{}: map {} is not in this game's data", path, save.map);
+    if (!saveFitsData(save.map, save.scenario)) {
+        log::warn("{}: {} ({}) is not in this game's data", path, save.scenario, save.map);
         showMessage("The saved game is for other data");
         return false;
     }
+    const auto index = static_cast<std::size_t>(std::ranges::find(mapNames_, save.map) - mapNames_.begin());
 
     forgetVisitedScenarios();
     hand_.reset();
