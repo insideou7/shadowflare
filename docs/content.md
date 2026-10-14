@@ -302,8 +302,8 @@ formats.md, The GATE window). The window lists every gate whose `warp:`
 flag is set, in number order. A gate is a pair of objects in its town's
 `script.txt`, as in Remote Town's:
 
-    object=10001,2726,10298,2977,gate
-    object=8800,1337,11100,3837,gate-ground
+    object=9361,2086,9658,2337,gate
+    object=8160,697,10460,3197,gate-ground
 
     [sentence gate-found]
     on=judge gate-ground
