@@ -12,9 +12,11 @@ class Random;
 // Rolls a drop list and returns the items it gives, in the order they
 // appear. With `qualityPerRoll` off, the original's slip is kept: the
 // quality allowances are never cleared between rolls, so once one roll
-// may give a magic or unique item every later roll may too.
+// may give a magic or unique item every later roll may too. `luck` (the
+// Debug tab's, in percent) multiplies the drop weight of unique items
+// where a pick chooses by weight; 100 is the original's chances.
 std::vector<const ItemDef*> rollDrops(const DropTables& tables, const ItemTable& items, int list, Random& random,
-                                      bool qualityPerRoll);
+                                      bool qualityPerRoll, int luck = 100);
 
 // Where the i-th of `count` dropped items lands around (x, y): on a circle
 // of 200 world units, spread evenly, as 0x417550 places them.

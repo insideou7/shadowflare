@@ -27,19 +27,25 @@ bool matches(const ItemDef& def, const DropTables::Entry& e, const Allowed& q) {
     return true;
 }
 
-int weightOf(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q) {
+// An item's drop weight, with the Debug tab's luck multiplying unique
+// items' (`luck` percent; 100 is the original's weights). Magic items are
+// the usual drop already, about nine in ten, so only uniques are rare.
+int weight(const ItemDef& def, int luck) { return def.quality == 2 ? def.dropWeight * luck / 100 : def.dropWeight; }
+
+int weightOf(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, int luck) {
     int total = 0;
     for (const auto& def : items.items) {
-        if (def.cls == cls && matches(def, e, q)) total += def.dropWeight;
+        if (def.cls == cls && matches(def, e, q)) total += weight(def, luck);
     }
     return total;
 }
 
-const ItemDef* pickWeighted(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, int pick) {
+const ItemDef* pickWeighted(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, int luck,
+                            int pick) {
     int sum = 0;
     for (const auto& def : items.items) {
         if (def.cls != cls || !matches(def, e, q)) continue;
-        sum += def.dropWeight;
+        sum += weight(def, luck);
         if (pick < sum) return &def;
     }
     return nullptr;
@@ -56,31 +62,31 @@ int nineDigits(Random& random) {
 // level case for them and so counts none.
 bool pickable(Class cls) { return cls != Class::Special; }
 
-const ItemDef* pickEntry(const ItemTable& items, const DropTables::Entry& e, const Allowed& q, Random& random) {
+const ItemDef* pickEntry(const ItemTable& items, const DropTables::Entry& e, const Allowed& q, int luck, Random& random) {
     if (e.code != -1) return e.cls >= 0 && e.cls <= 4 ? items.find(static_cast<Class>(e.cls), e.code) : nullptr;
     if (e.cls == -1) {
         // Any of weapons, armour and accessories, weighted together.
         int weights[3], total = 0;
-        for (int k = 0; k < 3; ++k) total += weights[k] = weightOf(items, static_cast<Class>(k), e, q);
+        for (int k = 0; k < 3; ++k) total += weights[k] = weightOf(items, static_cast<Class>(k), e, q, luck);
         if (total == 0) return nullptr;
         int pick = nineDigits(random) % total;
         for (int k = 0; k < 3; ++k) {
             if (weights[k] == 0) continue;
-            if (const ItemDef* def = pickWeighted(items, static_cast<Class>(k), e, q, pick)) return def;
+            if (const ItemDef* def = pickWeighted(items, static_cast<Class>(k), e, q, luck, pick)) return def;
             pick -= weights[k];
         }
         return nullptr;
     }
     if (e.cls < 0 || e.cls > 4 || !pickable(static_cast<Class>(e.cls))) return nullptr;
-    const int total = weightOf(items, static_cast<Class>(e.cls), e, q);
+    const int total = weightOf(items, static_cast<Class>(e.cls), e, q, luck);
     if (total == 0) return nullptr;
-    return pickWeighted(items, static_cast<Class>(e.cls), e, q, nineDigits(random) % total);
+    return pickWeighted(items, static_cast<Class>(e.cls), e, q, luck, nineDigits(random) % total);
 }
 
 }  // namespace
 
 std::vector<const ItemDef*> rollDrops(const DropTables& tables, const ItemTable& items, int number, Random& random,
-                                      bool qualityPerRoll) {
+                                      bool qualityPerRoll, int luck) {
     std::vector<const ItemDef*> drops;
     const DropTables::List* list = tables.list(number);
     if (!list || list->picks.empty()) return drops;
@@ -100,7 +106,7 @@ std::vector<const ItemDef*> rollDrops(const DropTables& tables, const ItemTable&
         if (pick.quality % 1000 / 100 != 0) q.unique = true;
         // When nothing matches, the exe makes whatever item the last roll
         // left behind (or a stale one); we drop nothing.
-        if (const ItemDef* def = pickEntry(items, entry, q, random)) drops.push_back(def);
+        if (const ItemDef* def = pickEntry(items, entry, q, luck, random)) drops.push_back(def);
     }
     return drops;
 }

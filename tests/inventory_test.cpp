@@ -228,6 +228,33 @@ void testLoot() {
     check(magicDrops[0] > 1700 && magicDrops[0] < 2300, "only rolls allowing magic give it");
     check(magicDrops[1] > magicDrops[0] + 500, "original mode lets magic carry over between rolls");
 
+    // The Debug tab's luck multiplies unique items' drop weight.
+    sf::ItemTable rare = magic;
+    rare.items[1].quality = 2;
+    rare.items[1].dropWeight = 1;
+    sf::DropTables one;
+    one.entries = {{0, -1, -1, -1, 1}};
+    one.lists[0] = {1, 100, {{0, 111}}, std::nullopt};
+    one.lists[1] = {1, 100, {{0, 11}}, std::nullopt};
+    int uniques[2] = {}, kept = 0;  // at 1x, at 10x
+    for (const int luck : {100, 1000}) {
+        sf::Random r(5);
+        for (int i = 0; i < 2000; ++i) {
+            for (const sf::ItemDef* d : sf::rollDrops(one, rare, 0, r, true, luck)) uniques[luck == 100 ? 0 : 1] += d->quality == 2;
+            for (const sf::ItemDef* d : sf::rollDrops(one, rare, 1, r, true, luck)) kept += d->quality == 2;
+        }
+    }
+    check(uniques[0] > 850 && uniques[0] < 1150, "at 1x a unique of equal weight comes half the time");
+    check(uniques[1] > 1700 && uniques[1] < 1930, "at 10x it comes ten times in eleven");
+    check(kept == 0, "luck never gives a unique from a pick that does not allow them");
+    rare.items[1].quality = 1;
+    int magicAt10 = 0;
+    sf::Random r(5);
+    for (int i = 0; i < 2000; ++i) {
+        for (const sf::ItemDef* d : sf::rollDrops(one, rare, 0, r, true, 1000)) magicAt10 += d->quality == 1;
+    }
+    check(magicAt10 > 850 && magicAt10 < 1150, "luck leaves magic items' weight alone");
+
     double x, y;
     sf::dropSpot(0, 2, 1000, 1000, x, y);
     check(std::abs(x - 1200) < 1e-6 && std::abs(y - 1000) < 1e-6, "the first item lands 200 to the side");

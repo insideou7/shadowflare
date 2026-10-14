@@ -950,6 +950,13 @@ void testSettings() {
               sf::Settings::parse("xp_rate=2.5\n").xpRate == 200 && sf::Settings::parse("xp_rate=50\n").xpRate == 2000 &&
               sf::Settings::parse("xp_rate=20\n").xpRate == 2000 && sf::Settings::parse("xp_rate=fast\n").xpRate == 100,
           "experience rates are kept to 1x, 2x, 5x, 10x and 20x");
+    sf::Settings lucky;
+    lucky.luck = 500;
+    check(lucky.write().find("luck=5\n") != std::string::npos && sf::Settings::parse(lucky.write()).luck == 500,
+          "luck is saved as a multiplier and read back");
+    check(sf::Settings::parse("luck=3\n").luck == 200 && sf::Settings::parse("luck=99999999\n").luck == 2000 &&
+              sf::Settings::parse("luck=-4\n").luck == 100 && sf::Settings().luck == 100,
+          "luck is kept to 1x, 2x, 5x, 10x and 20x, 1x by default");
 }
 
 void testTrapGeometry() {

@@ -223,7 +223,7 @@ void Game::dropLoot(const Actor& enemy) {
 }
 
 void Game::dropFromList(int list, double x, double y) {
-    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll);
+    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll, luck());
     for (std::size_t i = 0; i < drops.size(); ++i) {
         // Spread around the spot by how many rolls the list has, as the
         // exe does, whether or not each roll gave something.
