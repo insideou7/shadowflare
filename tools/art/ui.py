@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The interface pictures for the open content pack.
 
-    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map]
+    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map marks]
 
 Draws, in the style of the original but from scratch:
 
@@ -34,6 +34,10 @@ Draws, in the style of the original but from scratch:
 - the compass the area's name is shown beside on arrival: a bronze rose
   in a ring, seen at a slant, shrinking over eight frames as the
   original's does. Player/Common/compasses (.anim and .sheet).
+- the marks on item pictures: a small bronze-edged stone tile with a
+  question mark (not yet identified) and one split by a crack (worn out
+  or broken), drawn in the bottom right corner as the original's are.
+  System/Game/Pattern/ItemMarks.
 - the area map's window: the same stone and iron with a hole the map shows
   through, a gem by the area's name, the hero's arrow and a PLAYER label
   (src/game/area_map.cpp). System/Game/Pattern/Map.
@@ -340,6 +344,50 @@ def inventory(out):
                 "The inventory panel (the anchor puts it at x = 320 on the 640 x 480 screen), the mine in its "
                 "socket, the weight gauge's marks (light, darker, red, flash) and the Warehouse Transfer Box "
                 "lit up.")
+
+
+# The question mark and the crack, one row of 12 pixels to a line.
+QUESTION = ["....####....", "...##..##...", "..##....##..", "........##..", ".......##...",
+            "......##....", ".....##.....", ".....##.....", "............", ".....##....."]
+CRACK = [(11, 0), (9, 2), (8, 4), (5, 6), (6, 7), (3, 8), (1, 8)], [(8, 4), (9, 7), (8, 9), (10, 12)]
+
+
+def item_marks(out):
+    """Two 14 x 15 tiles: lit at the top left and shaded at the bottom
+    right, of the panel's stone with a bronze rim; one carries a question
+    mark, the other a crack."""
+    def tile(seed):
+        rng = np.random.default_rng(seed)
+        img = Image.new("RGBA", (14, 15), (0, 0, 0, 0))
+        for y in range(15):
+            for x in range(14):
+                c = STONE * 1.9 * (0.9 + 0.2 * rng.random())
+                if x == 0 or y == 0:
+                    c = BRONZE * 1.25
+                elif x == 13 or y == 14:
+                    c = BRONZE * 0.45
+                img.putpixel((x, y), tuple(int(v) for v in np.clip(c, 0, 255)) + (255,))
+        return img
+    question = tile(1)
+    for y, row in enumerate(QUESTION):
+        for x, bit in enumerate(row):
+            if bit == "#":
+                question.putpixel((x + 2, y + 3), tuple(int(v) for v in HOLLOW) + (255,))
+                question.putpixel((x + 1, y + 2), tuple(int(v) for v in np.clip(BRONZE * 1.4, 0, 255)) + (255,))
+    crack = tile(2)
+    dark = tuple(int(v) for v in HOLLOW) + (255,)
+    for line in CRACK:
+        for (x0, y0), (x1, y1) in zip(line, line[1:]):
+            for k in range(13):
+                x = round(x0 + (x1 - x0) * k / 12) + 1
+                y = round(y0 + (y1 - y0) * k / 12) + 1
+                if 0 < x < 13 and 0 < y < 14:
+                    crack.putpixel((x, y), dark)
+    sheet = Image.new("RGBA", (30, 15), (0, 0, 0, 0))
+    sheet.paste(question, (0, 0))
+    sheet.paste(crack, (16, 0))
+    write_sheet(out / "System/Game/Pattern", "ItemMarks", sheet, [(0, 0, 14, 15, 0, 0), (16, 0, 14, 15, 0, 0)],
+                "The marks on item pictures: not yet identified, worn out or broken.")
 
 
 def shop(out):
@@ -811,7 +859,7 @@ def main():
     out = Path(sys.argv[1])
     only = set(sys.argv[2:])  # the names below, to redraw just those
     sheets = {"inventory": inventory, "shop": shop, "balloon": balloon, "font": font,
-              "missions": missions, "compasses": compasses, "map": area_map}
+              "missions": missions, "compasses": compasses, "map": area_map, "marks": item_marks}
     for name, draw in sheets.items():
         if not only or name in only:
             draw(out)
