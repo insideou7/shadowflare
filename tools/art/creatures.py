@@ -1191,15 +1191,10 @@ HAIR = {"brown": (0.30, 0.18, 0.08), "black": (0.10, 0.08, 0.07), "blond": (0.85
 #   (dress colour, to the ground), coat (long open coat), apron, armour
 #   (plate over the chest and shoulders), boots.
 PEOPLE = {
-    0: ("pedlar with a handcart", dict(arms="front", width=1.05, skin="tan", hairstyle="bald", top=(0.16, 0.38, 0.22),
-                                       legs=(0.30, 0.24, 0.16), handcart=True)),
     1: ("girl in a blue dress", dict(height=0.72, width=0.8, skin="pale", hair="ginger", hairstyle="bun",
                                      top=(0.36, 0.30, 0.80), skirt=(0.36, 0.30, 0.80), apron=(0.92, 0.92, 0.90), short_skirt=True)),
     2: ("dancer in a pale dress", dict(arms="front", height=0.92, width=0.8, skin="pale", hair="blond", hairstyle="bun",
                                        top=(0.86, 0.66, 0.62), skirt=(0.86, 0.66, 0.62))),
-    4: ("swordsman in a blue coat", dict(skin="fair", hair="blond", hairstyle="short", top=(0.16, 0.18, 0.40),
-                                         legs=(0.22, 0.20, 0.26), coat=(0.20, 0.22, 0.52), sword=True,
-                                         tall_boots=True, collar=(0.90, 0.90, 0.92))),
     6: ("smith in a leather apron", dict(width=1.15, skin="tan", hair="grey", hairstyle="short", top=(0.40, 0.36, 0.30),
                                          legs=(0.22, 0.18, 0.15), apron=(0.30, 0.20, 0.12))),
     8: ("merchant in an ochre coat", dict(width=1.15, belly=0.15, skin="tan", hairstyle="bald", top=(0.72, 0.72, 0.56),
@@ -1210,9 +1205,6 @@ PEOPLE = {
                                              legs=(0.20, 0.22, 0.30), armour=(0.30, 0.34, 0.46))),
     11: ("baker in white", dict(skin="fair", hairstyle="bald", top=(0.86, 0.82, 0.74), legs=(0.70, 0.64, 0.56),
                                apron=(0.92, 0.90, 0.86))),
-    12: ("wizard in an olive robe", dict(arms="front", skin="pale", hairstyle="hood", hood_deep=True, hood_point=True,
-                                         top=(0.24, 0.22, 0.08),
-                                         skirt=(0.24, 0.22, 0.08), hood=(0.22, 0.20, 0.07), trim=(0.80, 0.58, 0.16))),
     13: ("guard in dark iron", dict(width=1.2, skin="dark", hair="black", hairstyle="short", top=(0.24, 0.24, 0.26),
                                      legs=(0.18, 0.18, 0.20), armour=(0.32, 0.32, 0.34))),
     14: ("hunter in a brown jerkin", dict(width=1.05, skin="tan", hair="red", hairstyle="long", top=(0.42, 0.24, 0.12),
@@ -1289,9 +1281,6 @@ def build_person(spec):
         rig.attach(shape("ball", (0.22, 0.20, 0.25), hood), "head", (-0.04, 0, 0.24))
         if spec.get("hood_deep"):  # pulled low over the brow
             rig.attach(shape("ball", (0.20, 0.21, 0.12), hood), "head", (0.04, 0, 0.36))
-        if spec.get("hood_point"):  # a wizard's hood, drawn up to a point
-            rig.attach(shape("cone", (0.16, 0.16, 0.30), hood), "head", (-0.08, 0, 0.58))
-            rig.attach(shape("flare", (0.30 * w, 0.42 * w, 0.20), hood), "spine", (-0.02, 0, 0.72))
     if style == "mitre":
         mitre = studio.material("mitre", spec.get("mitre", (0.8, 0.8, 0.7)), scale=20)
         rig.attach(shape("cone", (0.13, 0.13, 0.30), mitre), "head", (-0.02, 0, 0.55))
@@ -1336,46 +1325,6 @@ def build_person(spec):
             rig.attach(shape("ball", (0.17, 0.17, 0.14), plate), side, (0, 0, 0.0))
         for side in ("leg_l", "leg_r"):
             rig.attach(shape("cylinder", (0.14, 0.14, 0.25), plate), side, (0, 0, -0.75))
-    if "collar" in spec:
-        collar = studio.material("collar", spec["collar"], scale=30)
-        rig.attach(shape("cylinder", (0.18, 0.21, 0.06), collar), "spine", (0, 0, 0.86))
-    if "trim" in spec:
-        # A gold band down the front of a robe, from the chest to the hem.
-        trim = studio.material("trim", spec["trim"], (0.40, 0.24, 0.06), scale=30, rough=0.4)
-        rig.attach(shape("box", (0.02, 0.07 * w, 0.40), trim), "spine", (0.25 * w, 0, 0.40))
-        rig.attach(shape("box", (0.02, 0.08 * w, 0.52), trim), "hips", (0.40 * w, 0, -0.50))
-    if spec.get("tall_boots"):
-        for side in ("leg_l", "leg_r"):
-            rig.attach(shape("cylinder", (0.14, 0.14, 0.26), leather), side, (0, 0, -0.80))
-    if spec.get("sword"):
-        # A sword in its scabbard at the left hip, hanging back.
-        steel = studio.material("hilt", (0.78, 0.78, 0.80), (0.34, 0.34, 0.38), scale=40, rough=0.3)
-        rig.attach(shape("cylinder", (0.04, 0.04, 0.42), leather, rotation=(0, math.radians(-30), 0)), "hips",
-                   (-0.08, 0.30 * w, -0.30))
-        rig.attach(shape("box", (0.03, 0.12, 0.025), steel), "hips", (0.06, 0.30 * w, 0.06))
-        rig.attach(shape("cylinder", (0.025, 0.025, 0.10), leather), "hips", (0.08, 0.30 * w, 0.14))
-    if spec.get("handcart"):
-        # A wooden handcart in front, its two handles at his hands: a box
-        # bed on one axle with spoked wheels either side.
-        wood = studio.material("cartwood", (0.62, 0.38, 0.18), (0.30, 0.16, 0.06), scale=10, rough=0.7, bump=0.5,
-                               stretch=(3, 1, 1))
-        cloth = studio.material("cartcloth", (0.70, 0.66, 0.50), scale=14, bump=0.4)
-        rig.joint("cart", "root", (0, 0, 0))
-        rig.joints["cart"].scale = (1.25, 1.25, 1.25)
-        rig.attach(shape("box", (0.42, 0.40, 0.04), wood), "cart", (1.05, 0, 0.62))
-        for dy in (-0.40, 0.40):
-            rig.attach(shape("box", (0.42, 0.03, 0.16), wood), "cart", (1.05, dy, 0.78))
-        for dx in (0.63, 1.47):
-            rig.attach(shape("box", (0.03, 0.40, 0.16), wood), "cart", (dx, 0, 0.78))
-        rig.attach(shape("ball", (0.34, 0.32, 0.14), cloth), "cart", (1.05, 0, 0.80))
-        for dy in (-0.30, 0.30):
-            rig.attach(shape("box", (0.40, 0.025, 0.025), wood), "cart", (0.35, dy, 0.95))
-        for dy in (-0.47, 0.47):
-            rig.attach(shape("cylinder", (0.36, 0.36, 0.035), wood, rotation=(math.radians(90), 0, 0)), "cart",
-                       (1.10, dy, 0.36))
-        rig.attach(shape("cylinder", (0.03, 0.03, 0.48), wood, rotation=(math.radians(90), 0, 0)), "cart",
-                   (1.10, 0, 0.36))
-        rig.attach(shape("box", (0.03, 0.03, 0.24), wood), "cart", (1.42, 0, 0.36))
     rig.arms = spec.get("arms")
     s = 1.22 * h
     rig.joints["root"].scale = (s, s, s)
@@ -1385,6 +1334,366 @@ def build_person(spec):
 for _n, (_desc, _spec) in PEOPLE.items():
     BUILDERS[f"person{_n}"] = (lambda spec: lambda: build_person(spec))(_spec)
     HEIGHT[f"person{_n}"] = 3.5
+
+
+# Cold Svalt Town's three named people, on MakeHuman bodies (mpfb_body.py)
+# like the hero: kind 4 Carls the swordsman, kind 0 Jill with her handcart
+# and kind 12 Wizard Izaram.
+def plaid(name, colour, line, scale=4.0):
+    """Cloth woven in a check: colour crossed by darker bands of `line`
+    running round and down the cloth (object space), like a tartan."""
+    mat = studio.material(name, colour, scale=18, bump=0.3)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    base = bsdf.inputs["Base Color"].links[0].from_socket
+    coords = nodes.new("ShaderNodeTexCoord")
+    sep = nodes.new("ShaderNodeSeparateXYZ")
+    links.new(coords.outputs["Object"], sep.inputs[0])
+    out = base
+    for axis in ("X", "Z"):
+        wave = nodes.new("ShaderNodeMath")
+        wave.operation = "SINE"
+        mul = nodes.new("ShaderNodeMath")
+        mul.operation = "MULTIPLY"
+        mul.inputs[1].default_value = scale * 2 * math.pi
+        if axis == "X":  # round the body: x + y, so it runs on every side
+            add = nodes.new("ShaderNodeMath")
+            links.new(sep.outputs["X"], add.inputs[0])
+            links.new(sep.outputs["Y"], add.inputs[1])
+            links.new(add.outputs[0], mul.inputs[0])
+        else:
+            links.new(sep.outputs["Z"], mul.inputs[0])
+        links.new(mul.outputs[0], wave.inputs[0])
+        band = nodes.new("ShaderNodeMath")
+        band.operation = "GREATER_THAN"
+        band.inputs[1].default_value = 0.6
+        links.new(wave.outputs[0], band.inputs[0])
+        mix = nodes.new("ShaderNodeMix")
+        mix.data_type = "RGBA"
+        mix.inputs["B"].default_value = (*studio.linear(line), 1)
+        links.new(band.outputs[0], mix.inputs["Factor"])
+        links.new(out, mix.inputs["A"])
+        out = mix.outputs["Result"]
+    links.new(out, bsdf.inputs["Base Color"])
+    return mat
+
+
+def townsperson(height, macros, pick, scale, targets=(), arm_out=0.14):
+    """A townsperson on a MakeHuman body `height` units tall, painted by
+    pick (see mpfb_body.paint) and bound to a Rig with root scale `scale`."""
+    import mpfb_body
+    body, armature = mpfb_body.human(height, macros, targets)
+    mpfb_body.bake_rest(body, armature, arm_out=arm_out)
+    mpfb_body.paint(body, pick)
+    rig = Rig()
+    mpfb_body.bind(rig, body, armature, scale)
+    rig.body = body
+    rig.height = height
+    return rig
+
+
+def stand(s, **joints):
+    """A townsperson standing at ease, breathing (s is the sine of the
+    idle's phase); joints override the arms and the rest."""
+    r = {
+        "spine": (0, 0.03 + 0.015 * s, 0),
+        "head": (0, -0.03, 0),
+        "arm_l": (0.10, -0.05 - 0.02 * s, 0),
+        "elbow_l": (0, -0.20, 0),
+        "arm_r": (-0.10, -0.05 - 0.02 * s, 0),
+        "elbow_r": (0, -0.20, 0),
+        "leg_l": (0.0, 0, 0),
+        "knee_l": (0, 0.05, 0),
+        "leg_r": (0.0, 0, 0),
+        "knee_r": (0, 0.05, 0),
+    }
+    r.update(joints)
+    return r
+
+
+def stroll(s, c, swing=0.5, arms=True, **joints):
+    """A townsperson's walk: legs swinging, knees lifting on the forward
+    swing, arms (if arms) swinging against the legs."""
+    r = stand(0.0)
+    r.update({
+        "spine": (0, 0.06, 0.05 * s),
+        "leg_l": (0.04, -swing * s, 0),
+        "leg_r": (-0.04, swing * s, 0),
+        "knee_l": (0, 0.12 + 0.6 * max(0.0, s), 0),
+        "knee_r": (0, 0.12 + 0.6 * max(0.0, -s), 0),
+    })
+    if arms:
+        r["arm_l"] = (0.10, swing * 0.6 * s, 0)
+        r["arm_r"] = (-0.10, -swing * 0.6 * s, 0)
+        r["elbow_l"] = (0, -0.25 - 0.15 * max(0.0, -s), 0)
+        r["elbow_r"] = (0, -0.25 - 0.15 * max(0.0, s), 0)
+    r.update(joints)
+    return r
+
+
+def build_carls():
+    """Carls (people kind 4): a young swordsman with a full mop of blond
+    hair, a navy doublet with a white collar, a short royal-blue cape over
+    his shoulders worked with gold, dark breeches, tall brown boots and a
+    sword at his left hip. He waits with his hands at his belt."""
+    import mpfb_body
+    skin = studio.material("skin", (0.88, 0.70, 0.56), (0.70, 0.52, 0.40), scale=30, bump=0.05)
+    hair = studio.material("blond hair", (0.96, 0.78, 0.30), (0.60, 0.40, 0.10), scale=50, bump=0.6, stretch=(1, 1, 4))
+    doublet = studio.material("doublet", (0.14, 0.15, 0.36), (0.05, 0.05, 0.14), scale=22, bump=0.3)
+    breeches = studio.material("breeches", (0.10, 0.10, 0.16), (0.03, 0.03, 0.06), scale=18, bump=0.3)
+    boots = studio.material("boots", (0.46, 0.28, 0.13), (0.18, 0.10, 0.04), scale=25, rough=0.55)
+    cape = studio.material("blue cape", (0.24, 0.30, 0.70), (0.10, 0.12, 0.34), scale=7, bump=0.35,
+                           spot=0.40, spot_colour=(0.86, 0.66, 0.22))
+    lining = studio.material("collar", (0.92, 0.92, 0.94), (0.62, 0.64, 0.70), scale=30)
+    gold = studio.material("gold", (0.90, 0.70, 0.26), (0.46, 0.30, 0.08), scale=30, rough=0.35)
+    steel = studio.material("hilt", (0.80, 0.80, 0.84), (0.34, 0.34, 0.38), scale=40, rough=0.3)
+    height = 3.85
+    arms = ("upperarm", "lowerarm", "hand", "thumb", "index", "middle", "ring", "pinky")
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if z < 0.30:
+            return boots
+        if z < 0.555 or (part == "thigh"):
+            return breeches
+        return doublet
+
+    rig = townsperson(height, dict(gender=1.0, age=0.4, muscle=0.6, weight=0.45, height=0.7, proportions=0.8,
+                                   caucasian=1.0, african=0.0, asian=0.0), pick, 1.22 * SCALE_MH)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        front = normal.y < -0.45  # the body's front is -Y
+        if part == "head" and (z > 0.925 or (z > 0.86 and normal.y > -0.15)
+                               or (z > 0.875 and abs(normal.x) > 0.55)):
+            return hair, 0.07  # a thick, rounded mop, over the ears
+        if part == "neck" and normal.y > -0.2:
+            return hair, 0.05
+        if part in ("torso", "neck") and z > 0.80 and front:
+            return lining, 0.03  # the white collar
+        if part == "torso" and z > 0.62 and not front:
+            return cape, 0.05
+        if part == "thigh" and z > 0.44:
+            return breeches, 0.04  # full breeches
+        if part in ("shin", "foot") and z < 0.30:
+            return boots, 0.03
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # The short cape: round his shoulders and down over his upper arms,
+    # open at the front over the collar, with a gold-edged hem.
+    shoulder = rig.rest["arm_l"].z
+    rig.attach(shape("flare", (0.44, 0.62, 0.27), cape), "spine", (-0.05, 0, shoulder - 0.13))
+    for dy in (-0.10, 0.10):  # the white lining turned back down the front edges
+        rig.attach(shape("box", (0.035, 0.06, 0.26), lining, rotation=(math.radians(-60 * dy), 0, 0)), "spine",
+                   (0.34, dy, shoulder - 0.14))
+    # A gold belt and the sword at his left hip, hanging back.
+    rig.attach(shape("cylinder", (0.22, 0.27, 0.035), gold), "hips", (0.0, 0, 0.18))
+    scabbard = studio.material("scabbard", (0.30, 0.16, 0.08), (0.12, 0.06, 0.03), scale=25, rough=0.5)
+    rig.attach(shape("cylinder", (0.035, 0.035, 0.42), scabbard, rotation=(0, math.radians(-35), 0)), "hips",
+               (-0.10, 0.27, -0.22))
+    rig.attach(shape("box", (0.03, 0.11, 0.022), steel), "hips", (0.08, 0.27, 0.10))
+    rig.attach(shape("cylinder", (0.022, 0.022, 0.09), scabbard, rotation=(0, math.radians(-35), 0)), "hips",
+               (0.11, 0.27, 0.16))
+    rig.kind = "carls"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.25, -0.3 - 0.02 * s, 0), elbow_l=(-0.65, -0.85, 0),
+                                      arm_r=(-0.25, -0.3 - 0.02 * s, 0), elbow_r=(0.65, -0.85, 0),
+                                      leg_l=(0.0, 0, 0), leg_r=(0.0, 0, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.55),
+    }
+    return rig
+
+
+def build_jill():
+    """Jill (people kind 0): a pedlar woman pushing a wooden handcart, red-
+    brown hair in a knot on top, a green jacket over a long green tartan
+    skirt. The cart goes before her: a plank box on two big spoked wheels,
+    a small wheel at the front, a bundle of cloth in it and a cross bar at
+    her hands. Its wheels turn as she walks."""
+    import mpfb_body
+    skin = studio.material("skin", (0.92, 0.74, 0.60), (0.74, 0.54, 0.42), scale=30, bump=0.05)
+    hair = studio.material("red hair", (0.62, 0.30, 0.14), (0.30, 0.12, 0.05), scale=50, bump=0.5, stretch=(1, 1, 4))
+    jacket = studio.material("green jacket", (0.18, 0.42, 0.26), (0.06, 0.18, 0.10), scale=16, bump=0.35)
+    skirt = plaid("tartan", (0.24, 0.50, 0.30), (0.07, 0.20, 0.12), scale=3.0)
+    shoes = studio.material("shoes", (0.82, 0.70, 0.56), (0.50, 0.40, 0.30), scale=25, rough=0.6)
+    height = 3.15
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if part == "foot":
+            return shoes
+        if z < 0.56:
+            return skirt
+        return jacket
+
+    rig = townsperson(height, dict(gender=0.0, age=0.5, muscle=0.5, weight=0.55, height=0.4, proportions=0.6,
+                                   caucasian=1.0, african=0.0, asian=0.0), pick, 1.22 * SCALE_MH * 0.88)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.93 or (z > 0.87 and normal.y > 0.2)):
+            return hair, 0.035  # pulled back off the face
+        if part == "torso" and 0.50 < z < 0.84:
+            return jacket, 0.05 if z > 0.56 else 0.08  # the jacket's skirts over the hips
+        if part == "upperarm" or (part == "forearm" and z > 0.42):
+            return jacket, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # Her hair in a knot on top of her head.
+    top = (height - rig.joints["head"].matrix_world.translation.z) / (1.22 * SCALE_MH * 0.88)
+    rig.attach(shape("ball", (0.10, 0.10, 0.09), hair), "head", (-0.04, 0, top - 0.02))
+    # The long skirt, hips to ankles, over the legs.
+    hip = rig.joints["hips"].matrix_world.translation.z / (1.22 * SCALE_MH * 0.88)
+    length = hip + 0.02
+    rig.attach(shape("flare", (0.42, 0.40, length / 2), skirt), "hips", (0.02, 0, 0.04 - length / 2))
+    # The handcart, on its own joint so the wheels can turn.
+    wood = studio.material("cartwood", (0.66, 0.40, 0.18), (0.32, 0.16, 0.06), scale=10, rough=0.7, bump=0.5,
+                           stretch=(3, 1, 1))
+    dark = studio.material("cart iron", (0.24, 0.22, 0.20), (0.08, 0.07, 0.06), scale=30, rough=0.4)
+    cloth = studio.material("cart cloth", (0.66, 0.66, 0.54), (0.38, 0.38, 0.30), scale=14, bump=0.4)
+    rig.joint("cart", "root", (0, 0, 0))
+    x0, x1 = 0.72, 1.92  # the bed, from the handles to the front
+    zb = 0.70
+    rig.attach(shape("box", ((x1 - x0) / 2, 0.42, 0.035), wood), "cart", ((x0 + x1) / 2, 0, zb))
+    for dy in (-0.42, 0.42):  # plank sides
+        for k, dz in enumerate((0.10, 0.27)):
+            rig.attach(shape("box", ((x1 - x0) / 2, 0.025, 0.07), wood), "cart", ((x0 + x1) / 2, dy, zb + dz))
+    for dx in (x0, x1):
+        rig.attach(shape("box", (0.025, 0.42, 0.17), wood), "cart", (dx, 0, zb + 0.17))
+    for dx in (x0 + 0.02, x1 - 0.02):
+        for dy in (-0.42, 0.42):
+            rig.attach(shape("box", (0.03, 0.03, 0.22), dark), "cart", (dx, dy, zb + 0.18))
+    # A cloth thrown over the front of the load, hanging down over the end.
+    rig.attach(shape("box", (0.30, 0.40, 0.10), cloth), "cart", (x1 - 0.30, 0, zb + 0.25))
+    rig.attach(shape("box", (0.03, 0.44, 0.18), cloth, rotation=(0, math.radians(-10), 0)), "cart",
+               (x1 + 0.04, 0, zb + 0.22))
+    rig.attach(shape("box", (0.24, 0.36, 0.12), wood), "cart", (x0 + 0.32, 0, zb + 0.15))
+    # Two handles back to her hands, joined by a cross bar.
+    for dy in (-0.32, 0.32):
+        rig.attach(shape("box", (0.32, 0.028, 0.028), wood, rotation=(0, math.radians(-14), 0)), "cart",
+                   (x0 - 0.28, dy, zb + 0.24))
+    rig.attach(shape("cylinder", (0.03, 0.03, 0.40), wood, rotation=(math.radians(90), 0, 0)), "cart",
+               (x0 - 0.56, 0, zb + 0.31))
+    # Big spoked wheels under the bed, a little behind its middle.
+    rad = 0.56
+    wx = x0 + 0.45
+    for side, dy in (("l", 0.52), ("r", -0.52)):
+        rig.joint(f"wheel_{side}", "cart", (wx, dy, rad))
+        rig.attach(shape("cylinder", (rad, rad, 0.035), dark, rotation=(math.radians(90), 0, 0)), f"wheel_{side}")
+        rig.attach(shape("cylinder", (rad * 0.88, rad * 0.88, 0.05), wood, rotation=(math.radians(90), 0, 0)),
+                   f"wheel_{side}")
+        for k in range(6):
+            a = math.pi * k / 3
+            rig.attach(shape("box", (rad * 0.82, 0.03, 0.03), wood, rotation=(0, a, 0)), f"wheel_{side}")
+        rig.attach(shape("cylinder", (0.09, 0.09, 0.07), dark, rotation=(math.radians(90), 0, 0)), f"wheel_{side}")
+    rig.attach(shape("cylinder", (0.035, 0.035, 0.52), dark, rotation=(math.radians(90), 0, 0)), "cart", (wx, 0, rad))
+    # A small wheel under the front.
+    rig.joint("wheel_f", "cart", (x1 - 0.12, 0, 0.20))
+    rig.attach(shape("cylinder", (0.20, 0.20, 0.06), wood, rotation=(math.radians(90), 0, 0)), "wheel_f")
+    rig.attach(shape("cylinder", (0.06, 0.06, 0.09), dark, rotation=(math.radians(90), 0, 0)), "wheel_f")
+    rig.attach(shape("box", (0.04, 0.04, 0.20), wood), "cart", (x1 - 0.12, 0, 0.42))
+    rig.kind = "jill"
+    hands = dict(arm_l=(-0.05, -0.75, 0), elbow_l=(-0.2, -0.55, 0), arm_r=(0.05, -0.75, 0), elbow_r=(0.2, -0.55, 0))
+
+    def walk(s, c, k):
+        turn = -2 * math.pi / 6 * k  # one spoke's turn per stride, so the loop is seamless
+        r = stroll(s, c, swing=0.45, arms=False, spine=(0, 0.32, 0.03 * s), head=(0, -0.24, 0), **hands)
+        r.update(wheel_l=(0, turn, 0), wheel_r=(0, turn, 0), wheel_f=(0, turn * 2.6, 0))
+        return r
+
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, spine=(0, 0.30 + 0.015 * s, 0), head=(0, -0.22, 0), **hands),
+        "walk": walk,
+    }
+    return rig
+
+
+def build_izaram():
+    """Wizard Izaram (people kind 12): a tall figure in a long dark olive
+    robe with a gold panel down the front, a shoulder cape edged in red and
+    a tall pointed hood with a red tip that hides his face; pale hands at
+    his sides."""
+    import mpfb_body
+    skin = studio.material("pale skin", (0.92, 0.88, 0.84), (0.66, 0.62, 0.60), scale=30, bump=0.05)
+    shadow = studio.material("hood shadow", (0.10, 0.08, 0.05), (0.03, 0.02, 0.01), scale=30)
+    robe = studio.material("dark robe", (0.10, 0.09, 0.03), (0.02, 0.02, 0.0), scale=12, bump=0.4,
+                           stretch=(1, 1, 3))
+    cape = studio.material("olive cape", (0.44, 0.36, 0.04), (0.08, 0.06, 0.01), scale=10, bump=0.5,
+                           spot=0.18, spot_colour=(0.70, 0.52, 0.10))
+    gold = studio.material("gold panel", (0.86, 0.60, 0.12), (0.46, 0.28, 0.03), scale=14, bump=0.3,
+                           stretch=(1, 1, 3))
+    red = studio.material("red trim", (0.80, 0.12, 0.08), (0.40, 0.04, 0.02), scale=30, rough=0.5)
+    height = 3.9
+    scale = 1.22 * SCALE_MH
+
+    def pick(centre, bones, normal):
+        part = mpfb_body.part(bones)
+        if part == "hand":
+            return skin
+        if part in ("head", "neck"):
+            return shadow
+        return robe
+
+    rig = townsperson(height, dict(gender=1.0, age=0.8, muscle=0.3, weight=0.35, height=0.8, proportions=0.6,
+                                   caucasian=1.0, african=0.0, asian=0.0), pick, scale)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part in ("torso", "upperarm") and z > 0.66:
+            return cape, 0.08 if z > 0.74 else 0.10
+        if part == "forearm" or (part == "upperarm"):
+            return robe, 0.06  # wide sleeves
+        if part == "torso":
+            return robe, 0.05
+        return None
+
+    mpfb_body.shell(body, gear, "robe")
+    J = rig.joints
+    hip = J["hips"].matrix_world.translation.z / scale
+    shoulder = rig.rest["arm_l"].z
+    # The long robe from the hips to the ground, and a gold panel down its
+    # front, narrow at the waist and wide at the hem.
+    length, low, high = hip + 0.04, 0.38, 0.38 * 0.6
+    rig.attach(shape("flare", (low, 0.40, length / 2), robe), "hips", (0, 0, 0.02 - length / 2))
+    tilt = math.atan((low - high) / length)
+    part = length * 0.55  # up from the hem to the knees
+    panel = shape("flare", (0.02, 0.20, part / 2), gold, rotation=(0, -tilt, 0))
+    rig.attach(panel, "hips", (low - (low - high) * 0.55 / 2 + 0.015, 0, 0.02 - length + part / 2))
+    # The cape: round the shoulders down to the elbows, red dots on its hem.
+    rig.attach(shape("flare", (0.42, 0.58, 0.26), cape), "spine", (-0.03, 0, shoulder - 0.10))
+    for k in range(14):
+        a = 2 * math.pi * (k + 0.5) / 14
+        rig.attach(shape("ball", (0.035, 0.035, 0.035), red), "spine",
+                   (-0.03 + 0.43 * math.cos(a), 0.59 * math.sin(a), shoulder - 0.35))
+    # The hood: round over the head, rising to a tall point with a red tip.
+    top = (height - J["head"].matrix_world.translation.z) / scale
+    rig.attach(shape("ball", (0.24, 0.23, 0.26), cape), "head", (-0.03, 0, top * 0.60))
+    rig.attach(shape("cone", (0.21, 0.21, 0.34), cape, rotation=(0, math.radians(-10), 0)), "head",
+               (-0.08, 0, top * 0.60 + 0.36))
+    rig.attach(shape("ball", (0.06, 0.06, 0.09), red), "head", (-0.12, 0, top * 0.60 + 0.56))
+    rig.kind = "izaram"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.22, -0.10 - 0.02 * s, 0), elbow_l=(0, -0.30, 0),
+                                      arm_r=(-0.22, -0.10 - 0.02 * s, 0), elbow_r=(0, -0.30, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.35, spine=(0, 0.04, 0.03 * s)),
+    }
+    return rig
+
+
+BUILDERS.update({"person4": build_carls, "person0": build_jill, "person12": build_izaram})
+HEIGHT.update({"person4": 3.6, "person0": 3.0, "person12": 3.8})
+SIZE.update({"person0": 200})
 
 
 BANDITS = {
