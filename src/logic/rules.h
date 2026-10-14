@@ -46,6 +46,13 @@ struct Rules {
     // anywhere (0x44a6f0); to sell, the item is picked up and put on the
     // shop.
     bool rightClickSells = true;
+    // Right clicking a weapon, armour or accessory in the bag wears it
+    // (what was worn goes back in the bag), and right clicking a worn item
+    // takes it off into the bag. In the original a right click in the bag
+    // only uses a consumable and one on a worn item does nothing
+    // (0x44a6f0); items are worn by picking them up and dropping them on
+    // the figure.
+    bool rightClickEquips = true;
     // Gold put in the Warehouse Transfer Box that exactly fills the
     // warehouse's gold stacks leaves a Gold item of 0 behind, which the
     // original puts down in the warehouse (0x446320). Ours drops it.
@@ -54,7 +61,8 @@ struct Rules {
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer && !rightClickSells && !noEmptyGoldInWarehouse;
+               !outlineUnderPointer && !rightClickSells && !rightClickEquips &&
+               !noEmptyGoldInWarehouse;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -68,6 +76,7 @@ struct Rules {
         r.zoomOut = false;
         r.outlineUnderPointer = false;
         r.rightClickSells = false;
+        r.rightClickEquips = false;
         r.noEmptyGoldInWarehouse = false;
         return r;
     }

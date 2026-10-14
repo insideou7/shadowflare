@@ -327,6 +327,7 @@ with none of our fixes; it is off by default. Each fix is a switch in
 | `shieldsCostTheirOwnMp` | Magic Shield and Counter Burst cost their own MP | they cost the chosen spell's MP |
 | `partnerStatusShowsMagicEvasion` | the partner's status sheet shows its magic evasion | it shows its defence there ([partners.md](partners.md)) |
 | `explosionUsesItsOwnLevel` | the companion's Explosion stuns at Explosion's level | at Elemental Strike's level ([partners.md](partners.md)) |
+| `rightClickEquips` | a right click on a weapon, armour or accessory in the bag wears it, and on a worn item takes it off into the bag | a right click in the bag only uses a consumable, and one on a worn item does nothing ([controls.md](controls.md#mouse)) |
 | `rightClickSells` | a right click on a bag item while a shop is open sells it | it uses the item; selling means dropping it on the shop ([controls.md](controls.md#mouse)) |
 
 Data the engine used to misread, such as the monster stat words, is
