@@ -19,6 +19,7 @@
 #include "logic/ai_select.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
+#include "logic/item_labels.h"
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
@@ -132,6 +133,9 @@ public:
 
     // Draws the walkability grid over the map (toggled with J).
     void setShowJudge(bool show) { showJudge_ = show; }
+
+    // Shows the names of the items on the ground as if Alt were held.
+    void setShowItemNames(bool show) { forceItemNames_ = show; }
     std::uint64_t tickCount() const { return ticks_; }
 
     // Starts the hero at a level, fully healed (for testing): a warrior from
@@ -1278,10 +1282,22 @@ private:
     void renderClickSquare();
     void renderHoverName();
     void renderPointer();
+    // Ours: the names of the items on the ground while Alt is held, or
+    // always once L turns them on (Rules::groundItemNames).
+    struct ItemLabel {
+        std::size_t item;  // into groundItems_
+        LabelBox box;      // logical screen pixels, edge included
+        std::string name;
+        SDL_Color color;
+    };
+    bool itemNamesShown() const;
+    std::vector<ItemLabel> itemLabels() const;
+    void renderItemNames();
     void nameOpenEnemy(Actor& actor);
     std::optional<SDL_FPoint> forcedPointer_;
     int pointerOnKind_ = -1;
     bool pointerHidden_ = false;  // the system's pointer, while ours is drawn
+    bool forceItemNames_ = false;  // --item-names
     bool hoverOn_ = false;        // the pointer is on the uncovered world
     ClickTarget hover_;           // what a click there would go for
     std::optional<std::map<int, open::EnemyName>> enemyNames_;

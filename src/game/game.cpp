@@ -645,6 +645,14 @@ void Game::handleEvent(const SDL_Event& event) {
                     if (!mapNames_.empty()) loadMap((mapIndex_ + mapNames_.size() - 1) % mapNames_.size());
                     break;
                 case SDLK_j: showJudge_ = !showJudge_; break;
+                case SDLK_l:
+                    // Ours: keeps the items' names on, as Alt does while held.
+                    if (rules_.groundItemNames) {
+                        settings_.itemNames = !settings_.itemNames;
+                        saveSettings();
+                        showMessage(settings_.itemNames ? "Item names on" : "Item names off (hold Alt)");
+                    }
+                    break;
                 case SDLK_s:
                     if (!openShop_) {
                         showStatus_ = !showStatus_;
@@ -808,6 +816,14 @@ bool Game::inClickRange(double dx, double dy) const {
 }
 
 Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds) const {
+    // With the items' names shown, a name goes for its item before
+    // anything else there.
+    if (kinds & (1u << Settings::kItem)) {
+        for (const ItemLabel& label : itemLabels()) {
+            const LabelBox& b = label.box;
+            if (screenX >= b.x && screenX < b.x + b.w && screenY >= b.y && screenY < b.y + b.h) return {Settings::kItem, label.item};
+        }
+    }
     for (const int kind : settings_.clickPriority) {
         if (!(kinds & (1u << kind))) continue;
         std::optional<std::size_t> found;
@@ -1618,6 +1634,7 @@ void Game::renderMap() {
     renderRain();
     renderTransportGateName();
     if (worldOnly_) return;  // a save's picture
+    renderItemNames();
     // The panel and the magic bar are under the windows, as the exe
     // layers them (11 and 13 below 14).
     renderPanel();

@@ -102,6 +102,7 @@ Options:
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
+- `--item-names` show the names of the items on the ground, as with Alt held
 - `--at <x>,<y>` start at a point on the map, in map pixels (moved to the nearest walkable spot)
 - `--walk <x>,<y>` start walking to a point given in screen pixels from the player
 - `--give <class>:<code>[:<count>]` start with an item in the bag (class 0 weapon,

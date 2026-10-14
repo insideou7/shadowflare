@@ -44,6 +44,7 @@ struct Options {
     double frameLogMs = -1;  // --frame-log: report frames slower than this
     long ticks = -1;         // run exactly this many simulation ticks, ignoring the clock
     bool showJudge = false;  // overlay the walkability grid
+    bool itemNames = false;  // --item-names: the items' names shown, as with Alt held
     bool autoFight = false;  // player attacks nearby monsters by itself
     // --pointer x,y or enemy|person|item: where the pointer is (for screenshots)
     std::optional<SDL_FPoint> pointer;
@@ -288,6 +289,8 @@ Options parseArgs(int argc, char** argv) {
             options.autoFight = true;
         } else if (arg == "--show-judge") {
             options.showJudge = true;
+        } else if (arg == "--item-names") {
+            options.itemNames = true;
         } else if (arg == "--frames" && i + 1 < argc) {
             options.maxFrames = std::strtol(argv[++i], nullptr, 10);
         } else if (arg == "--frame-log" && i + 1 < argc) {
@@ -572,6 +575,7 @@ int main(int argc, char** argv) {
     }
     app.game = std::make_unique<sf::Game>(app.renderer, app.data.get(), startMap, std::move(skinLoader));
     app.game->setShowJudge(options.showJudge);
+    app.game->setShowItemNames(options.itemNames);
     app.game->setAutoFight(options.autoFight);
     if (options.pointer || options.pointerOn >= 0) app.game->setPointer(options.pointer, options.pointerOn);
     app.game->setInventoryOpen(options.inventory);

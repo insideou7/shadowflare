@@ -77,6 +77,19 @@ between the original's art and ours (with the original files only, see
 keys walk; Page Up / Page Down switch maps, Home goes back to the start
 point and J shows the walkability grid (for testing).
 
+Also ours, after Diablo: holding Alt shows the names of all the items on
+the ground, in their quality's colour, in the same boxes as the name under
+the pointer. Where names would cover each other they stack upward, the
+item nearest the front keeping its place, so a pile of loot reads as a
+list. A click on a name goes for that item (walks there and picks it up),
+before anything else under the pointer. L keeps the names on without Alt
+and turns them off again; that is kept in `options.txt`
+(`item_names=`). Original mode shows neither. The original has no such
+key: ShadowFlare.exe reads Alt with its other keys (the table at
+0x47fac0, polled at 0x4562f0) but nothing in the game uses it, and the
+name of an item shows only under the pointer (0x40ee70). X stays the
+manual's special items window.
+
 Also ours: the scroll wheel zooms the world, 10% a notch, from 100% (the
 original's 640 x 480 view) out to 50%, which shows twice as much of the
 map each way; scrolling towards you zooms out and away zooms back in. The
