@@ -1191,10 +1191,15 @@ HAIR = {"brown": (0.30, 0.18, 0.08), "black": (0.10, 0.08, 0.07), "blond": (0.85
 #   (dress colour, to the ground), coat (long open coat), apron, armour
 #   (plate over the chest and shoulders), boots.
 PEOPLE = {
+    0: ("pedlar with a handcart", dict(arms="front", width=1.05, skin="tan", hairstyle="bald", top=(0.16, 0.38, 0.22),
+                                       legs=(0.30, 0.24, 0.16), handcart=True)),
     1: ("girl in a blue dress", dict(height=0.72, width=0.8, skin="pale", hair="ginger", hairstyle="bun",
                                      top=(0.36, 0.30, 0.80), skirt=(0.36, 0.30, 0.80), apron=(0.92, 0.92, 0.90), short_skirt=True)),
     2: ("dancer in a pale dress", dict(arms="front", height=0.92, width=0.8, skin="pale", hair="blond", hairstyle="bun",
                                        top=(0.86, 0.66, 0.62), skirt=(0.86, 0.66, 0.62))),
+    4: ("swordsman in a blue coat", dict(skin="fair", hair="blond", hairstyle="short", top=(0.16, 0.18, 0.40),
+                                         legs=(0.22, 0.20, 0.26), coat=(0.20, 0.22, 0.52), sword=True,
+                                         tall_boots=True, collar=(0.90, 0.90, 0.92))),
     6: ("smith in a leather apron", dict(width=1.15, skin="tan", hair="grey", hairstyle="short", top=(0.40, 0.36, 0.30),
                                          legs=(0.22, 0.18, 0.15), apron=(0.30, 0.20, 0.12))),
     8: ("merchant in an ochre coat", dict(width=1.15, belly=0.15, skin="tan", hairstyle="bald", top=(0.72, 0.72, 0.56),
@@ -1205,6 +1210,9 @@ PEOPLE = {
                                              legs=(0.20, 0.22, 0.30), armour=(0.30, 0.34, 0.46))),
     11: ("baker in white", dict(skin="fair", hairstyle="bald", top=(0.86, 0.82, 0.74), legs=(0.70, 0.64, 0.56),
                                apron=(0.92, 0.90, 0.86))),
+    12: ("wizard in an olive robe", dict(arms="front", skin="pale", hairstyle="hood", hood_deep=True, hood_point=True,
+                                         top=(0.24, 0.22, 0.08),
+                                         skirt=(0.24, 0.22, 0.08), hood=(0.22, 0.20, 0.07), trim=(0.80, 0.58, 0.16))),
     13: ("guard in dark iron", dict(width=1.2, skin="dark", hair="black", hairstyle="short", top=(0.24, 0.24, 0.26),
                                      legs=(0.18, 0.18, 0.20), armour=(0.32, 0.32, 0.34))),
     14: ("hunter in a brown jerkin", dict(width=1.05, skin="tan", hair="red", hairstyle="long", top=(0.42, 0.24, 0.12),
@@ -1281,6 +1289,9 @@ def build_person(spec):
         rig.attach(shape("ball", (0.22, 0.20, 0.25), hood), "head", (-0.04, 0, 0.24))
         if spec.get("hood_deep"):  # pulled low over the brow
             rig.attach(shape("ball", (0.20, 0.21, 0.12), hood), "head", (0.04, 0, 0.36))
+        if spec.get("hood_point"):  # a wizard's hood, drawn up to a point
+            rig.attach(shape("cone", (0.16, 0.16, 0.30), hood), "head", (-0.08, 0, 0.58))
+            rig.attach(shape("flare", (0.30 * w, 0.42 * w, 0.20), hood), "spine", (-0.02, 0, 0.72))
     if style == "mitre":
         mitre = studio.material("mitre", spec.get("mitre", (0.8, 0.8, 0.7)), scale=20)
         rig.attach(shape("cone", (0.13, 0.13, 0.30), mitre), "head", (-0.02, 0, 0.55))
@@ -1325,6 +1336,46 @@ def build_person(spec):
             rig.attach(shape("ball", (0.17, 0.17, 0.14), plate), side, (0, 0, 0.0))
         for side in ("leg_l", "leg_r"):
             rig.attach(shape("cylinder", (0.14, 0.14, 0.25), plate), side, (0, 0, -0.75))
+    if "collar" in spec:
+        collar = studio.material("collar", spec["collar"], scale=30)
+        rig.attach(shape("cylinder", (0.18, 0.21, 0.06), collar), "spine", (0, 0, 0.86))
+    if "trim" in spec:
+        # A gold band down the front of a robe, from the chest to the hem.
+        trim = studio.material("trim", spec["trim"], (0.40, 0.24, 0.06), scale=30, rough=0.4)
+        rig.attach(shape("box", (0.02, 0.07 * w, 0.40), trim), "spine", (0.25 * w, 0, 0.40))
+        rig.attach(shape("box", (0.02, 0.08 * w, 0.52), trim), "hips", (0.40 * w, 0, -0.50))
+    if spec.get("tall_boots"):
+        for side in ("leg_l", "leg_r"):
+            rig.attach(shape("cylinder", (0.14, 0.14, 0.26), leather), side, (0, 0, -0.80))
+    if spec.get("sword"):
+        # A sword in its scabbard at the left hip, hanging back.
+        steel = studio.material("hilt", (0.78, 0.78, 0.80), (0.34, 0.34, 0.38), scale=40, rough=0.3)
+        rig.attach(shape("cylinder", (0.04, 0.04, 0.42), leather, rotation=(0, math.radians(-30), 0)), "hips",
+                   (-0.08, 0.30 * w, -0.30))
+        rig.attach(shape("box", (0.03, 0.12, 0.025), steel), "hips", (0.06, 0.30 * w, 0.06))
+        rig.attach(shape("cylinder", (0.025, 0.025, 0.10), leather), "hips", (0.08, 0.30 * w, 0.14))
+    if spec.get("handcart"):
+        # A wooden handcart in front, its two handles at his hands: a box
+        # bed on one axle with spoked wheels either side.
+        wood = studio.material("cartwood", (0.62, 0.38, 0.18), (0.30, 0.16, 0.06), scale=10, rough=0.7, bump=0.5,
+                               stretch=(3, 1, 1))
+        cloth = studio.material("cartcloth", (0.70, 0.66, 0.50), scale=14, bump=0.4)
+        rig.joint("cart", "root", (0, 0, 0))
+        rig.joints["cart"].scale = (1.25, 1.25, 1.25)
+        rig.attach(shape("box", (0.42, 0.40, 0.04), wood), "cart", (1.05, 0, 0.62))
+        for dy in (-0.40, 0.40):
+            rig.attach(shape("box", (0.42, 0.03, 0.16), wood), "cart", (1.05, dy, 0.78))
+        for dx in (0.63, 1.47):
+            rig.attach(shape("box", (0.03, 0.40, 0.16), wood), "cart", (dx, 0, 0.78))
+        rig.attach(shape("ball", (0.34, 0.32, 0.14), cloth), "cart", (1.05, 0, 0.80))
+        for dy in (-0.30, 0.30):
+            rig.attach(shape("box", (0.40, 0.025, 0.025), wood), "cart", (0.35, dy, 0.95))
+        for dy in (-0.47, 0.47):
+            rig.attach(shape("cylinder", (0.36, 0.36, 0.035), wood, rotation=(math.radians(90), 0, 0)), "cart",
+                       (1.10, dy, 0.36))
+        rig.attach(shape("cylinder", (0.03, 0.03, 0.48), wood, rotation=(math.radians(90), 0, 0)), "cart",
+                   (1.10, 0, 0.36))
+        rig.attach(shape("box", (0.03, 0.03, 0.24), wood), "cart", (1.42, 0, 0.36))
     rig.arms = spec.get("arms")
     s = 1.22 * h
     rig.joints["root"].scale = (s, s, s)
