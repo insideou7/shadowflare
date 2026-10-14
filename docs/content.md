@@ -379,13 +379,14 @@ them, as in Remote Town's kennel:
 ### ai.txt
 
     [list goblin]
-    walk=40                  # speed when walking home
+    walk=20                  # speed when walking home
     on=decide attack priority=2 range=..60
-    on=decide approach weight=4 duration=30 speed=45 range=..1800
+    on=decide approach weight=4 duration=45 speed=15 range=..1800
 
 Each `on=` line is one choice for an event, as in the original's
 Control.aid (see formats.md): the event, the action, then any of
-`priority`, `weight`, `duration` (ticks), `speed` (world units a tick),
+`priority`, `weight`, `duration` (ticks), `speed` (world units a tick;
+ticks are the original's, 30 a second, and the hero walks 20 a tick),
 `pause`, `extra`, `hp=<min>..<max>` (percent) and `range=<min>..<max>`
 (gap to the player in world units; either end may be left out).
 `tools/content/ai.txt` lists the event and action names.

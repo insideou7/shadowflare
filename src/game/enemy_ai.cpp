@@ -69,8 +69,12 @@ void Game::runAiAction(Actor& enemy) {
     Character& c = enemy.character;
     const auto& list = ai_->lists[static_cast<std::size_t>(enemy.aiList)];
     const auto& p = enemy.entry.param;
-    const double scale = enemy.placement.stats.speed / 1000.0;
-    ++enemy.actionTicks;
+    // Control.aid's speeds and durations count the original's ticks, 30 a
+    // second (0x45c900), so each of ours moves 1.5 of its steps and counts
+    // 1.5 of its ticks.
+    const double scale = enemy.placement.stats.speed / 1000.0 * kOriginalTicksPerTick;
+    const bool starting = enemy.actionTicks == 0;
+    enemy.actionTicks += kOriginalTicksPerTick;
 
     auto moveTowards = [&](double tx, double ty, double speed) {
         const double dx = tx - c.x, dy = ty - c.y;
@@ -93,16 +97,17 @@ void Game::runAiAction(Actor& enemy) {
             enemy.event = enemy.actionTicks >= p[1] ? AiControl::kDecide : AiControl::kWaiting;
             break;
         case AiControl::kWander: {
-            if (enemy.actionTicks == 1) enemy.wanderPause = 0;
+            if (starting) enemy.wanderPause = 0;
             if (enemy.wanderPause > 0) {
-                --enemy.wanderPause;
+                enemy.wanderPause -= kOriginalTicksPerTick;
                 c.play(chart::kIdle);
-                if (enemy.wanderPause == 0) {
+                if (enemy.wanderPause <= 0) {
+                    enemy.wanderPause = 0;
                     const auto& a = enemy.placement.stats.area;
                     enemy.wanderX = enemy.placement.x + a[0] + random_.next(std::max(1, a[2] - a[0]));
                     enemy.wanderY = enemy.placement.y + a[1] + random_.next(std::max(1, a[3] - a[1]));
                 }
-            } else if (enemy.actionTicks == 1 || moveTowards(enemy.wanderX, enemy.wanderY, p[3] * scale)) {
+            } else if (starting || moveTowards(enemy.wanderX, enemy.wanderY, p[3] * scale)) {
                 enemy.wanderPause = std::max(1, p[4] + random_.next(p[5] + 1));
             }
             enemy.event = enemy.actionTicks >= p[1] ? AiControl::kWanderDone : AiControl::kWandering;
@@ -145,7 +150,7 @@ void Game::runAiAction(Actor& enemy) {
             const int slot = enemy.action - (magic ? AiControl::kMagic : AiControl::kAttack);
             const auto k = static_cast<std::size_t>(slot);
             const auto& s = enemy.placement.stats;
-            if (enemy.actionTicks == 1) {
+            if (starting) {
                 // Attacks play chart 4 plus their slot's word 64-66 and
                 // spells chart 7 plus word 67-69 (0x45a749, 0x45ac90),
                 // aimed at the player as the action starts.

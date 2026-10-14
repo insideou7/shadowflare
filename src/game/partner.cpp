@@ -33,7 +33,6 @@ constexpr double kRunRange = 600;
 constexpr double kIdleRange = 159;
 constexpr double kBiteReach = 150;    // gap between the two boxes (+0x128)
 constexpr double kBox = 80;           // half the partner's collision box (+0x138)
-constexpr double kHeroWalkStat = 128;  // the hero's walking speed stat, which moves them kWalkSpeed
 constexpr int kFadeTicks = 60;
 constexpr std::int32_t kCompanionStone = 98000002;  // special item
 
@@ -76,9 +75,8 @@ void showStreak(Character& c, bool on) {
 
 }  // namespace
 
-// The original moves both at stat / 5 a tick (0x454210), so the partner
-// keeps the same ratio to the hero's step here.
-double Game::partnerSpeed(int stat) const { return kPlayerWalkSpeed * stat / kHeroWalkStat; }
+// The original moves it at stat / 5 an original tick (0x454210).
+double Game::partnerSpeed(int stat) const { return stat / 5.0 * kOriginalTicksPerTick; }
 
 // Its stats at its level, with what the hero wears (0x4136f0, 0x4138b0).
 PartnerStats Game::partnerStats() const {

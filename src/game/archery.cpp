@@ -50,8 +50,9 @@ void Game::shoot(std::optional<std::size_t> target, double angle) {
     BowShot shot;
     shot.target = target;
     shot.angle = angle;
-    const int attackSpeed = playerStats()[HeroStats::kAttackSpeed];
-    double speed = attackSpeedFactor(magic_, attackSpeed, power_.active());
+    const HeroStats stats = playerStats();
+    const int attackSpeed = stats[HeroStats::kAttackSpeed];
+    double speed = attackSpeedFactor(magic_, attackSpeed, power_.active(), overloaded(stats));
     if (power_.active() && career_.current == HeroClass::Hunter && random_.next(100) < kHunterVolleyChance) {
         // Every living monster whose position lies within 2000 either way.
         for (std::size_t i = 0; i < actors_.size() && shot.volleyTargets.size() < kHunterVolleyMost; ++i) {
