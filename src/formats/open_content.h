@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
@@ -26,11 +27,16 @@
 // formats are described in docs/content.md.
 namespace sf::open {
 
-// A decoded image, 0xAARRGGBB, top row first.
+// A decoded image, 0xAARRGGBB, top row first. The pixels stay where the
+// decoder put them: our sheets are big, and copying them is slow.
 struct Image {
+    struct Free {
+        void operator()(std::uint32_t* pixels) const;
+    };
     int width = 0;
     int height = 0;
-    std::vector<std::uint32_t> argb;
+    std::unique_ptr<std::uint32_t, Free> pixels;
+    std::span<const std::uint32_t> argb;  // the pixels
 };
 
 // Decodes a PNG (or any format stb_image reads). Throws FormatError.
@@ -48,8 +54,11 @@ struct Sheet {
 };
 Sheet parseSheet(std::span<const std::uint8_t> text);
 
-// One pattern per frame, each a single full-colour part.
-SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image);
+// One pattern per frame, each a single full-colour part. `trim` cuts each
+// part down to what shows in it, keeping the anchor, for sheets whose
+// frames are mostly see-through (our character renders are 200 x 200
+// cells, about 3% figure); frames with the same rectangle share a part.
+SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image, bool trim = false);
 
 // A .anim file: the charts of a character, and the sheet holding its frames.
 struct Animation {
