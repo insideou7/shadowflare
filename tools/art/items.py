@@ -66,6 +66,7 @@ ITEMS = [
     ("magic_staff", ("gear", 18), 1, 3, 1.0, 25),
     ("plate_mail", ("gear", 6), 2, 3, 0.85, 20),
     ("mine", ("thing", "mine"), 2, 2, 1.6, 0),
+    ("wood_bowgun", ("gear", 16), 2, 3, 1.4, 30),
 ]
 
 # A laid mine is drawn larger than the mine item, as the original's is, so

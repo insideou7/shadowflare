@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <functional>
 #include <format>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -427,6 +428,33 @@ void testSounds() {
     expectRejected("a sound that is not Ogg Vorbis", "OggS but not really", [](auto& d) { sf::open::decodeSound(d); });
 }
 
+// Every class can be earned in the open pack: a hero is offered the
+// hunter for bowgun kills and the wizard for staff or spell kills
+// (sf::Career), so Remote Town's smith (shop 0) sells a sword, a bowgun
+// and a staff.
+void testPackWeaponsForEveryClass() {
+    const auto read = [](const char* path) {
+        std::vector<std::uint8_t> data;
+        if (std::FILE* f = std::fopen(path, "rb")) {
+            int c;
+            while ((c = std::fgetc(f)) != EOF) data.push_back(static_cast<std::uint8_t>(c));
+            std::fclose(f);
+        }
+        return data;
+    };
+    const auto items = sf::open::parseItems(read(SF_CONTENT_DIR "/items.txt"));
+    const auto shops = sf::open::parseShops(read(SF_CONTENT_DIR "/shops.txt"));
+    std::set<int> sold;
+    for (const auto& goods : shops.at(0)) {
+        const sf::ItemDef* def = items.find(goods.cls, goods.code);
+        check(def != nullptr, "the smith sells only items the pack has");
+        if (def && def->cls == sf::ItemDef::Class::Weapon) sold.insert(def->subtype);
+    }
+    check(sold.contains(sf::ItemDef::kSword), "the smith sells a sword (warrior)");
+    check(sold.contains(sf::ItemDef::kBowgun), "the smith sells a bowgun (hunter)");
+    check(sold.contains(sf::ItemDef::kStaff), "the smith sells a staff (wizard)");
+}
+
 void testSkin() {
     const auto skin = sf::open::parseSkin(bytes(
         "props=Map/props.sheet\n"
@@ -471,6 +499,7 @@ int main() {
     testPackInfo();
     testSkin();
     testSounds();
+    testPackWeaponsForEveryClass();
     if (failures == 0) std::puts("all open content tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

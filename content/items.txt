@@ -160,6 +160,21 @@ layer=18
 weight=4
 load=25
 
+[item weapon 1000010]
+name=Wood Bowgun
+subtype=5                # bowgun: shoots arrows, earns the hunter's class
+size=2,3
+price=500
+durability=600
+icon=0,14
+ground=7,14
+level=3,3
+stats=30,80
+layer=16
+weight=8
+load=30
+shot=1,0,100             # one arrow
+
 [item armour 4000000]
 name=Plate Mail
 subtype=1                # body
