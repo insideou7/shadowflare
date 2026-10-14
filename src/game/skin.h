@@ -39,6 +39,10 @@ public:
     // "Player/Male/Animation00"), if it has one.
     std::optional<CharacterModel> character(const std::string& stem) const;
 
+    // The pack's .sheet picture bank at a path stem ("System/Title/Pattern/
+    // Title"), or null when it has none.
+    const SpriteBank* sheet(const std::string& stem);
+
     // Call when a new map is shown: forgets the last map's ground.
     void setMap(const Map* map);
 
@@ -101,6 +105,7 @@ private:
     open::Skin file_;
     std::unique_ptr<SpriteBank> props_;
     std::map<std::string, int> propFrames_;
+    std::map<std::string, std::unique_ptr<SpriteBank>> sheets_;  // by path stem; null = missing
     std::map<std::string, SDL_Texture*> propTextures_;  // by prop name
     std::map<std::string, SDL_Texture*> propOutlines_;  // their outlines (kOutlineWidth wider each side)
     std::map<std::string, std::optional<MaterialTexture>> materials_;

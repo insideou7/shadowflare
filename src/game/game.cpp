@@ -284,6 +284,14 @@ const CharacterModel* Game::heroModel(HeroSex sex) {
     return nullptr;
 }
 
+bool Game::swapArt() {
+    if (!canSwapArt()) return false;
+    settings_.ourArt = !ourArt();
+    setOurArt(settings_.ourArt);
+    saveSettings();
+    return true;
+}
+
 void Game::setOurArt(bool on) {
     if (on == ourArt()) return;
     if (on && !ownedSkin_) {
@@ -676,12 +684,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_F10: saveGame(); break;
                 case SDLK_F11: loadGame(); break;
                 case SDLK_F12:
-                    if (canSwapArt()) {
-                        settings_.ourArt = !ourArt();
-                        setOurArt(settings_.ourArt);
-                        showMessage(ourArt() ? "Our art" : "Original art");
-                        saveSettings();
-                    }
+                    if (swapArt()) showMessage(ourArt() ? "Our art" : "Original art");
                     break;
                 case SDLK_PRINTSCREEN: screenshotPending_ = true; break;
                 case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:

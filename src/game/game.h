@@ -165,6 +165,9 @@ public:
     bool canSwapArt() const { return skinLoader_ || ownedSkin_; }
     bool ourArt() const { return skin_ != nullptr; }
     void setOurArt(bool on);
+    // F12, in play or on the title menu: the other art, saved in the
+    // options. False when there is no other art.
+    bool swapArt();
 
     // Chooses the spell on F1-F8 (slot 0-7).
     void selectSpellSlot(int slot);
