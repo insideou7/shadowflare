@@ -1,0 +1,63 @@
+# GitLab CI build for the Shadowflare engine.
+#
+# GitLab looks for .gitlab-ci.yml by default. To use this file, set
+# Settings > CI/CD > General pipelines > CI/CD configuration file to
+# ci-build.yaml (or rename it to .gitlab-ci.yml).
+#
+# It mirrors .github/workflows/build.yml on Linux: build, unit tests, and a
+# smoke test that plays the bundled open content in content/. It never needs
+# or fetches the original game files. Needs a runner with the Docker executor.
+
+workflow:
+  rules:
+    # Run for merge requests, and for branch pushes that have no open MR
+    # (so one push does not start two pipelines).
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - build
+
+build-linux:
+  stage: build
+  image: ubuntu:24.04
+  interruptible: true
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+    # Play without a window or sound card.
+    SDL_VIDEODRIVER: dummy
+    SDL_AUDIODRIVER: dummy
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends build-essential cmake ninja-build libsdl2-dev
+  script:
+    - set -o pipefail
+    - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    - cmake --build build --parallel
+    - ctest --test-dir build --output-on-failure --output-junit ctest-results.xml
+    # Smoke test with the open content.
+    # A new game begins in Remote Town, as the original's does.
+    - ./build/shadowflare --data content --ticks 3 2>&1 | tee start.log
+    - grep -q 'Going to Scenario/10000000 "Remote Town", entry 0' start.log
+    # Create New Character: the heroine, named, in single mode.
+    - ./build/shadowflare --data content --new-character --press right,enter,text:Ada,enter,enter --ticks 40 2>&1 | tee heroine.log
+    - grep -q 'New heroine named Ada' heroine.log
+    - grep -q 'Going to Scenario/10000000 "Remote Town", entry 0' heroine.log
+    # Cast each spell that has effects: every effect has its animation.
+    - |
+      for spell in 1 2 3 4 5 10 11 12 13 15 16 21; do
+        ./build/shadowflare --data content --no-menu --spell $spell:20 --cast 1:200,60 --ticks 80 2>&1 | tee -a spells.log
+      done
+    - if grep -q 'No animation for effect' spells.log; then echo "A spell effect has no animation"; exit 1; fi
+  artifacts:
+    when: always
+    expire_in: 1 week
+    paths:
+      - build/shadowflare
+      - "*.log"
+    reports:
+      junit: build/ctest-results.xml
