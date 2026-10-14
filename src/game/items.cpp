@@ -144,6 +144,11 @@ bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
         updateEquipment();
         return true;
     }
+    if (def->isMine()) {
+        if (pickUpMine()) return true;
+        log::warn("No room for more mines");
+        return false;
+    }
     if (!inventory_.add(item)) {
         log::warn("No room in the bag for {}", def->name);
         return false;

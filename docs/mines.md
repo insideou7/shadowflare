@@ -20,8 +20,16 @@ per frame of its own, as it does for spells.
   or stays on the ground when the hero has the most already (0x44a0e2).
   Monsters drop them from the same lists as potions (Table.Tbd table 31;
   ours: `pick=special,1` in content/drops.txt).
+- A mine bought in a shop goes onto the count too, and isn't sold while
+  the hero has the most already. The original's right-click buy
+  (0x44b020) does this; its left click takes the mine into the hand and
+  charges for it when it is put in the bag or on the mine picture, which
+  raise the count and refuse a full one (0x446320 cases 9 and 0xb). We
+  buy with a left click straight onto the count. A mine a dog fetches
+  also goes onto the count.
 - Saves keep the count (`mines=`). A save from before mines gets a new
-  hero's five, plus any mine items that were in its bag.
+  hero's five. Mine items in a save's bag (from before mines, or bought
+  before buying counted them) join the count while there is room.
 
 ## Laying one
 
