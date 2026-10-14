@@ -133,6 +133,8 @@ Options:
 - `--save-flag <id>=<value>` set a SAVE story flag first, e.g. `6=2` to open Malse's shop
 - `--quest-flag <id>=<state>` set a mission's flag first (1 taken, 2 cleared)
 - `--missions` start with the mission list open; `--missions=<n>` with mission n's description open
+- `--card-game` and `--change-color` start with the card game or the Change Color window open
+  (what STARTCARDGAME and CHANGECOLOR open)
 - `--warp-flag <gate>=<value>` mark a warp gate found (`--warp-flag all` for every gate),
   `--warp-gate[=<page>]` start with the GATE window open, and `--warp-to <row>` pick that
   row of it, e.g. `--map 0 --warp-flag all --warp-gate=2 --warp-to 5` to go to the

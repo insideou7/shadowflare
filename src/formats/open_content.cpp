@@ -671,6 +671,7 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
             static const std::map<std::string_view, std::int32_t, std::less<>> kEvents = {
                 {"talk", S::kOnTalk}, {"talk-end", S::kOnTalkEnd}, {"judge", S::kOnJudge},
                 {"enemy-dead", S::kOnEnemyDead}, {"tick", S::kEveryTick}, {"start", S::kOnStart},
+                {"card-game-end", S::kOnCardGameEnd},
             };
             const auto words = Lines::split(trim(line->substr(3)), ' ');
             const auto event = kEvents.find(words[0]);

@@ -899,6 +899,8 @@ CREATEITEM 2 1100001 temp:3 temp:4 -1 -1
 
 [sentence healer-heal]
 C_MOVABLE healer
+# The healer casts (person chart 3) as the hero is healed.
+C_ACTIONREQ healer 4 -1 -1 -1 -1
 HEALLIFE
 HEALMENTAL
 PLAYSOUND 24 0 x:healer y:healer

@@ -43,6 +43,7 @@ bool ScriptRunner::implemented(std::int32_t opcode) {
         case S::kGetCharTrans: case S::kStartVisual: case S::kSettingRain: case S::kGetMyPlayerNo:
         case S::kMemorizeMagic: case S::kCheckMemorizedMagic:
         case S::kAbsoluteObjectFlag: case S::kSetUnlockSwitch:
+        case S::kActionRequest: case S::kChangeColor: case S::kStartCardGame: case S::kGetCardGameResult:
         // Network play only: single play never reaches them.
         case S::kRoutineNet:
             return true;
@@ -272,6 +273,22 @@ void ScriptRunner::run(std::int32_t index, int depth) {
             case S::kStop: host_->stopCharacter(arg(0), true); break;
             case S::kMovable: host_->stopCharacter(arg(0), false); break;
             case S::kSetAngleTo: host_->faceCharacter(arg(0), arg(1)); break;
+            case S::kActionRequest: {
+                // character action loop from to (and a fifth word nothing reads).
+                ScriptHost::ActionRequest r;
+                r.character = arg(0);
+                r.action = arg(1);
+                r.loop = arg(2) != -1;
+                r.from = arg(3);
+                r.to = arg(4);
+                host_->requestAction(r);
+                break;
+            }
+            case S::kChangeColor: host_->openChangeColor(); break;
+            case S::kStartCardGame: host_->toggleCardGame(); break;
+            case S::kGetCardGameResult:
+                if (!ops.empty()) store(ops[0], host_->cardGameResult());
+                break;
             case S::kSetActive: host_->setActive(arg(0), true); break;
             case S::kAbsoluteObjectFlag: host_->setObjectStates(arg(0), arg(1), arg(2), arg(3)); break;
             case S::kSetUnlockSwitch: host_->setUnlockSwitch(arg(0) != 0); break;

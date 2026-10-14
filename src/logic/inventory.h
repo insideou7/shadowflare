@@ -33,6 +33,9 @@ struct Item {
     // Its rolled magic modifiers (ItemDef::Modifier) and element modifiers.
     std::array<std::int32_t, ItemDef::kModifierCount> modifiers{};
     std::array<std::int32_t, 8> elementModifiers{};
+    // Weapons and armour: the Change Color window's dye, 0-15 (kDyes), or
+    // -1 for the item's own colour (weapon + 0x348, armour + 0x320).
+    int colour = -1;
 
     // A newly made item: magic and unique ones start unidentified, as
     // ShadowFlare.exe makes them (0x462d30). The second form also rolls
@@ -74,6 +77,16 @@ int itemSound(const ItemDef& def, int event);
 // built at 0x407170).
 enum class EquipSlot { Helmet, Body, Boots, Weapon, Shield, Accessory1, Accessory2, Accessory3, Accessory4 };
 inline constexpr int kEquipSlotCount = 9;
+
+// The Change Color window's sixteen dyes, red, green and blue strengths
+// per mille, in its 4 x 4 order (0x475bf0; the exe keeps a row per hero
+// layer, all the same, and the window's swatches at 0x4743e0 are these too).
+inline constexpr std::array<std::array<int, 3>, 16> kDyes{{
+    {800, 250, 250}, {950, 850, 0}, {550, 850, 250}, {1000, 1000, 1000},
+    {1050, 600, 300}, {1050, 750, 0}, {400, 600, 400}, {750, 750, 750},
+    {550, 1000, 900}, {250, 500, 850}, {850, 650, 1000}, {500, 500, 500},
+    {250, 750, 650}, {400, 400, 600}, {1000, 400, 600}, {300, 300, 300},
+}};
 
 // The gold split box (ShadowFlare.exe 0x4429b0): takes `amount` gold from
 // the Gold stack at `index` of a bag or warehouse's list into an empty
@@ -142,6 +155,10 @@ public:
 
     const std::vector<Placed>& bag() const { return bag_; }
     const std::optional<Item>& equipped(EquipSlot slot) const { return equipped_[static_cast<int>(slot)]; }
+    // Dyes what is worn in `slot`, if anything (the Change Color window).
+    void setColour(EquipSlot slot, int colour) {
+        if (auto& item = equipped_[static_cast<int>(slot)]) item->colour = colour;
+    }
     // Gold is carried in the bag as Gold items (special 0) of up to 10000
     // each, as in the original; the item window adds them up (0x466d70).
     // Without a Gold item to make stacks of, a plain counter stands in.
@@ -320,6 +337,14 @@ public:
     // the weapon is two-handed. Helmets, boots and accessories are not
     // drawn (ShadowFlare.exe 0x444ca0).
     std::vector<int> heroLayers() const;
+    // The colour each worn weapon, shield or body armour's layer is drawn
+    // in, per mille of red, green and blue: its dye, else the item's own
+    // (0x444d2f).
+    struct LayerColour {
+        int layer = 0;
+        std::array<int, 3> rgb{1000, 1000, 1000};
+    };
+    std::vector<LayerColour> heroColours() const;
 
 private:
     std::vector<Placed> bag_;

@@ -70,7 +70,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.requiredLevel = in.i32();
             skipWords(in, 1 + 3);  // 0xec, weapon effect tint
             d.heroLayer = in.i32();
-            skipWords(in, 3);  // layer tint
+            for (auto& t : d.layerTint) t = in.i32();
             d.shotKind = in.i32();     // 0xfc
             d.shotSpread = in.i32();   // 0x100
             d.shotSpeed = in.i32();    // 0x104
@@ -87,7 +87,7 @@ ItemDef readRecord(BinaryReader& in, ItemDef::Class cls) {
             d.itemLevel = in.i32();
             d.requiredLevel = in.i32();
             d.heroLayer = in.i32();
-            skipWords(in, 3);  // layer tint
+            for (auto& t : d.layerTint) t = in.i32();
             for (auto& e : d.elements) e = in.i32();  // 0xc8
             readModifiers(in, d);  // 0xec, 0x2c0
             d.glowLayer = glow;

@@ -309,6 +309,7 @@ void testSaveGame() {
     inventory.addGold(120);
     check(inventory.addAt({&table.items[1], 1}, 2, 1), "potion goes in the bag");
     inventory.equip(Slot::Weapon, {&table.items[0], 1});
+    inventory.setColour(Slot::Weapon, 9);
     check(inventory.addToBeltAt({&table.items[1], 1}, 2, 1), "potion goes in the belt");
 
     sf::SaveGame save;
@@ -354,6 +355,9 @@ void testSaveGame() {
         sf::Inventory back;
         loaded.restore(back, table);
         check(back.beltAt(2, 1) && back.beltAt(2, 1)->def == &table.items[1] && !back.beltAt(0, 0), "the belt survives");
+        check(back.equipped(Slot::Weapon) && back.equipped(Slot::Weapon)->colour == 9, "a dyed weapon keeps its colour");
+        const auto colours = back.heroColours();
+        check(colours.size() == 1 && colours[0].rgb == sf::kDyes[9], "the dye colours the weapon's layer");
     }
     check(loaded.career && loaded.career->history == save.career->history && loaded.career->offered == sf::HeroClass::Wizard &&
               loaded.career->kills == 1 && loaded.career->killsBy[sf::Career::kMagic] == 1,

@@ -12,6 +12,7 @@
 
 #include "logic/ai_select.h"
 #include "logic/archery.h"
+#include "logic/card_game.h"
 #include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
@@ -558,6 +559,83 @@ void testScriptObjects() {
     check(host.fixedId == 10010001 && host.states[0] == 1 && host.states[1] == 0 && host.states[2] == 1, "ABSOLUTEOBJECTFLAG");
     check(sf::ScriptRunner::implemented(S::kAbsoluteObjectFlag) && sf::ScriptRunner::implemented(S::kSetUnlockSwitch),
           "object commands are carried out");
+}
+
+struct CardHost : sf::ScriptHost {
+    ActionRequest action;
+    bool colour = false;
+    int toggles = 0;
+    void requestAction(const ActionRequest& r) override { action = r; }
+    void openChangeColor() override { colour = true; }
+    void toggleCardGame() override { ++toggles; }
+    int cardGameResult() const override { return 2; }
+};
+
+void testScriptCardsColourAndActions() {
+    using S = sf::ScenarioScript;
+    S script;
+    // The healer's spell (Scenario 00000000), the looping one of Scenario
+    // 03900005, and the card dealer's and dyer's commands.
+    script.sentences = {{{S::kActionRequest, {constant(12000000), constant(4), constant(1), constant(46), constant(-1), constant(-1)}},
+                         {S::kChangeColor, {}},
+                         {S::kStartCardGame, {}},
+                         {S::kGetCardGameResult, {{S::kTemp, 1000004}}}}};
+    sf::ScriptFlags flags;
+    CardHost host;
+    sf::ScriptRunner(script, flags, &host).run(0);
+    check(host.action.character == 12000000 && host.action.action == 4 && host.action.loop && host.action.from == 46 && host.action.to == -1,
+          "C_ACTIONREQ passes the action and its loop");
+    check(host.colour && host.toggles == 1, "CHANGECOLOR and STARTCARDGAME");
+    check(flags[{S::kTemp, 1000004}] == 2, "GETCARDGAMERESULT stores the result");
+    for (int op : {S::kActionRequest, S::kChangeColor, S::kStartCardGame, S::kGetCardGameResult}) {
+        check(sf::ScriptRunner::implemented(op), "card, colour and action commands are carried out");
+    }
+}
+
+void testCardGame() {
+    using C = sf::CardGame;
+    auto hand = [](std::vector<std::pair<int, int>> cards) {
+        std::vector<C::Card> h;
+        for (auto [suit, rank] : cards) h.push_back({suit, rank, false});
+        return h;
+    };
+    check(C::value(hand({{0, 1}, {1, 13}})) == 21, "ace and king are 21");
+    check(C::value(hand({{0, 1}, {1, 1}, {2, 9}})) == 21, "two aces and a nine: 11 + 1 + 9");
+    check(C::value(hand({{0, 10}, {1, 12}, {2, 5}})) == -1, "over 21 is bust");
+    check(C::value(hand({{0, 1}, {1, 5}, {2, 9}})) == 15, "an ace counts 1 when 11 would bust");
+
+    // A fixed deck: the dealer gets 10 and (hidden) 7, the player 9 and 9.
+    std::vector<int> deck = {9, 13 + 8, 26 + 6, 39 + 8, 12};  // 10S, 9C, 7D, 9H, then KS
+    std::size_t next = 0;
+    C game([&](int) { return deck[next++ % deck.size()]; });
+    game.start();
+    int dealt = 0;
+    for (int t = 0; t < 4 * C::kStep; ++t) dealt += game.tick().dealt ? 1 : 0;
+    check(dealt == 4 && game.hand(C::kDealer).size() == 2 && game.hand(C::kPlayer).size() == 2, "four cards dealt, 15 ticks apart");
+    check(game.hand(C::kDealer)[1].hidden && !game.hand(C::kDealer)[0].hidden, "the dealer's second card is face down");
+    check(game.buttonsShown(), "HIT and STAY show");
+    game.tick(true, 380, 350);  // STAY
+    check(!game.buttonsShown() && !game.hand(C::kDealer)[1].hidden, "staying turns the dealer's card over");
+    C::Events ev;
+    int ticks = 0;
+    while (!ev.ended && ticks++ < 1000) {
+        const auto e = game.tick();
+        ev.won |= e.won, ev.lost |= e.lost, ev.ended |= e.ended;
+    }
+    check(ev.ended && !game.open(), "the game ends after the result shows");
+    check(game.hand(C::kDealer).size() == 2 && game.result() == C::kPlayerWins && ev.won, "dealer stands on 17; 18 beats it");
+
+    // Hitting to 28 busts the player at once.
+    next = 0;
+    deck = {9, 13 + 8, 26 + 6, 39 + 8, 12};
+    game.start();
+    for (int t = 0; t < 4 * C::kStep; ++t) game.tick();
+    game.tick(true, 280, 350);  // HIT
+    for (int t = 0; t < C::kStep && game.hand(C::kPlayer).size() < 3; ++t) game.tick();
+    check(game.hand(C::kPlayer).size() == 3 && game.endTicks() == C::kEndTicks, "a bust ends the hand");
+    game.tick();
+    check(game.result() == C::kDealerWins, "the bust player loses");
+    check(game.tick(true, 10, 10).ended && !game.open(), "a click cuts the result short");
 }
 
 void testPartners() {
@@ -1299,6 +1377,8 @@ int main() {
     testScriptQuestChecks();
     testScriptActiveFlagsAndRoutines();
     testScriptObjects();
+    testScriptCardsColourAndActions();
+    testCardGame();
     testPartners();
     testCareer();
     testScriptExit();

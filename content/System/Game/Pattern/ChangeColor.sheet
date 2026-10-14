@@ -1,0 +1,11 @@
+# Drawn by tools/art/cards.py (our own art, see content/README.md).
+# The Change Color window: window, Restore pushed, OK lit, CANCEL lit, Weapon, Shield and Armor chosen, swatch.
+image=ChangeColor.png
+frame=0,0,320,192,-160,-144
+frame=322,0,64,16,-400,-280
+frame=388,0,40,24,-200,-296
+frame=0,194,120,24,-336,-296
+frame=122,194,41,16,-174,-199
+frame=165,194,41,16,-174,-223
+frame=208,194,41,16,-174,-247
+frame=251,194,22,14,-334,-189

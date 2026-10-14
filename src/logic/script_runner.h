@@ -177,6 +177,27 @@ public:
     // Voice00.Voc at a spot, x -1 meaning where the player stands. Unless
     // `everywhere`, only heard near the player.
     virtual void playSound(int /*voice*/, bool /*everywhere*/, int /*x*/, int /*y*/) {}
+    // C_ACTIONREQ character action loop from to: a person plays a scripted
+    // action, such as the healer's spell (0x45d480; see docs/formats.md).
+    // `action` is the person's state: 4 and up play chart action - 1.
+    // With `loop` not -1 it repeats frames `from`..`to` (-1: from the
+    // first, to the last) until another command moves them; else it plays
+    // once and they stand again.
+    struct ActionRequest {
+        std::int32_t character = -1;
+        int action = 0;
+        bool loop = false;
+        int from = -1, to = -1;
+    };
+    virtual void requestAction(const ActionRequest&) {}
+    // CHANGECOLOR: opens the Change Color window, where the hero dyes their
+    // weapon, shield and body armour (0x434254).
+    virtual void openChangeColor() {}
+    // STARTCARDGAME opens the card game, or closes it when it is open;
+    // GETCARDGAMERESULT: how the last one ended (0 a draw, 1 the player
+    // won, 2 the dealer won). Its end runs the event 8 triggers.
+    virtual void toggleCardGame() {}
+    virtual int cardGameResult() const { return 0; }
     // A command the engine does not carry out yet ran, so a
     // playthrough can list what a scenario still lacks.
     virtual void skippedCommand(std::int32_t /*opcode*/) {}

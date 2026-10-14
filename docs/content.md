@@ -247,7 +247,8 @@ commands (docs/formats.md lists them). Optional; Remote Town's
     ~Buy and sell~  ~Leave~
 
     [sentence merchant]
-    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick or start
+    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick, start
+                                    # or card-game-end (no name: the card game STARTCARDGAME opened ended)
     C_STOP merchant
     TALK msg:2 temp:2 0 0 -1 -1
 
