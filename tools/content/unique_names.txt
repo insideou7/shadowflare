@@ -97,3 +97,193 @@ accessory 30000005 waystone Waystone of Dawn
 accessory 30000006 waystone Waystone of Dusk
 accessory 30000007 waystone Waystone of Ooze
 accessory 30000008 waystone Waystone of Iron
+
+# Weapons
+weapon 10000000 shortsword Bonecracker
+weapon 10000100 shortsword Nightneedle
+weapon 10000200 longsword Hillbreaker
+weapon 10000300 longsword Sevenfold Brand
+weapon 10000400 shortsword Cinderwisp
+weapon 10000500 shortsword Brinefire
+weapon 10000600 bastard Silverthorn Penance
+weapon 10000700 longsword Queen of Hearts' Blade
+weapon 10000800 longsword Paladin's Oath
+weapon 10000900 curved Ogrebane Tachi
+weapon 10001000 shortsword Smoulder Cutlass
+weapon 10001100 longsword Lightwarden's Blade
+weapon 10001200 bastard Stormmast Sword
+weapon 10001300 curved Mirror of the Smith
+weapon 10001400 longsword Morningbright
+weapon 10001500 longsword Hallowed Edge
+weapon 10001600 longsword Rending Sword
+weapon 11700 longsword Quicksheen Blade
+weapon 11800 bastard Kingmaker
+weapon 14000000 axe Thundergrip
+weapon 14000100 axe Warking's Cleaver
+weapon 4001200 axe Deepforge Might
+weapon 4001300 axe Allfather's Axe
+weapon 15000000 twohand Wallbreaker
+weapon 15000100 twohand Edict of Light
+weapon 5001200 twohand Crownblade
+weapon 5001300 twohand Fiendsworn Blade
+weapon 16000000 greatsword Blackheart
+weapon 16000100 greatsword Nachtklinge
+weapon 6001200 greatsword Hearthrage Heirloom
+weapon 6001300 greatsword World's End
+weapon 11000000 bowgun Greenwarden
+weapon 11000100 bowgun Moonhunter
+weapon 11000200 bowgun Falling Spark
+weapon 11000300 sling Pebblestorm
+weapon 11000400 bowgun Heartpiercer
+weapon 11000500 bowgun Sellsword's Crossbow
+weapon 11000600 sling Roaring Hurler
+weapon 11000700 bowgun Skyfall
+weapon 11000800 bowgun Fatespinner
+weapon 11000900 bowgun Lynx Crossbow
+weapon 11001000 bowgun Halo Crossbow
+weapon 11001100 bowgun Rending Bow
+weapon 1011200 bowgun Quickfire Bolt
+weapon 1011300 bowgun Archer of the Stars
+weapon 12000000 staff Pilgrim's Staff
+weapon 12000100 staff Seven Sisters
+weapon 12000200 staff Hidden Fang
+weapon 12000300 staff Rending Staff
+weapon 13000000 rod Truesilver Rod
+weapon 13000100 rod Twinhound Rod
+weapon 13000200 rod Daystar Rod
+weapon 13000300 rod Worldroot Cane
+weapon 13000400 rod Eldwood Cane
+weapon 13000500 orbrod Eightfold Sceptre
+weapon 13000600 rod Spellwright's Rod
+weapon 3001700 orbrod Deathless Orb
+weapon 3001800 rod Seraph's Rod
+weapon 80000001 shortsword Flamekin Sword
+weapon 80000002 shortsword Tidekin Sword
+weapon 80000003 bastard Djinn Blade
+weapon 80000004 bastard Shieldward Sword
+weapon 80000005 shortsword Underworld Sword
+weapon 80000006 shortsword Whirling Sword
+weapon 80000007 shortsword Cutthroat Sword
+weapon 80000008 rod Rimefield Rod
+weapon 80000009 rod Lunar Rod
+weapon 80000010 bowgun Emberbolt Crossbow
+weapon 80000011 bowgun Ruinbringer Crossbow
+weapon 80000012 bowgun Rimebolt Crossbow
+weapon 80000013 bowgun Duskbolt Bowgun
+weapon 80000014 bowgun Blastbolt Crossbow
+weapon 80000015 bowgun Pit Lord's Crossbow
+weapon 80000016 bowgun Sunstone Bowgun
+weapon 80000017 rod Solar Rod
+weapon 80000018 rod Bound Rod
+weapon 80000019 bowgun Thicket Warden
+weapon 80000020 sling Rockfall Sling
+weapon 80000021 rod Glowcoal Stick
+weapon 80000022 bowgun Ember Marksman
+weapon 80000023 sling Hailstone Hurler
+weapon 80000024 bowgun Icebite Crossbow
+weapon 80000025 bowgun Rime Marksman
+weapon 80000026 bowgun Truesilver Crossbow
+weapon 80000027 rod Truesilver Wand
+weapon 80000028 bowgun Blaze Crossbow
+weapon 80000029 longsword Soulsipper
+weapon 80000030 longsword Gilded Colossus
+weapon 80000031 curved Golden Short Blade
+weapon 80000032 curved Crimson Petal
+weapon 80000033 longsword Moonshadow Blade
+weapon 80000034 longsword Moonbeam Blade
+weapon 80000035 curved Little Light
+weapon 80000036 longsword Riverspirit Sword
+weapon 80000037 bastard Snowstorm
+weapon 80000038 longsword Halfdevil Sword
+weapon 80000039 bastard Stormlord's Sword
+weapon 80000040 bastard Netherlord's Sword
+weapon 80000041 curved Riverbend Tachi
+weapon 80000042 curved Clearspring Tachi
+weapon 80000043 curved Mistcutter
+weapon 80000044 curved Masterwork Short Blade
+weapon 80000045 shortsword Old Rustblade
+weapon 80000046 shortsword Cloudgatherer
+weapon 80000047 bastard Fire and Frost
+weapon 80000048 axe Headsman's Axe
+weapon 80000049 longsword Earthbound Blade
+weapon 80000050 longsword Oozebound Blade
+weapon 80000051 longsword Shadowbound Blade
+weapon 80000052 longsword Lightbound Blade
+weapon 80000053 shortsword Tempest Caller
+weapon 80000054 axe Rendmaw
+weapon 80000055 bastard Wyrmsplitter
+weapon 80000056 bastard Wyrmcleaver
+weapon 80000057 greatsword Night Terror
+weapon 80000058 curved Pressing Cut
+weapon 80000059 axe Runecarved Axe
+weapon 80000060 twohand Headtaker
+weapon 80000061 curved Cursed Smith's Blade
+weapon 80000062 curved Tigerclaw Blade
+weapon 80000063 curved Chanting Skewer
+weapon 80000064 twohand Seaborn Colossus
+weapon 80000065 twohand Skyborn Colossus
+weapon 80000066 rod Starwheel Rod
+weapon 80000067 bowgun Firemount Marksman
+weapon 80000068 bowgun Frostmount Marksman
+weapon 80000069 rod Sage's Cane
+weapon 80000070 bowgun Stalker's Crossbow
+weapon 80000071 bowgun Ranger's Bowgun
+weapon 80000072 bowgun Elfbane Crossbow
+weapon 80000073 sling Oliphant Hurler
+weapon 80000074 shortsword Relicward
+weapon 80000075 longsword Soulmoth
+weapon 80000076 staff Watcher's Staff
+weapon 80000077 longsword Woodcarved Blade
+weapon 80000078 longsword Corsair's Sword
+weapon 80000079 longsword Parrying Blade
+weapon 80000080 longsword Ladder Blade
+weapon 80000081 longsword Clansman's Edge
+weapon 80000082 longsword Adamant Sword
+weapon 80000083 longsword Lifeforce Blade
+weapon 80000084 longsword Elfking's Sword
+weapon 80000085 longsword Herald's Sword
+weapon 80000086 longsword Spellforged Sword
+weapon 80000087 bastard Fiendsplitter
+weapon 80000088 bastard Seraph's Fire
+weapon 80000089 axe Hatchet of the Hills
+weapon 80000090 axe Twinhand Axe
+weapon 80000091 axe Twinblade War Axe
+weapon 80000092 axe Lastward
+weapon 80000093 axe Silverbit Axe
+weapon 80000094 greatsword Soul Gorger
+weapon 80000095 greatsword Young Prince's Sword
+weapon 80000096 greatsword Clockwork Blade
+weapon 80000097 curved Lionheart Blade
+weapon 80000098 curved Springwater Blade
+weapon 80000099 twohand Stalwart Sword
+weapon 80000100 greatsword Spellsunder
+weapon 80000101 curved Riverlord's Blade
+weapon 80000102 curved Hermit Smith's Blade
+weapon 80000103 curved Petalstorm
+weapon 80000104 twohand Ringed Blade
+weapon 80000105 orbrod Lifeforce Orb
+weapon 80000106 orbrod Redglass Orb
+weapon 80000107 orbrod Clearglass Orb
+weapon 80000108 rod Courtier's Rod
+weapon 80000109 rod Lifeforce Rod
+weapon 80000110 rod Wishing Wand
+weapon 80000111 bowgun Lancebolt Bowgun
+weapon 80000112 sling Farshot Sling
+weapon 80000113 bowgun Fine Crossbow
+weapon 80000114 bowgun Rapid Bowgun
+weapon 80000115 bowgun Silver Rapid Bowgun
+weapon 80000116 bowgun Lifeforce Shooter
+weapon 80000117 bowgun Stormhold Bowgun
+weapon 80000118 bowgun Hellmouth
+weapon 80000119 sling Elder Gun
+weapon 80000120 bastard Frost Saviour
+weapon 80000121 bastard Spellflame
+weapon 80000122 bowgun Thorned Rose
+weapon 80000123 mace Silverwhite Mace
+weapon 80000124 rod Twin Serpent Rod
+weapon 80000125 bowgun Barrel Bowgun
+weapon 80000126 bowgun Hornet
+weapon 80000127 bastard Arcbolt Blade
+weapon 80000128 bastard Sparkbolt Blade
+weapon 80000129 curved Sunhill Blade
+weapon 80000130 bastard Duskmoor Blade

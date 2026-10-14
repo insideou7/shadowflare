@@ -36,7 +36,10 @@ PICTURES = {"accessory": (1, 8), "weapon": (2, 9), "armour": (3, 10)}
 # The name shown before an item is identified, by kind.
 UNIDENTIFIED = {"ring": "Ring", "darkring": "Ring", "amulet": "Amulet", "pendant": "Pendant",
                 "bracelet": "Bracelet", "beads": "Beads", "crystal": "Crystal", "locket": "Locket", "gem": "Gem",
-                "waystone": "Stone"}
+                "waystone": "Stone", "shortsword": "Short Sword", "longsword": "Long Sword",
+                "bastard": "Bastard Sword", "curved": "Curved Sword", "twohand": "Two-handed Sword",
+                "greatsword": "Great Sword", "axe": "Axe", "mace": "Mace", "bowgun": "Bowgun", "sling": "Slingshot",
+                "staff": "Staff", "rod": "Rod", "orbrod": "Orb Rod"}
 
 # Hero layers the open pack's hero does not have yet, drawn as the nearest
 # one it has: bastard sword as long sword, rod and staff, great sword and

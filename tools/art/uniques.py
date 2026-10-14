@@ -76,7 +76,16 @@ KINDS = {
     "ring": (2.2, "thing"), "darkring": (2.2, "thing"), "bracelet": (1.7, "thing"), "amulet": (1.6, "flat"),
     "pendant": (1.6, "flat"), "beads": (1.6, "flat"), "crystal": (1.7, "thing"), "gem": (2.2, "thing"),
     "locket": (1.8, "thing"), "waystone": (1.1, "flat"),
+    # Weapons are built point up along +Z, their flat facing -Y.
+    "shortsword": (1.38, "upright"), "longsword": (1.26, "upright"), "bastard": (1.20, "upright"),
+    "curved": (1.26, "upright"), "twohand": (1.20, "upright"), "greatsword": (1.20, "upright"),
+    "axe": (1.20, "upright"), "mace": (1.20, "upright"), "bowgun": (1.56, "upright"), "sling": (1.68, "upright"),
+    "staff": (0.85, "upright"), "rod": (1.38, "upright"), "orbrod": (1.38, "upright"),
 }
+
+# Weapon kind -> (length of the blade or head, its width).
+BLADES = {"shortsword": (0.55, 0.06), "longsword": (0.8, 0.065), "bastard": (0.9, 0.08), "curved": (0.82, 0.05),
+          "twohand": (1.05, 0.09), "greatsword": (1.15, 0.13)}
 
 
 def read_uniques(pack):
@@ -311,6 +320,215 @@ def build_accessory(item):
     return made
 
 
+def hard(obj):
+    """Keeps a box's edges sharp (blades, axe heads)."""
+    obj.modifiers["soft"].levels = 0
+    obj.modifiers["soft"].render_levels = 0
+    return obj
+
+
+def steel_material(item, colour, rng):
+    """Blade steel, a little tinted by the item's element; deep items
+    darker or brighter."""
+    level = int(item["level"].split(",")[0])
+    base = (0.78, 0.80, 0.84)
+    best = max(item["element-mod"], key=lambda e: e[2], default=None)
+    mix = 0.25 if best and best[2] > 0 else 0.08
+    if best and best[0] == "dark" and best[2] > 0:
+        base, mix = (0.25, 0.22, 0.28), 0.2
+    c = tuple(b * (1 - mix) + k * mix for b, k in zip(base, colour))
+    m = studio.material(f"steel {rng.random():.4f}", c, tuple(x * 0.45 for x in c), scale=40, rough=0.25, bump=0.1)
+    if level >= 42:  # deep blades shine faintly in their colour
+        bsdf = m.node_tree.nodes["Principled BSDF"]
+        bsdf.inputs["Emission Color"].default_value = (*studio.linear(colour), 1)
+        bsdf.inputs["Emission Strength"].default_value = 0.15 + (level - 42) / 60
+    return m
+
+
+def wood_material(rng, dark=False):
+    c = (0.38, 0.22, 0.12) if dark else rng.choice(((0.55, 0.34, 0.18), (0.48, 0.30, 0.16), (0.62, 0.42, 0.24)))
+    return studio.material(f"wood {rng.random():.4f}", c, tuple(x * 0.45 for x in c), scale=8, rough=0.6,
+                           stretch=(1, 1, 0.1))
+
+
+def leather_material(rng):
+    c = rng.choice(((0.30, 0.18, 0.10), (0.22, 0.12, 0.08), (0.18, 0.18, 0.22), (0.35, 0.10, 0.08)))
+    return studio.material(f"grip {rng.random():.4f}", c, tuple(x * 0.4 for x in c), scale=60, rough=0.7, bump=0.6)
+
+
+def hilt(z, metal, gem, rng, two_hands=False, style=None):
+    """Grip, guard and pommel below z (the blade starts at z); returns
+    the objects."""
+    shape = creatures.shape
+    grip_len = 0.32 if two_hands else 0.2
+    made = [put(shape("cylinder", (0.025, 0.025, grip_len / 2), leather_material(rng)), (0, 0, z - grip_len / 2))]
+    style = style or rng.choice(("bar", "bar", "swept", "disc", "winged"))
+    if style == "bar":
+        made.append(put(shape("box", (0.16 + rng.uniform(0, 0.06), 0.03, 0.025), metal), (0, 0, z)))
+        for side in (-1, 1):
+            made.append(put(shape("ball", (0.035, 0.035, 0.035), metal), (side * (0.19), 0, z)))
+    elif style == "swept":
+        for side in (-1, 1):
+            made.append(put(shape("box", (0.11, 0.025, 0.02), metal, rotation=(0, side * 0.45, 0)),
+                            (side * 0.1, 0, z + 0.04)))
+    elif style == "disc":
+        made.append(put(shape("cylinder", (0.07, 0.07, 0.015), metal), (0, 0, z)))
+    else:
+        for side in (-1, 1):
+            made.append(put(shape("cone", (0.04, 0.03, 0.12), metal, rotation=(0, side * math.radians(70), 0)),
+                            (side * 0.11, 0, z + 0.03)))
+        made.append(put(shape("ball", (0.035, 0.03, 0.035), gem), (0, -0.01, z)))
+    pommel = gem if rng.random() < 0.5 else metal
+    made.append(put(shape("ball", (0.04, 0.04, 0.045), pommel), (0, 0, z - grip_len - 0.03)))
+    return made
+
+
+def blade(kind, item, steel, metal, gem, rng):
+    shape = creatures.shape
+    length, width = BLADES[kind]
+    width *= rng.uniform(0.85, 1.2)
+    made = []
+    if kind == "curved":
+        # A single edge curving back to its point: one mesh along an arc.
+        bend = rng.uniform(0.25, 0.4)  # radians from hilt to point
+        verts, faces, n = [], [], 16
+        for k in range(n + 1):
+            t = k / n
+            a = bend * t * t
+            x, z = -0.5 * bend * length * t * t * 0.6, 0.02 + length * t
+            w = width * (1 - 0.3 * t) if k < n else 0.002
+            back, edge = (x - w * 0.15 * math.cos(a), z), (x + w * math.cos(a), z - w * math.sin(a) * 0.5)
+            if k == n:
+                edge = (x - 0.01, z + 0.03)
+            for px, pz in (back, edge):
+                verts += [(px, -0.012, pz), (px, 0.012, pz)]
+        for k in range(n):
+            i = 4 * k
+            faces += [(i, i + 2, i + 6, i + 4), (i + 1, i + 5, i + 7, i + 3), (i, i + 4, i + 5, i + 1),
+                      (i + 2, i + 3, i + 7, i + 6)]
+        faces += [(0, 1, 3, 2), (4 * n, 4 * n + 2, 4 * n + 3, 4 * n + 1)]
+        mesh = bpy.data.meshes.new("curved blade")
+        mesh.from_pydata(verts, [], faces)
+        mesh.validate()
+        obj = bpy.data.objects.new("curved blade", mesh)
+        bpy.context.scene.collection.objects.link(obj)
+        made.append(studio.assign(obj, steel))
+        made.append(put(shape("cylinder", (0.06, 0.07, 0.012), metal), (0, 0, 0.0)))  # its round guard
+        return made, False
+    style = rng.choice(("straight", "straight", "leaf", "fuller", "flame"))
+    made.append(put(hard(shape("box", (width / 2, 0.012, length / 2), steel)), (0, 0, length / 2)))
+    if style == "leaf":
+        made.append(put(shape("ball", (width * 0.75, 0.014, length * 0.25), steel), (0, 0, length * 0.62)))
+    elif style == "fuller":
+        made.append(put(shape("box", (width * 0.12, 0.016, length * 0.35), gem), (0, 0, length * 0.38)))
+    elif style == "flame":
+        for k in range(6):
+            side = 1 if k % 2 else -1
+            made.append(put(shape("cone", (0.02, 0.01, 0.04), steel, rotation=(0, side * math.radians(80), 0)),
+                            (side * width / 2, 0, length * (0.15 + 0.12 * k))))
+    made.append(put(shape("cone", (width / 2 * 1.02, 0.012, width * 0.9), steel), (0, 0, length + width * 0.88)))
+    hard(made[-1])
+    return made, kind in ("twohand", "greatsword", "bastard")
+
+
+def build_weapon(item):
+    """Builds a weapon point up along +Z, its flat towards -Y."""
+    shape = creatures.shape
+    metal_info, colour, glow, rng = look(item)
+    kind = item["kind"]
+    metal = metal_material(metal_info, rng)
+    gem = stone_material(colour, glow, rng)
+    if kind in BLADES:
+        steel = steel_material(item, colour, rng)
+        made, two = blade(kind, item, steel, metal, gem, rng)
+        return made + hilt(0, metal, gem, rng, two_hands=two or kind == "curved",
+                           style="disc" if kind == "curved" else None)
+    made = []
+    if kind in ("axe", "mace"):
+        haft = wood_material(rng, dark=rng.random() < 0.4)
+        made.append(put(shape("cylinder", (0.03, 0.03, 0.55), haft), (0, 0, 0.55)))
+        made.append(put(shape("ball", (0.045, 0.045, 0.04), metal), (0, 0, 0.0)))
+        if kind == "mace":
+            made.append(put(shape("ball", (0.12, 0.12, 0.14), metal), (0, 0, 1.15)))
+            for k in range(6):
+                a = k * math.pi / 3
+                made.append(put(shape("box", (0.1, 0.012, 0.11), metal, rotation=(0, 0, a)), (0, 0, 1.15)))
+            made.append(put(shape("ball", (0.045, 0.045, 0.045), gem), (0, 0, 1.3)))
+        else:
+            steel = steel_material(item, colour, rng)
+            double = rng.random() < 0.5
+            size = rng.uniform(0.17, 0.24)
+            for side in ((-1, 1) if double else (1,)):
+                made.append(put(hard(shape("box", (size * 0.4, 0.02, 0.05), steel)), (side * size * 0.4, 0, 0.98)))
+                bit = shape("cylinder", (size * 0.5, size, 0.022), steel, rotation=(math.radians(90), 0, 0))
+                made.append(put(bit, (side * size * 0.8, 0, 0.98)))
+            made.append(put(shape("cone", (0.03, 0.03, 0.08), metal), (0, 0, 1.15)))
+            made.append(put(shape("cylinder", (0.04, 0.04, 0.04), metal), (0, 0, 0.98)))
+            made.append(put(shape("ball", (0.03, 0.02, 0.03), gem), (0, -0.03, 0.98)))
+        return made
+    if kind in ("bowgun", "sling"):
+        wood = wood_material(rng)
+        made.append(put(shape("box", (0.045, 0.035, 0.38), wood), (0, 0, 0.38)))  # the stock
+        made.append(put(shape("box", (0.06, 0.05, 0.08), wood), (0, 0.0, 0.0)))   # its butt
+        if kind == "sling":
+            for side in (-1, 1):
+                made.append(put(shape("cylinder", (0.025, 0.025, 0.14), wood, rotation=(0, side * 0.5, 0)),
+                                (side * 0.07, 0, 0.86)))
+            band = studio.material("band", (0.35, 0.22, 0.14), scale=40, rough=0.6)
+            made.append(put(shape("box", (0.14, 0.008, 0.01), band), (0, 0, 0.92)))
+            made.append(put(shape("box", (0.03, 0.03, 0.04), metal), (0, 0, 0.55)))
+            made.append(put(shape("ball", (0.03, 0.03, 0.03), gem), (0, -0.03, 0.45)))
+            return made
+        span = rng.uniform(0.3, 0.42)
+        prod = steel_material(item, colour, rng) if rng.random() < 0.6 else wood
+        for side in (-1, 1):
+            made.append(put(shape("box", (span / 2, 0.02, 0.025), prod, rotation=(0, side * 0.25, 0)),
+                            (side * span / 2, 0, 0.66 - span * 0.12)))
+            made.append(put(shape("box", (0.005, 0.005, span * 0.5), studio.material("string", (0.85, 0.82, 0.7)),
+                                  rotation=(0, side * math.radians(62), 0)), (side * span * 0.46, 0, 0.52)))
+        made.append(put(shape("box", (0.035, 0.03, 0.04), metal), (0, 0, 0.7)))
+        made.append(put(shape("cylinder", (0.012, 0.012, 0.25), wood), (0, -0.04, 0.6)))  # the bolt
+        made.append(put(shape("cone", (0.025, 0.025, 0.05), gem), (0, -0.04, 0.88)))
+        made.append(put(shape("box", (0.02, 0.03, 0.05), metal), (0, 0.04, 0.3)))  # trigger
+        if rng.random() < 0.5:
+            made.append(put(shape("ball", (0.03, 0.03, 0.03), gem), (0, -0.035, 0.18)))
+        return made
+    # Staves and rods: a pole and a head.
+    staff = kind == "staff"
+    length = 1.4 if staff else 0.7
+    pole = wood_material(rng) if staff or rng.random() < 0.4 else metal
+    made.append(put(shape("cylinder", (0.026, 0.026, length / 2), pole), (0, 0, length / 2)))
+    for k in range(rng.choice((1, 2, 3))):
+        made.append(put(shape("cylinder", (0.034, 0.034, 0.015), metal), (0, 0, length * (0.3 + 0.2 * k))))
+    head = stone_material(colour, glow * 1.5, rng, "head")
+    if kind == "orbrod":
+        r = 0.1
+        made.append(put(shape("ball", (r, r, r), head), (0, 0, length + r * 0.9)))
+        made.append(put(torus(r * 1.05, 0.012, metal, (math.radians(90), 0, 0)), (0, 0, length + r * 0.9)))
+        made.append(put(shape("cone", (0.06, 0.06, 0.05), metal, rotation=(math.pi, 0, 0)), (0, 0, length + 0.02)))
+        return made
+    style = rng.choice(("crystal", "ring", "crook", "claw"))
+    top = length
+    if style == "crystal":
+        bpy.ops.mesh.primitive_cylinder_add(vertices=6, radius=0.045, depth=0.16)
+        made.append(put(studio.assign(bpy.context.object, head), (0, 0, top + 0.1)))
+        bpy.ops.mesh.primitive_cone_add(vertices=6, radius1=0.045, depth=0.07)
+        made.append(put(studio.assign(bpy.context.object, head), (0, 0, top + 0.215)))
+    elif style == "ring":
+        made.append(put(torus(0.1, 0.018, metal, (math.radians(90), 0, 0)), (0, 0, top + 0.11)))
+        made.append(put(shape("ball", (0.05, 0.05, 0.05), head), (0, 0, top + 0.11)))
+    elif style == "crook":
+        made.append(put(torus(0.08, 0.022, pole, (math.radians(90), 0, 0)), (0.08, 0, top + 0.02)))
+        made.append(put(shape("ball", (0.045, 0.045, 0.045), head), (0.08, 0, top + 0.02)))
+    else:
+        for k in range(3):
+            a = k * 2 * math.pi / 3
+            made.append(put(shape("cone", (0.02, 0.02, 0.09), metal, rotation=(0.5 * math.sin(a), 0.5 * math.cos(a), 0)),
+                            (0.04 * math.cos(a), 0.04 * math.sin(a), top + 0.08)))
+        made.append(put(shape("ball", (0.055, 0.055, 0.055), head), (0, 0, top + 0.09)))
+    return made
+
+
 def render_item(item, out, name):
     from mathutils import Vector
 
@@ -320,7 +538,7 @@ def render_item(item, out, name):
     catcher = bpy.data.objects["shadow catcher"]
     handle = bpy.data.objects.new("item", None)
     scene.collection.objects.link(handle)
-    objects = build_accessory(item)
+    objects = build_weapon(item) if build == "upright" else build_accessory(item)
     for o in objects:
         o.parent = handle
     studio.camera(scene, w * CELL, h * CELL)
@@ -330,6 +548,8 @@ def render_item(item, out, name):
     # Upright, facing the bag's camera.
     if build == "flat":
         handle.rotation_euler = (math.radians(90), 0, 0)
+    elif build == "upright":
+        handle.rotation_euler = (0, 0, 0)
     elif item["kind"] == "bracelet":  # tipped back to show the band's width
         handle.rotation_euler = (math.radians(-40), 0, math.radians(-25))
     else:
@@ -342,7 +562,9 @@ def render_item(item, out, name):
     catcher.hide_render = False
     sun.energy /= 1.4
     studio.camera(scene, 128, 128)
-    handle.rotation_euler = (0, 0, math.radians(item["code"] % 360))
+    angle = math.radians(item["code"] % 360)
+    # Weapons lie on their flat.
+    handle.rotation_euler = (math.radians(-90), 0, angle) if build == "upright" else (0, 0, angle)
     handle.scale = Vector((items.HERO_SCALE * ground_scale,) * 3)
     bpy.context.view_layer.update()
     points = items.bounds(objects)
