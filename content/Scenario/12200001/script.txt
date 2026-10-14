@@ -1,0 +1,166 @@
+# Written by tools/content/scripts.py after the original's scenario 2200001
+# (Butterfly Hill), in our own words (tools/content/words/12200001.txt).
+
+object=1041,21809,1200,21968,o1000,states=1/0/0,at=1178/21980
+object=34877,48544,35036,48703,o1001,states=1/0/0,at=34922/48436
+object=24784,1176,24943,1335,o1002,states=1/0/0,at=24865/1332
+object=34400,38240,34879,38399,o700,states=1/0/1,at=34028/37942
+object=20568,33582,20734,33743,o41000,states=1/1/1,at=20660/33648
+object=20716,33703,20753,33734,o42000,states=1/0/0,at=20604/33594
+object=20716,33703,20753,33734,o43000,states=0/0/0,at=20604/33594
+temp=1000009,90
+temp=1000010,90
+temp=1000014,34
+temp=1000015,35
+temp=1000016,36
+temp=1000017,77
+temp=1000018,78
+temp=1000019,33
+temp=1000020,27
+temp=1000021,28
+temp=1000022,38
+temp=1000023,39
+temp=1000024,3
+temp=1000025,25
+temp=1000026,26
+temp=1000027,30
+temp=1000028,37
+temp=1000029,10
+temp=1000030,40
+temp=1000031,41
+temp=1000032,42
+temp=1000033,43
+temp=1000034,53
+temp=1000035,80
+
+[message 1000000]
+Butterfly Hill
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12200000 1
+
+[sentence s2]
+CHANGESCENARIO 12200003 0
+
+[sentence s3]
+CHANGESCENARIO 12200004 0
+
+[sentence s4]
+CHANGESCENARIO 12240000 0
+
+[sentence s5]
+CHANGESCENARIO 12200002 0
+
+[sentence s6]
+on=tick
+SETFLAG temp:1000002 held:o41000
+IF playmode:0 ! 2 @s7
+IF temp:1000012 = 0 @s12
+IF temp:1000012 = 1 @s14
+ADD temp:1000013 1
+IF temp:1000011 = 0 @s16
+IF temp:1000011 = 2 @s21
+IF temp:1000011 = 1 @s23
+
+[sentence s7]
+IF temp:1000012 = 1 @s8
+IF temp:1000012 = 0 @s10
+
+[sentence s8]
+IF shown:o42000 = 1 @s9
+
+[sentence s9]
+SETFLAG shown:o42000 0
+SETFLAG shown:o43000 1
+
+[sentence s10]
+IF shown:o43000 = 1 @s11
+
+[sentence s11]
+SETFLAG shown:o42000 1
+SETFLAG shown:o43000 0
+
+[sentence s12]
+SETFLAG temp:1000003 temp:1000013
+REM temp:1000003 25
+IF temp:1000003 = 0 @s13
+
+[sentence s13]
+PLAYSOUND temp:1000030 0 x:o41000 y:o41000
+
+[sentence s14]
+SETFLAG temp:1000003 temp:1000013
+REM temp:1000003 25
+IF temp:1000003 = 0 @s15
+
+[sentence s15]
+PLAYSOUND temp:1000031 0 x:o41000 y:o41000
+
+[sentence s16]
+IF temp:1000002 = 0 @s17
+IF temp:1000002 = 1 @s18
+IF temp:1000009 = 0 @s20
+
+[sentence s17]
+SETFLAG temp:1000009 temp:1000010
+
+[sentence s18]
+SUB temp:1000009 1
+SETFLAG temp:1000003 temp:1000009
+ADD temp:1000003 2
+DIV temp:1000003 3
+MESSAGEBOXVALUE o41000 20 -60 temp:1000003 224 224 224
+SETFLAG temp:1000003 temp:1000009
+REM temp:1000003 30
+IF temp:1000003 = 29 @s19
+SETUNLOCKSW 1
+
+[sentence s19]
+PLAYSOUND temp:1000032 0 x:o41000 y:o41000
+
+[sentence s20]
+SETFLAG temp:1000011 1
+PLAYSOUND temp:1000033 0 x:o41000 y:o41000
+
+[sentence s21]
+IF temp:1000002 = 0 @s22
+
+[sentence s22]
+SETFLAG temp:1000011 0
+
+[sentence s23]
+IF playmode:0 = 2 @s24
+IF playmode:0 ! 2 @s25
+SETFLAG temp:1000009 temp:1000010
+SETFLAG temp:1000011 2
+
+[sentence s24]
+ROUTINNET 41000
+
+[sentence s25]
+ROUTIN 41000
+
+[sentence s26]
+on=routine 41000
+SETFLAG temp:1000002 1
+SUB temp:1000002 temp:1000012
+SETFLAG temp:1000012 temp:1000002
+SETFLAG temp:1000002 shown:o700
+IF temp:1000002 = 0 @s27
+IF temp:1000002 = 1 @s28
+PLAYSOUND temp:1000014 0 x:o700 y:o700
+
+[sentence s27]
+SETFLAG shown:o700 1
+SETFLAG net:210000008 1
+
+[sentence s28]
+SETFLAG shown:o700 0
+SETFLAG net:210000008 0
+
+[sentence s29]
+PLAYSOUND temp:1000014 0 x:o700 y:o700

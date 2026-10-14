@@ -282,6 +282,25 @@ void testScript() {
         const auto& shown = town.script.sentences[0][0].operands[0];
         check(shown.type == S::kNet && shown.value == 112000001, "shown: is the NET flag SETACTIVE sets");
     }
+    {
+        // What tools/content/scripts.py writes for the original's scripts.
+        auto mine = sf::open::parseScenario(bytes("map=mine\nperson=1000000,0,0,0,ash\n"));
+        sf::open::parseScript(bytes("object=90,90,130,110,lever,lever,states=1/1/0,at=100/120\n"
+                                    "object=0,0,10,10,door,hidden,states=0/1/1\n"
+                                    "[sentence pull]\non=routine\nIF held:lever = 1 @pull\nIF alive:14000002 = 0 @pull\n"
+                                    "IF playmode:0 = 1 @pull\nIF exstrg:3 = 0 @pull\n"),
+                              mine);
+        const auto& lever = mine.control.placements[1];
+        check(lever.look.prop == "lever" && lever.states == std::array{1, 1, 0} && lever.x == 100 && lever.y == 120 &&
+                  lever.rect[0] == -10 && lever.rect[1] == -30 && lever.rect[3] == -10,
+              "states= and at= on an object");
+        check(mine.control.placements[2].states == std::array{0, 1, 1}, "states= wins over hidden");
+        check(mine.script.triggers[0].event == S::kOnRoutine, "on=routine");
+        const auto& s = mine.script.sentences[0];
+        check(s[0].operands[0].type == S::kObjectCheck && s[0].operands[0].value == 10000000, "held: names the object");
+        check(s[1].operands[0].type == S::kEnemyAlive && s[1].operands[0].value == 14000002, "alive:");
+        check(s[2].operands[0].type == S::kPlayMode && s[3].operands[0].type == 13, "playmode: and exstrg:");
+    }
 
     auto rejects = [](const char* what, std::string_view text) {
         expectRejected(what, text, [](auto& d) {

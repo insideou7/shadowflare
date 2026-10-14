@@ -239,7 +239,7 @@ commands (docs/formats.md lists them). Optional; Remote Town's
     ~Buy and sell~  ~Leave~
 
     [sentence merchant]
-    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick or start
+    on=talk merchant                # when it runs: talk, talk-end, judge, enemy-dead, tick, routine or start
     C_STOP merchant
     TALK msg:2 temp:2 0 0 -1 -1
 
@@ -258,7 +258,10 @@ a number, `temp:<id>`, `save:<id>`, `quest:<id>`, `net:<id>` or
 `warp:<gate>` (a warp gate found, see gates.txt) for a flag, `shown:<name>`
 for whether someone is shown (the flag `SETACTIVE` and `SETINACTIVE`
 set), `msg:<id>` for a message, `x:<name>` and `y:<name>` for where
-someone stands, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
+someone stands, `held:<name>` for whether the hero holds the button on
+an object, `alive:<n>` for whether the scenario's monster n lives,
+`playmode:<n>` and `exstrg:<n>` for the original's play mode and extra
+flags, `=`, `!`, `>` or `<` in `IF`, `@<sentence>` for a
 sentence to run, and a person's or object's name for their id. As in the
 original, `IF` runs its sentence and then carries on, and closing any of
 a person's message boxes runs their talk-end sentences, so a script keeps
@@ -272,7 +275,11 @@ An `object` can also be drawn: after its rectangle and name, a prop of
 an invisible area to click or walk into; with one it stops the hero.
 `hidden` starts it shown, usable and in the way all off, like the
 original's open chests until the script swaps them (`SETACTIVE` and
-`SETINACTIVE`).
+`SETINACTIVE`). `states=a/b/c` sets the three flags (shown, usable, in
+the way) one by one, and `at=x/y` where the object stands, the point its
+prop is drawn at, when that is not the rectangle's middle:
+
+    object=9242,1219,9401,1378,lever,lever,states=1/1/0,at=9124/1315
 
 ### missions.txt
 
@@ -598,6 +605,19 @@ original game sees (see above).
 
 (all areas, or only the ones named: `2` lays out the second area again
 and leaves the first as it is). Run `enemy_stats.py` after it.
+
+The second area's scripts (`Scenario/12*/script.txt`) are the original's,
+translated by `tools/content/scripts.py`: the same sentences, triggers,
+flags, quests, shops and exits the story opens later, with each id
+renumbered to the pack's and each message in our own words. It never
+reads the original's text; the words are ours, in
+`tools/content/words/<scenario>.txt` by the original's message numbers,
+each keeping its message's purpose and its options and numbers in order:
+
+    python3 tools/content/scripts.py <game folder> content 2 [scenario ...]
+
+It names messages it has no words for. The shops the scripts open are in
+`shops.txt` and their missions in `missions.txt`.
 
 and `tools/content/map_overlay.py` checks them against it, printing for
 each map how much of the original's walkable ground is walkable in ours

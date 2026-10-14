@@ -1,0 +1,162 @@
+# Tower of the Wizard: Orsolan the wizard, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and order.
+# Our cast: Orsolan, the wizard of the tower. Names invented here:
+# Hollis, Merrit and Calder, his friends the dragons killed.
+
+[message 1000000]
+Tower of the Wizard, 1F
+
+[message 1000001]
+Tower of the Wizard, 2F
+
+[message 1000002]
+Tower of the Wizard, 3F
+
+[message 1000003]
+Tower of the Wizard, 4F
+
+[message 1000004]
+Tower of the Wizard, 5F
+
+[message 1000005]
+Tower of the Wizard, 6F
+
+[message 1000006]
+Tower of the Wizard, 7F
+
+[message 1000007]
+Tower of the Wizard, 8F
+
+[message 1000008]
+Tower of the Wizard, 9F
+
+[message 1000009]
+Tower of the Wizard, 10F
+
+[message 1000010]
+Tower of the Wizard
+
+[message 1000011]
+A fighter, are you?
+Forgive me, I've no time just now.
+
+[message 1000012]
+Ah, welcome, young one.
+I am Orsolan, a wizard.
+
+[message 1000013]
+The elves' village won't let you pass, and that
+troubles you. Did you know the dragons are why?
+
+[message 1000014]
+The dragons sealed in the mine are only young,
+yet even so few creatures alive can match them.
+They are far stronger than the great lizard
+the knights brought down.
+
+[message 1000015]
+Let those dragons out of their prison,
+and this whole land would burn.
+
+[message 1000016]
+That is why
+the seal works are so closely watched.
+We have kept everyone away...
+
+[message 1000017]
+But a band of thieves prowling these parts
+learned that the dragons are here. The fools
+have been trying to break the seal.
+
+[message 1000018]
+Should they manage it, it would be their death.
+They don't seem to grasp that...
+
+[message 1000019]
+Some of the elves who guarded the works were
+called away to the war, and the thieves made
+use of the gap to seize the place.
+
+[message 1000020]
+The seal is strong
+and won't give way easily.
+I hope they'll tire of it soon,
+but they keep at it.
+
+[message 1000021]
+Worse, the thieves took the seal crystal,
+the key that opens the seal works.
+
+[message 1000022]
+It was kept under lock and guard,
+and still they got it.
+
+[message 1000023]
+Now the elves are more afraid than ever.
+Some whisper that humans took the crystal
+to turn the dragons into weapons of war.
+The elves trust no one now.
+
+[message 1000024]
+So I need your help.
+The thieves carried the crystal to their fort in
+the Forest of Knight's Misery, west of Cross Agora.
+
+[message 1000025]
+They mean to use the crystal
+to break the seal.
+
+[message 1000026]
+Take the crystal back before they succeed.
+Do that, and you'll show the elves that
+humans can be trusted.
+
+[message 1000027]
+You are the only one I can rely on.
+Will you take this on?
+
+[message 1000028]
+Good fortune go with you...
+
+[message 1000029]
+You brought it back! Thank you!
+I'll send word to the elves' village.
+They'll let you in now.
+
+[message 1000030]
+Don't breathe easy yet...
+One of the thieves was cleverer than the rest.
+Parts of the seal are broken already...
+
+[message 1000031]
+We must be quick...
+
+[message 1000032]
+The dragons are waking.
+They must be stopped!
+
+[message 1000033]
+Remarkable!
+You defeated the dragons! Though, to be fair,
+the seal had sapped much of their strength...
+
+[message 1000034]
+Hollis...
+Merrit...
+Calder...
+
+[message 1000035]
+My friends, burned by the dragons' fire, can
+rest in peace at last, wherever they are...
+
+[message 1000036]
+You've avenged my friends. I, Orsolan, thank
+you with all my heart.
+
+[message 1000037]
+Please take this small gift
+as a sign of my thanks.
+
+[message 1000038]
+May the heavens watch over you.

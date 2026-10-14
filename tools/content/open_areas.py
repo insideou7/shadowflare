@@ -27,7 +27,7 @@ def check(out, number, o, x0, y0, tw, th):
     assert size == f"size={tw},{th}", (number, size, tw, th)
     ours = (out / "Scenario" / f"{fa.our_number(number):08d}" / "scenario.txt").read_text().split("\n")
     exits = [list(map(int, line[5:].split(",")[:4])) for line in ours if line.startswith("exit=")]
-    theirs = [[l - x0, t - y0, r - x0, b - y0] for l, t, r, b, target, _ in o.exits if target in fa.exit_targets(number)]
+    theirs = [[l - x0, t - y0, r - x0, b - y0] for l, t, r, b, _, _ in fa.written_exits(o, number)]
     assert exits == theirs, (number, exits, theirs)
 
 

@@ -1,18 +1,171 @@
-# Cross Agora's warp gate, as the original's: walking up to it finds it
-# (warp:15) and shows its name over it, and a click on it opens
-# the GATE window.
+# Written by tools/content/scripts.py after the original's scenario 2100004
+# (Cross Agora), in our own words (tools/content/words/12100004.txt).
 
-object=10396,6401,10693,6652,gate
-object=9555,5572,11539,7488,gate-ground
+object=11255,27074,11950,27336,o3,states=0/0/0,at=11475/27554
+object=9242,1219,9401,1378,o1000,states=1/0/0,at=9124/1315
+object=20873,14218,21032,14377,o1001,states=1/0/0,at=20755/14314
+object=1175,8106,1334,8265,o1002,states=1/0/0,at=1341/8198
+object=10396,6401,10693,6652,o200,states=1/1/1,at=10534/6514
+object=10366,6371,10714,6691,o201,states=1/0/0,at=10534/6514
+object=9555,5572,11539,7488,o202,states=0/0/0,at=10138/6009
+object=10734,6713,10784,6761,o203,states=1/0/0,at=10534/6514
+object=10734,6713,10784,6761,o204,states=1/0/0,at=10534/6514
+temp=1000014,34
+temp=1000015,35
+temp=1000016,36
+temp=1000017,77
+temp=1000018,78
+temp=1000019,33
+temp=1000020,27
+temp=1000021,28
+temp=1000022,38
+temp=1000023,39
+temp=1000024,3
+temp=1000025,25
+temp=1000026,26
+temp=1000027,30
+temp=1000028,37
+temp=1000029,10
+temp=1000030,40
+temp=1000031,41
+temp=1000032,42
+temp=1000033,43
+temp=1000034,53
+temp=1000035,80
 
-[message 1]
+[message 1000000]
 Cross Agora
 
-[sentence gate-found]
-on=judge gate-ground
-SETFLAG warp:15 1
-MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+[message 1000001]
+Cross Agora
 
-[sentence gate]
-on=talk gate
+[message 1000002]
+...No. This road stays closed to you.
+
+[message 1000003]
+You're one of the army's people, I take it.
+Go tell your commander my answer: I will not
+let you through.
+
+[message 1000004]
+...No. You may not go this way.
+
+[message 1000005]
+Ah, word of you has reached me.
+Go on through.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000034 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 12100001 3
+
+[sentence s3]
+CHANGESCENARIO 12100005 0
+
+[sentence s4]
+CHANGESCENARIO 12100006 0
+
+[sentence s5]
+on=judge o3
+IF quest:14 = 2 @s6
+
+[sentence s6]
+CHANGESCENARIO 12200000 0
+
+[sentence s7]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+[sentence s8]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+SETFLAG temp:1000002 msg:1000002
+SETFLAG temp:1000001 0
+IF quest:12 = 1 @s9
+IF quest:14 = 2 @s10
+IF save:24 = 0 @s11
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s9]
+SETFLAG temp:1000002 msg:1000003
+SETFLAG temp:1000001 100
+
+[sentence s10]
+SETFLAG temp:1000002 msg:1000005
+SETFLAG temp:1000001 200
+
+[sentence s11]
+SETFLAG save:24 1
+
+[sentence s12]
+on=talk-end p0
+IF temp:1000001 = 0 @s13
+IF temp:1000001 = 101 @s14
+IF temp:1000001 = 200 @s15
+IF temp:1000001 = -1 @s16
+IF temp:1000001 ! -1 @s17
+
+[sentence s13]
+SETFLAG temp:1000001 -1
+
+[sentence s14]
+SETFLAG temp:1000001 -1
+
+[sentence s15]
+SETFLAG temp:1000001 -1
+
+[sentence s16]
+C_MOVABLE p0
+
+[sentence s17]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s18]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s19
+IF temp:1000005 > 0 @s23
+IF temp:1000005 > -1 @s25
+
+[sentence s19]
+IF warp:15 = 0 @s20
+IF temp:1000012 ! 1000 @s21
+IF temp:1000013 = 0 @s22
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s20]
+SETFLAG warp:15 1
+
+[sentence s21]
+ADD temp:1000012 50
+
+[sentence s22]
+PLAYSOUND temp:1000035 0 x:o200 y:o200
+SETFLAG temp:1000013 1
+
+[sentence s23]
+IF temp:1000012 ! 0 @s24
+SETFLAG temp:1000013 0
+DELETEWARPGATE 0
+
+[sentence s24]
+SUB temp:1000012 50
+
+[sentence s25]
+SETCHARTRANS o203 temp:1000012
+SETCHARTRANS o204 temp:1000012
+
+[sentence s26]
+on=talk o200
 WARPGATE 0

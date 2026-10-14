@@ -8,7 +8,6 @@ town=12200000
 transport=1
 exit=8250,7515,8733,7808,12210000,1
 exit=4404,2289,4887,2582,12210002,0
-exit=4638,5879,6264,6733,12210001,2
 enemy=6,2336,13074,3,2500,400,640,goblin,2,10,350,400,4000,200,250,50,400,5,attacks=400/0/0,hits=250/0/0,spells=4/1/-1,spell_power=500/500/0,spell_level=1/1/10,spell_hit=210/210/0,magic_evasion=20
 enemy=6,3173,13557,3,2500,400,640,goblin,2,10,350,400,4000,200,250,50,400,5,attacks=400/0/0,hits=250/0/0,spells=4/1/-1,spell_power=500/500/0,spell_level=1/1/10,spell_hit=210/210/0,magic_evasion=20
 enemy=6,3252,11458,3,2500,400,640,goblin,2,10,350,400,4000,200,250,50,400,5,attacks=400/0/0,hits=250/0/0,spells=4/1/-1,spell_power=500/500/0,spell_level=1/1/10,spell_hit=210/210/0,magic_evasion=20

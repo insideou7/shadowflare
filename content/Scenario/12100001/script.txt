@@ -1,0 +1,50 @@
+# Written by tools/content/scripts.py after the original's scenario 2100001
+# (Forest of Four Leaves), in our own words (tools/content/words/12100001.txt).
+
+object=41952,26248,42111,26407,o1000,states=1/0/0,at=41829/26319
+object=1002,18478,1161,18637,o1001,states=1/0/0,at=1166/18602
+object=17847,49503,18006,49662,o1002,states=1/0/0,at=17966/49443
+temp=1000009,34
+temp=1000010,35
+temp=1000011,36
+temp=1000012,77
+temp=1000013,78
+temp=1000014,33
+temp=1000015,27
+temp=1000016,28
+temp=1000017,38
+temp=1000018,39
+temp=1000019,3
+temp=1000020,25
+temp=1000021,26
+temp=1000022,30
+temp=1000023,37
+temp=1000024,10
+temp=1000025,40
+temp=1000026,41
+temp=1000027,42
+temp=1000028,43
+temp=1000029,53
+temp=1000030,80
+
+[message 1000000]
+Forest of Four Leaves
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12100000 1
+
+[sentence s2]
+CHANGESCENARIO 12100002 0
+
+[sentence s3]
+CHANGESCENARIO 12100003 0
+
+[sentence s4]
+CHANGESCENARIO 12100004 0
+
+[sentence s5]
+CHANGESCENARIO 12130000 0

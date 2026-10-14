@@ -1,0 +1,11 @@
+# Dragon Road: place names only, in our own words, by the original's
+# message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Dragon Road
+
+[message 1000001]
+Mining Tunnel of Yugunos
+
+[message 1000002]
+Underground Passage

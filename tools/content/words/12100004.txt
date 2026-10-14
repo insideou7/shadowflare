@@ -1,0 +1,24 @@
+# Cross Agora: the elf guard at the crossing, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and order.
+
+[message 1000000]
+Cross Agora
+
+[message 1000001]
+Cross Agora
+
+[message 1000002]
+...No. This road stays closed to you.
+
+[message 1000003]
+You're one of the army's people, I take it.
+Go tell your commander my answer: I will not
+let you through.
+
+[message 1000004]
+...No. You may not go this way.
+
+[message 1000005]
+Ah, word of you has reached me.
+Go on through.

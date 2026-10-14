@@ -1,18 +1,94 @@
-# Forest of Sprits's warp gate, as the original's: walking up to it finds it
-# (warp:16) and shows its name over it, and a click on it opens
-# the GATE window.
+# Written by tools/content/scripts.py after the original's scenario 2100005
+# (Forest of Sprits), in our own words (tools/content/words/12100005.txt).
 
-object=28323,26954,28620,27205,gate
-object=27400,26076,29540,28096,gate-ground
+object=1103,5408,1262,5567,o1000,states=1/0/0,at=1305/5544
+object=28323,26954,28620,27205,o200,states=1/1/1,at=28461/27067
+object=28293,26924,28641,27244,o201,states=1/0/0,at=28461/27067
+object=27400,26076,29540,28096,o202,states=0/0/0,at=28065/26562
+object=28661,27266,28711,27314,o203,states=1/0/0,at=28461/27067
+object=28661,27266,28711,27314,o204,states=1/0/0,at=28461/27067
+temp=1000011,34
+temp=1000012,35
+temp=1000013,36
+temp=1000014,77
+temp=1000015,78
+temp=1000016,33
+temp=1000017,27
+temp=1000018,28
+temp=1000019,38
+temp=1000020,39
+temp=1000021,3
+temp=1000022,25
+temp=1000023,26
+temp=1000024,30
+temp=1000025,37
+temp=1000026,10
+temp=1000027,40
+temp=1000028,41
+temp=1000029,42
+temp=1000030,43
+temp=1000031,53
+temp=1000032,80
 
-[message 1]
-Forest of Sprits
+[message 1000000]
+Forest of Spirits
 
-[sentence gate-found]
-on=judge gate-ground
+[message 1000001]
+Forest of Spirits
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000002
+IF temp:1000002 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000031 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 12100004 1
+
+[sentence s3]
+CHANGESCENARIO 12110000 0
+
+[sentence s4]
+CHANGESCENARIO 12140000 0
+
+[sentence s5]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000002
+IF temp:1000002 = 0 @s6
+IF temp:1000002 > 0 @s10
+IF temp:1000002 > -1 @s12
+
+[sentence s6]
+IF warp:16 = 0 @s7
+IF temp:1000009 ! 1000 @s8
+IF temp:1000010 = 0 @s9
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s7]
 SETFLAG warp:16 1
-MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
 
-[sentence gate]
-on=talk gate
+[sentence s8]
+ADD temp:1000009 50
+
+[sentence s9]
+PLAYSOUND temp:1000032 0 x:o200 y:o200
+SETFLAG temp:1000010 1
+
+[sentence s10]
+IF temp:1000009 ! 0 @s11
+SETFLAG temp:1000010 0
+DELETEWARPGATE 0
+
+[sentence s11]
+SUB temp:1000009 50
+
+[sentence s12]
+SETCHARTRANS o203 temp:1000009
+SETCHARTRANS o204 temp:1000009
+
+[sentence s13]
+on=talk o200
 WARPGATE 0

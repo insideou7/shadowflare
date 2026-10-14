@@ -1,0 +1,500 @@
+# Written by tools/content/scripts.py after the original's scenario 2000001
+# (Forest), in our own words (tools/content/words/12000001.txt).
+
+object=13550,1039,13709,1198,o1000,states=1/0/0,at=13638/1161
+object=19075,10855,19241,11016,o41000,states=1/1/1,at=19167/10921
+object=19223,10976,19260,11007,o42000,states=1/0/0,at=19111/10867
+object=19223,10976,19260,11007,o43000,states=0/0/0,at=19111/10867
+object=20033,20507,20199,20668,o41001,states=1/1/1,at=20125/20573
+object=20181,20628,20218,20659,o42001,states=1/0/0,at=20069/20519
+object=20181,20628,20218,20659,o43001,states=0/0/0,at=20069/20519
+object=23216,12196,23315,12295,o51000,states=1/0/1,at=23263/12249
+object=23786,13466,23885,13565,o51001,states=1/0/1,at=23833/13519
+object=22209,15383,22308,15482,o51002,states=1/0/1,at=22256/15436
+object=24905,15667,25004,15766,o51003,states=1/0/1,at=24952/15720
+object=21555,25768,21654,25867,o51004,states=1/0/1,at=21602/25821
+object=21923,26950,22022,27049,o51005,states=1/0/1,at=21970/27003
+object=23996,28916,24095,29015,o51006,states=1/0/1,at=24043/28969
+object=23869,27604,23968,27703,o51007,states=1/0/1,at=23916/27657
+temp=1000010,30
+temp=1000011,100
+temp=1000012,80
+temp=1000013,1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000018,30
+temp=1000019,100
+temp=1000020,80
+temp=1000021,1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000026,30
+temp=1000027,100
+temp=1000028,80
+temp=1000029,1
+temp=1000030,-1
+temp=1000031,-1
+temp=1000034,30
+temp=1000035,100
+temp=1000036,80
+temp=1000037,1
+temp=1000038,-1
+temp=1000039,-1
+temp=1000042,30
+temp=1000043,100
+temp=1000044,80
+temp=1000045,1
+temp=1000046,-1
+temp=1000047,-1
+temp=1000050,30
+temp=1000051,100
+temp=1000052,80
+temp=1000053,1
+temp=1000054,-1
+temp=1000055,-1
+temp=1000058,30
+temp=1000059,100
+temp=1000060,80
+temp=1000061,1
+temp=1000062,-1
+temp=1000063,-1
+temp=1000066,30
+temp=1000067,100
+temp=1000068,80
+temp=1000069,1
+temp=1000070,-1
+temp=1000071,-1
+temp=1000073,90
+temp=1000074,90
+temp=1000078,90
+temp=1000079,90
+temp=1000083,34
+temp=1000084,35
+temp=1000085,36
+temp=1000086,77
+temp=1000087,78
+temp=1000088,33
+temp=1000089,27
+temp=1000090,28
+temp=1000091,38
+temp=1000092,39
+temp=1000093,3
+temp=1000094,25
+temp=1000095,26
+temp=1000096,30
+temp=1000097,37
+temp=1000098,10
+temp=1000099,40
+temp=1000100,41
+temp=1000101,42
+temp=1000102,43
+temp=1000103,53
+temp=1000104,80
+
+[message 1000000]
+Forest
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12000000 1
+
+[sentence s2]
+CHANGESCENARIO 12100000 0
+
+[sentence s3]
+CHANGESCENARIO 12010000 0
+
+[sentence s4]
+on=tick
+IF net:1000000 = 1 @s5
+
+[sentence s5]
+IF temp:1000009 = temp:1000010 @s6
+IF temp:1000009 ! temp:1000010 @s8
+
+[sentence s6]
+GETNEARPLAYERPOS o51000 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s7
+
+[sentence s7]
+SUB temp:1000003 x:o51000
+SUB temp:1000004 y:o51000
+CALCANGLE temp:1000003 temp:1000004 temp:1000005
+CREATEOPTIONANGLE x:o51000 y:o51000 0 temp:1000005 temp:1000012 temp:1000011 350 200 -1 temp:1000013 temp:1000014 temp:1000015 temp:1000016 1
+PLAYSOUND temp:1000093 0 x:o51000 y:o51000
+SETFLAG temp:1000009 0
+
+[sentence s8]
+ADD temp:1000009 1
+
+[sentence s9]
+on=tick
+IF net:1000000 = 1 @s10
+
+[sentence s10]
+IF temp:1000017 = temp:1000018 @s11
+IF temp:1000017 ! temp:1000018 @s13
+
+[sentence s11]
+GETNEARPLAYERPOS o51001 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s12
+
+[sentence s12]
+SUB temp:1000003 x:o51001
+SUB temp:1000004 y:o51001
+CALCANGLE temp:1000003 temp:1000004 temp:1000005
+CREATEOPTIONANGLE x:o51001 y:o51001 0 temp:1000005 temp:1000020 temp:1000019 350 200 -1 temp:1000021 temp:1000022 temp:1000023 temp:1000024 1
+PLAYSOUND temp:1000093 0 x:o51001 y:o51001
+SETFLAG temp:1000017 0
+
+[sentence s13]
+ADD temp:1000017 1
+
+[sentence s14]
+on=tick
+IF net:1000000 = 1 @s15
+
+[sentence s15]
+IF temp:1000025 = temp:1000026 @s16
+IF temp:1000025 ! temp:1000026 @s18
+
+[sentence s16]
+GETNEARPLAYERPOS o51002 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s17
+
+[sentence s17]
+SUB temp:1000003 x:o51002
+SUB temp:1000004 y:o51002
+CALCANGLE temp:1000003 temp:1000004 temp:1000005
+CREATEOPTIONANGLE x:o51002 y:o51002 0 temp:1000005 temp:1000028 temp:1000027 350 200 -1 temp:1000029 temp:1000030 temp:1000031 temp:1000032 1
+PLAYSOUND temp:1000093 0 x:o51002 y:o51002
+SETFLAG temp:1000025 0
+
+[sentence s18]
+ADD temp:1000025 1
+
+[sentence s19]
+on=tick
+IF net:1000000 = 1 @s20
+
+[sentence s20]
+IF temp:1000033 = temp:1000034 @s21
+IF temp:1000033 ! temp:1000034 @s23
+
+[sentence s21]
+GETNEARPLAYERPOS o51003 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s22
+
+[sentence s22]
+SUB temp:1000003 x:o51003
+SUB temp:1000004 y:o51003
+CALCANGLE temp:1000003 temp:1000004 temp:1000005
+CREATEOPTIONANGLE x:o51003 y:o51003 0 temp:1000005 temp:1000036 temp:1000035 350 200 -1 temp:1000037 temp:1000038 temp:1000039 temp:1000040 1
+PLAYSOUND temp:1000093 0 x:o51003 y:o51003
+SETFLAG temp:1000033 0
+
+[sentence s23]
+ADD temp:1000033 1
+
+[sentence s24]
+on=tick
+IF net:1000001 = 1 @s25
+
+[sentence s25]
+IF temp:1000041 = temp:1000042 @s26
+IF temp:1000041 ! temp:1000042 @s28
+
+[sentence s26]
+GETNEARPLAYERPOS o51004 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s27
+
+[sentence s27]
+SUB temp:1000003 x:o51004
+SUB temp:1000004 y:o51004
+CALCANGLE temp:1000003 temp:1000004 temp:1000006
+CREATEOPTIONANGLE x:o51004 y:o51004 0 temp:1000006 temp:1000044 temp:1000043 350 200 -1 temp:1000045 temp:1000046 temp:1000047 temp:1000048 1
+PLAYSOUND temp:1000093 0 x:o51004 y:o51004
+SETFLAG temp:1000041 0
+
+[sentence s28]
+ADD temp:1000041 1
+
+[sentence s29]
+on=tick
+IF net:1000001 = 1 @s30
+
+[sentence s30]
+IF temp:1000049 = temp:1000050 @s31
+IF temp:1000049 ! temp:1000050 @s33
+
+[sentence s31]
+GETNEARPLAYERPOS o51005 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s32
+
+[sentence s32]
+SUB temp:1000003 x:o51005
+SUB temp:1000004 y:o51005
+CALCANGLE temp:1000003 temp:1000004 temp:1000007
+CREATEOPTIONANGLE x:o51005 y:o51005 0 temp:1000007 temp:1000052 temp:1000051 350 200 -1 temp:1000053 temp:1000054 temp:1000055 temp:1000056 1
+PLAYSOUND temp:1000093 0 x:o51005 y:o51005
+SETFLAG temp:1000049 0
+
+[sentence s33]
+ADD temp:1000049 1
+
+[sentence s34]
+on=tick
+IF net:1000001 = 1 @s35
+
+[sentence s35]
+IF temp:1000057 = temp:1000058 @s36
+IF temp:1000057 ! temp:1000058 @s38
+
+[sentence s36]
+GETNEARPLAYERPOS o51006 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s37
+
+[sentence s37]
+SUB temp:1000003 x:o51006
+SUB temp:1000004 y:o51006
+CALCANGLE temp:1000003 temp:1000004 temp:1000008
+CREATEOPTIONANGLE x:o51006 y:o51006 0 temp:1000008 temp:1000060 temp:1000059 350 200 -1 temp:1000061 temp:1000062 temp:1000063 temp:1000064 1
+PLAYSOUND temp:1000093 0 x:o51006 y:o51006
+SETFLAG temp:1000057 0
+
+[sentence s38]
+ADD temp:1000057 1
+
+[sentence s39]
+on=tick
+IF net:1000001 = 1 @s40
+
+[sentence s40]
+IF temp:1000065 = temp:1000066 @s41
+IF temp:1000065 ! temp:1000066 @s43
+
+[sentence s41]
+GETNEARPLAYERPOS o51007 0 2000 temp:1000002 temp:1000003 temp:1000004
+IF temp:1000002 ! -1 @s42
+
+[sentence s42]
+SUB temp:1000003 x:o51007
+SUB temp:1000004 y:o51007
+CALCANGLE temp:1000003 temp:1000004 0
+CREATEOPTIONANGLE x:o51007 y:o51007 0 0 temp:1000068 temp:1000067 350 200 -1 temp:1000069 temp:1000070 temp:1000071 temp:1000072 1
+PLAYSOUND temp:1000093 0 x:o51007 y:o51007
+SETFLAG temp:1000065 0
+
+[sentence s43]
+ADD temp:1000065 1
+
+[sentence s44]
+on=tick
+SETFLAG temp:1000002 held:o41000
+IF playmode:0 ! 2 @s45
+IF temp:1000076 = 0 @s50
+IF temp:1000076 = 1 @s52
+ADD temp:1000077 1
+IF temp:1000075 = 0 @s54
+IF temp:1000075 = 2 @s59
+IF temp:1000075 = 1 @s61
+
+[sentence s45]
+IF temp:1000076 = 1 @s46
+IF temp:1000076 = 0 @s48
+
+[sentence s46]
+IF shown:o42000 = 1 @s47
+
+[sentence s47]
+SETFLAG shown:o42000 0
+SETFLAG shown:o43000 1
+
+[sentence s48]
+IF shown:o43000 = 1 @s49
+
+[sentence s49]
+SETFLAG shown:o42000 1
+SETFLAG shown:o43000 0
+
+[sentence s50]
+SETFLAG temp:1000003 temp:1000077
+REM temp:1000003 25
+IF temp:1000003 = 0 @s51
+
+[sentence s51]
+PLAYSOUND temp:1000099 0 x:o41000 y:o41000
+
+[sentence s52]
+SETFLAG temp:1000003 temp:1000077
+REM temp:1000003 25
+IF temp:1000003 = 0 @s53
+
+[sentence s53]
+PLAYSOUND temp:1000100 0 x:o41000 y:o41000
+
+[sentence s54]
+IF temp:1000002 = 0 @s55
+IF temp:1000002 = 1 @s56
+IF temp:1000073 = 0 @s58
+
+[sentence s55]
+SETFLAG temp:1000073 temp:1000074
+
+[sentence s56]
+SUB temp:1000073 1
+SETFLAG temp:1000003 temp:1000073
+ADD temp:1000003 2
+DIV temp:1000003 3
+MESSAGEBOXVALUE o41000 20 -60 temp:1000003 224 224 224
+SETFLAG temp:1000003 temp:1000073
+REM temp:1000003 30
+IF temp:1000003 = 29 @s57
+SETUNLOCKSW 1
+
+[sentence s57]
+PLAYSOUND temp:1000101 0 x:o41000 y:o41000
+
+[sentence s58]
+SETFLAG temp:1000075 1
+PLAYSOUND temp:1000102 0 x:o41000 y:o41000
+
+[sentence s59]
+IF temp:1000002 = 0 @s60
+
+[sentence s60]
+SETFLAG temp:1000075 0
+
+[sentence s61]
+IF playmode:0 = 2 @s62
+IF playmode:0 ! 2 @s63
+SETFLAG temp:1000073 temp:1000074
+SETFLAG temp:1000075 2
+
+[sentence s62]
+ROUTINNET 41000
+
+[sentence s63]
+ROUTIN 41000
+
+[sentence s64]
+on=routine 41000
+SETFLAG temp:1000002 1
+SUB temp:1000002 temp:1000076
+SETFLAG temp:1000076 temp:1000002
+SETFLAG temp:1000002 net:1000000
+IF temp:1000002 = 0 @s65
+IF temp:1000002 = 1 @s66
+
+[sentence s65]
+SETFLAG net:1000000 1
+
+[sentence s66]
+SETFLAG net:1000000 0
+
+[sentence s67]
+on=tick
+SETFLAG temp:1000002 held:o41001
+IF playmode:0 ! 2 @s68
+IF temp:1000081 = 0 @s73
+IF temp:1000081 = 1 @s75
+ADD temp:1000082 1
+IF temp:1000080 = 0 @s77
+IF temp:1000080 = 2 @s82
+IF temp:1000080 = 1 @s84
+
+[sentence s68]
+IF temp:1000081 = 1 @s69
+IF temp:1000081 = 0 @s71
+
+[sentence s69]
+IF shown:o42001 = 1 @s70
+
+[sentence s70]
+SETFLAG shown:o42001 0
+SETFLAG shown:o43001 1
+
+[sentence s71]
+IF shown:o43001 = 1 @s72
+
+[sentence s72]
+SETFLAG shown:o42001 1
+SETFLAG shown:o43001 0
+
+[sentence s73]
+SETFLAG temp:1000003 temp:1000082
+REM temp:1000003 25
+IF temp:1000003 = 0 @s74
+
+[sentence s74]
+PLAYSOUND temp:1000099 0 x:o41001 y:o41001
+
+[sentence s75]
+SETFLAG temp:1000003 temp:1000082
+REM temp:1000003 25
+IF temp:1000003 = 0 @s76
+
+[sentence s76]
+PLAYSOUND temp:1000100 0 x:o41001 y:o41001
+
+[sentence s77]
+IF temp:1000002 = 0 @s78
+IF temp:1000002 = 1 @s79
+IF temp:1000078 = 0 @s81
+
+[sentence s78]
+SETFLAG temp:1000078 temp:1000079
+
+[sentence s79]
+SUB temp:1000078 1
+SETFLAG temp:1000003 temp:1000078
+ADD temp:1000003 2
+DIV temp:1000003 3
+MESSAGEBOXVALUE o41001 20 -60 temp:1000003 224 224 224
+SETFLAG temp:1000003 temp:1000078
+REM temp:1000003 30
+IF temp:1000003 = 29 @s80
+SETUNLOCKSW 1
+
+[sentence s80]
+PLAYSOUND temp:1000101 0 x:o41001 y:o41001
+
+[sentence s81]
+SETFLAG temp:1000080 1
+PLAYSOUND temp:1000102 0 x:o41001 y:o41001
+
+[sentence s82]
+IF temp:1000002 = 0 @s83
+
+[sentence s83]
+SETFLAG temp:1000080 0
+
+[sentence s84]
+IF playmode:0 = 2 @s85
+IF playmode:0 ! 2 @s86
+SETFLAG temp:1000078 temp:1000079
+SETFLAG temp:1000080 2
+
+[sentence s85]
+ROUTINNET 41001
+
+[sentence s86]
+ROUTIN 41001
+
+[sentence s87]
+on=routine 41001
+SETFLAG temp:1000002 1
+SUB temp:1000002 temp:1000081
+SETFLAG temp:1000081 temp:1000002
+SETFLAG temp:1000002 net:1000001
+IF temp:1000002 = 0 @s88
+IF temp:1000002 = 1 @s89
+
+[sentence s88]
+SETFLAG net:1000001 1
+
+[sentence s89]
+SETFLAG net:1000001 0

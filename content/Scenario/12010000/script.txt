@@ -1,0 +1,254 @@
+# Written by tools/content/scripts.py after the original's scenario 2010000
+# (Coal Mine), in our own words (tools/content/words/12010000.txt).
+
+object=9035,9003,9266,9089,o20000,obj_crate_x,states=1/1/1,at=9100/9007
+object=9035,9003,9266,9089,o20001,obj_crate_open_x,states=0/0/0,at=9100/9007
+object=9027,8361,9249,8446,o20002,obj_crate_x,states=1/1/1,at=9092/8365
+object=9027,8361,9249,8446,o20003,obj_crate_open_x,states=0/0/0,at=9092/8365
+object=9027,7721,9260,7815,o20004,obj_crate_x,states=1/1/1,at=9092/7725
+object=9027,7721,9260,7815,o20005,obj_crate_open_x,states=0/0/0,at=9092/7725
+object=2785,16013,3003,16132,o20006,obj_silver_x,states=1/1/1,at=2852/16025
+object=2785,16013,3003,16132,o20007,obj_silver_open_x,states=0/0/0,at=2852/16025
+object=21253,13253,21268,13275,o60000,states=1/0/0,at=21127/13139
+object=20610,12497,20625,12519,o60001,states=1/0/0,at=20484/12383
+object=18215,11801,18230,11823,o60002,states=1/0/0,at=18089/11687
+object=21251,13885,21266,13907,o60003,states=1/0/0,at=21125/13771
+object=8781,10525,8796,10547,o60004,states=1/0/0,at=8655/10411
+object=9734,6372,9749,6394,o60005,states=1/0/0,at=9608/6258
+object=9736,5560,9751,5582,o60006,states=1/0/0,at=9610/5446
+object=9735,4751,9750,4773,o60007,states=1/0/0,at=9609/4637
+object=4617,7319,4632,7341,o60008,states=1/0/0,at=4491/7205
+object=4940,13556,4955,13578,o60009,states=1/0/0,at=4814/13442
+object=1413,8922,1428,8944,o60010,states=1/0/0,at=1287/8808
+temp=1000009,136
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,400
+temp=1000018,500
+temp=1000019,136
+temp=1000020,-1
+temp=1000021,-1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,137
+temp=1000025,-1
+temp=1000026,-1
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,34
+temp=1000030,35
+temp=1000031,36
+temp=1000032,77
+temp=1000033,78
+temp=1000034,33
+temp=1000035,27
+temp=1000036,28
+temp=1000037,38
+temp=1000038,39
+temp=1000039,3
+temp=1000040,25
+temp=1000041,26
+temp=1000042,30
+temp=1000043,37
+temp=1000044,10
+temp=1000045,40
+temp=1000046,41
+temp=1000047,42
+temp=1000048,43
+temp=1000049,53
+temp=1000050,80
+
+[message 1000000]
+Coal Mine
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12000001 2
+
+[sentence s2]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000032 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s3
+
+[sentence s3]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s4
+IF temp:1000012 ! -1 @s7
+SETFLAG net:1000000 1
+
+[sentence s4]
+IF temp:1000009 = -1 @s5
+IF temp:1000009 ! -1 @s6
+
+[sentence s5]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s6]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s7]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s8]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000033 0 x:o20000 y:o20000
+
+[sentence s9]
+IF shown:o20000 = 0 @s10
+IF shown:o20000 = 1 @s11
+
+[sentence s10]
+PLAYSOUND temp:1000033 0 x:o20000 y:o20000
+
+[sentence s11]
+PLAYSOUND temp:1000032 0 x:o20000 y:o20000
+
+[sentence s12]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000032 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s13
+
+[sentence s13]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s14
+IF temp:1000017 ! -1 @s17
+SETFLAG net:1000001 1
+
+[sentence s14]
+IF temp:1000014 = -1 @s15
+IF temp:1000014 ! -1 @s16
+
+[sentence s15]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s16]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s17]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s18]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000033 0 x:o20002 y:o20002
+
+[sentence s19]
+IF shown:o20002 = 0 @s20
+IF shown:o20002 = 1 @s21
+
+[sentence s20]
+PLAYSOUND temp:1000033 0 x:o20002 y:o20002
+
+[sentence s21]
+PLAYSOUND temp:1000032 0 x:o20002 y:o20002
+
+[sentence s22]
+on=talk o20004
+SETINACTIVE o20004
+SETACTIVE o20005
+PLAYSOUND temp:1000032 0 x:o20004 y:o20004
+IF net:1000002 = 0 @s23
+
+[sentence s23]
+SETFLAG temp:1000000 x:o20004
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20004
+ADD temp:1000001 200
+IF temp:1000022 = -1 @s24
+IF temp:1000022 ! -1 @s27
+SETFLAG net:1000002 1
+
+[sentence s24]
+IF temp:1000019 = -1 @s25
+IF temp:1000019 ! -1 @s26
+
+[sentence s25]
+CREATEITEM temp:1000020 temp:1000021 temp:1000000 temp:1000001 -1 -1
+
+[sentence s26]
+CREATEITEMTABLE temp:1000019 temp:1000000 temp:1000001
+
+[sentence s27]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000022 temp:1000023
+
+[sentence s28]
+on=talk o20005
+SETACTIVE o20004
+SETINACTIVE o20005
+PLAYSOUND temp:1000033 0 x:o20004 y:o20004
+
+[sentence s29]
+IF shown:o20004 = 0 @s30
+IF shown:o20004 = 1 @s31
+
+[sentence s30]
+PLAYSOUND temp:1000033 0 x:o20004 y:o20004
+
+[sentence s31]
+PLAYSOUND temp:1000032 0 x:o20004 y:o20004
+
+[sentence s32]
+on=talk o20006
+SETINACTIVE o20006
+SETACTIVE o20007
+PLAYSOUND temp:1000032 0 x:o20006 y:o20006
+IF net:1000003 = 0 @s33
+
+[sentence s33]
+SETFLAG temp:1000000 x:o20006
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20006
+ADD temp:1000001 200
+IF temp:1000027 = -1 @s34
+IF temp:1000027 ! -1 @s37
+SETFLAG net:1000003 1
+
+[sentence s34]
+IF temp:1000024 = -1 @s35
+IF temp:1000024 ! -1 @s36
+
+[sentence s35]
+CREATEITEM temp:1000025 temp:1000026 temp:1000000 temp:1000001 -1 -1
+
+[sentence s36]
+CREATEITEMTABLE temp:1000024 temp:1000000 temp:1000001
+
+[sentence s37]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000027 temp:1000028
+
+[sentence s38]
+on=talk o20007
+SETACTIVE o20006
+SETINACTIVE o20007
+PLAYSOUND temp:1000033 0 x:o20006 y:o20006
+
+[sentence s39]
+IF shown:o20006 = 0 @s40
+IF shown:o20006 = 1 @s41
+
+[sentence s40]
+PLAYSOUND temp:1000033 0 x:o20006 y:o20006
+
+[sentence s41]
+PLAYSOUND temp:1000032 0 x:o20006 y:o20006

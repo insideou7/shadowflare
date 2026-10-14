@@ -10,3 +10,88 @@ text=shrine asked me to deal with it.
 text=
 text=Find it and drive it off, so the people here
 text=may sleep again.
+
+# The second area.
+
+[mission 11]
+title=Break the thieves south-east of Kanfore.
+text=A band of thieves camped south-east of the
+text=coal mine has its eye on the town's stores.
+text=
+text=Track the band down south-east of Kanfore
+text=and break it.
+
+[mission 12]
+title=Explore the Mining Tunnel of Yugunos.
+text=Find out what lies in the Mining Tunnel of
+text=Yugunos.
+text=
+text=The tunnel opens off Dragon Road, a long
+text=way west of Fanann.
+
+[mission 13]
+title=Find the wizard Orsolan.
+text=The elves won't let us into their village
+text=unless someone they trust speaks for us.
+text=Orsolan the wizard knows the seal works
+text=well; ask him to talk to them.
+text=
+text=His tower stands deep in the Forest of
+text=Spirits, east of Cross Agora.
+
+[mission 14]
+title=Recover the seal crystal.
+text=Thieves made off with a crystal the seal
+text=works cannot run without.
+text=
+text=Their fort lies in the Forest of Knight's
+text=Misery, west of Cross Agora. Get the
+text=crystal back from them.
+
+[mission 15]
+title=Win back the seal works' control room.
+text=Demons hold the room that guards and runs
+text=the seal works.
+text=
+text=An underground passage south of the Mining
+text=Tunnel of Yugunos leads there. Take the
+text=room back.
+
+[mission 16]
+title=Retake the power supply.
+text=The demons seized the power supply beyond
+text=the Labyrinth of Mauve, far to the south
+text=of Fanann.
+text=
+text=Take it back from them.
+
+[mission 17]
+title=Slay the dragons.
+text=The dragons at the bottom of the Mining
+text=Tunnel of Yugunos are awake.
+text=
+text=Bring them down.
+
+[mission 18]
+title=Clear the giant spiders.
+text=Giant spiders have nested in the Forest of
+text=Silence.
+text=
+text=Wipe them out.
+
+[mission 19]
+title=Search the Marsh storehouse.
+text=Find proof of the Marsh family's crooked
+text=dealings in their hidden storehouse.
+text=
+text=It lies at the far end of the Forest of
+text=Wesley, past the north-west of Butterfly
+text=Hill.
+
+[mission 34]
+title=Recover the Moonwell Tear.
+text=The Moonwell Tear, gem of the king of the
+text=spirits, has been stolen.
+text=
+text=Get it back and hand it to the elder of
+text=Fanann.

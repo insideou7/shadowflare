@@ -1,0 +1,46 @@
+# Forest of Knight's Misery: a shady stranger near the Fort of Thieves,
+# in our own words, by the original's message numbers
+# (tools/content/scripts.py). Each keeps the original's purpose and its
+# options (~...~) in order.
+
+[message 1000000]
+Forest of Knight's Misery
+
+[message 1000001]
+Fort of Thieves
+
+[message 1000002]
+And who might you be?
+
+[message 1000003]
+What I'm up to out here
+is no concern of yours.
+
+[message 1000004]
+Go on, clear off.
+
+[message 1000005]
+Can't find a way into the Fort of Thieves,
+and it's bothering you?
+
+[message 1000006]
+For 200 Gold I'll let you in on something
+worth knowing. Interested?
+
+                ~Yes~  ~No~
+
+[message 1000007]
+Heh heh heh...
+Someone left an odd mark on the ground west of
+here, just south of the Fort of Thieves.
+
+[message 1000008]
+Go stand on that mark.
+You might like what happens.
+
+[message 1000009]
+You haven't got the coin.
+
+[message 1000010]
+Heh heh heh.
+West of here. South of the fort.

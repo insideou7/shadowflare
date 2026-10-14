@@ -1,0 +1,8 @@
+# Mining Tunnel of Yugunos, B3F: place names only, in our own words, by
+# the original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Mining Tunnel of Yugunos, B3F
+
+[message 1000001]
+Mining Tunnel of Yugunos, B3F

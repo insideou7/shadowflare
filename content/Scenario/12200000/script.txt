@@ -1,18 +1,2980 @@
-# Fanann, Village of Elves's warp gate, as the original's: walking up to it finds it
-# (warp:18) and shows its name over it, and a click on it opens
-# the GATE window.
+# Written by tools/content/scripts.py after the original's scenario 2200000
+# (Fanann, Village of Elves), in our own words (tools/content/words/12200000.txt).
 
-object=18366,10751,18663,11002,gate
-object=17408,9799,19605,11963,gate-ground
+object=6493,8928,7104,9545,o300,states=1/1/1,at=6786/9195
+object=18366,10751,18663,11002,o200,states=1/1/1,at=18504/10864
+object=18336,10721,18684,11041,o201,states=1/0/0,at=18504/10864
+object=17408,9799,19605,11963,o202,states=0/0/0,at=18108/10359
+object=18704,11063,18754,11111,o203,states=1/0/0,at=18504/10864
+object=18704,11063,18754,11111,o204,states=1/0/0,at=18504/10864
+temp=1000015,-1
+temp=1000017,100
+temp=1000020,4
+temp=1000021,99000004
+temp=1000022,4
+temp=1000023,99000022
+temp=1000024,40000
+temp=1000025,50000
+temp=1000026,30000
+temp=1000027,30000
+temp=1000028,30000
+temp=1000029,34
+temp=1000030,35
+temp=1000031,36
+temp=1000032,77
+temp=1000033,78
+temp=1000034,33
+temp=1000035,27
+temp=1000036,28
+temp=1000037,38
+temp=1000038,39
+temp=1000039,3
+temp=1000040,25
+temp=1000041,26
+temp=1000042,30
+temp=1000043,37
+temp=1000044,10
+temp=1000045,40
+temp=1000046,41
+temp=1000047,42
+temp=1000048,43
+temp=1000049,53
+temp=1000050,80
+temp=1000051,24
+temp=1000052,64
 
-[message 1]
+[message 1000000]
 Fanann, Village of Elves
 
-[sentence gate-found]
-on=judge gate-ground
-SETFLAG warp:18 1
-MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+[message 1000001]
+Fanann, Village of Elves
 
-[sentence gate]
-on=talk gate
+[message 1000002]
+Hello there. I'm Corvin; this post is mine
+to run now. Glad to have you.
+
+[message 1000003]
+Good news: the elves have finally agreed and
+given us leave. You can go back to surveying
+the Mining Tunnel of Yugunos for us.
+
+[message 1000004]
+For the Mining Tunnel of Yugunos, head southwest
+from Butterfly Hill and take the mountain path
+they call the Dragon Road.
+
+[message 1000005]
+I'm relying on you.
+
+[message 1000006]
+And keep clear of the seal works if you can.
+We need the elves to go on trusting us...
+
+[message 1000007]
+Just as I feared. The seal works are broken,
+and the way to the deep end of the tunnel is shut.
+The dragons will wake; it's only a matter of when.
+
+[message 1000008]
+To strengthen the seal on the dragons, Sylvar wants
+the Power Supply Facility taken back from the demons.
+It lies past the Labyrinth of Mauve, a long way
+south of the elves' village.
+
+[message 1000009]
+Set out for the facility right away.
+
+[message 1000010]
+The Power Supply Facility is far to the south.
+Good luck out there!
+
+[message 1000011]
+Nicely done. Here's what you've earned.
+My thanks.
+
+[message 1000012]
+Sylvar may have told you already. What comes
+next is about as hard a job as they come.
+
+[message 1000013]
+Slay the dragons of legend!
+
+[message 1000014]
+Do as Sylvar says: pour power into the seal first
+and the dragons will be weakened for a while.
+Then, and only then, you might stand a chance.
+
+[message 1000015]
+If you hold back, know that the seal will fail
+sooner or later regardless.
+It's a cruel thing to have to choose.
+
+[message 1000016]
+...If you walk away, nobody will hold it
+against you. It's your call.
+
+[message 1000017]
+Everything's underway.
+
+[message 1000018]
+You're a true hero; people will speak of this
+for a long time. Thank you, truly!
+
+[message 1000019]
+The pay isn't much this time,
+I'm afraid, but you have our
+deepest respect.
+
+[message 1000020]
+You ought to go to the central front next.
+After what you've done here, they'll give
+you a warm welcome.
+
+[message 1000021]
+And I'll make sure they know I back you
+without reservation.
+
+[message 1000022]
+These days nobody faces dragons for glory.
+They're all too frightened.
+
+[message 1000023]
+Who you are and what drives you, I can't say.
+But I'm sure you could change this world.
+
+[message 1000024]
+The world needs someone like you.
+
+[message 1000025]
+In any case, thank you for all of it.
+Go and get some rest.
+
+[message 1000026]
+Every day at the central front they fight battles
+that could decide the world. You might be the one
+who tips the scales. There's something about you.
+
+[message 1000027]
+If your road goes on from here, I'd be glad
+if it led you that way...
+
+[message 1000028]
+Latest word: our surprise strike worked, but the
+enemy is holding hard. Our soldiers are worn out,
+and they need you to take over for them.
+
+[message 1000029]
+So make for the Yugunos camp. The Warp Gate
+will get you there quickly.
+
+[message 1000030]
+All the best to you.
+
+[message 1000031]
+Be welcome.
+I am Edda, elder of this forest.
+
+[message 1000032]
+Orsolan has told me everything. We will help
+the army's work in whatever way we can.
+
+[message 1000033]
+But the seal on the dragons must be handled
+with great care. Something is coming that
+none of us can escape...
+
+[message 1000034]
+Go well.
+
+[message 1000035]
+How goes your survey?
+
+[message 1000036]
+I can hardly take it in.
+The dragons are truly dead?
+
+[message 1000037]
+We thought we would live out our days crouched
+beneath the fear of those beasts. You have
+lifted that weight from all of us.
+
+[message 1000038]
+I have no words equal to this. Thank you,
+from all my heart! Our people will gladly
+work with the army again.
+
+[message 1000039]
+Our history has a new hero in it,
+and we have gained a dear friend.
+
+[message 1000040]
+May heaven watch over you!
+
+[message 1000041]
+The Moonwell Tear, gem of the king of the
+spirits? So you know of it?
+
+[message 1000042]
+Well...
+Ever since someone stole the Moonwell Tear,
+there has been nothing but trouble.
+
+[message 1000043]
+Shall we win it back?
+
+[message 1000044]
+Oh yes, returning it to the one it belongs
+to would surely bring you a reward.
+
+[message 1000045]
+The Moonwell Tear!!
+
+[message 1000046]
+The Dark Elves had it?
+...Some of us had our suspicions.
+
+[message 1000047]
+I never truly thought you would recover it...
+For this, you may make use of Big Warehouse V.
+
+[message 1000048]
+Hello. I'm Sylvar. I share the watch over
+the seal works that hold the dragons.
+
+[message 1000049]
+Thieves raided the seal works, and now they
+are in peril. Part of the emergency defenses
+has already switched on.
+
+[message 1000050]
+Go with great care.
+
+[message 1000051]
+Tell me if you discover anything.
+
+[message 1000052]
+Is there a sealed-off spot on B2F of the
+Mining Tunnel of Yugunos?
+
+[message 1000053]
+Then the automatic emergency defense may be on.
+Shutting it off means reaching the control room
+through the underground passage that runs south
+of the Mining Tunnel of Yugunos.
+
+[message 1000054]
+The trouble is, monsters have taken over that
+passage, so we can't get near the control room.
+
+[message 1000055]
+Could you clear those monsters out, so we can
+reach the control room?
+
+[message 1000056]
+You've taken the control room back, I see.
+I'll begin shutting down the emergency defense.
+
+[message 1000057]
+The way should be open all the way to the
+emergency defense itself.
+
+[message 1000058]
+So that's how it is. The seal works are badly
+damaged. I'm afraid nothing can stop the
+dragons from rising again now.
+
+[message 1000059]
+They say the Dark Elves smashed some of the
+warding walls, so the seal must be far weaker
+than it was.
+
+[message 1000060]
+The dragons will tear through the seal
+on their own and get free...
+
+[message 1000061]
+...
+
+[message 1000062]
+And then this land will burn to ash, just as
+Orsolan's homeland did...
+
+[message 1000063]
+No!
+They have to be stopped!
+
+[message 1000064]
+I've heard what you can do. Will you hear a request?
+
+[message 1000065]
+Will you fight the dragons?
+
+[message 1000066]
+It's a wild plan, I know, but there is a chance.
+If every bit of our power goes into the seal,
+the dragons won't be able to fight at
+full strength...
+
+[message 1000067]
+And someone as skilled as you might truly bring
+them down.
+
+[message 1000068]
+We will not get another chance.
+Please, help us!
+Talk it over with your commander first if you wish.
+
+[message 1000069]
+I know that battling the dragons sounds
+like madness, but there is no other way
+left to us...
+
+[message 1000070]
+Now we will pour every scrap of our power
+into the seal.
+
+[message 1000071]
+All I can do is make the seal stronger and
+the dragons weaker...
+
+[message 1000072]
+Heavens...
+
+[message 1000073]
+Someone who can actually slay the dragons...
+I can scarcely believe it. Forgive me for laying
+so much on you. And thank you, truly!
+
+[message 1000074]
+What a foolish thing
+I've done...
+
+[message 1000075]
+I paid my daughter no mind, and now she
+has run away!
+
+[message 1000076]
+I carry the proud name of Tallow, yet I could
+not even make my only daughter happy!
+
+[message 1000077]
+I put the customs of this house before
+what she felt.
+
+[message 1000078]
+Lissa! Oh, Lissa... Is she safe?
+I can't stop worrying...
+
+[message 1000079]
+Oh! It's you. You gave me a fright...
+Might I ask something of you?
+
+[message 1000080]
+Please find my Lissa.
+
+[message 1000081]
+I'd wager she's hiding at Dr. Holt's workshop,
+east of here. She must be set against the match
+I arranged with the Marsh family.
+
+[message 1000082]
+Tell her that if she comes home, she may
+do whatever she likes.
+
+[message 1000083]
+And give Dr. Holt my thanks. We have
+put him to a great deal of bother.
+
+[message 1000084]
+I beg you.
+I'm counting on you.
+
+[message 1000085]
+Good luck to you!
+
+[message 1000086]
+Thank you for going. What a relief to hear
+that Lissa is well.
+
+[message 1000087]
+But why does she say she needs more time?
+What is she up to?
+
+[message 1000088]
+Hmm...
+
+[message 1000089]
+I know! Your name has reached me, and I know you
+are busy, but with skills like yours, I would
+ask one more thing of you...
+
+[message 1000090]
+Would you help Lissa with
+whatever it is she means to do?
+
+[message 1000091]
+Your reward, paid ahead. Please take it.
+
+[message 1000092]
+Keep Lissa safe...
+
+[message 1000093]
+So. My son walked into the trap, just as I
+feared he would. It was bound to happen.
+
+[message 1000094]
+Perhaps we slighted the honor of the elves.
+We should never have let Marsh deal with
+the Dark Elves.
+
+[message 1000095]
+Marsh's meddling has brought us to ruin...
+
+[message 1000096]
+Help us, please.
+Put an end to Marsh's wicked schemes!
+
+[message 1000097]
+As an elf, I feel bound to set right what
+Marsh has done wrong. Please!
+
+[message 1000098]
+I can never thank you enough... So many elves
+were caught up in this mess, and you saw
+us through it.
+
+[message 1000099]
+A small gift for you. Please accept it.
+
+[message 1000100]
+Thank you so much for all your help!
+My son and daughter both seem to have grown
+up a little through all of this.
+
+[message 1000101]
+We lost a great deal, but what we
+gained is worth more.
+
+[message 1000102]
+Thank you for everything.
+
+[message 1000103]
+Safe travels to you.
+And thank you, once more.
+
+[message 1000104]
+Rubbish! Why would my father ask you for help?
+It's people like you who make everyone sneer at me!
+He's dragged the Tallow name through the mud!
+
+[message 1000105]
+And you're what, a warrior? Don't make me laugh!
+Are you mocking me!?
+
+[message 1000106]
+Get out of here, you vermin!
+Look down on me once more and
+I'll kill you!
+
+[message 1000107]
+Idiot! I am... I am!
+
+[message 1000108]
+Curse it. Why can't I ever measure up
+to my father...
+
+[message 1000109]
+Nothing eats at me more than how far I
+fall short of my father.
+
+[message 1000110]
+Why?
+
+[message 1000111]
+...Ah, forgive me.
+That was rude of me.
+......
+
+[message 1000112]
+The spirit teachings will be lost, and it'll
+be my fault. Curse it!
+
+[message 1000113]
+...I see. If Dr. Holt thinks so, I'll do as he says.
+I'm only a piece on the board here.
+
+[message 1000114]
+Thank you for everything. Because of you,
+I might find my feet again. Such sure eyes...
+I was an elf ranger once, and I respect
+the strength I see in you.
+
+[message 1000115]
+I need to sharpen my own skills.
+
+[message 1000116]
+Anyway, I'll ask my old elf ranger friends
+and see how I can help you.
+
+[message 1000117]
+And if you can, tell Lissa not to push
+herself so hard!
+
+[message 1000118]
+My father and Lissa are
+both fretting over me...
+They still think I'm a child.
+
+[message 1000119]
+....
+Lissa really does seem to be
+working herself hard... (sigh)
+
+[message 1000120]
+Oh, the elf rangers say they've turned up
+something worth knowing. I've already
+passed it along to Dr. Holt.
+
+[message 1000121]
+I've got my hands full,
+so I asked Dr. Holt to
+write it up for you.
+
+[message 1000122]
+I hear Marsh has done something crooked...
+Will you help me bring his misdeeds to light?
+Go talk it over with Dr. Holt, please.
+
+[message 1000123]
+Meeting you makes me want to take up
+the sword and the bow again...
+
+[message 1000124]
+But there's other work for me now.
+
+[message 1000125]
+Truth be told, I loathe Marsh, but he's an elf
+the same as me. I don't want him ruined.
+Please help us.
+
+[message 1000126]
+If only we'd learned of Marsh's
+crimes sooner.
+
+[message 1000127]
+Fine work! Marsh is back in the hands of the
+elves. We'll see to him from here on, so don't
+worry; this is our responsibility as well...
+
+[message 1000128]
+Your road ahead may be hard, but it's far
+gentler than the one your enemies walk.
+
+[message 1000129]
+You've taught me a great deal. Thank you.
+This is for you. Things are lean for me
+just now, so it's all I can give.
+
+[message 1000130]
+I ought to study harder. As I am now, I'll
+never surpass what my father has done.
+
+[message 1000131]
+I'll begin again from the start!
+
+[message 1000132]
+Dr. Holt!
+How often do I have to tell you
+I hate being called that?!
+
+[message 1000133]
+Dr. Holt!
+I'm not a little girl anymore!
+(sulking)
+
+[message 1000134]
+Oh, I'm sorry, I didn't notice you...
+Wait, you're... the warrior who beat the Gargoyles!
+They say Orsolan the wizard sent you here.
+
+[message 1000135]
+You look so strong!
+
+[message 1000136]
+Oh, where are my manners?
+I'm Lissa. Pleased to meet you.
+
+[message 1000137]
+I'm the Tallow daughter, and I've been hiding
+here. Please keep it a secret.
+
+[message 1000138]
+Father sent you to look for me?
+Was he worried? I'm sorry.
+I never meant to cause such a fuss...
+
+[message 1000139]
+Please tell my father
+I have to stay here a while yet.
+I'm not ready to come home.
+
+[message 1000140]
+Be sure he hears it, please.
+
+[message 1000141]
+You're back, good. Did my father say anything?
+How did he take it?
+I'm nothing but trouble...
+
+[message 1000142]
+May I ask you for something?
+
+[message 1000143]
+It's about my father, the head of the Tallows.
+We fell on hard times, so he meant to borrow
+a great deal of money from Ruben Marsh.
+
+[message 1000144]
+The money trouble began when the business my
+brother Bram ran went under. But it seems Marsh
+may have tricked him into it.
+
+[message 1000145]
+My brother is desperate to do better
+than our father ever expected of him.
+
+[message 1000146]
+He never stopped trying.
+Not for a single day.
+
+[message 1000147]
+While he ran the company himself, all was well.
+But once he let some of our father's old kin
+mind it in his place. He trusted them.
+
+[message 1000148]
+That's when the debts started piling up. Someone
+was borrowing in the company's name. The man in
+charge back then vanished, and our money with him.
+
+[message 1000149]
+He'd also spent that money buying up other
+companies at outrageous prices. And every one of
+them, it turned out, was buried in debt...
+
+[message 1000150]
+Father paid back what he could, but it wasn't
+nearly enough. In the end he went to Ruben Marsh,
+his old rival, for a loan.
+
+[message 1000151]
+Marsh named a hard price for it.
+He wants this coal mine for himself.
+
+[message 1000152]
+In his hands, the spirit teachings are fading.
+We've held them sacred for generations,
+and we're fighting to keep them alive.
+
+[message 1000153]
+Marsh promised to leave the teachings alone
+if I married his son. Father said yes.
+He actually agreed to it!
+I still can't believe it.
+
+[message 1000154]
+And of course, I have no wish at all
+to become the wife of Marsh's son.
+
+[message 1000155]
+I barely know the man. Besides, I want to look
+further into this loan of Marsh's.
+
+[message 1000156]
+Dr. Holt is helping me with it, so I need
+to stay out here a little while longer.
+
+[message 1000157]
+If you could lend us a hand with all this,
+I'd be so grateful.
+
+[message 1000158]
+Please, help us.
+
+[message 1000159]
+Please. I'm begging you.
+
+[message 1000160]
+Oh? My brother says I shouldn't work too hard?
+Then tell him the very same from me.
+
+[message 1000161]
+Thank you for carrying our words back and forth.
+My brother must take you for a messenger bird.
+
+[message 1000162]
+Don't take that the wrong way. Now then...
+Oh, that's right! By now my brother ought to
+have heard something from the elf rangers!
+
+[message 1000163]
+Thank you so much. My brother was so low,
+but thanks to you he's finding his feet again.
+
+[message 1000164]
+You're more than I hoped for... When we met,
+I thought you might be of some help.
+Now I know I can trust you with anything.
+
+[message 1000165]
+Amazing!
+How could anyone pull that off?
+I could never do what you do!
+
+[message 1000166]
+Thank you for everything.
+You're so brave.
+
+[message 1000167]
+I ought to try much harder myself.
+I must tell Dr. Holt that... Oh, never mind!
+
+[message 1000168]
+Hee hee... (she blushes)
+
+[message 1000169]
+Keep lending a hand to those who need one.
+I'll try to do the same!
+
+[message 1000170]
+Heh heh heh... How long I've waited for this.
+The last days of the Tallows.
+
+[message 1000171]
+Soon all they own will pass to the Marsh family.
+
+[message 1000172]
+All my years of bitterness are nearly over.
+The Tallows will answer to a Marsh!
+
+[message 1000173]
+The spirit teachings? Nothing but a pretty
+excuse for filling their purses.
+
+[message 1000174]
+I, Ruben Marsh, will show that coward Tallow
+how a mine should be run!
+
+[message 1000175]
+Those teachings turn my stomach! If it's money
+we want, we sell this town's precious ore cheap.
+That would keep our old buyers happy...
+
+[message 1000176]
+I'm not joking!
+There is only peace when the strong
+keep the weak firmly under heel!
+
+[message 1000177]
+Tallow's soft hand has brought
+nothing but quarrels!
+
+[message 1000178]
+Once I've made this mine mighty,
+everyone will see what I'm worth.
+
+[message 1000179]
+...Heh heh. Perhaps I'll give a good fright to
+those country folk who tried to drive us out...
+
+[message 1000180]
+They're in my grip now.
+You'll see. The final blow is coming soon!
+
+[message 1000181]
+No! My plans!
+Curse you, Tallow!
+
+[message 1000182]
+This isn't over...
+One day I'll have my revenge!
+
+[message 1000183]
+Who's this? A human, aren't you?
+
+[message 1000184]
+How curious that lowly beasts like you
+have any brains at all.
+
+[message 1000185]
+I am Ewan Marsh, the future lord
+of these lands!
+
+[message 1000186]
+Kneel before me!
+No?
+You beasts never understand anything.
+
+[message 1000187]
+You're good for nothing. Perhaps it would be
+best to wipe out your worthless kind
+altogether, wouldn't it?
+
+[message 1000188]
+You most of all.
+I don't like the look in your eyes.
+
+[message 1000189]
+When this business is over, you'll be the
+first one I ask my father to have killed.
+
+[message 1000190]
+Let me explain something to you.
+At the top of the world there is a god, and
+we elves of the Marsh family stand one step
+beneath.
+
+[message 1000191]
+Slave elves like the Tallows
+are far, far below us.
+
+[message 1000192]
+And far below even them are the humans.
+
+[message 1000193]
+Understand? That's how this world is ordered.
+You exist to follow.
+Heh heh heh! (he puffs up with pride)
+
+[message 1000194]
+Though I should mind my tongue in front
+of humans, however stupid they are.
+(he smirks)
+
+[message 1000195]
+Father, crush the Tallows at once.
+I can't wait a moment longer!
+
+[message 1000196]
+Lissa will soon be my bride.
+Ha ha ha!
+
+[message 1000197]
+Lissa has run away from home!?
+Such a lovely little thing.
+
+[message 1000198]
+Heh heh... Once we're wed, I'll give her
+plenty of reasons to cry.
+Father, I can't wait any longer!
+
+[message 1000199]
+Father, I'm out of patience!
+Fetch Lissa back this instant!
+And my birthday present had better be
+twice as big as last year's!
+
+[message 1000200]
+What? What's happening!?
+What do my servants think they're doing!
+
+[message 1000201]
+They never dared even meet my eyes!
+
+[message 1000202]
+Where did they find the nerve to stone me? Ow!
+I'm bleeding! Curse them! I should have strung
+more of them up from the trees while I could!
+
+[message 1000203]
+Just you wait! My father will round you all up,
+and then we'll have our revenge. No more mercy
+from me! Heh heh heh...
+
+[message 1000204]
+What?
+My father's been arrested?
+
+[message 1000205]
+Nonsense!
+That can't be true!
+
+[message 1000206]
+What's the matter with all of you?
+Stop looking at me like that!
+So we dealt with Dark Elves. What of it?
+Is that so terrible?
+
+[message 1000207]
+My father isn't like you. He's great! A noble elf
+can do as he pleases! You're only jealous
+because you're poor! Isn't that it?
+Say it!
+
+[message 1000208]
+Why?
+Why won't anyone listen to me?
+This is madness...
+
+[message 1000209]
+Father... Please...
+Save me...
+Father!
+
+[message 1000210]
+Have you heard? The great elf families of
+this forest are at each other's throats.
+
+[message 1000211]
+The Tallows against the Marsh family.
+I can hardly wait to see who comes out on top!
+
+[message 1000212]
+The Tallows have always come out ahead before.
+The Marsh family is a nasty lot,
+and nobody thinks much of them.
+
+[message 1000213]
+Plenty of folk stand by Tallow, since his family
+keeps the spirit teachings.
+
+[message 1000214]
+They say a Tallow ancestor found this mine,
+led here by the spirits. Is it true there's
+all kinds of rare ore down there?
+
+[message 1000215]
+Being so famous, the family keeps to itself.
+There's a lot of mystery about them.
+
+[message 1000216]
+The Tallows and the Marsh family couldn't seem
+more different.
+
+[message 1000217]
+Tallow has kept the family name strong for
+years. But his heir Bram keeps making big
+mistakes, and lately he's in real trouble.
+
+[message 1000218]
+I'd hate to see the Marsh family beat the Tallows.
+
+[message 1000219]
+Oh, and there's talk that Tallow's
+daughter Lissa has gone missing.
+
+[message 1000220]
+Everyone thinks she's hiding at Dr. Holt's
+laboratory. They say the two of them
+are rather close.
+
+[message 1000221]
+Dr. Holt is the finest engineer there is.
+He knows how to refine magic crystals.
+
+[message 1000222]
+He's human, but Lissa doesn't mind that one
+bit. She looks up to him. Who knows, someday
+they might... (she smiles knowingly)
+
+[message 1000223]
+I wish I had a sweetheart like that.
+
+[message 1000224]
+Have you heard? Marsh's secret trade with the
+Dark Elves has come out! And the swindle he ran
+on Tallow too. There's no escaping it now.
+
+[message 1000225]
+The elf who ran Bram's company into the ground
+has been arrested too. Tallow's luck has turned.
+
+[message 1000226]
+Things will be a bit dull now the Marsh family
+can't put up a fight anymore.
+
+[message 1000227]
+Well, it won't stay quiet for long. Tallow
+doesn't have the mine all to himself, so
+others may jump at the chance.
+
+[message 1000228]
+What's going to happen next? I can't wait!
+
+[message 1000229]
+Oh, dear. What am I to do?
+
+[message 1000230]
+Lissa.
+I'm worried about you.
+Your father must be beside himself
+now that you've run away.
+
+[message 1000231]
+Allow me to introduce myself. I'm Dr. Holt.
+We study ways to refine the ore that comes
+out of this mine.
+
+[message 1000232]
+The Tallow mountains around here are rich in
+precious ore, but people never stop
+fighting over it...
+
+[message 1000233]
+This time the Marsh family got the upper hand.
+To keep the mountains in Tallow hands, Lissa
+was promised to the Marsh boy.
+
+[message 1000234]
+I know how she feels. Not that I wanted
+to marry her myself, of course...
+
+[message 1000235]
+In any case, Lissa, your family
+must be worried sick about you!
+
+[message 1000236]
+I never knew Lissa thought so deeply...
+She's grown into a woman so fast.
+
+[message 1000237]
+Don't stare at me like that, Lissa.
+You aren't a little girl anymore.
+
+[message 1000238]
+Lissa and her moods...
+
+[message 1000239]
+At any rate, I've been looking into Marsh too.
+I spoke with our lab workers and with
+the people who buy our crystals.
+
+[message 1000240]
+Ugly rumors about Marsh have been
+going around for a while.
+
+[message 1000241]
+To an elf, trading in secret with Dark Elves
+is like selling your soul to a devil.
+
+[message 1000242]
+Most likely Marsh began the secret trade
+so as not to miss the fortune this war offers,
+and to pay for his feud with Tallow.
+
+[message 1000243]
+A fight with Tallow would have cost
+him a great deal of money.
+
+[message 1000244]
+Dark Elves...
+
+[message 1000245]
+Of course! I've heard that Lissa's brother
+was once an elf ranger, and fought
+the Dark Elves more than once.
+
+[message 1000246]
+His friends among the rangers might be able
+to tell him something about the Dark Elves.
+
+[message 1000247]
+Please, would you go to him and
+tell him what we've talked about?
+
+[message 1000248]
+I'm sorry to trouble you so much.
+I'll do some digging of my own as well.
+
+[message 1000249]
+Thank you. With what you've brought us,
+there's no longer any doubt: Marsh is trading
+with the Dark Elves in secret.
+
+[message 1000250]
+Whenever anyone smelled a scandal,
+he found a way to bury it...
+
+[message 1000251]
+But at last we have hard evidence. Goods from
+his Dark Elf deals are hoarded at a small shrine
+to the west, perhaps disguised as ordinary stock.
+
+[message 1000252]
+Forbidden drugs, banned weapons,
+magic equipment and the like.
+
+[message 1000253]
+If we can lay hands on those goods,
+we can prove what Marsh has been doing.
+
+[message 1000254]
+If the powerful elves grow closer to the
+Dark Elves, this land will sink into
+violence and drugs.
+
+[message 1000255]
+They must be stopped, but our army and the
+elf rangers are tied up with the war. They've
+no time to spare for smugglers like these.
+
+[message 1000256]
+And if they get mixed up in it, Marsh's
+friends will get in the way of our inquiry.
+
+[message 1000257]
+So I'm turning to you. Nobody here knows you,
+but the allied army and the wizard Orsolan
+both vouch for your skill and character.
+
+[message 1000258]
+Only you can act here without
+falling under Marsh's sway.
+
+[message 1000259]
+No one else can bring Marsh's
+crimes into the light.
+
+[message 1000260]
+So here is my request. The Marsh family's hidden
+storehouse lies at the far end of the Forest of
+Wesley, past the northwest side of Butterfly Hill.
+Go there and lay their secret trade bare.
+
+[message 1000261]
+It's a hard task, but we truly need you.
+
+[message 1000262]
+You did it! With this evidence we can finally
+bring charges. Marsh has nowhere left to run!
+
+[message 1000263]
+You're everything they say you are!
+You beat the Dark Elf guards! Thank you so much.
+My laboratory will be safe now too,
+all thanks to you.
+
+[message 1000264]
+You really are as skilled
+as everyone says.
+
+[message 1000265]
+Hello.
+We refine ore here and study it.
+
+[message 1000266]
+Dr. Holt's refining methods are wonderful.
+We use them on tools for Orsolan
+and other wizards.
+
+[message 1000267]
+Tallow is a good man.
+He'll hire anyone, human or elf,
+it makes no difference to him.
+
+[message 1000268]
+I'd guess that's because
+he trusts Dr. Holt.
+
+[message 1000269]
+If the Marsh family ever took over here...
+(he shudders)
+I'd rather not think about it.
+
+[message 1000270]
+Marsh is greedy. He drives
+his workers into the ground.
+
+[message 1000271]
+"The rich are loved by the gods; everyone else
+is a slave." That's how Marsh excuses himself.
+
+[message 1000272]
+Anyone who complains gets punished,
+and he shows no mercy.
+
+[message 1000273]
+To someone like me, it's a frightening thing.
+
+[message 1000274]
+Hello, I've heard of you. You're the one who
+uncovered Marsh's secret trade.
+Well done!
+
+[message 1000275]
+What I still don't see is why Tallow didn't
+simply do away with Marsh. Why take
+the long road?
+
+[message 1000276]
+Is it the spirit teachings? I live by them
+too, but I can't see why they matter
+so much to him.
+
+[message 1000277]
+Maybe I'd understand if I rose higher in the world.
+
+[message 1000278]
+Looking to buy? Or shall I repair
+or identify something for you?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000279]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000280]
+Looks like you're a bit short of gold.
+
+[message 1000281]
+That doesn't need any repair.
+
+[message 1000282]
+Identifying it costs %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000283]
+You don't have anything unidentified.
+
+[message 1000284]
+The name's Bramble.
+I keep a shop here in town.
+
+[message 1000285]
+I wasn't sure I could make a living selling to
+elves, but now that I know them, I find
+they're not so different from us humans.
+
+[message 1000286]
+I'm Fennel, a spirit healer.
+
+[message 1000287]
+If you're hurt or worn out,
+come and see me.
+
+[message 1000288]
+Your companions are welcome too.
+
+[message 1000289]
+Spirits!
+Mend their wounds!
+
+[message 1000290]
+There, you're well again.
+
+[message 1000291]
+Heh heh heh...
+I've got some fine wares.
+
+[sentence s0]
+on=start
+INITTRADE 0 7
+INITTRADE 1 24
+INITTRADE 2 33
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000049 0 x:o200 y:o200
+
+[sentence s2]
+on=talk o300
+STORAGE 0
+
+[sentence s3]
+CHANGESCENARIO 12100004 3
+
+[sentence s4]
+CHANGESCENARIO 12200001 0
+
+[sentence s5]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF save:41 = 4 @s6
+IF save:41 = 3 @s7
+IF save:41 = 2 @s10
+IF save:41 = 1 @s13
+IF save:41 = 0 @s22
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s6]
+SETFLAG temp:1000002 msg:1000030
+SETFLAG temp:1000001 900
+
+[sentence s7]
+IF quest:12 = 2 @s8
+IF quest:12 ! 2 @s9
+
+[sentence s8]
+SETFLAG temp:1000002 msg:1000028
+SETFLAG temp:1000001 800
+SETFLAG save:41 4
+SETFLAG warp:25 1
+
+[sentence s9]
+SETFLAG temp:1000002 msg:1000026
+SETFLAG temp:1000001 700
+
+[sentence s10]
+IF quest:12 = 2 @s11
+IF quest:12 ! 2 @s12
+
+[sentence s11]
+SETFLAG temp:1000002 msg:1000028
+SETFLAG temp:1000001 800
+SETFLAG save:41 4
+SETFLAG warp:25 1
+
+[sentence s12]
+SETFLAG temp:1000002 msg:1000026
+SETFLAG temp:1000001 700
+
+[sentence s13]
+IF quest:17 = 2 @s14
+IF quest:17 = 1 @s15
+IF quest:17 = 0 @s16
+
+[sentence s14]
+SETFLAG temp:1000002 msg:1000018
+SETFLAG temp:1000001 600
+SETFLAG save:41 2
+
+[sentence s15]
+SETFLAG temp:1000002 msg:1000017
+SETFLAG temp:1000001 500
+
+[sentence s16]
+IF quest:16 = 2 @s17
+IF quest:16 = 1 @s18
+IF quest:16 = 0 @s19
+
+[sentence s17]
+SETFLAG temp:1000002 msg:1000011
+SETFLAG temp:1000001 400
+CREATEITEM 4 0 x:p0 y:p0 temp:1000024 temp:1000024
+
+[sentence s18]
+SETFLAG temp:1000002 msg:1000010
+SETFLAG temp:1000001 300
+
+[sentence s19]
+IF save:39 = 2 @s20
+IF save:39 ! 2 @s21
+
+[sentence s20]
+SETFLAG temp:1000002 msg:1000007
+SETFLAG temp:1000001 200
+
+[sentence s21]
+SETFLAG temp:1000002 msg:1000006
+SETFLAG temp:1000001 100
+
+[sentence s22]
+SETFLAG temp:1000002 msg:1000002
+SETFLAG temp:1000001 0
+SETFLAG save:41 1
+
+[sentence s23]
+on=talk-end p0
+IF temp:1000001 = 2 @s24
+IF temp:1000001 = 100 @s25
+IF temp:1000001 = 203 @s26
+IF temp:1000001 = 300 @s27
+IF temp:1000001 = 405 @s28
+IF temp:1000001 = 500 @s29
+IF temp:1000001 = 607 @s30
+IF temp:1000001 = 701 @s31
+IF temp:1000001 = 801 @s32
+IF temp:1000001 = 900 @s33
+IF temp:1000001 = -1 @s34
+IF temp:1000001 ! -1 @s35
+IF temp:1000001 = 202 @s36
+IF temp:1000001 = 601 @s37
+IF temp:1000001 = 405 @s38
+
+[sentence s24]
+SETFLAG temp:1000001 -1
+
+[sentence s25]
+SETFLAG temp:1000001 -1
+
+[sentence s26]
+SETFLAG temp:1000001 -1
+
+[sentence s27]
+SETFLAG temp:1000001 -1
+
+[sentence s28]
+SETFLAG temp:1000001 -1
+
+[sentence s29]
+SETFLAG temp:1000001 -1
+
+[sentence s30]
+SETFLAG temp:1000001 -1
+
+[sentence s31]
+SETFLAG temp:1000001 -1
+
+[sentence s32]
+SETFLAG temp:1000001 -1
+
+[sentence s33]
+SETFLAG temp:1000001 -1
+
+[sentence s34]
+C_MOVABLE p0
+
+[sentence s35]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s36]
+SETQUESTFLAG 16 1 0
+DRAWQUESTNAME 16
+
+[sentence s37]
+CREATEITEM 4 0 x:p0 y:p0 temp:1000025 temp:1000025
+
+[sentence s38]
+SETQUESTFLAG 17 1 0
+DRAWQUESTNAME 17
+
+[sentence s39]
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
+SETFLAG temp:1000001 -1
+IF save:44 = 2 @s40
+IF save:44 = 1 @s47
+IF save:44 = 0 @s50
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s40]
+SETFLAG temp:1000005 0
+IF save:101 ! 0 @s41
+IF temp:1000005 = 0 @s46
+
+[sentence s41]
+IF save:85 > 9 @s42
+
+[sentence s42]
+IF quest:34 = 0 @s43
+IF quest:34 = 1 @s44
+
+[sentence s43]
+SETFLAG temp:1000002 msg:1000041
+SETFLAG temp:1000001 400
+SETFLAG temp:1000005 1
+
+[sentence s44]
+CHECKITEMEXIST temp:1000022 temp:1000023 temp:1000006
+IF temp:1000006 = 1 @s45
+
+[sentence s45]
+DELETEITEM temp:1000022 temp:1000023
+SETQUESTFLAG 34 2 0
+SETFLAG temp:1000002 msg:1000045
+SETFLAG temp:1000001 500
+SETFLAG temp:1000005 1
+
+[sentence s46]
+SETFLAG temp:1000002 msg:1000039
+SETFLAG temp:1000001 300
+
+[sentence s47]
+IF quest:17 = 2 @s48
+IF quest:17 ! 2 @s49
+
+[sentence s48]
+SETFLAG temp:1000002 msg:1000036
+SETFLAG temp:1000001 200
+SETFLAG save:44 2
+
+[sentence s49]
+SETFLAG temp:1000002 msg:1000035
+SETFLAG temp:1000001 100
+
+[sentence s50]
+SETFLAG temp:1000002 msg:1000031
+SETFLAG temp:1000001 0
+SETFLAG save:44 1
+
+[sentence s51]
+on=talk-end p3
+IF temp:1000001 = 3 @s52
+IF temp:1000001 = 100 @s53
+IF temp:1000001 = 202 @s54
+IF temp:1000001 = 301 @s55
+IF temp:1000001 = 403 @s56
+IF temp:1000001 = 502 @s57
+IF temp:1000001 = -1 @s58
+IF temp:1000001 ! -1 @s59
+IF temp:1000001 = 403 @s60
+IF temp:1000001 = 502 @s61
+
+[sentence s52]
+SETFLAG temp:1000001 -1
+
+[sentence s53]
+SETFLAG temp:1000001 -1
+
+[sentence s54]
+SETFLAG temp:1000001 -1
+
+[sentence s55]
+SETFLAG temp:1000001 -1
+
+[sentence s56]
+SETFLAG temp:1000001 -1
+
+[sentence s57]
+SETFLAG temp:1000001 -1
+
+[sentence s58]
+C_MOVABLE p3
+
+[sentence s59]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s60]
+SETQUESTFLAG 34 1 0
+DRAWQUESTNAME 34
+
+[sentence s61]
+CREATEITEM 4 0 x:p3 y:p3 40000 40000
+GETEXPERIENCE 50
+PLAYSOUND temp:1000052 1 0 0
+SETQUESTFLAG 34 2 0
+SETFLAG exstrg:4 1
+
+[sentence s62]
+on=talk p4
+C_STOP p4
+C_SETANGLETO p4 0
+SETFLAG temp:1000001 -1
+IF save:39 = 2 @s63
+IF save:39 ! 2 @s68
+IF save:45 = 0 @s76
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s63]
+IF quest:17 = 2 @s64
+IF quest:17 ! 2 @s65
+
+[sentence s64]
+SETFLAG temp:1000002 msg:1000073
+SETFLAG temp:1000001 700
+
+[sentence s65]
+IF quest:16 = 2 @s66
+IF quest:16 ! 2 @s67
+
+[sentence s66]
+SETFLAG temp:1000002 msg:1000070
+SETFLAG temp:1000001 600
+
+[sentence s67]
+SETFLAG temp:1000002 msg:1000069
+SETFLAG temp:1000001 500
+
+[sentence s68]
+IF save:45 ! 0 @s69
+
+[sentence s69]
+SETFLAG temp:1000002 msg:1000051
+SETFLAG temp:1000001 100
+IF save:38 = 1 @s70
+
+[sentence s70]
+IF quest:15 = 2 @s71
+IF quest:15 = 1 @s74
+IF quest:15 = 0 @s75
+
+[sentence s71]
+IF save:40 = 0 @s72
+IF save:39 = 1 @s73
+
+[sentence s72]
+SETFLAG temp:1000002 msg:1000056
+SETFLAG temp:1000001 300
+SETFLAG save:40 1
+
+[sentence s73]
+SETFLAG temp:1000002 msg:1000058
+SETFLAG temp:1000001 400
+SETFLAG save:39 2
+
+[sentence s74]
+SETFLAG temp:1000002 msg:1000051
+SETFLAG temp:1000001 100
+
+[sentence s75]
+SETFLAG temp:1000002 msg:1000052
+SETFLAG temp:1000001 200
+
+[sentence s76]
+SETFLAG temp:1000002 msg:1000048
+SETFLAG temp:1000001 0
+SETFLAG save:45 1
+
+[sentence s77]
+on=talk-end p4
+IF temp:1000001 = 2 @s78
+IF temp:1000001 = 100 @s79
+IF temp:1000001 = 203 @s80
+IF temp:1000001 = 301 @s81
+IF temp:1000001 = 410 @s82
+IF temp:1000001 = 500 @s83
+IF temp:1000001 = 602 @s84
+IF temp:1000001 = 700 @s85
+IF temp:1000001 = -1 @s86
+IF temp:1000001 ! -1 @s87
+IF temp:1000001 = 203 @s88
+
+[sentence s78]
+SETFLAG temp:1000001 -1
+
+[sentence s79]
+SETFLAG temp:1000001 -1
+
+[sentence s80]
+SETFLAG temp:1000001 -1
+
+[sentence s81]
+SETFLAG temp:1000001 -1
+
+[sentence s82]
+SETFLAG temp:1000001 -1
+
+[sentence s83]
+SETFLAG temp:1000001 -1
+
+[sentence s84]
+SETFLAG temp:1000001 -1
+
+[sentence s85]
+SETFLAG temp:1000001 -1
+
+[sentence s86]
+C_MOVABLE p4
+
+[sentence s87]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s88]
+SETQUESTFLAG 15 1 0
+DRAWQUESTNAME 15
+
+[sentence s89]
+on=talk p5
+C_STOP p5
+C_SETANGLETO p5 0
+SETFLAG temp:1000001 -1
+IF save:61 = 4 @s90
+IF save:61 = 3 @s91
+IF save:61 = 2 @s94
+IF save:61 = 1 @s97
+IF save:61 = 0 @s100
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s90]
+SETFLAG temp:1000002 msg:1000103
+SETFLAG temp:1000001 700
+
+[sentence s91]
+IF quest:19 = 2 @s92
+IF quest:19 = 1 @s93
+
+[sentence s92]
+SETFLAG temp:1000002 msg:1000098
+SETFLAG temp:1000001 600
+SETFLAG save:61 4
+
+[sentence s93]
+SETFLAG temp:1000002 msg:1000097
+SETFLAG temp:1000001 500
+
+[sentence s94]
+IF quest:19 = 0 @s95
+IF quest:19 ! 0 @s96
+
+[sentence s95]
+SETFLAG temp:1000002 msg:1000092
+SETFLAG temp:1000001 300
+
+[sentence s96]
+SETFLAG temp:1000002 msg:1000093
+SETFLAG temp:1000001 400
+SETFLAG save:61 3
+
+[sentence s97]
+IF save:69 ! 2 @s98
+IF save:69 = 2 @s99
+
+[sentence s98]
+SETFLAG temp:1000002 msg:1000085
+SETFLAG temp:1000001 100
+
+[sentence s99]
+SETFLAG temp:1000002 msg:1000086
+SETFLAG temp:1000001 200
+SETFLAG save:61 2
+SETFLAG save:69 3
+
+[sentence s100]
+SETFLAG temp:1000002 msg:1000074
+SETFLAG temp:1000001 0
+SETFLAG save:61 1
+SETFLAG save:69 1
+
+[sentence s101]
+on=talk-end p5
+IF temp:1000001 = 10 @s102
+IF temp:1000001 = 100 @s103
+IF temp:1000001 = 205 @s104
+IF temp:1000001 = 300 @s105
+IF temp:1000001 = 403 @s106
+IF temp:1000001 = 500 @s107
+IF temp:1000001 = 604 @s108
+IF temp:1000001 = 700 @s109
+IF temp:1000001 = -1 @s110
+IF temp:1000001 ! -1 @s111
+IF temp:1000001 = 205 @s112
+IF temp:1000001 = 601 @s113
+
+[sentence s102]
+SETFLAG temp:1000001 -1
+
+[sentence s103]
+SETFLAG temp:1000001 -1
+
+[sentence s104]
+SETFLAG temp:1000001 -1
+
+[sentence s105]
+SETFLAG temp:1000001 -1
+
+[sentence s106]
+SETFLAG temp:1000001 -1
+
+[sentence s107]
+SETFLAG temp:1000001 -1
+
+[sentence s108]
+SETFLAG temp:1000001 -1
+
+[sentence s109]
+SETFLAG temp:1000001 -1
+
+[sentence s110]
+C_MOVABLE p5
+
+[sentence s111]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s112]
+CREATEITEM 4 0 x:p5 y:p5 temp:1000026 temp:1000026
+
+[sentence s113]
+CREATEITEM 4 0 x:p5 y:p5 temp:1000027 temp:1000027
+
+[sentence s114]
+on=talk p6
+C_STOP p6
+C_SETANGLETO p6 0
+SETFLAG temp:1000001 -1
+IF save:62 = 6 @s115
+IF save:62 = 5 @s116
+IF save:62 = 4 @s119
+IF save:62 = 3 @s122
+IF save:62 = 2 @s125
+IF save:62 = 1 @s128
+IF save:62 = 0 @s129
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s115]
+SETFLAG temp:1000002 msg:1000130
+SETFLAG temp:1000001 1000
+
+[sentence s116]
+IF quest:19 ! 2 @s117
+IF quest:19 = 2 @s118
+
+[sentence s117]
+SETFLAG temp:1000002 msg:1000126
+SETFLAG temp:1000001 800
+
+[sentence s118]
+SETFLAG temp:1000002 msg:1000127
+SETFLAG temp:1000001 900
+SETFLAG save:62 6
+
+[sentence s119]
+IF quest:19 = 0 @s120
+IF quest:19 ! 0 @s121
+
+[sentence s120]
+SETFLAG temp:1000002 msg:1000123
+SETFLAG temp:1000001 600
+
+[sentence s121]
+SETFLAG temp:1000002 msg:1000125
+SETFLAG temp:1000001 700
+SETFLAG save:62 5
+
+[sentence s122]
+IF save:69 ! 7 @s123
+IF save:69 = 7 @s124
+
+[sentence s123]
+SETFLAG temp:1000002 msg:1000118
+SETFLAG temp:1000001 400
+
+[sentence s124]
+SETFLAG temp:1000002 msg:1000119
+SETFLAG temp:1000001 500
+SETFLAG save:62 4
+SETFLAG save:69 8
+
+[sentence s125]
+IF save:69 ! 5 @s126
+IF save:69 = 5 @s127
+
+[sentence s126]
+SETFLAG temp:1000002 msg:1000112
+SETFLAG temp:1000001 200
+
+[sentence s127]
+SETFLAG temp:1000002 msg:1000113
+SETFLAG temp:1000001 300
+SETFLAG save:62 3
+SETFLAG save:69 6
+
+[sentence s128]
+SETFLAG temp:1000002 msg:1000108
+SETFLAG temp:1000001 100
+SETFLAG save:62 2
+
+[sentence s129]
+SETFLAG temp:1000002 msg:1000104
+SETFLAG temp:1000001 0
+SETFLAG save:62 1
+
+[sentence s130]
+on=talk-end p6
+IF temp:1000001 = 3 @s131
+IF temp:1000001 = 103 @s132
+IF temp:1000001 = 200 @s133
+IF temp:1000001 = 304 @s134
+IF temp:1000001 = 400 @s135
+IF temp:1000001 = 503 @s136
+IF temp:1000001 = 601 @s137
+IF temp:1000001 = 700 @s138
+IF temp:1000001 = 800 @s139
+IF temp:1000001 = 902 @s140
+IF temp:1000001 = 1001 @s141
+IF temp:1000001 = -1 @s142
+IF temp:1000001 ! -1 @s143
+IF temp:1000001 = 902 @s144
+
+[sentence s131]
+SETFLAG temp:1000001 -1
+
+[sentence s132]
+SETFLAG temp:1000001 -1
+
+[sentence s133]
+SETFLAG temp:1000001 -1
+
+[sentence s134]
+SETFLAG temp:1000001 -1
+
+[sentence s135]
+SETFLAG temp:1000001 -1
+
+[sentence s136]
+SETFLAG temp:1000001 -1
+
+[sentence s137]
+SETFLAG temp:1000001 -1
+
+[sentence s138]
+SETFLAG temp:1000001 -1
+
+[sentence s139]
+SETFLAG temp:1000001 -1
+
+[sentence s140]
+SETFLAG temp:1000001 -1
+
+[sentence s141]
+SETFLAG temp:1000001 -1
+
+[sentence s142]
+C_MOVABLE p6
+
+[sentence s143]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s144]
+CREATEITEM 4 0 x:p6 y:p6 temp:1000028 temp:1000028
+
+[sentence s145]
+on=talk p7
+C_STOP p7
+C_SETANGLETO p7 0
+SETFLAG temp:1000001 -1
+IF save:63 = 4 @s146
+IF save:63 = 3 @s147
+IF save:63 = 2 @s151
+IF save:63 = 1 @s154
+IF save:63 = 0 @s157
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s146]
+SETFLAG temp:1000002 msg:1000169
+SETFLAG temp:1000001 900
+
+[sentence s147]
+IF quest:19 = 0 @s148
+IF quest:19 = 1 @s149
+IF quest:19 = 2 @s150
+
+[sentence s148]
+SETFLAG temp:1000002 msg:1000163
+SETFLAG temp:1000001 600
+
+[sentence s149]
+SETFLAG temp:1000002 msg:1000164
+SETFLAG temp:1000001 700
+
+[sentence s150]
+SETFLAG temp:1000002 msg:1000165
+SETFLAG temp:1000001 800
+SETFLAG save:63 4
+
+[sentence s151]
+IF save:69 ! 6 @s152
+IF save:69 = 6 @s153
+
+[sentence s152]
+SETFLAG temp:1000002 msg:1000159
+SETFLAG temp:1000001 400
+
+[sentence s153]
+SETFLAG temp:1000002 msg:1000160
+SETFLAG temp:1000001 500
+SETFLAG save:63 3
+SETFLAG save:69 7
+
+[sentence s154]
+IF save:69 ! 3 @s155
+IF save:69 = 3 @s156
+
+[sentence s155]
+SETFLAG temp:1000002 msg:1000140
+SETFLAG temp:1000001 200
+
+[sentence s156]
+SETFLAG temp:1000002 msg:1000141
+SETFLAG temp:1000001 300
+SETFLAG save:63 2
+SETFLAG save:69 4
+
+[sentence s157]
+IF save:69 ! 1 @s158
+IF save:69 = 1 @s159
+
+[sentence s158]
+SETFLAG temp:1000002 msg:1000132
+SETFLAG temp:1000001 0
+
+[sentence s159]
+SETFLAG temp:1000002 msg:1000133
+SETFLAG temp:1000001 100
+SETFLAG save:63 1
+SETFLAG save:69 2
+
+[sentence s160]
+on=talk-end p7
+IF temp:1000001 = 0 @s161
+IF temp:1000001 = 106 @s162
+IF temp:1000001 = 200 @s163
+IF temp:1000001 = 317 @s164
+IF temp:1000001 = 400 @s165
+IF temp:1000001 = 502 @s166
+IF temp:1000001 = 600 @s167
+IF temp:1000001 = 700 @s168
+IF temp:1000001 = 803 @s169
+IF temp:1000001 = 900 @s170
+IF temp:1000001 = -1 @s171
+IF temp:1000001 ! -1 @s172
+
+[sentence s161]
+SETFLAG temp:1000001 -1
+
+[sentence s162]
+SETFLAG temp:1000001 -1
+
+[sentence s163]
+SETFLAG temp:1000001 -1
+
+[sentence s164]
+SETFLAG temp:1000001 -1
+
+[sentence s165]
+SETFLAG temp:1000001 -1
+
+[sentence s166]
+SETFLAG temp:1000001 -1
+
+[sentence s167]
+SETFLAG temp:1000001 -1
+
+[sentence s168]
+SETFLAG temp:1000001 -1
+
+[sentence s169]
+SETFLAG temp:1000001 -1
+
+[sentence s170]
+SETFLAG temp:1000001 -1
+
+[sentence s171]
+C_MOVABLE p7
+
+[sentence s172]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s173]
+on=talk p8
+C_STOP p8
+C_SETANGLETO p8 0
+SETFLAG temp:1000001 -1
+IF quest:19 = 2 @s174
+IF save:64 = 3 @s176
+IF save:64 = 2 @s177
+IF save:64 = 1 @s180
+IF save:64 = 0 @s183
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s174]
+IF save:64 < 3 @s175
+
+[sentence s175]
+SETFLAG save:64 3
+
+[sentence s176]
+SETFLAG temp:1000002 msg:1000182
+SETFLAG temp:1000001 500
+
+[sentence s177]
+IF quest:19 = 2 @s178
+IF quest:19 ! 2 @s179
+
+[sentence s178]
+SETFLAG temp:1000002 msg:1000181
+SETFLAG temp:1000001 400
+SETFLAG save:64 4
+
+[sentence s179]
+SETFLAG temp:1000002 msg:1000180
+SETFLAG temp:1000001 300
+
+[sentence s180]
+IF save:66 = 0 @s181
+IF save:66 ! 0 @s182
+
+[sentence s181]
+SETFLAG temp:1000002 msg:1000172
+SETFLAG temp:1000001 100
+
+[sentence s182]
+SETFLAG temp:1000002 msg:1000173
+SETFLAG temp:1000001 200
+SETFLAG save:64 2
+
+[sentence s183]
+SETFLAG temp:1000002 msg:1000170
+SETFLAG temp:1000001 0
+SETFLAG save:64 1
+
+[sentence s184]
+on=talk-end p8
+IF temp:1000001 = 1 @s185
+IF temp:1000001 = 100 @s186
+IF temp:1000001 = 206 @s187
+IF temp:1000001 = 300 @s188
+IF temp:1000001 = 400 @s189
+IF temp:1000001 = 500 @s190
+IF temp:1000001 = -1 @s191
+IF temp:1000001 ! -1 @s192
+
+[sentence s185]
+SETFLAG temp:1000001 -1
+
+[sentence s186]
+SETFLAG temp:1000001 -1
+
+[sentence s187]
+SETFLAG temp:1000001 -1
+
+[sentence s188]
+SETFLAG temp:1000001 -1
+
+[sentence s189]
+SETFLAG temp:1000001 -1
+
+[sentence s190]
+SETFLAG temp:1000001 -1
+
+[sentence s191]
+C_MOVABLE p8
+
+[sentence s192]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s193]
+on=talk p9
+C_STOP p9
+C_SETANGLETO p9 0
+SETFLAG temp:1000001 -1
+IF quest:19 = 2 @s194
+IF save:65 = 4 @s196
+IF save:65 = 3 @s197
+IF save:65 = 2 @s200
+IF save:65 = 1 @s203
+IF save:65 = 0 @s204
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s194]
+IF save:65 < 3 @s195
+
+[sentence s195]
+SETFLAG save:65 3
+
+[sentence s196]
+SETFLAG temp:1000002 msg:1000209
+SETFLAG temp:1000001 600
+
+[sentence s197]
+IF quest:19 ! 2 @s198
+IF quest:19 = 2 @s199
+
+[sentence s198]
+SETFLAG temp:1000002 msg:1000199
+SETFLAG temp:1000001 400
+
+[sentence s199]
+SETFLAG temp:1000002 msg:1000200
+SETFLAG temp:1000001 500
+SETFLAG save:65 4
+
+[sentence s200]
+IF save:66 < 2 @s201
+IF save:66 > 1 @s202
+
+[sentence s201]
+SETFLAG temp:1000002 msg:1000195
+SETFLAG temp:1000001 200
+
+[sentence s202]
+SETFLAG temp:1000002 msg:1000197
+SETFLAG temp:1000001 300
+SETFLAG save:65 3
+
+[sentence s203]
+SETFLAG temp:1000002 msg:1000190
+SETFLAG temp:1000001 100
+SETFLAG save:65 2
+
+[sentence s204]
+SETFLAG temp:1000002 msg:1000183
+SETFLAG temp:1000001 0
+SETFLAG save:65 1
+
+[sentence s205]
+on=talk-end p9
+IF temp:1000001 = 6 @s206
+IF temp:1000001 = 104 @s207
+IF temp:1000001 = 201 @s208
+IF temp:1000001 = 301 @s209
+IF temp:1000001 = 400 @s210
+IF temp:1000001 = 507 @s211
+IF temp:1000001 = 600 @s212
+IF temp:1000001 = -1 @s213
+IF temp:1000001 ! -1 @s214
+
+[sentence s206]
+SETFLAG temp:1000001 -1
+
+[sentence s207]
+SETFLAG temp:1000001 -1
+
+[sentence s208]
+SETFLAG temp:1000001 -1
+
+[sentence s209]
+SETFLAG temp:1000001 -1
+
+[sentence s210]
+SETFLAG temp:1000001 -1
+
+[sentence s211]
+SETFLAG temp:1000001 -1
+
+[sentence s212]
+SETFLAG temp:1000001 -1
+
+[sentence s213]
+C_MOVABLE p9
+
+[sentence s214]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s215]
+on=talk p10
+C_STOP p10
+C_SETANGLETO p10 0
+SETFLAG temp:1000001 -1
+IF save:66 = 3 @s216
+IF save:66 = 2 @s217
+IF save:66 = 1 @s220
+IF save:66 = 0 @s221
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s216]
+SETFLAG temp:1000002 msg:1000228
+SETFLAG temp:1000001 400
+
+[sentence s217]
+IF quest:19 ! 2 @s218
+IF quest:19 = 2 @s219
+
+[sentence s218]
+SETFLAG temp:1000002 msg:1000223
+SETFLAG temp:1000001 200
+
+[sentence s219]
+SETFLAG temp:1000002 msg:1000224
+SETFLAG temp:1000001 300
+SETFLAG save:66 3
+
+[sentence s220]
+SETFLAG temp:1000002 msg:1000219
+SETFLAG temp:1000001 100
+SETFLAG save:66 2
+
+[sentence s221]
+SETFLAG temp:1000002 msg:1000210
+SETFLAG temp:1000001 0
+SETFLAG save:66 1
+
+[sentence s222]
+on=talk-end p10
+IF temp:1000001 = 8 @s223
+IF temp:1000001 = 103 @s224
+IF temp:1000001 = 200 @s225
+IF temp:1000001 = 303 @s226
+IF temp:1000001 = 400 @s227
+IF temp:1000001 = -1 @s228
+IF temp:1000001 ! -1 @s229
+
+[sentence s223]
+SETFLAG temp:1000001 -1
+
+[sentence s224]
+SETFLAG temp:1000001 -1
+
+[sentence s225]
+SETFLAG temp:1000001 -1
+
+[sentence s226]
+SETFLAG temp:1000001 -1
+
+[sentence s227]
+SETFLAG temp:1000001 -1
+
+[sentence s228]
+C_MOVABLE p10
+
+[sentence s229]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s230]
+on=talk p11
+C_STOP p11
+C_SETANGLETO p11 0
+SETFLAG temp:1000001 -1
+IF save:67 = 4 @s231
+IF save:67 = 3 @s232
+IF save:67 = 2 @s235
+IF save:67 = 1 @s238
+IF save:67 = 0 @s241
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s231]
+SETFLAG temp:1000002 msg:1000264
+SETFLAG temp:1000001 800
+
+[sentence s232]
+CHECKITEMEXIST temp:1000020 temp:1000021 temp:1000005
+IF temp:1000005 = 1 @s233
+IF temp:1000005 = 0 @s234
+
+[sentence s233]
+DELETEITEM temp:1000020 temp:1000021
+SETQUESTFLAG 19 2 0
+SETFLAG temp:1000002 msg:1000262
+SETFLAG temp:1000001 700
+SETFLAG save:67 4
+
+[sentence s234]
+SETFLAG temp:1000002 msg:1000261
+SETFLAG temp:1000001 600
+
+[sentence s235]
+IF save:69 ! 8 @s236
+IF save:69 = 8 @s237
+
+[sentence s236]
+SETFLAG temp:1000002 msg:1000248
+SETFLAG temp:1000001 400
+
+[sentence s237]
+SETFLAG temp:1000002 msg:1000249
+SETFLAG temp:1000001 500
+SETFLAG save:69 9
+SETFLAG save:67 3
+
+[sentence s238]
+IF save:69 ! 4 @s239
+IF save:69 = 4 @s240
+
+[sentence s239]
+SETFLAG temp:1000002 msg:1000235
+SETFLAG temp:1000001 200
+
+[sentence s240]
+SETFLAG temp:1000002 msg:1000236
+SETFLAG temp:1000001 300
+SETFLAG save:69 5
+SETFLAG save:67 2
+
+[sentence s241]
+IF save:69 < 2 @s242
+IF save:69 > 1 @s243
+
+[sentence s242]
+SETFLAG temp:1000002 msg:1000229
+SETFLAG temp:1000001 0
+
+[sentence s243]
+SETFLAG temp:1000002 msg:1000230
+SETFLAG temp:1000001 100
+SETFLAG save:67 1
+
+[sentence s244]
+on=talk-end p11
+IF temp:1000001 = 0 @s245
+IF temp:1000001 = 104 @s246
+IF temp:1000001 = 200 @s247
+IF temp:1000001 = 311 @s248
+IF temp:1000001 = 400 @s249
+IF temp:1000001 = 511 @s250
+IF temp:1000001 = 600 @s251
+IF temp:1000001 = 701 @s252
+IF temp:1000001 = 800 @s253
+IF temp:1000001 = -1 @s254
+IF temp:1000001 ! -1 @s255
+IF temp:1000001 = 511 @s256
+
+[sentence s245]
+SETFLAG temp:1000001 -1
+
+[sentence s246]
+SETFLAG temp:1000001 -1
+
+[sentence s247]
+SETFLAG temp:1000001 -1
+
+[sentence s248]
+SETFLAG temp:1000001 -1
+
+[sentence s249]
+SETFLAG temp:1000001 -1
+
+[sentence s250]
+SETFLAG temp:1000001 -1
+
+[sentence s251]
+SETFLAG temp:1000001 -1
+
+[sentence s252]
+SETFLAG temp:1000001 -1
+
+[sentence s253]
+SETFLAG temp:1000001 -1
+
+[sentence s254]
+C_MOVABLE p11
+
+[sentence s255]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s256]
+SETQUESTFLAG 19 1 0
+DRAWQUESTNAME 19
+
+[sentence s257]
+on=talk p12
+C_STOP p12
+C_SETANGLETO p12 0
+SETFLAG temp:1000001 -1
+IF save:68 = 2 @s258
+IF save:68 = 1 @s259
+IF save:68 = 0 @s262
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s258]
+SETFLAG temp:1000002 msg:1000277
+SETFLAG temp:1000001 300
+
+[sentence s259]
+IF quest:19 ! 2 @s260
+IF quest:19 = 2 @s261
+
+[sentence s260]
+SETFLAG temp:1000002 msg:1000271
+SETFLAG temp:1000001 100
+
+[sentence s261]
+SETFLAG temp:1000002 msg:1000274
+SETFLAG temp:1000001 200
+SETFLAG save:68 2
+
+[sentence s262]
+SETFLAG temp:1000002 msg:1000265
+SETFLAG temp:1000001 0
+SETFLAG save:68 1
+
+[sentence s263]
+on=talk-end p12
+IF temp:1000001 = 5 @s264
+IF temp:1000001 = 102 @s265
+IF temp:1000001 = 202 @s266
+IF temp:1000001 = 300 @s267
+IF temp:1000001 = -1 @s268
+IF temp:1000001 ! -1 @s269
+
+[sentence s264]
+SETFLAG temp:1000001 -1
+
+[sentence s265]
+SETFLAG temp:1000001 -1
+
+[sentence s266]
+SETFLAG temp:1000001 -1
+
+[sentence s267]
+SETFLAG temp:1000001 -1
+
+[sentence s268]
+C_MOVABLE p12
+
+[sentence s269]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s270]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+IF save:42 = 1 @s271
+IF save:42 = 0 @s272
+
+[sentence s271]
+TALK msg:1000278 temp:1000000 0 4 -1 -1
+SETFLAG temp:1000001 -1
+
+[sentence s272]
+TALK msg:1245560 -1 0 -1 -1 -1
+SETFLAG temp:1000001 10
+SETFLAG save:42 1
+
+[sentence s273]
+on=talk-end p1
+IF temp:1000001 = 0 @s274
+IF temp:1000001 = 10 @s275
+IF temp:1000001 = -1 @s276
+
+[sentence s274]
+C_MOVABLE p1
+
+[sentence s275]
+SETFLAG temp:1000001 0
+TALK msg:1000285 -1 0 -1 -1 -1
+
+[sentence s276]
+IF temp:1000016 = 6 @s277
+IF temp:1000016 = 5 @s278
+IF temp:1000016 = 4 @s279
+IF temp:1000016 = 3 @s284
+IF temp:1000016 = 2 @s285
+IF temp:1000016 = 1 @s286
+IF temp:1000016 = 0 @s323
+SETFLAG temp:1000000 -1
+
+[sentence s277]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s278]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s279]
+IF temp:1000000 ! 0 @s280
+IF temp:1000000 = 0 @s281
+
+[sentence s280]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s281]
+GETTOTALGOLD temp:1000005
+SETFLAG temp:1000006 0
+IF temp:1000005 < temp:1000017 @s282
+IF temp:1000006 = 0 @s283
+
+[sentence s282]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 5
+SETFLAG temp:1000006 1
+
+[sentence s283]
+PAYGOLD temp:1000017
+IDENTIFY
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s284]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s285]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s286]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+GETTOTALGOLD temp:1000014
+SETFLAG temp:1000013 temp:1000000
+IF temp:1000013 = 0 @s287
+IF temp:1000013 = 1 @s292
+IF temp:1000013 = 2 @s297
+IF temp:1000013 = 3 @s302
+IF temp:1000013 = 4 @s307
+IF temp:1000013 = 5 @s312
+IF temp:1000013 = 6 @s317
+IF temp:1000013 = 7 @s322
+
+[sentence s287]
+IF temp:1000005 ! 0 @s288
+IF temp:1000005 = 0 @s291
+
+[sentence s288]
+SETFLAG temp:1000012 0
+IF temp:1000005 > temp:1000014 @s289
+IF temp:1000012 = 0 @s290
+
+[sentence s289]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s290]
+REPAIR 0
+PAYGOLD temp:1000005
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s291]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s292]
+IF temp:1000006 ! 0 @s293
+IF temp:1000006 = 0 @s296
+
+[sentence s293]
+SETFLAG temp:1000012 0
+IF temp:1000006 > temp:1000014 @s294
+IF temp:1000012 = 0 @s295
+
+[sentence s294]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s295]
+REPAIR 1
+PAYGOLD temp:1000006
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s296]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s297]
+IF temp:1000007 ! 0 @s298
+IF temp:1000007 = 0 @s301
+
+[sentence s298]
+SETFLAG temp:1000012 0
+IF temp:1000007 > temp:1000014 @s299
+IF temp:1000012 = 0 @s300
+
+[sentence s299]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s300]
+REPAIR 2
+PAYGOLD temp:1000007
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s301]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s302]
+IF temp:1000008 ! 0 @s303
+IF temp:1000008 = 0 @s306
+
+[sentence s303]
+SETFLAG temp:1000012 0
+IF temp:1000008 > temp:1000014 @s304
+IF temp:1000012 = 0 @s305
+
+[sentence s304]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s305]
+REPAIR 3
+PAYGOLD temp:1000008
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s306]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s307]
+IF temp:1000009 ! 0 @s308
+IF temp:1000009 = 0 @s311
+
+[sentence s308]
+SETFLAG temp:1000012 0
+IF temp:1000009 > temp:1000014 @s309
+IF temp:1000012 = 0 @s310
+
+[sentence s309]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s310]
+REPAIR 4
+PAYGOLD temp:1000009
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s311]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s312]
+IF temp:1000010 ! 0 @s313
+IF temp:1000010 = 0 @s316
+
+[sentence s313]
+SETFLAG temp:1000012 0
+IF temp:1000010 > temp:1000014 @s314
+IF temp:1000012 = 0 @s315
+
+[sentence s314]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s315]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:1000010
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s316]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s317]
+IF temp:1000011 ! 0 @s318
+IF temp:1000011 = 0 @s321
+
+[sentence s318]
+SETFLAG temp:1000012 0
+IF temp:1000011 > temp:1000014 @s319
+IF temp:1000012 = 0 @s320
+
+[sentence s319]
+TALK msg:1000280 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s320]
+REPAIR -1
+PAYGOLD temp:1000011
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s321]
+TALK msg:1000281 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s322]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s323]
+IF temp:1000000 = 0 @s324
+IF temp:1000000 = 1 @s325
+IF temp:1000000 = 2 @s326
+IF temp:1000000 = 3 @s329
+IF temp:1000000 = 4 @s330
+
+[sentence s324]
+TRADE 0
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s325]
+TRADE 1
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s326]
+CHECKUNOPINIONITEM temp:1000005
+IF temp:1000005 = 1 @s327
+IF temp:1000005 = 0 @s328
+
+[sentence s327]
+SETMSGDEFINE temp:1000017 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000282 temp:1000000 0 1 -1 -1
+SETFLAG temp:1000016 4
+
+[sentence s328]
+TALK msg:1000283 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 6
+
+[sentence s329]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+SETMSGDEFINE temp:1000005 temp:1000006 temp:1000007 temp:1000008 temp:1000009 temp:1000010 temp:1000011 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000279 temp:1000000 0 7 -1 -1
+SETFLAG temp:1000016 1
+
+[sentence s330]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s331]
+on=talk p2
+C_STOP p2
+C_SETANGLETO p2 0
+IF save:43 = 1 @s332
+IF save:43 = 0 @s338
+
+[sentence s332]
+SETFLAG temp:1000001 -1
+SETFLAG temp:1000007 0
+GETPLAYERLIFE temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s333
+GETPLAYERMENTAL temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s334
+GETPARTNERLIFE temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s335
+IF temp:1000007 = 1 @s336
+IF temp:1000007 = 0 @s337
+
+[sentence s333]
+SETFLAG temp:1000007 1
+
+[sentence s334]
+SETFLAG temp:1000007 1
+
+[sentence s335]
+SETFLAG temp:1000007 1
+
+[sentence s336]
+SETFLAG temp:1000015 msg:1000289
+TALK msg:1000289 -1 0 -1 -1 -1
+
+[sentence s337]
+SETFLAG temp:1000015 msg:1000290
+TALK temp:1000015 -1 0 -1 -1 -1
+
+[sentence s338]
+TALK msg:1000286 -1 0 -1 -1 -1
+SETFLAG temp:1000001 10
+SETFLAG save:43 1
+
+[sentence s339]
+on=talk-end p2
+IF temp:1000001 = 0 @s340
+IF temp:1000001 = 11 @s341
+IF temp:1000001 = 10 @s342
+IF temp:1000001 = -1 @s343
+
+[sentence s340]
+C_MOVABLE p2
+
+[sentence s341]
+SETFLAG temp:1000001 0
+TALK msg:1000288 -1 0 -1 -1 -1
+
+[sentence s342]
+SETFLAG temp:1000001 11
+TALK msg:1000287 -1 0 -1 -1 -1
+
+[sentence s343]
+C_MOVABLE p2
+IF temp:1000015 = msg:1000289 @s344
+
+[sentence s344]
+C_ACTIONREQ p2 4 -1 -1 -1 -1
+HEALLIFE
+HEALMENTAL
+PLAYSOUND temp:1000051 0 x:p2 y:p2
+
+[sentence s345]
+on=talk p100
+C_STOP p100
+C_SETANGLETO p100 0
+SETFLAG temp:1000002 msg:1000291
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s346]
+on=talk-end p100
+C_MOVABLE p100
+TRADE 2
+
+[sentence s347]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s348
+IF temp:1000005 > 0 @s352
+IF temp:1000005 > -1 @s354
+
+[sentence s348]
+IF warp:18 = 0 @s349
+IF temp:1000018 ! 1000 @s350
+IF temp:1000019 = 0 @s351
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s349]
+SETFLAG warp:18 1
+
+[sentence s350]
+ADD temp:1000018 50
+
+[sentence s351]
+PLAYSOUND temp:1000050 0 x:o200 y:o200
+SETFLAG temp:1000019 1
+
+[sentence s352]
+IF temp:1000018 ! 0 @s353
+SETFLAG temp:1000019 0
+DELETEWARPGATE 0
+
+[sentence s353]
+SUB temp:1000018 50
+
+[sentence s354]
+SETCHARTRANS o203 temp:1000018
+SETCHARTRANS o204 temp:1000018
+
+[sentence s355]
+on=talk o200
 WARPGATE 0

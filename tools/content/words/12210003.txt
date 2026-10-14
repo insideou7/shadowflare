@@ -1,0 +1,16 @@
+# Mining Tunnel of Yugunos (the floor with the seal works): the party's
+# own thoughts, in our own words, by the original's message numbers
+# (tools/content/scripts.py). Sylvar is the elf in Fanann.
+
+[message 1000000]
+Mining Tunnel of Yugunos, B4F
+
+[message 1000001]
+So this is the seal works that holds the dragons.
+The monsters have wrecked far more of it than I
+feared. Sylvar in Fanann has to hear about this.
+
+[message 1000002]
+So this is the seal works that holds the dragons.
+The monsters have wrecked far more of it than I
+feared. Sylvar in Fanann has to hear about this.

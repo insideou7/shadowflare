@@ -215,8 +215,10 @@ def read_scs(data):
 
 
 def exits_of(scs, objects):
-    """(left, top, right, bottom, scenario, entry) for each object whose
-    ONJUDGE trigger runs CHANGESCENARIO, following IF jumps."""
+    """(left, top, right, bottom, scenario, entry, conditional) for each
+    object whose ONJUDGE trigger runs CHANGESCENARIO, following IF jumps;
+    conditional when it is reached only through an IF (a way that opens
+    later in the story)."""
     triggers, sentences = scs
     by_id = {10000000 + c["id"]: c for c in objects}
     out = []
@@ -237,7 +239,8 @@ def exits_of(scs, objects):
         if target:
             c = by_id[character]
             r = c["rect"]
-            out.append((c["x"] + r[0], c["y"] + r[1], c["x"] + r[2], c["y"] + r[3], *target))
+            conditional = not any(op == 17 for op, _ in sentences[sentence]) if 0 <= sentence < len(sentences) else False
+            out.append((c["x"] + r[0], c["y"] + r[1], c["x"] + r[2], c["y"] + r[3], *target, conditional))
     return out
 
 
@@ -425,6 +428,13 @@ def exit_targets(number):
     return AREAS[1] if number in AREAS[1] else ALL
 
 
+def written_exits(o, number):
+    """The exits scenario.txt gives a map: (left, top, right, bottom,
+    scenario, entry). Past the first area, an exit the original opens only
+    later in the story is left to the scenario's script (scripts.py)."""
+    return [e[:6] for e in o.exits if e[4] in exit_targets(number) and not (e[6] and number not in AREAS[1])]
+
+
 def our_number(number):
     """The open pack's scenario number for an original one."""
     return OFFSET + number
@@ -446,7 +456,7 @@ def walkable(o):
                 drawn[jy:jy + 2, jx:jx + 2] = True
     walk = (o.judge & 1 == 0) & drawn
     exits = np.zeros_like(walk)
-    for left, top, right, bottom, _, _ in o.exits:
+    for left, top, right, bottom, *_ in o.exits:
         exits[max(0, int(top // CELL) - o.jy0 - 1):max(0, int(bottom // CELL) - o.jy0 + 2),
               max(0, int(left // CELL) - o.jx0 - 1):max(0, int(right // CELL) - o.jx0 + 2)] = True
     seeds = [(int(y // CELL) - o.jy0, int(x // CELL) - o.jx0) for _, x, y, _ in o.entries]
@@ -697,9 +707,8 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     lines.append(f"town={our_number(o.town)}")
     if o.transport:
         lines.append("transport=1")
-    for left, top, right, bottom, target, entry in o.exits:
-        if target in exit_targets(number):
-            lines.append(f"exit={left - x0},{top - y0},{right - x0},{bottom - y0},{our_number(target)},{entry}")
+    for left, top, right, bottom, target, entry in written_exits(o, number):
+        lines.append(f"exit={left - x0},{top - y0},{right - x0},{bottom - y0},{our_number(target)},{entry}")
     for c in o.groups[2]:
         if c["kind"] not in enemy_kinds:
             continue
@@ -712,6 +721,8 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         if c["kind"] in people_kinds:
             x, y = spot(c["x"], c["y"])
             name = PEOPLE_NAMES.get((number, c["id"]))
+            if not name and number not in AREAS[1]:
+                name = f"p{c['id']}"   # what scripts.py calls them
             lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}" + (f",{name}" if name else ""))
             if o.light != 2000 and c["light"] >= 0:
                 lines.append(f"glow={c['light']}")

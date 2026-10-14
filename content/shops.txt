@@ -15,3 +15,59 @@ sell=armour,3000000
 sell=accessory,1000000
 sell=consumable,0,6
 sell=consumable,10000000,6
+
+# The second area. The original stocks these from its own item tables;
+# ours sell the pack's nearest items, in the same kinds and order.
+
+[shop 6]                 # Kanfore's smith: weapons, then armor
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=weapon,5000000
+sell=armour,0
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+sell=weapon,90000000
+
+[shop 7]                 # Fanann's smith
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,5000000
+sell=weapon,1000010
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 8]                 # the Caravan's merchant: potions
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 23]                # Kanfore's merchant
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 24]                # Fanann's merchant
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 32]                # Kanfore's magic goods
+sell=weapon,1000100
+sell=weapon,2000100
+sell=armour,1000100
+sell=armour,2000100
+sell=accessory,1000100
+sell=accessory,1000101
+
+[shop 33]                # Fanann's magic goods
+sell=weapon,1000101
+sell=weapon,5000100
+sell=weapon,2000101
+sell=armour,4000100
+sell=armour,3000100
+sell=accessory,1000101
