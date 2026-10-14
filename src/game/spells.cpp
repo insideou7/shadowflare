@@ -32,6 +32,9 @@ constexpr double kTargetHalf = 50.0;
 constexpr double kMissileRange = 6000.0;
 // What an effect is drawn for when the content has no animation for it.
 constexpr int kMissingLength = 16;
+// Special items (class 4) that add 5 to Life and Mental Recovery while
+// carried (0x44f2f0 looks for 0x5d75c83 and 0x5d75c84).
+constexpr std::int32_t kSpiritualHeraldry = 98000003, kDemonFang = 98000004;
 
 // OPTION animations (Character/OPTION/<id>).
 enum Option {
@@ -200,7 +203,7 @@ void Game::startCast(double worldX, double worldY) {
     // with it too (0x43d290, 0x43a260).
     int chart = spell == kHeal || spell == kMoon || spell == kTransport ? chart::kPlayerHeal : chart::kPlayerCast;
     if (!player_->hasChart(chart)) chart = player_->hasChart(chart::kPlayerCast) ? chart::kPlayerCast : chart::kPlayerPunch;
-    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active()));
+    player_->restart(chart, castSpeedFactor(magic_, spell, chantSpeed, power_.active(), overloaded(playerStats())));
     // Transport's gate appears as the cast begins.
     if (kind == Kind::Transport) openTransportGate();
     if (kind == Kind::Cast) {
@@ -235,7 +238,6 @@ void Game::releaseSpell() {
         case Kind::Companion: orderPartnerExplosion(castTarget_.first, castTarget_.second); break;
         case Kind::Toggle:
             setSpellOn(spell, true);
-            if (spell == kBerserker) berserkerCarry_ = 0;
             spawnEffect(kGatherSwirl, player_->x, player_->y).followsPlayer = true;
             showMessage(std::format("{} on", magic_.spell(spell).name));
             break;
@@ -244,7 +246,6 @@ void Game::releaseSpell() {
             // casting. The companion's stats follow at once.
             setSpellOn(spell, !spellOn(spell));
             moonLevel_ = level;
-            moonCarry_ = 0;
             refreshPartnerStats();
             showMessage(std::format("{} {}", magic_.spell(spell).name, spellOn(spell) ? "on" : "off"));
             break;
@@ -324,15 +325,18 @@ void Game::monsterSpellHitsPlayer(const Effect& e) {
     stun.angle = std::atan2(-(player_->y - e.y), player_->x - e.x);
     stun.pushed = !st.uncapped && inventory_.guardModifier(ItemDef::kModHighDamage) == 0;
     stunHero(stun);
-    if (stunKindOf(e.spell) == StunKind::Freeze) {
-        // The same ice as on a monster (the controllers 0x5217-0x521a).
-        spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
-        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
-        ice.followsPlayer = true;
-        ice.life = stun.total;
-        ice.then = kFreezeEnd;
-        playSound(0x77, player_->x, player_->y);
-    }
+    if (stunKindOf(e.spell) == StunKind::Freeze) iceOnHero(stun.total);
+}
+
+// The hero frozen in ice for `ticks`: the same ice as on a monster (the
+// controllers 0x5217-0x521a) and its crackle.
+void Game::iceOnHero(int ticks) {
+    spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
+    Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
+    ice.followsPlayer = true;
+    ice.life = ticks;
+    ice.then = kFreezeEnd;
+    playSound(0x77, player_->x, player_->y);
 }
 
 // The same on an ACTIVE companion: its magic evasion and magic defence,
@@ -745,7 +749,9 @@ void Game::stepEffect(Effect& e) {
                 best = d;
             }
         };
-        if (e.caster >= 0) {
+        if (e.homesOnPlayer) {
+            if (player_) consider(player_->x, player_->y);
+        } else if (e.caster >= 0) {
             if (player_) consider(player_->x, player_->y);
             if (partnerAlive() && partnerRecord_.active && !e.targetOnly) consider(partner_->character.x, partner_->character.y);
         } else {
@@ -761,6 +767,7 @@ void Game::stepEffect(Effect& e) {
         e.travelled += e.speed;
         if (e.diesOnWall && (!map_ || !map_->ground().walkable(e.x, e.y))) e.dead = true;
         if (e.travelled >= kMissileRange) e.dead = true;
+        if (e.homesOnPlayer && player_ && std::hypot(player_->x - e.x, player_->y - e.y) <= e.speed) e.dead = true;
     }
     if (!e.dead && e.spell >= 0 && e.caster >= 0) {
         // A monster's spell: the hero, then an ACTIVE companion, each once.
@@ -802,6 +809,36 @@ void Game::stepEffect(Effect& e) {
     }
 }
 
+// Every third of the original's ticks (0x44f2f0): the Life Recovery
+// modifiers worn, and 5 more with the Spiritual Heraldry, give back that
+// many hundredths of a percent of the hero's health, and Mental Recovery
+// (5 more with the Demon Fang), Berserker's drain and Moon's together of
+// their mental power. Recovery never takes health below 1; Berserker and
+// Moon end when mental power runs out (0x443490).
+void Game::regenerateHero() {
+    if (!player_) return;
+    int life = inventory_.modifierEvenBroken(ItemDef::kModLifeRecovery);
+    if (inventory_.carries(ItemDef::Class::Special, kSpiritualHeraldry)) life += 5;
+    if (playerHp_ > 0) {
+        playerHp_ = std::clamp(playerHp_ + regenerate(playerMaxHp(), life, lifeCarry_), 1, playerMaxHp());
+    }
+    int mental = inventory_.modifierEvenBroken(ItemDef::kModMentalRecovery);
+    if (inventory_.carries(ItemDef::Class::Special, kDemonFang)) mental += 5;
+    if (spellOn(kBerserker)) mental += magic_.berserker[0][MagicTables::column(castLevel(kBerserker))];
+    if (spellOn(kMoon)) mental += magic_.moon[0][MagicTables::column(moonLevel_)];
+    playerMp_ = std::clamp(playerMp_ + regenerate(playerMaxMp(), mental, mentalCarry_), 0, playerMaxMp());
+    if (playerMp_ > 0) return;
+    if (spellOn(kBerserker)) {
+        setSpellOn(kBerserker, false);
+        showMessage("Berserker off");
+    }
+    if (spellOn(kMoon)) {
+        setSpellOn(kMoon, false);
+        refreshPartnerStats();
+        showMessage("Moon off");
+    }
+}
+
 void Game::tickSpells() {
     for (originalTicks_ += kOriginalTicksPerTick; originalTicks_ >= 1.0; originalTicks_ -= 1.0) {
         for (auto& cast : casts_) {
@@ -824,26 +861,7 @@ void Game::tickSpells() {
         std::erase_if(effects_, [](const Effect& e) { return e.dead; });
         for (auto& effect : pendingEffects_) effects_.push_back(std::move(effect));
         pendingEffects_.clear();
-    }
-    // Berserker drains MP every third tick (0x44f2f0) and ends with it.
-    if (spellOn(kBerserker) && ticks_ % 3 == 0) {
-        const int rate = magic_.berserker[0][MagicTables::column(castLevel(kBerserker))];
-        playerMp_ += regenerate(playerMaxMp(), rate, berserkerCarry_);
-        if (playerMp_ <= 0) {
-            playerMp_ = 0;
-            setSpellOn(kBerserker, false);
-            showMessage("Berserker off");
-        }
-    }
-    // Moon likewise, at the rate of the level it was cast at.
-    if (spellOn(kMoon) && ticks_ % 3 == 0) {
-        playerMp_ += regenerate(playerMaxMp(), magic_.moon[0][MagicTables::column(moonLevel_)], moonCarry_);
-        if (playerMp_ <= 0) {
-            playerMp_ = 0;
-            setSpellOn(kMoon, false);
-            refreshPartnerStats();
-            showMessage("Moon off");
-        }
+        if (++regenTicks_ % 3 == 0) regenerateHero();
     }
     // While Moon is on, the companion glows (0x45f550).
     const bool glows = spellOn(kMoon) && partner_ && partner_->hp > 0 && partner_->state != Partner::State::Dead;

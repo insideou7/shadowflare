@@ -18,6 +18,7 @@ original format.
 | `Player/Male/Animation00.caf/.njp`    | `Player/Male/Animation00.anim` + `.sheet`|
 | `Player/Female/Animation00.caf/.njp`  | `Player/Female/Animation00.anim` + `.sheet`|
 | `System/Title/Pattern/Title.njp`      | `System/Title/Pattern/Title.sheet` (pattern 0) |
+| `System/Title/Pattern/Smoke00-09.Caf/.Njp` (title steam) | `System/Title/Pattern/Smoke00-09.anim` + `.sheet` |
 | `System/Select/Pattern/Select.njp`    | `System/Select/Pattern/Select.sheet`     |
 | `Scenario/<n>/Scenario.Mct` + `.Scs`  | `Scenario/<n>/scenario.txt`              |
 | `System/Game/Parameter/Control.aid`   | `ai.txt`                                 |
@@ -30,6 +31,7 @@ original format.
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
+| `System/Game/Pattern/Status.njp` (Giant Warehouse header and tabs 0x49-0x5e, weapon set tabs 0x5f-0x64) | `System/Game/Pattern/Tabs.sheet` (frames 0-21, then 22-27) |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 | `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
 | names, heights and colours in `Scenario.Mct` enemy placements | `enemies.txt` (by monster kind) |
@@ -379,13 +381,14 @@ them, as in Remote Town's kennel:
 ### ai.txt
 
     [list goblin]
-    walk=40                  # speed when walking home
+    walk=20                  # speed when walking home
     on=decide attack priority=2 range=..60
-    on=decide approach weight=4 duration=30 speed=45 range=..1800
+    on=decide approach weight=4 duration=45 speed=15 range=..1800
 
 Each `on=` line is one choice for an event, as in the original's
 Control.aid (see formats.md): the event, the action, then any of
-`priority`, `weight`, `duration` (ticks), `speed` (world units a tick),
+`priority`, `weight`, `duration` (ticks), `speed` (world units a tick;
+ticks are the original's, 30 a second, and the hero walks 20 a tick),
 `pause`, `extra`, `hp=<min>..<max>` (percent) and `range=<min>..<max>`
 (gap to the player in world units; either end may be left out).
 `tools/content/ai.txt` lists the event and action names.
@@ -420,7 +423,12 @@ thunder, holy, dark, gel and metal levels (docs/magic.md).
 Consumables have `effect=`, nine numbers as in the original: the first is
 1 if picking it up puts it in the belt pocket, the second the health it restores, the third
 the mental power. Other keys: `quality` (0 normal, 1 magic, 2 unique, 3
-quest; only normal items drop; magic and unique ones start unidentified),
+quest; magic and unique ones drop unidentified), `mod=<name>,<least>,<most>[,<chance>]`
+(a magic modifier, rolled when the item is made: `chance` percent of the
+time, 100 when left out, a number from least to most; see below),
+`element-mod=<element>,<least>,<most>[,<chance>]` (the same for an element
+level: fire, water, earth, thunder, holy, dark, gel or metal),
+`fixed-price=1` (modifiers add nothing to its price, as uniques'),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
 `glow` (a second hero layer), `page=page,x,y` (the special items window's
@@ -432,6 +440,23 @@ bag and never go to the warehouse; see docs/formats.md) and, for bowguns, `shot=
 everything worn against the hero's strength, as the original does.
 An item with a `load` of 60 or more also sounds heavy when it is taken or
 put down, and a weapon that heavy swings with the heavy voice.
+
+Modifier names, as the original's tooltip lists them: `attack`,
+`defense`, `hit`, `evasion`, `magic-attack`, `magic-defense`, `magic-hit`,
+`magic-evasion`, `attack-speed`, `walk-speed`, `max-hp`, `max-mp`,
+`strength`, `magic-level`, `stun-chance`, `stun-length`, `high-damage`,
+`life-recovery` and `mental-recovery` (tenths of a percent of the maximum
+a second), `mental-cost`, `reflection-chance` and `reflection-rate` (the
+chance, in percent, that a monster's blow is sent back, and how much of
+it), `healing-potions` and `mental-potions` (percent more from them),
+`absorption-chance` and `absorption-rate` (the same for the hero's blows
+giving back health), `gold` (percent more gold dropped), `mine-power`,
+`mine-count`, `chant-speed`, and `companion-hp`, `companion-attack`,
+`companion-hit`, `companion-defense`, `companion-evasion`,
+`companion-magic-attack`, `companion-magic-hit`, `companion-magic-defense`
+and `companion-magic-evasion`. Magic items are made like the original's:
+a base item under a new name, its `unidentified` name the base's, with its
+pictures; see the end of items.txt.
 
 Codes follow the original where an item stands in for one, so the
 starting kit (body armour 0, consumables 0 and 10000000) works with
@@ -454,8 +479,10 @@ What monsters leave behind, standing in for the original's drop tables
 
 A pick is a class (or `any` for weapon, armour or accessory), a code (or
 `any`, chosen by `weight` among the items of that class), and optionally
-the lowest and highest item level. Only normal items are picked with
-`any`. A mine (`special,1`) goes to the hero's mines, not the bag (see
+the lowest and highest item level and which qualities may come, as the
+original's digits: ones normal, tens magic, hundreds unique (`111`, any,
+when left out; `11` no uniques; `110` magic or unique only). Quest items
+always may. A mine (`special,1`) goes to the hero's mines, not the bag (see
 [mines.md](mines.md)). Gold comes before the items, 100 units below the monster; the
 items land around it.
 

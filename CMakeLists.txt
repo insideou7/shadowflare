@@ -7,6 +7,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
+# Crash reports to sentry.io (sentry-native, downloaded and built when on).
+# Nothing is sent without a DSN: SFE_SENTRY_DSN here, or the
+# SHADOWFLARE_SENTRY_DSN environment variable when the game starts.
+option(SFE_SENTRY "Send crash reports to Sentry (needs a DSN)" OFF)
+set(SFE_SENTRY_DSN "" CACHE STRING "Sentry DSN built into the game (empty: only SHADOWFLARE_SENTRY_DSN)")
 
 # Data file readers: no SDL dependency, so they can be tested on their own.
 add_library(sf_formats STATIC
@@ -41,6 +46,7 @@ add_library(sf_logic STATIC
     src/logic/script_runner.cpp
     src/logic/traps.cpp
     src/logic/archery.cpp
+    src/logic/combat.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
@@ -57,6 +63,7 @@ add_library(sf_logic STATIC
     src/logic/lighting.cpp
     src/logic/explored_map.cpp
     src/logic/open_areas.cpp
+    src/logic/title_smoke.cpp
     src/audio/mixer.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
@@ -66,6 +73,7 @@ add_executable(shadowflare
     src/core/log.cpp
     src/platform/filesystem.cpp
     src/platform/audio.cpp
+    src/platform/crash_log.cpp
     src/render/sprite_cache.cpp
     src/game/content.cpp
     src/game/map.cpp
@@ -84,6 +92,7 @@ add_executable(shadowflare
     src/game/spells.cpp
     src/game/traps.cpp
     src/game/archery.cpp
+    src/game/combat.cpp
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp
@@ -101,6 +110,9 @@ add_executable(shadowflare
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
+if(WIN32)
+    target_link_libraries(shadowflare PRIVATE dbghelp)
+endif()
 
 foreach(target sf_formats sf_logic shadowflare)
     if(MSVC)
@@ -129,6 +141,7 @@ if(BUILD_TESTING)
     add_test(NAME logic COMMAND logic_test)
     add_executable(inventory_test tests/inventory_test.cpp)
     target_link_libraries(inventory_test PRIVATE sf_logic)
+    target_compile_definitions(inventory_test PRIVATE SF_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
     add_test(NAME inventory COMMAND inventory_test)
     add_executable(open_content_test tests/open_content_test.cpp)
     target_link_libraries(open_content_test PRIVATE sf_formats)
@@ -161,4 +174,20 @@ else()
         target_link_libraries(shadowflare PRIVATE SDL2::SDL2main)
     endif()
     target_link_libraries(shadowflare PRIVATE SDL2::SDL2)
+endif()
+
+if(SFE_SENTRY AND NOT EMSCRIPTEN)
+    include(FetchContent)
+    # The in-process backend needs no crashpad_handler next to the program.
+    set(SENTRY_BACKEND inproc CACHE STRING "" FORCE)
+    set(SENTRY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(sentry
+        GIT_REPOSITORY https://github.com/getsentry/sentry-native.git
+        GIT_TAG 0.16.8
+        GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(sentry)
+    target_link_libraries(shadowflare PRIVATE sentry::sentry)
+    target_compile_definitions(shadowflare PRIVATE SF_SENTRY SF_SENTRY_DSN="${SFE_SENTRY_DSN}")
 endif()

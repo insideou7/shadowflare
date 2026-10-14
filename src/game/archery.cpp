@@ -50,8 +50,9 @@ void Game::shoot(std::optional<std::size_t> target, double angle) {
     BowShot shot;
     shot.target = target;
     shot.angle = angle;
-    const int attackSpeed = playerStats()[HeroStats::kAttackSpeed];
-    double speed = attackSpeedFactor(magic_, attackSpeed, power_.active());
+    const HeroStats stats = playerStats();
+    const int attackSpeed = stats[HeroStats::kAttackSpeed];
+    double speed = attackSpeedFactor(magic_, attackSpeed, power_.active(), overloaded(stats));
     if (power_.active() && career_.current == HeroClass::Hunter && random_.next(100) < kHunterVolleyChance) {
         // Every living monster whose position lies within 2000 either way.
         for (std::size_t i = 0; i < actors_.size() && shot.volleyTargets.size() < kHunterVolleyMost; ++i) {
@@ -224,7 +225,9 @@ bool Game::shotStrikes(Effect& e, Actor& enemy) {
     if (random_.next(100) >= hitChance(s.hit, st.evasion)) return false;
     playSound(e.hitSound, e.x, e.y);
     if (s.hitOption > 0) spawnEffect(s.hitOption, enemy.character.x, enemy.character.y);
-    hurtEnemy(enemy, heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, random_.next(3)));
+    const int damage = heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, random_.next(3));
+    absorbFrom(enemy, damage);
+    hurtEnemy(enemy, damage);
     return true;
 }
 

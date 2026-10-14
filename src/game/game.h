@@ -17,6 +17,7 @@
 #include "audio/mixer.h"
 #include "game/character.h"
 #include "logic/ai_select.h"
+#include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -30,6 +31,7 @@
 #include "logic/script_runner.h"
 #include "logic/settings.h"
 #include "logic/shop.h"
+#include "logic/title_smoke.h"
 #include "logic/traps.h"
 #include "formats/table_data.h"
 #include "formats/open_content.h"
@@ -68,8 +70,6 @@ inline constexpr int kTicksPerSecond = 20;
 // The original runs 30 ticks a second, so each engine tick is 1.5 of them.
 inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
 
-// The hero's step in world units per tick. Not yet taken from the original.
-inline constexpr double kPlayerWalkSpeed = 70.0;
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
 // The belt pocket's cells on the screen, as the original's clicks find them
@@ -184,6 +184,7 @@ public:
     // Casts the chosen spell at a point given relative to the player on
     // screen, as the right button does (for scripted tests).
     void castBy(int slot, int screenDx, int screenDy);
+    void comboBy(int screenDx, int screenDy);  // a Warrior's combo towards a point (for tests)
     // Teaches a spell at a level and puts it on F1, with MP to spare (for tests).
     void teachSpell(int spell, int level);
     // Gives the companion a Tab order (jump, dash or fetch) at a point
@@ -198,6 +199,10 @@ public:
     bool powerActive() const { return power_.active(); }
     // The magic window (M), on page 0-3 (for tests).
     void openMagicWindow(int page = 0);
+    // A shop's window by INITTRADE's number, or a warehouse (kStorage,
+    // kGiantStorage), as TRADE and STORAGE open them.
+    void openTrade(int shop);
+    void openStorageWindow(bool giant) { openTrade(giant ? kGiantStorage : kStorage); }
 
     // Lays a mine where the player stands, as B does (for scripted tests).
     void layMineHere() { layMine(); }
@@ -299,13 +304,13 @@ private:
         // Control.aid state; aiList -1 = no list, use the simple chase.
         int aiList = -1;
         int action = -1;
-        int actionTicks = 0;
+        double actionTicks = 0;  // the original's ticks since the action began
         int event = AiControl::kDecide;
         AiControl::Entry entry;
         bool struck = false;  // the current attack has landed
         double aim = 0;       // where its spell goes, radians in world space (monster + 0x260)
         double wanderX = 0, wanderY = 0;
-        int wanderPause = 0;
+        double wanderPause = 0;
         bool active = true;   // SETINACTIVE hides a character
         bool stopped = false;  // C_STOP holds it still while it talks
         std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
@@ -372,6 +377,17 @@ private:
     void renderShop();
     bool drawShopPicture();
     void closeShop();
+    // The warehouse window open, either one, and the goods it shows: the
+    // warehouse's, or the Giant Warehouse's page in view.
+    bool storageOpen() const { return openShop_ == kStorage || openShop_ == kGiantStorage; }
+    ShopStock& openStock();
+    // The Giant Warehouse's tabs and close button (0x447ca0); true when the
+    // click was on its header.
+    bool giantStorageHeaderClick(int x, int y);
+    void renderGiantStorageTabs();
+    // Whether page `page` of the Giant Warehouse can be used: I and II
+    // always, the others once a script sets EXSTRG n.
+    bool giantPageOpen(int page) const;
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
     Actor* actorById(std::int32_t id);
     const Actor* actorById(std::int32_t id) const;
@@ -433,6 +449,7 @@ private:
     void strikePlayer(Actor& enemy, int slot = 0);
     // `bySpell` counts the kill as a magic one for the class offer.
     // byPartner: the companion's bite, which the class kill counts skip.
+    void absorbFrom(const Actor& enemy, int damage);
     void hurtEnemy(Actor& enemy, int damage, bool bySpell = false, bool byPartner = false);
     // A blow or spell that got through, before the shields (0x443cb0).
     // `flinch`: whether it plays the hero's hit pose (traps do not, see
@@ -474,6 +491,9 @@ private:
     HeroStats playerStats() const;
     HeroStats playerStats(int& chantSpeed) const;  // and the chant speed with them
     ElementLevels playerElements() const;
+    // Wearing more than their strength can carry slows the hero's walk,
+    // swing and chant to the bottom step (0x445630, 0x450c60, 0x450d40).
+    bool overloaded(const HeroStats& stats) const { return inventory_.wornWeight() > stats[HeroStats::kStrength]; }
     int playerAttack() const { return playerStats()[HeroStats::kAttack]; }
     int playerDefense() const { return playerStats()[HeroStats::kDefense]; }
     int playerHit() const { return playerStats()[HeroStats::kHit]; }
@@ -499,6 +519,7 @@ private:
     void dropHand();
     std::optional<std::size_t> groundItemAt(float screenX, float screenY) const;
     const SpriteBank* itemBank(const std::string& stem);
+    void drawItemMarks(const Item& item, const SDL_Rect& area);
     void drawItemPicture(const ItemDef& def, const SDL_Rect& area);
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
@@ -507,6 +528,34 @@ private:
     void renderItemTotals();
     void renderSpecialButton(int mx, int my);
     void putInWarehouse();  // the held item, into the Warehouse Transfer Box
+    // The I and II tabs under the weapon and shield slots (0x406aa0); true
+    // when the click was on one.
+    bool weaponSetTabClick(int x, int y, bool right);
+    void renderWeaponSetTabs();
+    // Caps Lock: the sets change once the hero is not in the middle of an
+    // attack or a spell (0x4429b0, 0x48d7d0).
+    void swapWeaponSetsSoon() {
+        swapWeaponSetsPending_ = true;
+        swapWeaponSetsIfFree();
+    }
+    void swapWeaponSetsIfFree();
+    // The item window's mine picture (0x446320 case 11): a click with an
+    // empty hand takes a mine into the hand, one with a mine puts it back.
+    void mineSlotClick();
+    // The gold split box: a right click on a stack of gold in the bag or a
+    // warehouse asks how much of it to take into the hand (0x44a6f0,
+    // 0x44a9f0, 0x44ab60; settled at 0x4429b0).
+    struct GoldSplit {
+        enum class From { Bag, Storage, GiantStorage } from = From::Bag;
+        int x = 0, y = 0;  // the cell of the stack
+        int boxX = 0, boxY = 0;
+        std::string text;
+        bool fresh = true;  // the amount shown is replaced by the first digit typed
+    };
+    void openGoldSplit(GoldSplit::From from, int cellX, int cellY, int mouseX, int mouseY);
+    bool goldSplitEvent(const SDL_Event& event);
+    void finishGoldSplit();
+    void renderGoldSplit();
     void renderItemPopup(const Item& item, int mx, int my);
     // The colours the item and status windows write numbers in (0x405590):
     // plain, lowered by what is worn (red) and raised by it (tan).
@@ -539,6 +588,7 @@ private:
         bool followsPlayer = false;
         int followsActor = -1;  // an index into actors_ (a freeze's ice)
         bool followsPartner = false;
+        bool homesOnPlayer = false;  // turns towards the hero and ends on reaching them
         int then = -1;          // played where it stands when its life runs out
         // Hurting: spell < 0 for effects that only show.
         int spell = -1, level = 1, power = 0, hit = 0;
@@ -632,6 +682,7 @@ private:
     void startCast(double worldX, double worldY);
     void releaseSpell();
     void tickSpells();
+    void regenerateHero();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
     const CharacterModel* effectModel(int option);
@@ -743,6 +794,7 @@ private:
     void throwShot(Actor& enemy, int slot);
     void shotHitsPlayer(const Effect& e);
     void shotHitsPartner(const Effect& e);
+    void iceOnHero(int ticks);
     // A stun from a trap's blow (0x443cb0, 0x45f9f0): held in the hit pose
     // for `total` original ticks, pushed away from the blow unless steady.
     struct Stun {
@@ -870,6 +922,7 @@ private:
         bool explosion = false; // the jump is the hero's Explosion spell (state 10)
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
+        double idleTicks = 0;   // original ticks standing by the hero (+0x22c)
         int restDirection = 0;  // its facing before a jump
         std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
@@ -878,6 +931,7 @@ private:
     // `before` shows it (partner.cpp).
     static std::vector<int> partnerLayers(const CharacterModel& m, const std::vector<int>& before = {});
     void changePartner(int kind);
+    void tickPartnerIdle();
     void refreshPartnerStats();
     void togglePartnerMode();
     bool partnerAlive() const;
@@ -922,6 +976,16 @@ private:
     bool spellBarClick(int x, int y);
     void renderSpellBar();
     void renderMenu();
+    // The steam blowing from the title picture's pipes (logic/title_smoke.h).
+    void tickTitleSmoke();
+    void renderTitleSmoke();
+    // Smoke00-09 from the original's files [0] and from our pack [1].
+    std::array<std::array<std::optional<CharacterModel>, TitleSmoke::kJets>, 2> titleSmokeModels_;
+    std::array<bool, 2> titleSmokeLoaded_{};
+    const std::array<std::optional<CharacterModel>, TitleSmoke::kJets>& titleSmokeJets();
+    std::optional<TitleSmoke> titleSmoke_;
+    Random titleRandom_;  // its own, so the menu leaves the game's rolls alone
+    double titleSmokeCarry_ = 0;
     void menuEvent(const SDL_Event& event);
     int menuItemAt(int x, int y) const;
     bool menuItemEnabled(MenuItem item) const;
@@ -1086,6 +1150,9 @@ private:
     SDL_Rect optionChoiceRect(int row, int choice);
     void setOption(OptionRow row, int index);
     void chooseOption(OptionRow row);
+    // The YES / NO question before SAVE AND RETURN TO TITLE and SAVE AND
+    // EXIT (0x4103c0): answered with the mouse, or Enter and Esc.
+    void answerSaveQuestion(bool yes);
     void closeOptions();
     void optionsEvent(const SDL_Event& event);
     void renderOptions();
@@ -1203,12 +1270,45 @@ private:
         std::vector<std::size_t> volleyTargets;
     };
     std::optional<BowShot> bowShot_;  // original ticks into the glow (+0x1558)
+    // The Warrior's combo or axe spin under way (combat.cpp, player states
+    // 11-18, 0x4364e0-0x437910).
+    struct Combo {
+        WarriorMove move = WarriorMove::Sword;
+        int blow = 1;            // the combo's blow, 1-3 (the spin has one)
+        int count = 0;           // original ticks into the blow (+0x30c)
+        int frame = 0;           // the frame it has reached (+0x308)
+        int lastFrame = -1;      // the frame of the tick before (+0x310)
+        bool struck = false;     // the blow has fallen (+0x1610)
+        int lungeTick = 0;       // original ticks of lunging (+0x1614 / 10)
+        double dx = 0, dy = 1;   // where the hero aims, a unit vector in world units (+0x1268)
+        int facing = 0;          // the hero's facing, kept while chart 22 has none
+        double carry = 0;        // original ticks still to run
+    };
+    std::optional<Combo> combo_;
+    // A Warrior's attack towards (wx, wy) as their combo or spin; false when
+    // the hero is no Warrior or has no sword, great sword or axe in hand.
+    bool startCombo(double wx, double wy);
+    void tickCombo();
+    void comboTick(Combo& c);
+    void comboBlow(const Combo& c);
+    // Blows that do not stun the hero now: their combo's first two blows
+    // and the spin (0x443cb0 zeroes the chance in states 11-14).
+    bool heroSteadyInCombo() const;
+    // The stun a blow of the hero's gives a monster (0x459690): table 25 by
+    // how much of its health the blow took, plus the weapon's or the move's
+    // own, plus table 24 for the hero's level in its opposite element.
+    void heroBlowStun(Actor& enemy, int damage, int chance, int length, bool uncapped);
+    // The Elixir (special item 98000000): a hero brought to 0 health with one in the bag
+    // gets up again at full health and mental power (0x443cb0).
+    bool reviveWithElixir();
     bool magicOpen_ = false;
     int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
     int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)
-    int berserkerCarry_ = 0;
     int moonLevel_ = 0;  // the level Moon was cast at (+0x15e8)
-    int moonCarry_ = 0;
+    // Hundredths of a point of health and mental power still to come back
+    // (+0x1638, +0x163c), and the original's ticks counted towards it.
+    int lifeCarry_ = 0, mentalCarry_ = 0;
+    std::uint64_t regenTicks_ = 0;
     int moonGlow_ = 0;   // the effect id of the glow on the companion
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units
@@ -1268,6 +1368,11 @@ private:
     std::optional<Dialogue> dialogue_;
     std::map<int, ShopStock> shops_;  // by INITTRADE's shop number; kStorage is the warehouse
     static constexpr int kStorage = -1;
+    static constexpr int kGiantStorage = -2;  // the Giant Warehouse, in giantStorage_
+    std::array<ShopStock, kGiantStoragePages> giantStorage_;
+    int giantPage_ = 0;
+    std::optional<GoldSplit> goldSplit_;
+    bool swapWeaponSetsPending_ = false;
     std::optional<int> openShop_;
     int entryPoint_ = 0;
     std::vector<int> answers_;
@@ -1379,6 +1484,8 @@ private:
     bool optionsOpen_ = false;
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
+    // The row whose YES / NO question shows in place of the menu.
+    std::optional<OptionRow> saveQuestion_;
     OptionsTab optionsTab_ = OptionsTab::Settings;
     // Frames drawn in the second counted so far, and the last second's count.
     Uint64 fpsSince_ = 0;

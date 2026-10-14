@@ -152,9 +152,15 @@ attack.
   arrow (4) also plays effect 20000 (OPTION 10000011) on them, and an ice
   arrow (5) effect 21013 (OPTION 11000026). The shot's sound is voice 7,
   or 20 for kind 6.
-- **Not copied yet.** Kinds 5 and 7 also set hit word 3 to 1 and 2,
-  which put the hero in states the engine does not have (+0x324,
-  +0x15f0). Kind 6 names effect 21023 in its shot, use not traced. Words
+- **Freezing and stone.** Kinds 5 and 7 also set hit word 3 to 1 and 2.
+  The blow may then stun the hero by table 25 (by the share of their
+  health it took, resisted by the gear's stun modifiers, at most 15
+  ticks, pushed back unless the gear is steady). Word 1 freezes them in
+  ice for the stun (OPTION 0x5217 + one of four blocks, voice 0x77);
+  word 2 turns them to stone, grey and still on the hit pose's first
+  frame (+0x324, +0x15f0, flag 0x4000). A Warrior's combo blows 1-2 and
+  spin are not stopped (see combat.md).
+- **Not copied yet.** Kind 6 names effect 21023 in its shot, use not traced. Words
   52-60 go into the shot's hit struct too and are not decoded.
 
 The engine follows this in `Game::throwShot` (src/game/traps.cpp), with

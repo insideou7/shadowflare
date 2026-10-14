@@ -88,14 +88,7 @@ public:
             for (int k = 0; k < g.count; ++k) stock.add(Item::make(def, g_.random_));
         }
     }
-    void trade(int shop) override {
-        g_.shops_.try_emplace(shop);
-        g_.openShop_ = shop;
-        g_.showStatus_ = false;  // the shop takes the left of the screen
-        g_.closeMagicWindow();
-        g_.closeWarpWindow();
-        g_.openItemWindow();
-    }
+    void trade(int shop) override { g_.openTrade(shop); }
     void healLife() override {
         g_.playerHp_ = g_.playerMaxHp();
         // It fills the companion's health too, but does not bring it back.
@@ -155,7 +148,7 @@ public:
     void showQuestName(int quest) override { g_.showMissionName(quest); }
     void showAreaName(const std::string& name) override { g_.showAreaName(toAscii(name)); }
     int entryPoint() const override { return g_.entryPoint_; }
-    void openStorage() override { trade(Game::kStorage); }
+    void openStorage(bool giant) override { trade(giant ? Game::kGiantStorage : Game::kStorage); }
     void identifyItems() override { g_.inventory_.identifyAll(); }
     bool hasUnidentifiedItems() const override { return g_.inventory_.hasUnidentified(); }
     void repair(int part) override { g_.inventory_.repair(part); }
@@ -653,14 +646,27 @@ void Game::renderDialogue() {
 bool Game::shopClick(int x, int y, bool right) {
     if (!openShop_) return false;
     if (!inside(kShopPanel, x, y)) return false;
-    auto& stock = shops_[*openShop_];
+    if (openShop_ == kGiantStorage && !right && giantStorageHeaderClick(x, y)) return true;
+    auto& stock = openStock();
     const SDL_Rect grid{kShopX, kShopY, ShopStock::kWidth * kCell, ShopStock::kHeight * kCell};
-    if (*openShop_ == kStorage) {
-        // The warehouse: items are put down and picked up as in the bag; a
-        // right click on an empty spot leaves.
+    if (storageOpen()) {
+        // A warehouse: items are put down and picked up as in the bag.
         const int cx = (x - kShopX) / kCell, cy = (y - kShopY) / kCell;
         if (right) {
-            if (!hand_ && (!inside(grid, x, y) || stock.indexAt(cx, cy) < 0)) closeShop();
+            // A right click off the cells leaves. On a stack of gold it asks
+            // how much to take, and on a potion or other consumable it uses
+            // it, as in the bag (0x44a9f0, 0x44ab60).
+            if (!inside(grid, x, y)) {
+                if (!hand_) closeShop();
+            } else if (const int i = stock.indexAt(cx, cy); !hand_ && i >= 0) {
+                const auto& placed = stock.goods[static_cast<std::size_t>(i)];
+                if (placed.item.def->isGold()) {
+                    openGoldSplit(openShop_ == kGiantStorage ? GoldSplit::From::GiantStorage : GoldSplit::From::Storage, placed.x,
+                                  placed.y, x, y);
+                } else if (applyConsumable(*placed.item.def)) {
+                    stock.goods.erase(stock.goods.begin() + i);
+                }
+            }
         } else if (hand_ && inside(grid, x, y)) {
             const double left = x - hand_->def->width * kCell / 2.0 - kShopX;
             const double top = y - hand_->def->height * kCell / 2.0 - kShopY;
@@ -718,7 +724,7 @@ bool Game::shopClick(int x, int y, bool right) {
 
 // Selling: the shop takes the item and pays a quarter of its value.
 bool Game::sellHand() {
-    if (!openShop_ || *openShop_ == kStorage || !hand_) return false;
+    if (!openShop_ || storageOpen() || !hand_) return false;
     if (hand_->def->quality == 3 || hand_->def->isGold()) {
         showMessage("Not for sale");
         return false;
@@ -757,7 +763,7 @@ void Game::closeShop() {
 bool Game::drawShopPicture() {
     // The warehouse has its own copy of the window in the original
     // (patterns 14 and 15); the open pack uses the shop's.
-    const bool storage = openShop_ == kStorage;
+    const bool storage = storageOpen();
     const SpriteBank* bank = itemBank("System/Game/Pattern/Shop");
     std::vector<int> patterns = {0};
     if (!bank) {
@@ -800,7 +806,8 @@ void Game::renderShop() {
             }
         }
     }
-    const auto& stock = shops_[*openShop_];
+    if (openShop_ == kGiantStorage) renderGiantStorageTabs();
+    const auto& stock = openStock();
     const Item* hover = nullptr;
     for (const auto& g : stock.goods) {
         const SDL_Rect r{kShopX + g.x * kCell, kShopY + g.y * kCell, g.item.def->width * kCell, g.item.def->height * kCell};
@@ -811,12 +818,13 @@ void Game::renderShop() {
             frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
         }
         drawItemPicture(*g.item.def, r);
+        drawItemMarks(g.item, r);
         if (inside(r, mx, my)) hover = &g.item;
     }
     // What the item under the mouse costs, or what the held one sells for,
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
-    if (*openShop_ == kStorage) {
+    if (storageOpen()) {
         if (hover && !hand_) lines.emplace_back(hover->shownName(), kWhite);
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
@@ -838,6 +846,86 @@ void Game::renderShop() {
         for (std::size_t k = 0; k < lines.size(); ++k) {
             uiText(box.x + 6, box.y + 5 + static_cast<int>(k) * kLineHeight, lines[k].first, lines[k].second);
         }
+    }
+}
+
+void Game::openTrade(int shop) {
+    if (shop != kGiantStorage) shops_.try_emplace(shop);
+    openShop_ = shop;
+    showStatus_ = false;  // the shop takes the left of the screen
+    closeMagicWindow();
+    closeWarpWindow();
+    openItemWindow();
+}
+
+ShopStock& Game::openStock() {
+    if (openShop_ == kGiantStorage) return giantStorage_[static_cast<std::size_t>(std::clamp(giantPage_, 0, kGiantStoragePages - 1))];
+    return shops_[openShop_.value_or(kStorage)];
+}
+
+bool Game::giantPageOpen(int page) const {
+    if (page < 0 || page >= kGiantStoragePages) return false;
+    if (page < 2) return true;
+    const auto flag = flags_.find({ScenarioScript::kExtraStorage, page});
+    return flag != flags_.end() && flag->second == 1;
+}
+
+namespace {
+
+// The Giant Warehouse's header (clicks 0x447ca0, drawn by 0x404760):
+// tabs I-X 24 pixels apart from (24, 41), and the close button.
+constexpr int kGiantTabX = 24, kGiantTabY = 41, kGiantTabStep = 24;
+constexpr SDL_Rect kGiantTabArea{kGiantTabX, kGiantTabY, kGiantTabStep, 24};
+constexpr SDL_Rect kGiantClose{272, 40, 24, 16};
+
+}  // namespace
+
+bool Game::giantStorageHeaderClick(int x, int y) {
+    for (int page = 0; page < kGiantStoragePages; ++page) {
+        SDL_Rect tab = kGiantTabArea;
+        tab.x += page * kGiantTabStep;
+        if (!inside(tab, x, y)) continue;
+        if (giantPageOpen(page) && page != giantPage_) {
+            giantPage_ = page;
+            playSound(0x3a);
+        }
+        return true;
+    }
+    if (inside(kGiantClose, x, y)) {
+        playSound(0x3a);
+        closeShop();
+        return true;
+    }
+    return false;
+}
+
+// The header with its close button over the window, then the tabs: the
+// page in view lit, the others plain, and a blank for those not open yet.
+// The original's Status.njp patterns 0x49-0x5e, or the open pack's
+// Tabs.sheet frames 0-21 in the same order.
+void Game::renderGiantStorageTabs() {
+    const SpriteBank* open = itemBank("System/Game/Pattern/Tabs");
+    const SpriteBank* bank = open ? open : itemBank("System/Game/Pattern/Status");
+    auto picture = [&](int pattern) { return bank ? sprites_.get(*bank, open ? pattern - 0x49 : pattern, false) : nullptr; };
+    if (const SpriteTexture* header = picture(0x49)) {
+        const SDL_Rect dst{header->originX, header->originY, header->width, header->height};
+        SDL_RenderCopy(renderer_, header->texture, nullptr, &dst);
+    }
+    for (int page = 0; page < kGiantStoragePages; ++page) {
+        const int pattern = !giantPageOpen(page) ? 0x4a : page == giantPage_ ? 0x55 + page : 0x4b + page;
+        const int x = kGiantTabX + page * kGiantTabStep;
+        if (const SpriteTexture* tab = picture(pattern)) {
+            const SDL_Rect dst{x + tab->originX, kGiantTabY + tab->originY, tab->width, tab->height};
+            SDL_RenderCopy(renderer_, tab->texture, nullptr, &dst);
+        } else {
+            const SDL_Rect r{x, kGiantTabY, 20, 23};
+            frame(renderer_, r, page == giantPage_ ? SDL_Color{120, 90, 40, 255} : SDL_Color{40, 36, 44, 255}, {150, 130, 90, 255});
+            if (giantPageOpen(page)) uiText(x + 4, kGiantTabY + 6, std::to_string(page + 1), kWhite);
+        }
+    }
+    if (!picture(0x49)) {
+        frame(renderer_, kGiantClose, {40, 36, 44, 255}, {150, 130, 90, 255});
+        uiText(kGiantClose.x + 9, kGiantClose.y + 2, "X", kWhite);
     }
 }
 

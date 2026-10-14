@@ -26,14 +26,16 @@ struct ItemDef {
 
     // Magic modifiers (weapons, armour and accessories): what a magic or
     // unique item may add, rolled once when the item is made (0x467310).
-    // Indices in the order of the tooltip at 0x40af26; 14-21 are named
-    // from the tooltip strings only.
+    // Indices in the order of the tooltip at 0x40af26. Life and Mental
+    // Recovery are hundredths of a percent of the maximum every third tick
+    // (0x44f2f0); Reflection and Absorption are a chance in percent and how
+    // much, in percent of the blow (0x44f7a0, 0x44f990).
     enum Modifier {
         kModAttack, kModDefense, kModHit, kModEvasion, kModMagicAttack, kModMagicDefense, kModMagicHit,
         kModMagicEvasion, kModAttackSpeed, kModWalkSpeed, kModMaxHp, kModMaxMp, kModStrength, kModMagicLevel,
         kModStunChance, kModStunLength, kModHighDamage, kModLifeRecovery, kModMentalRecovery, kModMentalCost,
-        kModReflection, kModReflection2, kModStaminaMedicine, kModMentalMedicine, kModAbsorption,
-        kModAbsorption2, kModGold, kModMineEffect, kModMineCount, kModChantSpeed,
+        kModReflectionChance, kModReflectionRate, kModStaminaMedicine, kModMentalMedicine,
+        kModAbsorptionChance, kModAbsorptionRate, kModGold, kModMineEffect, kModMineCount, kModChantSpeed,
         // What the companion gets while the hero wears the item (0x4138b0).
         kModCompanionHp, kModCompanionAttack, kModCompanionHit, kModCompanionDefense, kModCompanionEvasion,
         kModCompanionMagicAttack, kModCompanionMagicHit, kModCompanionMagicDefense, kModCompanionMagicEvasion,

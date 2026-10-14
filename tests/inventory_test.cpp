@@ -8,6 +8,7 @@
 
 #include "logic/ai_select.h"
 #include "formats/binary_reader.h"
+#include "formats/open_content.h"
 #include "logic/inventory.h"
 #include "logic/loot.h"
 #include "logic/partner.h"
@@ -650,6 +651,29 @@ void testModifiers() {
     hidden.equip(Slot::Shield, sf::Item::make(&shieldDef, random));
     check(hidden.modifier(M::kModCompanionHp) == 0, "a hidden shield adds nothing");
 
+    // Reflection and Absorption (0x44f7a0, 0x44f990): the chances add up
+    // over everything worn, broken items too; the rates only of items
+    // with a chance.
+    sf::Item mirror = broken;
+    mirror.modifiers[M::kModReflectionChance] = 30;
+    mirror.modifiers[M::kModReflectionRate] = 40;
+    auto ringDef = def(Class::Accessory, 0, 1, 1, 0);
+    sf::Item ring = sf::Item::make(&ringDef);
+    ring.modifiers[M::kModReflectionChance] = 20;
+    ring.modifiers[M::kModReflectionRate] = 10;
+    sf::Item noChance = sf::Item::make(&ringDef);
+    noChance.modifiers[M::kModReflectionRate] = 1000;
+    sf::Inventory reflecting;
+    reflecting.equip(Slot::Weapon, mirror);
+    reflecting.equip(Slot::Accessory1, ring);
+    reflecting.equip(Slot::Accessory2, noChance);
+    check(reflecting.chanceModifier(M::kModReflectionChance, M::kModReflectionRate, 49) == 50,
+          "reflection works under the chance, the rates of items with a chance added up");
+    check(reflecting.chanceModifier(M::kModReflectionChance, M::kModReflectionRate, 50) == 0,
+          "and not at or over it");
+    check(reflecting.chanceModifier(M::kModAbsorptionChance, M::kModAbsorptionRate, 0) == 0,
+          "no chance, no absorption");
+
     // Saves keep the rolls.
     sf::Inventory inv;
     inv.addAt(item, 0, 0);
@@ -665,6 +689,38 @@ void testModifiers() {
     check(back.bag().size() == 1 && back.bag()[0].item.modifiers == item.modifiers &&
               back.bag()[0].item.elementModifiers == item.elementModifiers,
           "saved items keep their modifiers");
+}
+
+// The open pack's drop lists give magic items often and uniques now and
+// then, like the original's.
+void testOpenPackLoot() {
+    auto read = [](const char* path) {
+        std::vector<std::uint8_t> data;
+        if (std::FILE* f = std::fopen(path, "rb")) {
+            int c;
+            while ((c = std::fgetc(f)) != EOF) data.push_back(static_cast<std::uint8_t>(c));
+            std::fclose(f);
+        }
+        return data;
+    };
+    const auto items = sf::open::parseItems(read(SF_CONTENT_DIR "/items.txt"));
+    const auto tables = sf::open::parseDrops(read(SF_CONTENT_DIR "/drops.txt"));
+    sf::Random random(11);
+    int counts[4] = {};
+    for (int i = 0; i < 20000; ++i) {
+        for (const sf::ItemDef* def : sf::rollDrops(tables, items, 10, random, true)) {
+            if (def->cls <= sf::ItemDef::Class::Accessory) ++counts[std::clamp(def->quality, 0, 3)];
+        }
+    }
+    const int total = counts[0] + counts[1] + counts[2];
+    check(total > 0 && counts[1] * 100 / total >= 30, "the open pack drops magic items");
+    check(counts[2] > 0 && counts[2] * 100 / total < 10, "and the odd unique");
+    for (const auto& def : items.items) {
+        if (def.quality != 1 && def.quality != 2) continue;
+        check(!def.unidentifiedName.empty(), "magic and unique items have a name for before they are identified");
+        const bool any = std::ranges::any_of(def.modifiers, [](const auto& m) { return m.chance > 0; });
+        check(any, "magic and unique items have modifiers");
+    }
 }
 
 }  // namespace
@@ -873,6 +929,113 @@ void testSpecialItems() {
     check(back.specialPage(3).empty(), "a used medicine is taken away");
 }
 
+// The second weapon set (0x406aa0, 0x451930).
+void testWeaponSets() {
+    sf::Inventory inv;
+    inv.equip(Slot::Weapon, {&kSword});
+    inv.equip(Slot::Shield, {&kShield});
+    check(inv.weaponSet() == 0 && !inv.chooseWeaponSet(0), "set I is in use; choosing it again changes nothing");
+    check(inv.chooseWeaponSet(1) && inv.weaponSet() == 1 && !inv.equipped(Slot::Weapon) && !inv.equipped(Slot::Shield) &&
+              inv.spare(sf::Inventory::kSetWeapon)->def == &kSword && inv.spare(sf::Inventory::kSetShield)->def == &kShield,
+          "set II starts empty; set I's weapon and shield are kept aside");
+    inv.equip(Slot::Weapon, {&kGreatSword});
+    inv.swapWeaponSets();
+    check(inv.weaponSet() == 0 && inv.equipped(Slot::Weapon)->def == &kSword && inv.spare(0)->def == &kGreatSword,
+          "Caps Lock swaps back");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 1), "only the tab in use answers a right click");
+    check(!inv.toggleShared(sf::Inventory::kSetWeapon, 0) && !inv.shared(0, 0), "a slot with a weapon in it can't be shared");
+    std::optional<sf::Item> hand;
+    inv.clickSlot(hand, Slot::Shield, 1);  // take the shield off
+    check(hand && !inv.equipped(Slot::Shield), "the shield comes off");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 0) && inv.shared(sf::Inventory::kSetShield, 0),
+          "an empty shield slot is shared even with nothing to bring over");
+    check(inv.clickSlot(hand, Slot::Shield, 1) == Result::Locked && hand, "a shared slot takes nothing");
+    check(inv.chooseWeaponSet(1) && !inv.equipped(Slot::Shield) && inv.equipped(Slot::Weapon)->def == &kGreatSword,
+          "changing sets leaves the shared slot alone");
+    // As in the original, only the sharing set's own flag locks the slot,
+    // so set II can still put a shield there.
+    check(inv.clickSlot(hand, Slot::Shield, 1) == Result::Done && !hand, "set II can use the slot set I shares");
+    check(!inv.toggleShared(sf::Inventory::kSetShield, 1) && inv.shared(sf::Inventory::kSetShield, 0),
+          "only set I's tab ends set I's sharing");
+    inv.chooseWeaponSet(0);
+    check(inv.equipped(Slot::Shield)->def == &kShield, "the shared shield stays for set I");
+    check(inv.toggleShared(sf::Inventory::kSetShield, 0) && !inv.shared(sf::Inventory::kSetShield, 0) &&
+              !inv.equipped(Slot::Shield) && inv.spare(sf::Inventory::kSetShield)->def == &kShield,
+          "ending the sharing sends the shield to the other set");
+
+    // Sharing a weapon brings the other set's over and keeps it there.
+    sf::Inventory two;
+    two.equip(Slot::Weapon, {&kGreatSword});
+    two.chooseWeaponSet(1);
+    check(two.toggleShared(sf::Inventory::kSetWeapon, 1) && two.equipped(Slot::Weapon)->def == &kGreatSword && !two.spare(0),
+          "set II borrows set I's weapon");
+    two.chooseWeaponSet(0);
+    check(two.equipped(Slot::Weapon)->def == &kGreatSword, "and both sets use it");
+    check(!two.toggleShared(sf::Inventory::kSetWeapon, 0), "set I's tab can't end set II's sharing");
+    two.chooseWeaponSet(1);
+    check(two.toggleShared(sf::Inventory::kSetWeapon, 1) && !two.equipped(Slot::Weapon) && two.spare(0)->def == &kGreatSword,
+          "ending it gives the weapon back to set I");
+
+    // Saved and loaded.
+    sf::ItemTable table;
+    auto sword = kSword;
+    sword.code = 4;
+    table.items = {sword};
+    sf::Inventory saved;
+    saved.equip(Slot::Weapon, {&table.items[0]});
+    saved.chooseWeaponSet(1);
+    saved.toggleShared(sf::Inventory::kSetShield, 1);
+    sf::SaveGame save;
+    save.map = "a";
+    save.store(saved);
+    sf::Inventory loaded;
+    check(sf::SaveGame::parse(save.write()).restore(loaded, table) == 0, "the sets load");
+    check(loaded.weaponSet() == 1 && loaded.spare(0) && loaded.spare(0)->def->code == 4 && loaded.shared(1, 1) &&
+              !loaded.equipped(Slot::Weapon),
+          "the set in use, what is kept aside and the sharing survive saving");
+}
+
+// The gold split box (0x4429b0).
+void testGoldSplit() {
+    sf::Inventory inv;
+    inv.setGoldDef(&kGold);
+    inv.addGold(500);
+    std::optional<sf::Item> hand;
+    check(!inv.splitGold(0, 501, hand) && !hand && inv.gold() == 500, "more than the stack takes nothing");
+    check(!inv.splitGold(0, 0, hand) && !hand, "nor does none");
+    check(inv.splitGold(0, 120, hand) && hand && hand->count == 120 && inv.gold() == 380, "part of a stack comes away");
+    check(!inv.splitGold(0, 10, hand), "only into an empty hand");
+    hand.reset();
+    check(inv.splitGold(0, 380, hand) && hand && hand->count == 380 && inv.bag().empty(), "all of it takes the stack");
+    sf::ShopStock stock;
+    stock.add({&kGold, 900});
+    hand.reset();
+    check(sf::splitGold(stock.goods, 0, 899, &kGold, hand) && stock.goods[0].item.count == 1 && hand->count == 899,
+          "a warehouse stack splits the same way");
+    hand.reset();
+    stock.add({&kSword});
+    check(!sf::splitGold(stock.goods, 1, 1, &kGold, hand), "only gold splits");
+}
+
+// The Giant Warehouse's pages are saved one by one.
+void testGiantStorageSave() {
+    sf::ItemTable table;
+    auto sword = kSword;
+    sword.code = 9;
+    table.items = {sword};
+    std::array<sf::ShopStock, sf::kGiantStoragePages> pages;
+    pages[0].add({&table.items[0]});
+    pages[7].goods.push_back({{&table.items[0]}, 4, 3});
+    sf::SaveGame save;
+    save.map = "a";
+    save.storeGiantStorage(pages);
+    std::array<sf::ShopStock, sf::kGiantStoragePages> loaded;
+    check(sf::SaveGame::parse(save.write()).restoreGiantStorage(loaded, table) == 0, "the Giant Warehouse loads");
+    check(loaded[0].goods.size() == 1 && loaded[7].goods.size() == 1 && loaded[7].goods[0].x == 4 && loaded[7].goods[0].y == 3 &&
+              loaded[3].goods.empty(),
+          "each page keeps its own items where they were");
+}
+
 int main() {
     testSpecialItems();
     testItemSounds();
@@ -891,8 +1054,12 @@ int main() {
     testTransferBox();
     testWearRepairIdentify();
     testModifiers();
+    testOpenPackLoot();
     testWornWeight();
     testGoldInBag();
+    testWeaponSets();
+    testGoldSplit();
+    testGiantStorageSave();
     if (failures == 0) std::puts("all inventory tests passed");
     return failures == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }

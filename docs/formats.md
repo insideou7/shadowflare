@@ -541,6 +541,14 @@ allow (our engine clears them each roll, except in original mode); and a
 roll whose pick matches nothing makes whatever item the previous roll
 made, or a stale one, which we do not reproduce (it drops nothing).
 
+Rarity comes from the drop weights alone: nearly every pick allows any
+quality, and most equipment records are magic ones (1016 of the 1264
+weapons are a base weapon with a prefix and its modifier ranges, 188 are
+uniques). Weighed by drop weight, a monster's equipment drop is magic
+about 90% of the time, unique 1-3% and normal 5-25% (table 31 row 101,
+item level 1-2: 29% normal, 71% magic; row 138, levels 24-37: 8% normal,
+90% magic, 2% unique). There are no other tiers.
+
 The belt pocket (player +0x518) is a 4 x 2 grid of consumables on the
 panel: the top row's cells start at screen (357, 413), the bottom row's
 at (405, 445), 32 pixels each (0x445bd0, 0x44a5f0). Picking up a
@@ -599,6 +607,27 @@ back to event 0. Distances are gaps between the two collision boxes.
 | 11 | walk home |
 
 Speeds are multiplied by the monster's speed (word 77) / 1000.
+Durations and speeds count the original's ticks, 30 a second: walking
+home (0x45c900) hands the path mover (0x454210) the list's walk speed x
+word 77 / 1000 as the distance to cover each tick, and gives up after 90
+ticks. Most lists approach at 15 to 25 a tick, golems at 5 and dragons
+up to 70.
+
+### How fast the hero moves
+
+The path mover (0x454930) steps `speed` world units a tick along the line
+to the target. The hero's speed is set whenever the stats change
+(0x450080): walking speed / 32 + 1, kept to 0-9, picks a step (0x450d40)
+of the scale {2/3, 3/4, 4/5, 5/6, 6/7, 1, 7/6, 6/5, 5/4, 4/3}; the walk
+is 20 (0x475200) x that step, cut to a whole number, and the run twice the
+walk. A new hero's 128 is step 5: 20 walking and 40 running. Wearing more
+than strength can carry (0x445630, the weight of the worn items) makes it
+step 0, 13 and 26; the swing (0x450c60) and the chant (0x450cd0) drop to
+step 0 the same way. In power mode (+0x1554) the walk and run code
+(0x4351f0, 0x435530) use step 9 instead, 20 or 40 (0x475208) x 4/3: 26
+and 53, and so do the swing and the chant. The walking setting (+0x494)
+is 0 walk, 1 run, 2 run only when the target is 1000 or more away
+(0x443490). The companion moves at its stat / 5 a tick (0x454210).
 
 ## Tables: `System/Game/Parameter/Table.Tbd` (`RKC_RPG_TABLE::ReadBinaryFile`)
 
@@ -737,6 +766,32 @@ The elemental modifiers add to the item's elements (0x44fe30). Table 34
 prices them: its first 8 numbers per point of each elemental modifier,
 the next 39 per point of each modifier (modifier 16 on a weapon counts
 as |1 - value|). Saves keep the rolled numbers after the item's wear.
+
+Modifiers at work: every third tick (0x44f2f0, the player's own
+character only) Life Recovery, plus 5 while the Spiritual Heraldry
+(special 98000003) is carried, gives back that many hundredths of a
+percent of the maximum health while the hero lives, never taking it
+below 1; Mental Recovery, plus 5 with the Demon Fang (98000004), plus
+Berserker's and Moon's drains (+0x15dc, +0x15e4), does the same for
+mental power, down to 0, after which Berserker and Moon end (0x443490).
+Fractions carry over in +0x1638 and +0x163c. A monster's blow on the
+hero (0x443cb0) rolls Reflection (0x44f7a0): the Generation of
+Reflection modifiers of everything worn, broken items too, added up as a
+chance in percent, and if it comes up the Reflection Rate of those items
+with a chance; Counter Burst's power adds to it. That share of the blow
+goes back to the monster (half where its word 7 is 100, at least 1), with
+sound 0x3c and option 20014 at the hero, or Counter Burst's own effect.
+Each blow and shot of the hero rolls Absorption the same way (0x44f990,
+Incidents of Absorption and Absorption Rate) into the blow (+0x9c); the
+monster hit then sends five orbs (option 20013, which shows 11000012) to
+the hero with sound 0x3d (0x459690). We found nothing that gives the hero
+health for them; our engine does unless in original mode.
+
+An item's picture carries marks in its bottom right corner (0x465cb0):
+Status.njp pattern 0x11, a question mark, while it is unidentified, and
+above it pattern 0x10, a crack, when a weapon or armour is broken,
+blinking (8 ticks in 16) while less than a tenth of its durability is
+left.
 
 Each item the game makes keeps its own durability left (+0xbc, out of
 +0xb8 from the record) and an identified flag (+0x1c). Magic and unique
@@ -1006,6 +1061,69 @@ it to the town warehouse, wherever the hero is:
 - An item kept on a special items page (item word 0x7c) goes back to its
   place on that page instead, unless one like it is there already, and
   never to the warehouse (see below).
+
+The mine picture above it, (336, 88)-(381, 133), answers 11: a click with
+an empty hand takes one mine off the count into the hand (silently), and
+one with a mine in the hand puts it back while the count has room, with
+the item's put-down sound.
+
+## Weapon sets, the Giant Warehouse and the gold split box
+
+**Weapon sets** (0x406aa0, 0x451930). The item window has two small tabs,
+I and II, under the weapon slot at (490, 145) and (513, 145) and the same
+under the shield slot at y = 257 (Status.njp patterns 0x5f-0x64: I, II
+and a bar, red for the set in use, then blue for the other). The set not
+in use keeps its weapon and shield aside (player +0x50c and +0x510). A
+left click on the other set's tab, on either row, or Caps Lock (between
+blows and spells: 0x4429b0 waits for the attack to end, flag 0x48d7d0)
+changes sets: the weapon and the shield trade places with the ones kept
+aside. The tab plays 0x3a; Caps Lock is silent.
+
+A right click on the tab in use while its slot is empty shares that slot
+(flags 0x48d7c0-0x48d7cc: set I weapon, set II weapon, set I shield, set II
+shield): the other set's item comes over, and changing sets leaves the
+slot alone, so both sets use it. Its tab shows the bar. While its own
+flag is set the slot can't be changed (0x446320 cases 3 and 4); the other
+set's flag doesn't lock it, so from that set the slot can still be used.
+Another right click on the sharing set's tab ends it and sends what is in
+the slot to the other set. The set in use and the four flags are saved
+with the game (0x44b580).
+
+**The Giant Warehouse** (0x447ca0, drawn by 0x404760). STORAGE takes a
+number: 0 opens the town warehouse (player +0x51c, the one the Warehouse
+Transfer Box fills), anything else the Giant Warehouse, used only by the
+Tower of Ordeal's 12th floor (Scenario/99000013). It has ten pages of 9 x
+10 (player +0x520), chosen by tabs I-X at (24 + 24n, 41), and a close
+button at (272, 40)-(295, 55). Status.njp pattern 0x49 is its header over
+the warehouse window (patterns 14 and 15); each tab is 0x55 + n for the
+page in view, 0x4b + n for another open page and 0x4a for a page not open
+yet. Pages I and II are open from the start (0x440f70); the others open
+when a script sets EXSTRG n (operand type 13, player +0x55c) to 1: pages
+III, V, VI, VII, VIII and IX by quests in areas 3 and 4 (Scenario/03900001,
+99000018, 04900001, 04900002, 99000023) and IV and X in Scenario/02200000
+and 03900003. Choosing a page or closing plays 0x3a.
+
+In either warehouse a right click off the cells closes it. On the cells,
+a right click on gold opens the gold split box and one on a consumable
+uses it (0x44a240), as in the bag.
+
+**The gold split box** (0x441ab0; settled at 0x4429b0). A right click on a
+stack of gold in the bag or a warehouse with an empty hand opens a small
+number box 24 pixels up and left of the pointer, showing the stack's
+amount. Enter takes the amount typed: less than the stack makes a new
+Gold item of that much in the hand and leaves the rest; exactly the stack
+takes the stack; anything else (more, nothing, not a number) takes
+nothing. Taking gold plays its item sound, 0x55.
+
+**Saving** (0x4103c0). SAVE AND RETURN TO TITLE and SAVE AND EXIT ask
+"Return to the Title Screen?" or "Is it O.K. to exit the game?" with YES
+at (336, 202) and NO at (384, 202) in place of the menu's rows, lit blue
+under the pointer. YES plays 0x38 and saves; NO plays 0x37 and goes back
+to the menu.
+
+**The magic window's bar** (0x44a8f0). A right click on one of its eight
+slots empties it, with 0x39 (nothing for an empty one); a right click
+anywhere else on the window closes it.
 
 The open pack draws its own box, an iron-strapped oak strongbox, as part
 of the panel, and frame 6 of Inventory.sheet is the same box lit up.

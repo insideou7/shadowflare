@@ -101,7 +101,21 @@ void Game::closeMagicWindow() {
 bool Game::magicWindowClick(int x, int y, bool right) {
     if (!magicOpen_) return false;
     if (x >= 320 || y >= kAboveBar) return false;
-    if (right) return true;
+    if (right) {
+        // A right click on a slot of the window's bar empties it, with 0x39;
+        // anywhere else it closes the window (0x44a8f0).
+        for (int slot = 0; slot < kSpellBarSize; ++slot) {
+            if (!inside(barSlot(slot), x, y)) continue;
+            int& spell = spells_.bar[static_cast<std::size_t>(slot)];
+            if (spell != -1) {
+                spell = -1;
+                playSound(0x39);
+            }
+            return true;
+        }
+        closeMagicWindow();
+        return true;
+    }
     // The tab and the page buttons click with 0x3a, taking up a spell
     // with 0x39 (0x447790).
     if (y < kTabBottom && x < 160) {

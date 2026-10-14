@@ -143,6 +143,23 @@ std::string SaveGame::write() const {
             out += std::format("wear={},{},{},{}{}\n", slot, e->cls, e->code, e->count, condition(*e));
         }
     }
+    // weapon_set=set in use,shared parts x 4; spare=part (0 weapon, 1
+    // shield),class,code,count... for the other set's.
+    if (weaponSet != 0 || std::ranges::any_of(sharedParts, [](bool b) { return b; })) {
+        out += std::format("weapon_set={},{},{},{},{}\n", weaponSet, sharedParts[0] ? 1 : 0, sharedParts[1] ? 1 : 0,
+                           sharedParts[2] ? 1 : 0, sharedParts[3] ? 1 : 0);
+    }
+    for (int part = 0; part < 2; ++part) {
+        if (const auto& e = spare[static_cast<std::size_t>(part)]) {
+            out += std::format("spare={},{},{},{}{}\n", part, e->cls, e->code, e->count, condition(*e));
+        }
+    }
+    // giant=page,class,code,count,x,y...
+    for (int page = 0; page < kGiantStoragePages; ++page) {
+        for (const auto& e : giantStorage[static_cast<std::size_t>(page)]) {
+            out += std::format("giant={},{},{},{},{},{}{}\n", page, e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
+        }
+    }
     return out;
 }
 
@@ -249,6 +266,20 @@ SaveGame SaveGame::parse(std::string_view text) {
             const auto v = numbers(value, 4, lineNumber, 6 + kMaxModifierNumbers);
             if (v[0] < 0 || v[0] >= kEquipSlotCount) throw FormatError(std::format("save line {}: no slot {}", lineNumber, v[0]));
             save.equipped[static_cast<std::size_t>(v[0])] = readRef({v.begin() + 1, v.end()}, 0, lineNumber);
+        } else if (key == "weapon_set") {
+            const auto v = numbers(value, 5, lineNumber);
+            save.weaponSet = v[0] == 1 ? 1 : 0;
+            for (std::size_t i = 0; i < 4; ++i) save.sharedParts[i] = v[1 + i] != 0;
+        } else if (key == "spare") {
+            const auto v = numbers(value, 4, lineNumber, 6 + kMaxModifierNumbers);
+            if (v[0] < 0 || v[0] > 1) throw FormatError(std::format("save line {}: no weapon set part {}", lineNumber, v[0]));
+            save.spare[static_cast<std::size_t>(v[0])] = readRef({v.begin() + 1, v.end()}, 0, lineNumber);
+        } else if (key == "giant") {
+            const auto v = numbers(value, 6, lineNumber, 8 + kMaxModifierNumbers);
+            if (v[0] < 0 || v[0] >= kGiantStoragePages) throw FormatError(std::format("save line {}: no page {}", lineNumber, v[0]));
+            const std::vector<long long> rest(v.begin() + 1, v.end());
+            save.giantStorage[static_cast<std::size_t>(v[0])].push_back(
+                {readRef(rest, 2, lineNumber), static_cast<int>(rest[3]), static_cast<int>(rest[4])});
         }  // unknown keys are skipped, so newer saves still mostly load
     }
     if (!versioned) throw FormatError("not a saved game");
@@ -275,6 +306,12 @@ void SaveGame::store(const Inventory& inventory) {
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {
         const auto& worn = inventory.equipped(static_cast<EquipSlot>(slot));
         equipped[static_cast<std::size_t>(slot)] = worn ? std::optional(ref(*worn)) : std::nullopt;
+    }
+    weaponSet = inventory.weaponSet();
+    for (int part = 0; part < 2; ++part) {
+        const auto& aside = inventory.spare(part);
+        spare[static_cast<std::size_t>(part)] = aside ? std::optional(ref(*aside)) : std::nullopt;
+        for (int set = 0; set < 2; ++set) sharedParts[static_cast<std::size_t>(part * 2 + set)] = inventory.shared(part, set);
     }
 }
 
@@ -309,6 +346,16 @@ int SaveGame::restore(Inventory& inventory, const ItemTable& items) const {
             ++skipped;
         }
     }
+    std::array<std::optional<Item>, 2> aside;
+    for (std::size_t part = 0; part < 2; ++part) {
+        if (!spare[part]) continue;
+        if (const ItemDef* def = find(*spare[part])) {
+            aside[part] = toItem(def, *spare[part]);
+        } else {
+            ++skipped;
+        }
+    }
+    inventory.setWeaponSets(weaponSet, sharedParts, aside);
     // A counter's gold goes back, into the bag where there is a Gold item.
     if (gold > 0 && !inventory.addGold(gold)) ++skipped;
     return skipped;
@@ -319,10 +366,12 @@ void SaveGame::storeStorage(const ShopStock& stock) {
     for (const auto& g : stock.goods) storage.push_back({ref(g.item), g.x, g.y});
 }
 
-int SaveGame::restoreStorage(ShopStock& stock, const ItemTable& items) const {
+namespace {
+
+int restoreGoods(const std::vector<SaveGame::BagEntry>& entries, ShopStock& stock, const ItemTable& items) {
     stock.goods.clear();
     int skipped = 0;
-    for (const auto& e : storage) {
+    for (const auto& e : entries) {
         const ItemDef* def = items.find(static_cast<ItemDef::Class>(e.item.cls), e.item.code);
         if (!def || !stock.fits(def->width, def->height, e.x, e.y)) {
             ++skipped;
@@ -330,6 +379,23 @@ int SaveGame::restoreStorage(ShopStock& stock, const ItemTable& items) const {
         }
         stock.goods.push_back({toItem(def, e.item), e.x, e.y});
     }
+    return skipped;
+}
+
+}  // namespace
+
+int SaveGame::restoreStorage(ShopStock& stock, const ItemTable& items) const { return restoreGoods(storage, stock, items); }
+
+void SaveGame::storeGiantStorage(const std::array<ShopStock, kGiantStoragePages>& pages) {
+    for (std::size_t p = 0; p < pages.size(); ++p) {
+        giantStorage[p].clear();
+        for (const auto& g : pages[p].goods) giantStorage[p].push_back({ref(g.item), g.x, g.y});
+    }
+}
+
+int SaveGame::restoreGiantStorage(std::array<ShopStock, kGiantStoragePages>& pages, const ItemTable& items) const {
+    int skipped = 0;
+    for (std::size_t p = 0; p < pages.size(); ++p) skipped += restoreGoods(giantStorage[p], pages[p], items);
     return skipped;
 }
 

@@ -62,12 +62,17 @@ struct Rules {
     // original names only the item under the pointer (0x40ee70); it reads
     // Alt with its other keys but does nothing with it.
     bool groundItemNames = true;
+    // Absorption modifiers give the hero back their rate's share of a blow
+    // as health when their chance comes up. The original only sends five
+    // orbs from the monster to the hero (0x459690); we found no code that
+    // gives the hero anything for them.
+    bool absorptionHeals = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
                !outlineUnderPointer && !rightClickSells && !rightClickEquips &&
-               !noEmptyGoldInWarehouse && !groundItemNames;
+               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -84,6 +89,7 @@ struct Rules {
         r.rightClickEquips = false;
         r.noEmptyGoldInWarehouse = false;
         r.groundItemNames = false;
+        r.absorptionHeals = false;
         return r;
     }
 };

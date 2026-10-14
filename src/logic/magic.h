@@ -271,15 +271,20 @@ struct PowerMode {
 // Spells that cannot be cast while the mode runs.
 bool blockedInPowerMode(int spell);
 
-// How fast the hero walks or runs, as a factor of the plain speed: walking
-// speed / 32 + 1 picks a step (0x450d40) of the scale the walk and run code
-// multiply by (0x4351f0, 0x435530); step 9 in power mode. A new hero's 128
-// is step 5, a factor of 1.
-double walkSpeedFactor(int walkSpeed, bool powerMode = false);
+// How far the hero walks or runs in one of the original's ticks, in world
+// units. Walking speed / 32 + 1 picks a step (0x450d40) of a scale from 2/3
+// to 4/3, and the walk is 20 times it, cut to a whole number, and the run
+// twice that (0x450080). A new hero's 128 is step 5: 20 a tick walking and
+// 40 running. In power mode the walk and run code take the top step and
+// multiply 20 or 40 by it (0x4351f0, 0x435530): 26 and 53. Wearing more
+// than the hero's strength can carry drops to the bottom step (0x445630):
+// 13 and 26.
+int heroMoveSpeed(int walkSpeed, bool running, bool powerMode = false, bool overloaded = false);
 // How fast the hero swings, likewise: table 4 at attack speed / 32, plus 1,
 // picks a step (0x450c60) of the swing's scale (0x437fe0); step 9 in power
-// mode. A new hero's 100 is step 5, a factor of 1.
-double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = false);
+// mode, step 0 when overloaded (as for walking). A new hero's 100 is step 5,
+// a factor of 1.
+double attackSpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = false, bool overloaded = false);
 // The hunter's volley in power mode plays the same chart on a faster scale
 // (0x438a90), up to 3 at the top step against the swing's 2.
 double volleySpeedFactor(const MagicTables& t, int attackSpeed, bool powerMode = true);
