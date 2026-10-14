@@ -90,6 +90,7 @@ struct Options {
         int slot = 0, dx = 0, dy = 0;
     };
     std::optional<Cast> cast;  // cast the spell on F1-F8 at a point from the player
+    std::optional<std::pair<int, int>> combo;  // a Warrior's combo or spin towards a point from the player
     struct Order {
         std::string kind;  // jump, dash or fetch
         int dx = 0, dy = 0;
@@ -202,6 +203,13 @@ Options parseArgs(int argc, char** argv) {
                 options.cast = cast;
             } else {
                 sf::log::warn("--cast expects slot:x,y");
+            }
+        } else if (arg == "--combo" && i + 1 < argc) {
+            int dx = 0, dy = 0;
+            if (std::sscanf(argv[++i], "%d,%d", &dx, &dy) == 2) {
+                options.combo = std::pair{dx, dy};
+            } else {
+                sf::log::warn("--combo expects x,y");
             }
         } else if (arg == "--spell" && i + 1 < argc) {
             if (std::sscanf(argv[++i], "%d:%d", &options.spell, &options.spellLevel) < 1) sf::log::warn("--spell expects n[:level]");
@@ -667,6 +675,7 @@ int main(int argc, char** argv) {
     if (options.press) app.game->pressLeftButton();
     if (options.spell >= 0) app.game->teachSpell(options.spell, options.spellLevel);
     if (options.cast) app.game->castBy(options.cast->slot - 1, options.cast->dx, options.cast->dy);
+    if (options.combo) app.game->comboBy(options.combo->first, options.combo->second);
     // After the cast, so a walk can follow it (into a Transport gate).
     if (options.walk) app.game->walkBy(options.walk->first, options.walk->second);
     if (options.companion) app.game->orderPartnerBy(options.companion->kind, options.companion->dx, options.companion->dy);

@@ -325,15 +325,18 @@ void Game::monsterSpellHitsPlayer(const Effect& e) {
     stun.angle = std::atan2(-(player_->y - e.y), player_->x - e.x);
     stun.pushed = !st.uncapped && inventory_.guardModifier(ItemDef::kModHighDamage) == 0;
     stunHero(stun);
-    if (stunKindOf(e.spell) == StunKind::Freeze) {
-        // The same ice as on a monster (the controllers 0x5217-0x521a).
-        spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
-        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
-        ice.followsPlayer = true;
-        ice.life = stun.total;
-        ice.then = kFreezeEnd;
-        playSound(0x77, player_->x, player_->y);
-    }
+    if (stunKindOf(e.spell) == StunKind::Freeze) iceOnHero(stun.total);
+}
+
+// The hero frozen in ice for `ticks`: the same ice as on a monster (the
+// controllers 0x5217-0x521a) and its crackle.
+void Game::iceOnHero(int ticks) {
+    spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
+    Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
+    ice.followsPlayer = true;
+    ice.life = ticks;
+    ice.then = kFreezeEnd;
+    playSound(0x77, player_->x, player_->y);
 }
 
 // The same on an ACTIVE companion: its magic evasion and magic defence,

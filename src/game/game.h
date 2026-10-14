@@ -17,6 +17,7 @@
 #include "audio/mixer.h"
 #include "game/character.h"
 #include "logic/ai_select.h"
+#include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -182,6 +183,7 @@ public:
     // Casts the chosen spell at a point given relative to the player on
     // screen, as the right button does (for scripted tests).
     void castBy(int slot, int screenDx, int screenDy);
+    void comboBy(int screenDx, int screenDy);  // a Warrior's combo towards a point (for tests)
     // Teaches a spell at a level and puts it on F1, with MP to spare (for tests).
     void teachSpell(int spell, int level);
     // Gives the companion a Tab order (jump, dash or fetch) at a point
@@ -743,6 +745,7 @@ private:
     void throwShot(Actor& enemy, int slot);
     void shotHitsPlayer(const Effect& e);
     void shotHitsPartner(const Effect& e);
+    void iceOnHero(int ticks);
     // A stun from a trap's blow (0x443cb0, 0x45f9f0): held in the hit pose
     // for `total` original ticks, pushed away from the blow unless steady.
     struct Stun {
@@ -870,6 +873,7 @@ private:
         bool explosion = false; // the jump is the hero's Explosion spell (state 10)
         double dashAngle = 0, dashSpeed = 0;
         int hitPause = 0;       // the dash stops a moment after a hit (+0x250)
+        double idleTicks = 0;   // original ticks standing by the hero (+0x22c)
         int restDirection = 0;  // its facing before a jump
         std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
@@ -878,6 +882,7 @@ private:
     // `before` shows it (partner.cpp).
     static std::vector<int> partnerLayers(const CharacterModel& m, const std::vector<int>& before = {});
     void changePartner(int kind);
+    void tickPartnerIdle();
     void refreshPartnerStats();
     void togglePartnerMode();
     bool partnerAlive() const;
@@ -1182,6 +1187,37 @@ private:
         std::vector<std::size_t> volleyTargets;
     };
     std::optional<BowShot> bowShot_;  // original ticks into the glow (+0x1558)
+    // The Warrior's combo or axe spin under way (combat.cpp, player states
+    // 11-18, 0x4364e0-0x437910).
+    struct Combo {
+        WarriorMove move = WarriorMove::Sword;
+        int blow = 1;            // the combo's blow, 1-3 (the spin has one)
+        int count = 0;           // original ticks into the blow (+0x30c)
+        int frame = 0;           // the frame it has reached (+0x308)
+        int lastFrame = -1;      // the frame of the tick before (+0x310)
+        bool struck = false;     // the blow has fallen (+0x1610)
+        int lungeTick = 0;       // original ticks of lunging (+0x1614 / 10)
+        double dx = 0, dy = 1;   // where the hero aims, a unit vector in world units (+0x1268)
+        int facing = 0;          // the hero's facing, kept while chart 22 has none
+        double carry = 0;        // original ticks still to run
+    };
+    std::optional<Combo> combo_;
+    // A Warrior's attack towards (wx, wy) as their combo or spin; false when
+    // the hero is no Warrior or has no sword, great sword or axe in hand.
+    bool startCombo(double wx, double wy);
+    void tickCombo();
+    void comboTick(Combo& c);
+    void comboBlow(const Combo& c);
+    // Blows that do not stun the hero now: their combo's first two blows
+    // and the spin (0x443cb0 zeroes the chance in states 11-14).
+    bool heroSteadyInCombo() const;
+    // The stun a blow of the hero's gives a monster (0x459690): table 25 by
+    // how much of its health the blow took, plus the weapon's or the move's
+    // own, plus table 24 for the hero's level in its opposite element.
+    void heroBlowStun(Actor& enemy, int damage, int chance, int length, bool uncapped);
+    // The Elixir (special item 98000000): a hero brought to 0 health with one in the bag
+    // gets up again at full health and mental power (0x443cb0).
+    bool reviveWithElixir();
     bool magicOpen_ = false;
     int magicPage_ = 0;        // 0-3, six spells each (0xa93c)
     int dragSpell_ = -1;       // the spell being dragged to the bar (0xa710)

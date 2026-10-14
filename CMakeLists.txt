@@ -41,6 +41,7 @@ add_library(sf_logic STATIC
     src/logic/script_runner.cpp
     src/logic/traps.cpp
     src/logic/archery.cpp
+    src/logic/combat.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
     src/logic/inventory.cpp
@@ -83,6 +84,7 @@ add_executable(shadowflare
     src/game/spells.cpp
     src/game/traps.cpp
     src/game/archery.cpp
+    src/game/combat.cpp
     src/game/mines.cpp
     src/game/options.cpp
     src/game/partner.cpp

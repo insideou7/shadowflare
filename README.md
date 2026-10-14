@@ -141,6 +141,8 @@ Options:
   screen pixels from the player, e.g. `--level 3 --cast 1:120,0`
 - `--spell <n>[:<level>]` teach spell n (0-21, the original's numbering) at
   that level and put it on F1, e.g. `--spell 3:10 --cast 1:200,60` for Plasma
+- `--combo <x>,<y>` a Warrior's combo (sword or great sword) or spin (axe or mace) towards
+  a point in screen pixels from the player, e.g. `--level 6 --class warrior --equip 0:0 --combo 120,0`
 - `--no-menu` skip the main menu (it is also skipped when any of the options above is given)
 - `--options` / `--help-window` start with the Settings Menu or the Help window open
 - `--options-file <path>` read and write the options there instead of `options.txt`
