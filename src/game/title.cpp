@@ -89,6 +89,11 @@ void Game::newGame() {
     flags_.clear();
     // The first gate, Remote Town's, is known from the start (0x4412dc).
     flags_[{ScenarioScript::kWarp, 0}] = 1;
+    // Pages I and II of the Giant Warehouse are open from the start (0x440f70).
+    flags_[{ScenarioScript::kExtraStorage, 0}] = 1;
+    flags_[{ScenarioScript::kExtraStorage, 1}] = 1;
+    giantStorage_ = {};
+    giantPage_ = 0;
     closeWarpWindow();
     explored_.clear();
     mapOpen_ = false;

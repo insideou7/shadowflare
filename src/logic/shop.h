@@ -45,6 +45,12 @@ struct ShopStock {
 // items picked by drop weight among those that match, from any of weapons,
 // armour and accessories when the class is -1. Items that do not fit are
 // left out.
+// The Giant Warehouse (STORAGE with 1, the tower's): ten pages of 9 x 10,
+// chosen by the tabs I-X along its top (ShadowFlare.exe 0x447ca0, player
+// +0x520). Pages I and II are open from the start (0x440f70); a script
+// opens the others by setting EXSTRG n (operand type 13, player +0x55c) to 1.
+inline constexpr int kGiantStoragePages = 10;
+
 ShopStock stockShop(const GameTables& tables, const ItemTable& items, int list, Random& random);
 
 // What a shop asks for an item, its value with its modifiers, and what it

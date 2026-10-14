@@ -54,6 +54,14 @@ struct SaveGame {
     std::vector<BagEntry> belt;     // the belt pocket, cells of its 4 x 2 grid
     std::vector<BagEntry> storage;  // the warehouse (STORAGE), cells of its 9 x 10 grid
     std::array<std::optional<ItemRef>, kEquipSlotCount> equipped;
+    // The weapon set in use, which parts are shared (Inventory::shared, set
+    // I weapon, set II weapon, set I shield, set II shield) and the other
+    // set's weapon and shield.
+    int weaponSet = 0;
+    std::array<bool, 4> sharedParts{};
+    std::array<std::optional<ItemRef>, 2> spare;
+    // The Giant Warehouse (STORAGE 1): its ten pages, cells of 9 x 10 grids.
+    std::array<std::vector<BagEntry>, kGiantStoragePages> giantStorage;
     ScriptFlags flags;  // the persistent scenario flags
     std::optional<SpellBook> spells;  // none in saves from before magic
     std::array<bool, kSpellCount> spellsOn{};  // toggle spells that are on
@@ -75,6 +83,8 @@ struct SaveGame {
     void store(const Inventory& inventory);
     int restoreStorage(ShopStock& stock, const ItemTable& items) const;
     void storeStorage(const ShopStock& stock);
+    int restoreGiantStorage(std::array<ShopStock, kGiantStoragePages>& pages, const ItemTable& items) const;
+    void storeGiantStorage(const std::array<ShopStock, kGiantStoragePages>& pages);
 };
 
 }  // namespace sf

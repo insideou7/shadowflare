@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The interface pictures for the open content pack.
 
-    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map]
+    python3 tools/art/ui.py <content pack folder> [inventory shop balloon font missions compasses map tabs]
 
 Draws, in the style of the original but from scratch:
 
@@ -34,6 +34,11 @@ Draws, in the style of the original but from scratch:
 - the compass the area's name is shown beside on arrival: a bronze rose
   in a ring, seen at a slant, shrinking over eight frames as the
   original's does. Player/Common/compasses (.anim and .sheet).
+- the tabs: the Giant Warehouse's header with ten sockets and a close
+  button over the top of the shop window, its page tabs I-X (plain, lit,
+  and blank for pages not open yet), and the weapon set tabs I, II and
+  shared under the item window's weapon and shield slots.
+  System/Game/Pattern/Tabs.
 - the area map's window: the same stone and iron with a hole the map shows
   through, a gem by the area's name, the hero's arrow and a PLAYER label
   (src/game/area_map.cpp). System/Game/Pattern/Map.
@@ -807,17 +812,132 @@ def font(out):
                 "The font: 6 x 12 cells by byte value, 16 to a row.")
 
 
+# The Giant Warehouse's header (talk.cpp): tabs I-X 24 apart from (24, 41)
+# and the close button; and the weapon set tabs under the item window's
+# weapon and shield slots (items.cpp).
+GIANT_TAB = (24, 41, 24)  # x, y of tab I, then the step
+GIANT_CLOSE = (272, 40, 296, 56)
+ROMAN = {
+    "I": ["#"] * 7,
+    "V": ["#...#", "#...#", ".#.#.", ".#.#.", ".#.#.", "..#..", "..#.."],
+    "X": ["#...#", ".#.#.", ".#.#.", "..#..", ".#.#.", ".#.#.", "#...#"],
+}
+NUMERALS = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
+
+
+def roman(img, text, cx, y0, colour):
+    """Roman numerals 7 pixels tall, one pixel apart, centred on cx."""
+    width = sum(len(ROMAN[c][0]) for c in text) + len(text) - 1
+    x = cx - width // 2
+    for c in text:
+        rows = ROMAN[c]
+        for y, row in enumerate(rows):
+            for dx, bit in enumerate(row):
+                if bit == "#":
+                    img.putpixel((x + dx, y0 + y), colour)
+        x += len(rows[0]) + 1
+
+
+def giant_header():
+    """The top 72 rows of the shop window with a band of ten sockets for
+    the tabs and a bronze close button marked with an X."""
+    canvas(320, 416)
+    p = Panel(8)
+    p.sunken(14, 12, W - 14, 68, depth=1.5, rim=True, floor=STONE * 0.7)
+    # A frieze of scrolls along the top of the band, as on the shop's.
+    frieze = inside(20, 15, W - 20, 27)
+    for k in range(0, W, 12):
+        cx, up = k + 6, (k // 12) % 2 == 0
+        d = np.hypot(xx - cx, yy - 21)
+        arc = (np.abs(d - 4.5) < 0.8) & ((yy < 21) if up else (yy > 21))
+        p.bronze(arc & frieze, 2.0)
+    p.bronze((np.abs(yy - 30.5) < 0.6) & inside(20, 0, W - 20, H), 1.5)
+    x0, y0, step = GIANT_TAB
+    for k in range(10):
+        x = x0 + k * step
+        p.sunken(x - 1, y0 - 1, x + 21, y0 + 24, depth=2, rim=False, floor=HOLLOW)
+    cx0, cy0, cx1, cy1 = GIANT_CLOSE
+    plate = inside(cx0, cy0, cx1, cy1)
+    p.colour[plate] = BRONZE * 0.6
+    p.height += 3 * box(cx0, cy0, cx1, cy1, 2)
+    for t in np.linspace(0, 1, 40):  # the X, cut into the plate
+        for px, py in ((cx0 + 8 + 8 * t, cy0 + 4 + 8 * t), (cx1 - 8 - 8 * t, cy0 + 4 + 8 * t)):
+            p.colour[int(round(py)), int(round(px))] = HOLLOW * 0.6
+            p.height[int(round(py)), int(round(px))] -= 1.5
+    gx, gy, cols, rows = GOODS
+    p.sunken(gx, gy, gx + cols * CELL, gy + rows * CELL, floor=MAROON)
+    return p.image().crop((0, 0, 320, 72))
+
+
+def page_tab(lit, text):
+    """A tab of the Giant Warehouse: a bronze-rimmed plate with its page's
+    numeral, brighter for the page in view; with no numeral, a page not
+    open yet."""
+    canvas(20, 23)
+    p = Panel(40 + (len(text) if text else 0) + 3 * lit)
+    p.colour[:] = BRONZE * (0.6 if lit else 0.4 if text else 0.25)
+    p.height[:] = 0
+    p.sunken(3, 3, 17, 20, depth=2, rim=False, floor=STONE * (0.8 if lit else 0.5 if text else 0.3))
+    img = p.image()
+    if text:
+        roman(img, text, 10, 8, (236, 214, 150, 255) if lit else (150, 128, 84, 255))
+    return img
+
+
+def set_tab(in_use, label):
+    """A weapon set tab, 21 x 7: warm rust for the set in use, slate for the
+    other, with I, II or a bar (shared) in pale ink."""
+    base = np.array([150, 70, 40]) if in_use else np.array([62, 70, 112])
+    img = Image.new("RGBA", (21, 7), (0, 0, 0, 0))
+    for y in range(7):
+        for x in range(21):
+            edge = x in (0, 20) or y in (0, 6)
+            shade = (0.55 if edge else 1.0) * (1.15 - 0.06 * y)
+            img.putpixel((x, y), tuple(int(c) for c in np.clip(base * shade, 0, 255)) + (255,))
+    ink = (240, 222, 170, 255) if in_use else (200, 204, 230, 255)
+    if label == "-":
+        for x in range(8, 13):
+            img.putpixel((x, 3), ink)
+    else:
+        strokes = len(label)
+        x0 = 10 - (strokes - 1)
+        for k in range(strokes):
+            for y in range(2, 5):
+                img.putpixel((x0 + 2 * k, y), ink)
+    return img
+
+
+def tabs(out):
+    parts = [giant_header(), page_tab(False, "")]
+    parts += [page_tab(False, n) for n in NUMERALS] + [page_tab(True, n) for n in NUMERALS]
+    parts += [set_tab(True, "I"), set_tab(True, "II"), set_tab(True, "-"), set_tab(False, "I"), set_tab(False, "II"), set_tab(False, "-")]
+    canvas(320, 416)
+    sheet = Image.new("RGBA", (320, 72 + 25 + 25 + 9), (0, 0, 0, 0))
+    sheet.paste(parts[0], (0, 0))
+    frames = [(0, 0, 320, 72, 0, 0)]
+    x, y = 0, 72
+    for k, img in enumerate(parts[1:]):
+        if k in (11, 21):  # the lit tabs, then the set tabs, on rows of their own
+            x, y = 0, y + (25 if k == 11 else 25)
+        sheet.paste(img, (x, y))
+        frames.append((x, y, img.width, img.height, 0, 0))
+        x += img.width + 2
+    write_sheet(out / "System/Game/Pattern", "Tabs", sheet, frames,
+                "The Giant Warehouse's header, its tab for a page not open yet, tabs I-X, tabs I-X lit; then the weapon set "
+                "tabs I, II and shared for the set in use, and the same for the other set.")
+
+
 def main():
     out = Path(sys.argv[1])
     only = set(sys.argv[2:])  # the names below, to redraw just those
     sheets = {"inventory": inventory, "shop": shop, "balloon": balloon, "font": font,
-              "missions": missions, "compasses": compasses, "map": area_map}
+              "missions": missions, "compasses": compasses, "map": area_map, "tabs": tabs}
     for name, draw in sheets.items():
         if not only or name in only:
             draw(out)
     # The panels to 256 colours, as the rest of the pack; the balloon and
     # the font have only a few already.
-    for name, png in (("inventory", "Inventory"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map")):
+    for name, png in (("inventory", "Inventory"), ("shop", "Shop"), ("missions", "Missions"), ("map", "Map"), ("tabs", "Tabs")):
         if not only or name in only:
             shrink.shrink(out / "System/Game/Pattern" / f"{png}.png")
     if not only or "compasses" in only:

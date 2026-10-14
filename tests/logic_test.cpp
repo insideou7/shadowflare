@@ -307,7 +307,8 @@ struct TestHost : sf::ScriptHost {
     void offerClass(int cls) override { chosenClass = cls; }
     int storages = 0;
     std::vector<Label> labels;
-    void openStorage() override { ++storages; }
+    int giantStorages = 0;
+    void openStorage(bool giant) override { ++(giant ? giantStorages : storages); }
     void showLabel(const Label& l) override { labels.push_back(l); }
     bool unidentified = true;
     std::vector<int> repaired;
@@ -375,6 +376,7 @@ void testScriptStorageAndLabels() {
     S script;
     script.messages[1000060] = "Remote Town";
     script.sentences = {{{S::kStorage, {raw(0)}},
+                         {S::kStorage, {constant(1)}},
                          {S::kMessageBox, {constant(10000200), constant(0), constant(-160), {S::kMessage, 1000060}, constant(224),
                                            constant(200), constant(100), raw(1000)}},
                          {S::kMessageBoxValue, {constant(10041000), constant(20), constant(-60), constant(29), constant(224),
@@ -383,6 +385,7 @@ void testScriptStorageAndLabels() {
     TestHost host;
     sf::ScriptRunner(script, flags, &host).run(0);
     check(host.storages == 1, "STORAGE opens the warehouse");
+    check(host.giantStorages == 1, "STORAGE 1 opens the Giant Warehouse");
     check(host.labels.size() == 2 && host.labels[0].text == "Remote Town" && host.labels[0].character == 10000200 &&
               host.labels[0].dy == -160 && host.labels[0].g == 200 && host.labels[0].duration == 1000,
           "MESSAGEBOX floats a message over a character");

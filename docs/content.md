@@ -30,6 +30,7 @@ original format.
 | `System/Game/Pattern/Status.njp` and `MapIcon.njp` (area map parts) | `System/Game/Pattern/Map.sheet` |
 | `Table.Tbd` table 40                  | `gates.txt`                              |
 | `System/Game/Pattern/Status.njp` (GATE window parts) | `System/Game/Pattern/Warp.sheet` |
+| `System/Game/Pattern/Status.njp` (Giant Warehouse header and tabs 0x49-0x5e, weapon set tabs 0x5f-0x64) | `System/Game/Pattern/Tabs.sheet` (frames 0-21, then 22-27) |
 | `System/Common/Pattern/Visual01-06.njp`, `Waiting.njp`, `WaitIcon.njp` (story pages) | the same names, `.sheet` + `.png` |
 | `Table.Tbd` tables 60 and 800-805     | `partners.txt`                           |
 | names, heights and colours in `Scenario.Mct` enemy placements | `enemies.txt` (by monster kind) |
