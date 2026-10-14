@@ -104,6 +104,8 @@ std::string_view sectionName(std::string_view line) { return trim(line.substr(1,
 
 }  // namespace
 
+void Image::Free::operator()(std::uint32_t* pixels) const { stbi_image_free(pixels); }
+
 Image decodeImage(std::span<const std::uint8_t> data) {
     int w = 0, h = 0, channels = 0;
     if (data.size() > static_cast<std::size_t>(INT32_MAX)) throw FormatError("image too large");
@@ -116,13 +118,16 @@ Image decodeImage(std::span<const std::uint8_t> data) {
     }
     image.width = w;
     image.height = h;
-    image.argb.resize(static_cast<std::size_t>(w) * h);
-    for (std::size_t i = 0; i < image.argb.size(); ++i) {
+    // Turned into 0xAARRGGBB where stb left them.
+    const std::size_t count = static_cast<std::size_t>(w) * static_cast<std::size_t>(h);
+    auto* argb = reinterpret_cast<std::uint32_t*>(pixels);
+    for (std::size_t i = 0; i < count; ++i) {
         const stbi_uc* p = pixels + i * 4;
-        image.argb[i] = (static_cast<std::uint32_t>(p[3]) << 24) | (static_cast<std::uint32_t>(p[0]) << 16) |
-                        (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
+        argb[i] = (static_cast<std::uint32_t>(p[3]) << 24) | (static_cast<std::uint32_t>(p[0]) << 16) |
+                  (static_cast<std::uint32_t>(p[1]) << 8) | p[2];
     }
-    stbi_image_free(pixels);
+    image.pixels.reset(argb);
+    image.argb = {argb, count};
     return image;
 }
 
@@ -166,10 +171,10 @@ SpriteBank makeSpriteBank(const Sheet& sheet, const Image& image) {
         part.bpp = 32;
         part.width = f.width;
         part.height = f.height;
-        part.argb.resize(static_cast<std::size_t>(f.width) * f.height);
+        part.argb.reserve(static_cast<std::size_t>(f.width) * f.height);
         for (int y = 0; y < f.height; ++y) {
             const auto* row = image.argb.data() + static_cast<std::size_t>(f.y + y) * image.width + f.x;
-            std::copy(row, row + f.width, part.argb.begin() + static_cast<std::ptrdiff_t>(y) * f.width);
+            part.argb.insert(part.argb.end(), row, row + f.width);
         }
         Pattern pattern;
         PatternPart placed;

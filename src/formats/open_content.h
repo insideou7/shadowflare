@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
@@ -26,11 +27,16 @@
 // formats are described in docs/content.md.
 namespace sf::open {
 
-// A decoded image, 0xAARRGGBB, top row first.
+// A decoded image, 0xAARRGGBB, top row first. The pixels stay where the
+// decoder put them: our sheets are big, and copying them is slow.
 struct Image {
+    struct Free {
+        void operator()(std::uint32_t* pixels) const;
+    };
     int width = 0;
     int height = 0;
-    std::vector<std::uint32_t> argb;
+    std::unique_ptr<std::uint32_t, Free> pixels;
+    std::span<const std::uint32_t> argb;  // the pixels
 };
 
 // Decodes a PNG (or any format stb_image reads). Throws FormatError.

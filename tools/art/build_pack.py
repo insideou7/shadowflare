@@ -13,6 +13,7 @@ The game's own content/ is this pack, shrunk to 256-colour pictures:
 
     python3 tools/art/build_pack.py <rendered art folder> content
     python3 tools/art/shrink.py content
+    python3 tools/art/trim_sheets.py content
 """
 
 import shutil

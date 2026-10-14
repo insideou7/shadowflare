@@ -568,6 +568,7 @@ with Pillow and numpy:
     python tools/art/props.py /tmp/art/props                # script in tools/art
     python3 tools/art/build_pack.py /tmp/art content
     python3 tools/art/shrink.py content
+    python3 tools/art/trim_sheets.py content
 
 The hero and the goblin are MakeHuman bodies (MPFB 2, whose base mesh,
 targets, rig and weights are CC0) rather than simple shapes, with armour
@@ -580,7 +581,11 @@ which is run but not copied:
 `build_pack.py` writes the ground, floors, props and text files
 (`tools/content/first_area.py` and `enemy_stats.py` then lay out the maps);
 `shrink.py` turns the renders into 256-colour pictures, as the original's
-are, which keeps content/ about a tenth of the size. The item pictures
+are, which keeps content/ about a tenth of the size. `trim_sheets.py` then
+cuts the see-through space from round each character frame (only after
+shrinking does it show: the renders' faint shadow haze fills each frame)
+and packs the frames tightly, so the game loads a character's sheet about
+five times faster. The item pictures
 and the interface (inventory panel, shop window, speech balloon, area map window and
 font) are kept in content/ and rebuilt on their own:
 
