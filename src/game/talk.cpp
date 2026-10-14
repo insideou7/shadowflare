@@ -798,6 +798,7 @@ void Game::renderShop() {
             frame(renderer_, r, {60, 55, 70, 255}, {120, 110, 90, 255});
         }
         drawItemPicture(*g.item.def, r);
+        drawItemMarks(g.item, r);
         if (inside(r, mx, my)) hover = &g.item;
     }
     // What the item under the mouse costs, or what the held one sells for,

@@ -1,0 +1,5 @@
+# Drawn by tools/art/ui.py (our own art, see content/README.md).
+# The marks on item pictures: not yet identified, worn out or broken.
+image=ItemMarks.png
+frame=0,0,14,15,0,0
+frame=16,0,14,15,0,0

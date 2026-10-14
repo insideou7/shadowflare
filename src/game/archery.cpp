@@ -224,7 +224,9 @@ bool Game::shotStrikes(Effect& e, Actor& enemy) {
     if (random_.next(100) >= hitChance(s.hit, st.evasion)) return false;
     playSound(e.hitSound, e.x, e.y);
     if (s.hitOption > 0) spawnEffect(s.hitOption, enemy.character.x, enemy.character.y);
-    hurtEnemy(enemy, heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, random_.next(3)));
+    const int damage = heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, random_.next(3));
+    absorbFrom(enemy, damage);
+    hurtEnemy(enemy, damage);
     return true;
 }
 
