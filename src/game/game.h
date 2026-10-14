@@ -352,6 +352,8 @@ private:
     void indexScenarios();
     bool readScenario(const std::string& dir, ScenarioControl& control, std::optional<ScenarioScript>* script) const;
     void spawnActors();
+    // Every layer of a model's first chart: what non-player characters wear.
+    static std::vector<int> allLayers(const CharacterModel& m);
     void changeScenario(int number, int entry);
     void goToStart();
     void checkTriggers(bool fire = true);
@@ -817,6 +819,9 @@ private:
         std::optional<Stun> stun;  // a trap's stun holds it in its hit pose
     };
     void spawnPartner();
+    // The partner's layers in its model: all but the dash streak, unless
+    // `before` shows it (partner.cpp).
+    static std::vector<int> partnerLayers(const CharacterModel& m, const std::vector<int>& before = {});
     void changePartner(int kind);
     void refreshPartnerStats();
     void togglePartnerMode();

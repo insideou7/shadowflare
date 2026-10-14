@@ -298,10 +298,18 @@ void Game::setOurArt(bool on) {
     skin_ = on ? ownedSkin_.get() : nullptr;
     auto swap = [&](Character& c) {
         const auto found = stems.find(c.model());
-        if (found == stems.end()) return;
-        if (const CharacterModel* m = model(found->second)) c.setModel(m);
+        if (found == stems.end()) return false;
+        const CharacterModel* m = model(found->second);
+        if (m) c.setModel(m);
+        return m != nullptr;
     };
-    for (auto& a : actors_) swap(a.character);
+    // The two arts' models can have different layers (ours are one
+    // picture, the original's are a figure in parts), so the people and
+    // monsters wear every layer of the new one, as when they appear.
+    auto swapActor = [&](Actor& a) {
+        if (swap(a.character)) a.character.visibleLayers = allLayers(*a.character.model());
+    };
+    for (auto& a : actors_) swapActor(a);
     for (auto& o : sceneObjects_) {
         if (o.animation) swap(*o.animation);
     }
@@ -309,12 +317,15 @@ void Game::setOurArt(bool on) {
         if (g.sprite) swap(*g.sprite);
     }
     for (auto& [dir, visit] : visited_) {
-        for (auto& a : visit.actors) swap(a.character);
+        for (auto& a : visit.actors) swapActor(a);
         for (auto& g : visit.groundItems) {
             if (g.sprite) swap(*g.sprite);
         }
     }
-    if (partner_) swap(partner_->character);
+    if (partner_) {
+        auto& c = partner_->character;
+        if (swap(c)) c.visibleLayers = partnerLayers(*c.model(), c.visibleLayers);
+    }
     if (player_) {
         const auto& heroes = playerModels();
         const auto& hero = heroes[static_cast<int>(heroSex_)];
@@ -339,6 +350,14 @@ const CharacterModel* Game::model(const std::string& stem) {
         if (loaded) it->second = std::make_unique<CharacterModel>(std::move(*loaded));
     }
     return it->second.get();
+}
+
+std::vector<int> Game::allLayers(const CharacterModel& m) {
+    std::vector<int> layers;
+    if (!m.animations.charts.empty() && !m.animations.charts[0].directions.empty()) {
+        for (std::size_t i = 0; i < m.animations.charts[0].directions[0].layers.size(); ++i) layers.push_back(static_cast<int>(i));
+    }
+    return layers;
 }
 
 void Game::spawnActors() {
@@ -367,11 +386,7 @@ void Game::spawnActors() {
         if (ai_ && actor.hostile()) actor.aiList = ai_->find(p.stats.ai);
         nameOpenEnemy(actor);
         // Non-player characters wear what their animation file shows.
-        actor.character.visibleLayers.clear();
-        if (!m->animations.charts.empty() && !m->animations.charts[0].directions.empty()) {
-            for (std::size_t i = 0; i < m->animations.charts[0].directions[0].layers.size(); ++i)
-                actor.character.visibleLayers.push_back(static_cast<int>(i));
-        }
+        actor.character.visibleLayers = allLayers(*m);
         actors_.push_back(std::move(actor));
     }
     const auto withAi = std::ranges::count_if(actors_, [](const Actor& a) { return a.aiList >= 0; });
