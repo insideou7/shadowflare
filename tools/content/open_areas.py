@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write src/logic/open_area_table.inc: where each of the open content's first-area
+"""Write src/logic/open_area_table.inc: where each of the open content's first- and second-area
 maps lies on the original's, so a saved game moves between the two (a
 hero saved in the original's Remote Town stands in the same place in ours,
 and back). Needs the player's own copy of the game, as first_area.py does.
@@ -27,7 +27,7 @@ def check(out, number, o, x0, y0, tw, th):
     assert size == f"size={tw},{th}", (number, size, tw, th)
     ours = (out / "Scenario" / f"{fa.our_number(number):08d}" / "scenario.txt").read_text().split("\n")
     exits = [list(map(int, line[5:].split(",")[:4])) for line in ours if line.startswith("exit=")]
-    theirs = [[l - x0, t - y0, r - x0, b - y0] for l, t, r, b, target, _ in o.exits if target in fa.FIELDS + fa.DUNGEONS]
+    theirs = [[l - x0, t - y0, r - x0, b - y0] for l, t, r, b, target, _ in o.exits if target in fa.exit_targets(number)]
     assert exits == theirs, (number, exits, theirs)
 
 
@@ -36,7 +36,7 @@ def main():
     if not (game / "Map").is_dir():
         game = next(p.parent for p in game.rglob("Map") if (p / "Pattern").is_dir())
     rows = []
-    for number in fa.FIELDS + fa.DUNGEONS:
+    for number in fa.ALL:
         o = fa.Original(game, number)
         x0, y0, tw, th = fa.crop(o, fa.walkable(o))
         check(out, number, o, x0, y0, tw, th)

@@ -1,0 +1,18 @@
+# Forest of Sprits's warp gate, as the original's: walking up to it finds it
+# (warp:16) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=28323,26954,28620,27205,gate
+object=27400,26076,29540,28096,gate-ground
+
+[message 1]
+Forest of Sprits
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:16 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

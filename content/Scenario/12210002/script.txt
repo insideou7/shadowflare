@@ -1,0 +1,18 @@
+# Mining Tunnel of Yugnos, B3F's warp gate, as the original's: walking up to it finds it
+# (warp:21) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=38593,21304,38890,21555,gate
+object=37655,20412,39801,22425,gate-ground
+
+[message 1]
+Mining Tunnel of Yugunos, B3F
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:21 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

@@ -317,8 +317,9 @@ flag is set, in number order. A gate is a pair of objects in its town's
 Walking onto the ground round it finds the gate and floats its name over
 it; a click on it opens the window. The window's picture is
 `System/Game/Pattern/Warp.sheet`, drawn by `tools/art/warp.py`. The
-pack's two towns have gates (gate 0 Remote Town, 4 Cold Svalt Town), at
-the original's places, with the props sheet's warp circle under them.
+pack's gates are the original's first- and second-area ones (gate 0 Remote
+Town, 4 Cold Svalt Town, 13 to 22 Kanfore, Fanann and the second area's
+forests and mines), at the original's places, with the props sheet's warp circle under them.
 
 ### enemies.txt
 
@@ -531,14 +532,21 @@ Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the holes in the ground (blood00,
 deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
-## The first area
+## The first and second areas
 
-The pack's maps are the original's first area, laid out with our art:
-the opening fields, Remote Town, the Dusty Ruins, Cold Svalt Town and the forests and four dungeons round it, 29 maps in
-all (`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). Their scenarios are
-numbered 10000000 plus the original's number (Remote Town is
-`Scenario/10000000`), and their exits lead to each other as the
-original's do. A new game starts in Remote Town, as the original's does.
+The pack's maps are the original's first two areas, laid out with our art.
+The first area is the opening fields, Remote Town, the Dusty Ruins, Cold
+Svalt Town and the forests and four dungeons round it, 29 maps
+(`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). The second is the
+Caravan, Kanfore and Fanann and the forests, coal mines, forts and caves
+round them, 33 maps (`Map/f02_*`, `c02_*`, `Coalmine_*`, `fort_*`,
+`cave_*`). Their scenarios are numbered 10000000 plus the original's
+number (Remote Town is `Scenario/10000000`, Kanfore `Scenario/12100000`),
+and their exits lead to each other as the original's do. A new game
+starts in Remote Town, as the original's does. The road from the first
+area to the second (Near the Remote Town to the Caravan) opens, as in the
+original, once save flag 71 is set, which Cold Svalt Town's commander does
+when the first area's missions are done.
 
 Each can be walked on exactly where the original's can: its judge grid
 is the original's, cell for cell (cells of 160 world units, about the
@@ -551,7 +559,10 @@ and spike pits among them, each drawn with the prop skin.txt gives its
 original piece). What is drawn round the walkable ground is our own:
 trees, thinning out away from the paths, outdoors, a rock or a bush where
 the original shuts off a little ground in the open, and walls along the
-dungeon floors (one down the middle of rock a cell thick). The monsters
+dungeon floors (one down the middle of rock a cell thick): stone blocks
+with pipes in the first area's dungeons, grey fort walls in the forts,
+timbered galleries in the coal mines and crumbling earth in the caves,
+after the walls the original's map is mostly built of. The monsters
 have the original's numbers (`enemy_stats.py`, above). The dungeons are as dark as the original's, with
 lamps where its torches stand and glows on the monsters that carry one.
 The maps exactly as the original draws them are what a player with the
@@ -559,7 +570,10 @@ original game sees (see above).
 
 `tools/content/first_area.py` writes them from the player's own copy:
 
-    python3 tools/content/first_area.py <game folder> content
+    python3 tools/content/first_area.py <game folder> content [area ...]
+
+(all areas, or only the ones named: `2` lays out the second area again
+and leaves the first as it is). Run `enemy_stats.py` after it.
 
 and `tools/content/map_overlay.py` checks them against it, printing for
 each map how much of the original's walkable ground is walkable in ours
@@ -578,7 +592,7 @@ it also checks the maps against the crop):
     python3 tools/content/open_areas.py <game folder> content
 
 A game saved in an area the open pack does not have (anywhere past the
-first area) shows as Other Data on the Load Data screen there. Items the
+second area) shows as Other Data on the Load Data screen there. Items the
 pack has no stand-in for are left out when it loads.
 
 ## Rebuilding content/

@@ -1248,6 +1248,8 @@ PEOPLE = {
                                          legs=(0.18, 0.40, 0.40), hood=(0.20, 0.50, 0.48))),
     16: ("young man in green", dict(arms="out", skin="fair", hair="ginger", hairstyle="short", top=(0.36, 0.48, 0.32),
                                      legs=(0.40, 0.48, 0.36), coat=(0.32, 0.44, 0.30))),
+    17: ("woodsman in a green hood", dict(height=1.15, width=1.05, skin="tan", hairstyle="hood", top=(0.40, 0.54, 0.34),
+                                          legs=(0.30, 0.38, 0.26), coat=(0.28, 0.38, 0.24), hood=(0.30, 0.40, 0.26))),
     18: ("priest in grey robes", dict(arms="out", width=1.2, belly=0.2, skin="pale", hairstyle="mitre", top=(0.50, 0.50, 0.56),
                                        skirt=(0.50, 0.50, 0.56), mitre=(0.72, 0.72, 0.62))),
     19: ("woman in a green gown", dict(arms="front", height=0.95, skin="fair", hair="ginger", hairstyle="bun", top=(0.10, 0.40, 0.12),

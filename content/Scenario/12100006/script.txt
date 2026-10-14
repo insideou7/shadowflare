@@ -1,0 +1,18 @@
+# Forest of Knight's Misery's warp gate, as the original's: walking up to it finds it
+# (warp:17) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=5033,11144,5330,11395,gate
+object=4073,10204,6263,12314,gate-ground
+
+[message 1]
+Fort of Thieves
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:17 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Lay out the open content's first area on the routes of the original's:
-the opening fields, Remote Town, the Dusty Ruins, Cold Svalt Town and the
-forests and four dungeons round it (29 maps). Needs the player's own copy
-of the game.
+"""Lay out the open content's first and second areas on the routes of the
+original's: the opening fields, Remote Town, the Dusty Ruins, Cold Svalt
+Town and the forests and four dungeons round it (29 maps), then the
+Caravan, Kanfore, Fanann and the forests, mines, forts and caves round
+them (33 maps). Needs the player's own copy of the game.
 
-    python3 tools/content/first_area.py <game folder> <content pack>
+    python3 tools/content/first_area.py <game folder> <content pack> [area ...]
+
+With area numbers, only those areas are laid out (the others' files are
+left as they are).
 
 Each map is walked on like the original's: the ground that can be walked
 on from the entries is the original's, cell for cell (a cell is 160 world
@@ -15,14 +19,16 @@ monsters and townspeople stand where (enemy_stats.py then gives the
 monsters the original's numbers), and where its landmarks (buildings, stairs,
 fences, pipes) stand, drawn with the props skin.txt gives them. What is
 drawn round the walkable ground is our own: trees and rocks outdoors,
-walls along the dungeon floors. No original picture, tile or sprite is
+walls along the dungeon floors, of the kind the original's walls there
+are (WALLS). No original picture, tile or sprite is
 copied; players who want the original maps exactly as drawn play them
 from their own copy (content/skin.txt draws them with our art).
 
 Writes Map/<original map name>.txt and Scenario/<10000000 + original
 number>/ for each. Then run
-enemy_stats.py to give the monsters the original's numbers. Exits that lead
-out of the first area are left out. Needs Pillow and numpy.
+enemy_stats.py to give the monsters the original's numbers. Exits to areas
+the pack does not have are left out (see exit_targets). Needs Pillow and
+numpy.
 """
 
 import math
@@ -55,6 +61,28 @@ FIELDS = [0, 1, 3, 4, 5, 6, 1000000, 1000001, 1000002, 1000003, 1000004]
 DUNGEONS = [10000, 10001, 10002, 10003, 10004, 10005, 1020000, 1020001, 1020002, 1030000, 1030001, 1030002,
             1040000, 1040001, 1040002, 1050000, 1050001, 1050002]
 
+# The second area (the original's episode 2): the Caravan, the forests
+# round Kanfore and Fanann, and the mines, forts and caves off them.
+FIELDS2 = [2000000, 2000001, 2100000, 2100001, 2100002, 2100003, 2100004, 2100005, 2100006,
+           2200000, 2200001, 2200002, 2200003, 2200004, 2200005, 2999999]
+DUNGEONS2 = [2010000, 2110000, 2120000, 2120001, 2130000, 2140000, 2210000, 2210001, 2210002,
+             2210003, 2210004, 2220000, 2220001, 2230000, 2240000, 2240001, 2250000]
+
+# Each area's maps, in the order they are laid out.
+AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2}
+ALL = [n for area in AREAS.values() for n in area]
+
+# Dungeon walls by the original's wall bank: our wall pieces (plain, then
+# the ones mixed in every sixth piece), pillar, floor sheet and the first
+# frame of its kind of floor on it.
+WALLS = {
+    "00d_obj00.njp": ("dwall", ["_pipes", "_grate"], "dpillar", "Map/floor.sheet", 0),
+    "fort01.njp": ("fwall", ["_torch", "_blood"], "fpillar", "Map/fortfloor.sheet", 0),
+    "coalmine1.njp": ("mine", ["_broken"], "mine_pillar", "Map/cavefloor.sheet", 256),
+    "deep01.njp": ("earth", ["2"], "earth_post", "Map/deepfloor.sheet", 0),
+}
+WALLS["deep02.njp"] = WALLS["deep03.njp"] = WALLS["deep04.njp"] = WALLS["deep01.njp"]
+
 # Original banks whose pieces are landmarks, drawn where the original has
 # them, with the props skin.txt gives them (None = every piece of the bank).
 LANDMARKS = {
@@ -64,7 +92,18 @@ LANDMARKS = {
     "00d_obj01.njp": None,
     "00f_city02.njp": None, "mon01.njp": None,     # the town walls and gates
     "jimen_x00.njp": {0, 1, 2, 3, 10, 11, 12, 13},  # spike pits
+    # The second area's: mine stairs, rings and lanterns, the forts'
+    # stairs and doors, the caves' gates, portals and stairs, the power
+    # supply's engine and fences, and cave mouths outdoors.
+    "coalmine1.njp": set(range(0, 7)),
+    "fort01.njp": {0, 1, 2, 3, 12, 20},
+    "fort01_ex.njp": None,
+    "deep01.njp": set(range(0, 16)) | {17, 20, 23, 26},
+    "tower1.njp": None,
+    "caveenter.njp": None,
 }
+for _deep in ("deep02.njp", "deep03.njp", "deep04.njp"):
+    LANDMARKS[_deep] = LANDMARKS["deep01.njp"]
 
 FOREST = ["tree1", "tree2", "tree3", "tree1", "tree2", "oak"]
 FROZEN = ["conifer_blue", "tree_dead", "conifer_green"]   # Frozen Forest
@@ -372,7 +411,18 @@ PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer",
                 (1000000, 10000): "rust"}
 # The warp gates the pack has (content/gates.txt): the object a click on
 # opens the GATE window, which stands on a warp circle.
-GATES = {0: 200, 1000000: 200}
+GATES = {0: [200], 1000000: [200],
+         2100000: [200], 2100002: [200], 2100004: [200], 2100005: [200], 2100006: [200],
+         2200000: [200], 2200003: [200, 210], 2200005: [200], 2210002: [200]}
+
+
+def exit_targets(number):
+    """The scenarios a map's exits are written for. Exits to areas the pack
+    does not have yet are left out, and the first area's maps keep only
+    their exits within it: the way on to the second area, Near the Remote
+    Town's road to the Caravan, opens only once the first area's missions
+    are done, so its script (Scenario/10000001/script.txt) adds it."""
+    return AREAS[1] if number in AREAS[1] else ALL
 
 
 def our_number(number):
@@ -423,10 +473,21 @@ def crop(o, reach):
     return int(x0), int(y0), int(tw), int(th)
 
 
+def wall_kit(o):
+    """The WALLS row for a dungeon: the wall bank most of its pieces come from."""
+    counts = {}
+    for ob in o.objects:
+        name = o.banks[ob["file"]].lower() if 0 <= ob["file"] < len(o.banks) else "?"
+        if name in WALLS:
+            counts[name] = counts.get(name, 0) + 1
+    return WALLS[max(counts, key=counts.get)] if counts else WALLS["00d_obj00.njp"]
+
+
 def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rng):
     o = Original(game, number)
-    dungeon = number in DUNGEONS
+    dungeon = number in DUNGEONS + DUNGEONS2
     reach = walkable(o)
+    kit = wall_kit(o) if dungeon else None
 
     # Its walkability is the original's, cell for cell: the walls, trees and
     # rocks drawn round it are our own.
@@ -497,7 +558,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
                 row.append(".")
                 continue
             corners = (terrain[ty, tx], terrain[ty, tx + 1], terrain[ty + 1, tx], terrain[ty + 1, tx + 1])
-            row.append(f"0:{ground.pattern_index(corners, tx, ty)}")
+            row.append(f"0:{ground.pattern_index(corners, tx, ty) + (kit[4] if kit else 0)}")
         rows.append(" ".join(row))
 
     objects = []
@@ -525,17 +586,17 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             if n <= 2:
                 at = a * CELL + n * CELL / 2
                 xy = (x0 + at, y0 + line * CELL) if axis == "x" else (x0 + line * CELL, y0 + at)
-                place("dpillar", *xy)
+                place(kit[2], *xy)
                 k += 1
                 return
             starts = list(range(a, b - 3, 4))
             if not starts or starts[-1] + 4 < b:
                 starts.append(b - 4)
             for s in starts:
-                fit = "" if k % 6 else rng.choice(["_pipes", "_grate"])
+                fit = "" if k % 6 else rng.choice(kit[1])
                 at = (s + 2) * CELL
                 xy = (x0 + at, y0 + line * CELL) if axis == "x" else (x0 + line * CELL, y0 + at)
-                place(f"dwall{fit}_{axis}", *xy)
+                place(f"{kit[0]}{fit}_{axis}", *xy)
                 k += 1
 
         def runs(flags):
@@ -604,12 +665,12 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             spot_free[max(0, cy - r):cy + r + 1, max(0, cx - r):cx + r + 1] = False
 
     for c in o.groups[0]:
-        if GATES.get(number) == c["id"]:
+        if c["id"] in GATES.get(number, []):
             place("warp_circle", c["x"], c["y"])
 
     objects.sort()
     judge = ["".join("." if v else "x" for v in line) for line in walk]
-    sheet = "Map/floor.sheet" if dungeon else "Map/ground.sheet"
+    sheet = kit[3] if dungeon else "Map/ground.sheet"
     with open(out / "Map" / f"{o.name}.txt", "w", newline="\n") as f:
         f.write(f"# {o.title}: walked on like the original's {o.name}, with our own ground, walls and trees, "
                 "generated by tools/content/first_area.py\n")
@@ -637,7 +698,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     if o.transport:
         lines.append("transport=1")
     for left, top, right, bottom, target, entry in o.exits:
-        if target in FIELDS + DUNGEONS:   # exits out of the first area are left out
+        if target in exit_targets(number):
             lines.append(f"exit={left - x0},{top - y0},{right - x0},{bottom - y0},{our_number(target)},{entry}")
     for c in o.groups[2]:
         if c["kind"] not in enemy_kinds:
@@ -698,9 +759,14 @@ def main():
     partners = out / "Character" / "PARTNER"
     people |= {1000000 + int(p.name) for p in partners.iterdir()} if partners.is_dir() else set()
     enemies = our_stats(out, {int(p.name) for p in (out / "Character" / "ENEMY").iterdir()})
+    areas = [int(a) for a in sys.argv[3:]] or list(AREAS)
     rng = random.Random(1)
-    for number in FIELDS + DUNGEONS:
-        build(game, out, number, frames, sizes, rules, people, enemies, rng)
+    for area in areas:
+        for number in AREAS[area]:
+            # The first area's maps were laid out one after another from one
+            # seed; later areas seed each map by its number, so one map can
+            # be laid out again without changing the others.
+            build(game, out, number, frames, sizes, rules, people, enemies, rng if area == 1 else random.Random(number))
 
 
 if __name__ == "__main__":

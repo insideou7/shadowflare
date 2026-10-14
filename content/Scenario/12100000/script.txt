@@ -1,0 +1,18 @@
+# Kanfore, Mining Town's warp gate, as the original's: walking up to it finds it
+# (warp:13) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=7901,7726,8198,7977,gate
+object=6790,6707,9298,9009,gate-ground
+
+[message 1]
+Kanfore, Mining Town
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:13 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

@@ -1,0 +1,12 @@
+# The road south to the Caravan and the second area, as the original's:
+# it opens once Cold Svalt Town's commander has sent the hero on to the
+# mining town (save:71 set), and until then walking into it does nothing.
+
+object=18385,26522,19296,26999,caravan-road
+
+[sentence caravan-road]
+on=judge caravan-road
+IF save:71 ! 0 @to-caravan
+
+[sentence to-caravan]
+CHANGESCENARIO 12999999 0

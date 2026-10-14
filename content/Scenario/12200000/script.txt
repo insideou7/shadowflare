@@ -1,0 +1,18 @@
+# Fanann, Village of Elves's warp gate, as the original's: walking up to it finds it
+# (warp:18) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=18366,10751,18663,11002,gate
+object=17408,9799,19605,11963,gate-ground
+
+[message 1]
+Fanann, Village of Elves
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:18 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

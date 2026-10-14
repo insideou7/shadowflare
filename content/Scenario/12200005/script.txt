@@ -1,0 +1,18 @@
+# Near The Power Supply Facility's warp gate, as the original's: walking up to it finds it
+# (warp:22) and shows its name over it, and a click on it opens
+# the GATE window.
+
+object=20970,10227,21267,10478,gate
+object=20032,9335,22178,11348,gate-ground
+
+[message 1]
+Power Supply Facility
+
+[sentence gate-found]
+on=judge gate-ground
+SETFLAG warp:22 1
+MESSAGEBOX gate 0 -160 msg:1 224 224 224 3000
+
+[sentence gate]
+on=talk gate
+WARPGATE 0

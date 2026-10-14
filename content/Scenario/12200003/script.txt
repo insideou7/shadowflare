@@ -1,0 +1,32 @@
+# Dragon Road's two warp gates, as the original's: walking up to one
+# finds it (warp:19 and warp:20) and shows its name over it, and a
+# click on it opens the GATE window.
+
+object=6850,8507,7147,8758,gate1
+object=5788,7489,8199,9768,gate1-ground
+object=5735,23993,6032,24244,gate2
+object=4817,23120,6935,25112,gate2-ground
+
+[message 1]
+Mining Tunnel of Yugunos
+
+[sentence gate1-found]
+on=judge gate1-ground
+SETFLAG warp:19 1
+MESSAGEBOX gate1 0 -160 msg:1 224 224 224 3000
+
+[sentence gate1]
+on=talk gate1
+WARPGATE 0
+
+[message 2]
+Dragon Defense Walls
+
+[sentence gate2-found]
+on=judge gate2-ground
+SETFLAG warp:20 1
+MESSAGEBOX gate2 0 -160 msg:2 224 224 224 3000
+
+[sentence gate2]
+on=talk gate2
+WARPGATE 1
