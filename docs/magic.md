@@ -257,7 +257,13 @@ STATUS tab, a shop and Esc close the window. `--magic-window[=page]`,
 
 `src/logic/magic.h` has the rules and tables, `src/game/spells.cpp` the
 casting. F1-F8 choose a spell from the bar and the right button casts it
-at the cursor; casting a shield or Berserker again turns it off. The
+at the cursor; casting a shield or Berserker again turns it off. With a
+monster under the pointer (the Click Range square red) the spell goes for
+that monster where it stands as the spell leaves the hand, and so does
+the companion's Explosion. The original aims at the point clicked
+(0x441c00 keeps no target), so original mode does too
+(`Rules::spellsAimAtEnemy`). Bowgun shots go for the monster under the
+pointer in both (0x4488c0); see archery.md. The
 status window shows MP and the magic stats, and the HUD an MP bar under
 the health bar.
 

@@ -782,10 +782,19 @@ void Game::handleEvent(const SDL_Event& event) {
                 // attack chosen (F9) the right button alone does (0x441c00).
                 if (mouseHeld_ && startCombo(aimX, aimY)) {
                 } else if (spells_.knows(spells_.selected)) {
-                    // The right button casts the chosen spell at the cursor.
+                    // The right button casts the chosen spell at the cursor,
+                    // or with ours at the monster under it.
                     double wx, wy;
                     screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
-                    startCast(wx, wy);
+                    std::optional<std::size_t> enemy;
+                    if (rules_.spellsAimAtEnemy) {
+                        if (const auto target = clickTarget(event.button.x, event.button.y, ~0u); target.kind == Settings::kEnemy) {
+                            enemy = target.index;
+                            wx = actors_[target.index].character.x;
+                            wy = actors_[target.index].character.y;
+                        }
+                    }
+                    startCast(wx, wy, enemy);
                 } else if (startCombo(aimX, aimY)) {
                 } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
                            target.kind == Settings::kEnemy) {
