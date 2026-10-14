@@ -8,6 +8,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "game/game.h"
+#include "logic/open_areas.h"
 #include "logic/save_game.h"
 #include "platform/filesystem.h"
 
@@ -202,6 +203,16 @@ bool Game::saveFitsData(const std::string& map, const std::string& scenario) con
     return scenario.empty() || data_->exists(scenario + "/scenario.txt") || data_->exists(scenario + "/Scenario.Mct");
 }
 
+// The two share the first area (Remote Town, Cold Svalt and round them),
+// so a hero saved there with either data goes on with the other.
+bool Game::fitSave(SaveGame& save) const {
+    if (saveFitsData(save.map, save.scenario)) return true;
+    SaveGame moved = save;
+    if (!moveSaveToOtherData(moved) || !saveFitsData(moved.map, moved.scenario)) return false;
+    save = std::move(moved);
+    return true;
+}
+
 bool Game::loadGameFrom(const std::string& path) {
     std::ifstream in(path, std::ios::binary);
     if (!in) {
@@ -218,11 +229,13 @@ bool Game::loadGameFrom(const std::string& path) {
         showMessage("The saved game is damaged");
         return false;
     }
-    if (!saveFitsData(save.map, save.scenario)) {
+    const std::string savedIn = save.scenario;
+    if (!fitSave(save)) {
         log::warn("{}: {} ({}) is not in this game's data", path, save.scenario, save.map);
         showMessage("The saved game is for other data");
         return false;
     }
+    if (save.scenario != savedIn) log::info("{}: saved in {}, the same place here is {}", path, savedIn, save.scenario);
     const auto index = static_cast<std::size_t>(std::ranges::find(mapNames_, save.map) - mapNames_.begin());
 
     forgetVisitedScenarios();

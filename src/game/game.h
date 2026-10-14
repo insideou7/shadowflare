@@ -45,6 +45,7 @@ namespace sf {
 
 class FileSystem;
 class Skin;
+struct SaveGame;
 
 // The original's Shift-JIS text as the font draws it (talk.cpp): the
 // English release only uses a few double-byte characters.
@@ -933,7 +934,7 @@ private:
             int number = 0;  // 0-5, the file save<number + 1>.txt
             std::string file;
             bool damaged = false;
-            bool otherData = false;  // made with the other data (the original's, or the open pack's)
+            bool otherData = false;  // made with the other data, in an area this one does not have
             int level = 1, hp = 0, mp = 0;
             std::int64_t experience = 0;
             HeroSex sex = HeroSex::Male;
@@ -969,6 +970,10 @@ private:
     // Whether a save's area is in this game's data: the original and the
     // open content pack share the save folder and some map names.
     bool saveFitsData(const std::string& map, const std::string& scenario) const;
+    // Fits a save to this game's data, moving one made with the other data
+    // (the original's, or the open pack's) to the same place in this one's.
+    // False when its area is not in this data.
+    bool fitSave(SaveGame& save) const;
     void saveThumbnail(const std::string& path);
 
     // Missions (missions.cpp): the mission list (Q), the newest mission

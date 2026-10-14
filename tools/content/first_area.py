@@ -73,6 +73,8 @@ BARE = ["tree_dead", "tree_dead", "oak"]                  # the wastelands
 # Banks whose pieces stand on ground that cannot be walked on.
 SOLID = {"00f_city00.njp", "00f_city01.njp", "00f_city02.njp"}
 
+MARGIN = 4   # tiles of ground round what can be walked on
+
 # Added to the original scenario numbers (once to keep clear of the old demo's).
 OFFSET = 10000000
 
@@ -407,20 +409,29 @@ def walkable(o):
         reach |= more
 
 
+def crop(o, reach):
+    """Where our map lies on the original's: the world point (x0, y0) of the
+    original that is our map's (0, 0), and our size in tiles. Our map covers
+    what can be walked on, with MARGIN tiles of ground round it, on whole tiles.
+    The engine moves saved games between the two by it (open_areas.py
+    writes the table)."""
+    ys, xs = np.nonzero(reach)
+    x0 = ((xs.min() + o.jx0) // PER - MARGIN) * TILE
+    y0 = ((ys.min() + o.jy0) // PER - MARGIN) * TILE
+    tw = (xs.max() + o.jx0) // PER + MARGIN + 1 - x0 // TILE
+    th = (ys.max() + o.jy0) // PER + MARGIN + 1 - y0 // TILE
+    return int(x0), int(y0), int(tw), int(th)
+
+
 def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rng):
     o = Original(game, number)
     dungeon = number in DUNGEONS
     reach = walkable(o)
 
-    # Our map covers what can be walked on, with a margin of ground round
-    # it, on whole tiles. Its walkability is the original's, cell for cell:
-    # the walls, trees and rocks drawn round it are our own.
-    margin = 4
-    ys, xs = np.nonzero(reach)
-    x0 = ((xs.min() + o.jx0) // PER - margin) * TILE
-    y0 = ((ys.min() + o.jy0) // PER - margin) * TILE
-    tw = (xs.max() + o.jx0) // PER + margin + 1 - x0 // TILE
-    th = (ys.max() + o.jy0) // PER + margin + 1 - y0 // TILE
+    # Its walkability is the original's, cell for cell: the walls, trees and
+    # rocks drawn round it are our own.
+    x0, y0, tw, th = crop(o, reach)
+    margin = MARGIN
     ax, ay = x0 // CELL - o.jx0, y0 // CELL - o.jy0
     walk = np.zeros((th * PER, tw * PER), bool)
     sy, sx = max(0, -ay), max(0, -ax)

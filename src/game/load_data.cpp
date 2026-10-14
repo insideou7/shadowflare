@@ -93,7 +93,7 @@ void Game::readSaveSlots() {
             std::ifstream in(slot.file, std::ios::binary);
             std::ostringstream text;
             text << in.rdbuf();
-            const SaveGame save = SaveGame::parse(text.str());
+            SaveGame save = SaveGame::parse(text.str());
             slot.level = std::max(1, save.level);
             slot.hp = save.hp;
             slot.mp = save.mp.value_or(0);
@@ -101,7 +101,7 @@ void Game::readSaveSlots() {
             slot.sex = save.sex;
             slot.job = save.career ? save.career->current : Career::at(slot.level).current;
             slot.name = save.name;
-            slot.otherData = !saveFitsData(save.map, save.scenario);
+            slot.otherData = !fitSave(save);
         } catch (const FormatError& e) {
             log::warn("{}: {}", slot.file, e.what());
             slot.damaged = true;
@@ -353,7 +353,8 @@ void Game::renderSaveSlot(const LoadData::Slot* slot, int index, int x, int y, i
         return std::string(label.size() + 1, ' ') + value;
     };
     if (slot->otherData) {
-        // Ours: saved with the other game data, so it cannot be played here.
+        // Ours: saved with the other game data in an area this one does not
+        // have, so it cannot be played here.
         text(39, 12, "Other Data", white);
         text(39, 32, "Name.", gold);
         text(39, 32, pad("Name.", slot->name), white);

@@ -567,6 +567,20 @@ and the other way round, and drawing them laid over each other:
 
     python3 tools/content/map_overlay.py <game folder> content overlay.png
 
+A game saved in any of these areas goes on with the other data: a hero
+saved in the original's Remote Town loads in ours at the same spot, and
+back, with what the area map (N) has seen of each area. Each of our maps
+is a crop of the original's, so the engine only moves the hero by where
+the crop starts. `src/logic/open_area_table.inc` lists that for every map,
+and `tools/content/open_areas.py` writes it (run it after `first_area.py`;
+it also checks the maps against the crop):
+
+    python3 tools/content/open_areas.py <game folder> content
+
+A game saved in an area the open pack does not have (anywhere past the
+first area) shows as Other Data on the Load Data screen there. Items the
+pack has no stand-in for are left out when it loads.
+
 ## Rebuilding content/
 
 The art is rendered with Blender's Python module (`bpy`) and laid out

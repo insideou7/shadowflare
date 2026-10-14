@@ -55,6 +55,7 @@ add_library(sf_logic STATIC
     src/logic/partner.cpp
     src/logic/lighting.cpp
     src/logic/explored_map.cpp
+    src/logic/open_areas.cpp
     src/audio/mixer.cpp
 )
 target_link_libraries(sf_logic PUBLIC sf_formats)
