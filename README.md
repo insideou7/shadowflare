@@ -99,6 +99,7 @@ Options:
   does this for the files in game/)
 - `--map-pictures <folder>` where those are kept (default: `maps/` in the settings folder)
 - `--record-sound <file.wav>` save what the game plays (sound effects and music) instead of sending it to the speakers
+- `--crash-test` crash on purpose, to check that `crash.txt` is written next to the program
 - `--auto-fight` make the player attack nearby monsters on their own, for smoke tests
 - `--partner <kind>` bring companion `kind` (0 Kerberos ... 5 Hawk; Ash ... Kestrel in the open pack), ACTIVE
 - `--show-judge` start with the walkability grid shown
@@ -157,6 +158,20 @@ The main loop runs one frame per call, so the same code builds with Emscripten:
     cmake --build build-web
 
 Players will still need to supply their own game files.
+
+### Crashes
+
+When the game crashes, or a Debug build's check fails ("vector subscript out
+of range"), it writes `crash.txt` next to the program: what went wrong, the
+call stack and the last 40 log lines. Debug and RelWithDebInfo builds name the
+functions and lines in the stack. `--crash-test` crashes on purpose to try it.
+
+Crashes can also go to [Sentry](https://sentry.io). Configure with
+`-DSFE_SENTRY=ON`, which downloads and builds sentry-native, and give it your
+project's DSN with `-DSFE_SENTRY_DSN=<dsn>` or the `SHADOWFLARE_SENTRY_DSN`
+environment variable. Without a DSN nothing is sent. A crash is uploaded the
+next time the game starts, with the last log lines as breadcrumbs; a failed
+Debug check is sent at once.
 
 ## Layout
 
