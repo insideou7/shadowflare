@@ -753,12 +753,53 @@ void testSaveToOtherData() {
           "an area past the first stays as it was");
 }
 
+void testRightClickEquip() {
+    sf::Inventory inv;
+    inv.addAt({&kSword}, 0, 0);
+    inv.addAt({&kTablet}, 1, 0);
+    check(inv.equipFromBag(1, 1) == Result::WrongSlot && inv.bag().size() == 2, "a tablet is not worn");
+    check(inv.equipFromBag(0, 1) == Result::Done && inv.equipped(Slot::Weapon)->def == &kSword && inv.bag().size() == 1,
+          "right click wears a sword");
+    inv.addAt({&kHeavy}, 2, 0);
+    check(inv.equipFromBag(1, 1) == Result::LevelTooLow && inv.equipped(Slot::Weapon)->def == &kSword,
+          "required level");
+    inv.addAt({&kGreatSword}, 3, 0);
+    check(inv.equipFromBag(2, 1) == Result::Done && inv.equipped(Slot::Weapon)->def == &kGreatSword,
+          "a second weapon swaps in");
+    const int old = inv.indexAt(3, 0);
+    check(old >= 0 && inv.bag()[static_cast<std::size_t>(old)].item.def == &kSword, "the old one goes where the new one was");
+    check(inv.unequipToBag(Slot::Weapon) == Result::Done && !inv.equipped(Slot::Weapon) && inv.bag().size() == 4,
+          "right click on a worn item takes it off");
+    check(inv.unequipToBag(Slot::Weapon) == Result::Nothing, "nothing worn there");
+    // A full bag: the worn item cannot come off, and a swap that leaves the
+    // old item nowhere to go changes nothing.
+    sf::Inventory full;
+    for (int x = 0; x < sf::Inventory::kBagWidth; ++x) full.addAt({&kSword}, x, 0);
+    full.equip(Slot::Body, {&kCloth});
+    check(full.unequipToBag(Slot::Body) == Result::NoRoom && full.equipped(Slot::Body), "no room to take it off");
+    check(full.equipFromBag(0, 1) == Result::Done && full.equipped(Slot::Weapon)->def == &kSword, "wear a sword");
+    sf::Inventory tight;
+    tight.addAt({&kSword}, 0, 0);
+    for (int x = 1; x < sf::Inventory::kBagWidth; ++x) tight.addAt({&kSword}, x, 0);
+    tight.equip(Slot::Weapon, {&kGreatSword});
+    check(tight.equipFromBag(0, 1) == Result::NoRoom && tight.equipped(Slot::Weapon)->def == &kGreatSword &&
+              tight.bag().size() == 9 && tight.indexAt(0, 0) >= 0,
+          "a great sword does not fit where the sword was: nothing changes");
+    sf::Inventory rings;
+    rings.addAt({&kRing}, 0, 0);
+    rings.addAt({&kRing}, 1, 0);
+    check(rings.equipFromBag(0, 1) == Result::Done && rings.equipFromBag(0, 1) == Result::Done &&
+              rings.equipped(Slot::Accessory1) && rings.equipped(Slot::Accessory2) && rings.bag().empty(),
+          "rings fill the free accessory slots");
+}
+
 int main() {
     testItemSounds();
     testTakeAll();
     testBagPlacement();
     testBagClicks();
     testEquip();
+    testRightClickEquip();
     testStatsAndLayers();
     testUse();
     testLoot();
