@@ -42,6 +42,11 @@ constexpr SlotBox kSlots[] = {
     {EquipSlot::Accessory4, 440, 183, 1, 1},
 };
 
+// The button at the bottom of the item window that opens the special
+// items window in its place (0x446320, the same spot as its own button in
+// special_items.cpp).
+constexpr SDL_Rect kSpecialButton{376, 394, 67, 9};
+
 // The Warehouse Transfer Box, the picture of a strongbox left of the
 // accessories: an item put there goes to the town warehouse (0x447290
 // answers 10 for it).
@@ -296,6 +301,21 @@ void Game::pickUpItems() {
             it = groundItems_.erase(it);
             continue;
         }
+        if (item.def->specialPage >= 0) {
+            // Onto its place in the special items window, with its take
+            // sound; when one like it is there already it stays on the
+            // ground, without a word (0x449ef0).
+            if (!inventory_.addSpecial(item)) {
+                it->waitForLeave = true;
+                ++it;
+                continue;
+            }
+            playSound(itemSound(*item.def, kItemTake));
+            showMessage(item.shownName());
+            log::info("Picked up {}", item.def->name);
+            it = groundItems_.erase(it);
+            continue;
+        }
         if (!inventory_.pickUp(item)) {
             showMessage(std::format("No room for {}", item.shownName()));
             it->waitForLeave = true;
@@ -359,13 +379,16 @@ HeroStats Game::playerStats(int& chant) const {
 
 // A new hero stands in the middle of the attribute disc, so their own
 // levels are all 0; what they wear adds to that.
-ElementLevels Game::playerElements() const { return elementLevels({}, inventory_.elements()); }
+ElementLevels Game::playerElements() const { return elementLevels(discElementLevels(discX_, discY_), inventory_.elements()); }
 
 // Using a consumable (0x44a240). Effect words 1 and 3 restore health (3 in
 // percent of the most), 2 and 4 mental power, raised by the stamina and
 // mental medicine modifiers; only what is not full takes them. When the
 // hero takes nothing, words 5 and 6 heal the companion likewise (meat),
-// while it is up and hurt. Something that does nothing is not used up.
+// while it is up and hurt. When that does nothing either, word 7 moves the
+// hero on the attribute disc (the medicines): -2 back to the middle (White
+// Medicine), or word 8 units towards element 7's anchor (0x44fd10).
+// Something that does nothing is not used up.
 bool Game::applyConsumable(const ItemDef& def) {
     if (def.cls != ItemDef::Class::Consumable) return false;
     const auto& e = def.effect;
@@ -390,9 +413,17 @@ bool Game::applyConsumable(const ItemDef& def) {
         }
         used = p.hp != before;
     }
-    // Words 7 and 8 (the medicines and fruits) are not in yet; those are
-    // used up as before.
-    if (!used && e[7] == -1) return false;
+    if (!used && e[7] != -1) {
+        const int x = discX_, y = discY_;
+        if (e[7] == -2) {
+            discX_ = discY_ = 0;
+        } else {
+            moveOnDisc(discX_, discY_, e[7], e[8]);
+        }
+        used = discX_ != x || discY_ != y;
+        if (used) updateEquipment();
+    }
+    if (!used) return false;
     playSound(0x10);  // (0x44a240)
     showMessage(std::format("Used {}", def.name));
     return true;
@@ -537,7 +568,11 @@ bool Game::inventoryClick(int x, int y, bool right) {
             }
             return true;
         }
-        if (hand_) {
+        if (hand_ && hand_->def->specialPage >= 0) {
+            // Put down in the bag, it goes back to its place in the special
+            // items window, silently, unless one like it is there (0x446320).
+            if (inventory_.addSpecial(*hand_)) hand_.reset();
+        } else if (hand_) {
             // The item is held by its middle; it goes in the cells under it.
             const double left = x - hand_->def->width * kCell / 2.0 - kBagX;
             const double top = y - hand_->def->height * kCell / 2.0 - kBagY;
@@ -558,6 +593,11 @@ bool Game::inventoryClick(int x, int y, bool right) {
     }
     if (inside(kMineSlot, x, y)) {
         if (!right) mineSlotClick();
+        return true;
+    }
+    if (!right && specialButtonLit(x, y)) {
+        playSound(0x3a);
+        openSpecialWindow();
         return true;
     }
     for (const auto& box : kSlots) {
@@ -748,10 +788,14 @@ void Game::unequipToBag(EquipSlot slot) {
 
 // An item let go over the Warehouse Transfer Box goes to the warehouse,
 // wherever the hero is, if there is room (0x446320). Items kept on a
-// special items page go back there in the original, never to the
-// warehouse; with no special items window yet they stay in the hand.
+// special items page go back there instead, unless one like it is there
+// already, and never to the warehouse.
 void Game::putInWarehouse() {
-    if (!hand_ || hand_->def->specialPage >= 0) return;
+    if (!hand_) return;
+    if (hand_->def->specialPage >= 0) {
+        if (inventory_.addSpecial(*hand_)) hand_.reset();
+        return;
+    }
     const ItemDef& held = *hand_->def;
     if (shops_[kStorage].takeIn(hand_, !rules_.noEmptyGoldInWarehouse)) {
         playSound(itemSound(held, kItemPut));
@@ -1050,6 +1094,30 @@ void Game::renderItemTotals() {
     }
 }
 
+// The item window's button to the special items window: Status.njp pattern
+// 0x74, or 0x75 lit under the pointer, but never while trading (0x4039f0);
+// the open pack has it in the panel and lights it with Inventory frame 7.
+void Game::renderSpecialButton(int mx, int my) {
+    const bool lit = specialButtonLit(mx, my);
+    const SpriteBank* open = itemBank("System/Game/Pattern/Inventory");
+    if (open) {
+        if (!lit) return;
+        if (const SpriteTexture* sprite = sprites_.get(*open, 7, false)) {
+            const SDL_Rect dst{sprite->originX, sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            return;
+        }
+    } else if (const SpriteBank* bank = itemBank("System/Game/Pattern/Status")) {
+        if (const SpriteTexture* sprite = sprites_.get(*bank, lit ? 0x75 : 0x74, false)) {
+            const SDL_Rect dst{sprite->originX, sprite->originY, sprite->width, sprite->height};
+            SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+            return;
+        }
+    }
+    frame(renderer_, kSpecialButton, lit ? SDL_Color{90, 80, 50, 255} : SDL_Color{45, 40, 30, 255}, {150, 130, 90, 255});
+    drawText(renderer_, kSpecialButton.x + 12, kSpecialButton.y + 1, "SPECIAL", lit ? SDL_Color{255, 220, 120, 255} : kWhite, 1);
+}
+
 // What the item under the mouse is, in a box centred under the pointer and
 // kept on screen, edged in half-bright white, as the original shows it
 // (0x409160).
@@ -1109,7 +1177,11 @@ void Game::renderItemPopup(const Item& item, int mx, int my) {
 
 void Game::renderInventory() {
     int mx = 0, my = 0;
-    {
+    if (const auto at = pointerPosition()) {
+        // The pointer, or where --pointer puts it.
+        mx = static_cast<int>(at->x);
+        my = static_cast<int>(at->y);
+    } else {
         int wx, wy;
         SDL_GetMouseState(&wx, &wy);
         float lx, ly;
@@ -1163,8 +1235,10 @@ void Game::renderInventory() {
             if (inside(r, mx, my)) hover = &p.item;
         }
         renderItemTotals();
+        renderSpecialButton(mx, my);
         if (hover && !hand_) renderItemPopup(*hover, mx, my);
     }
+    if (specialOpen_) renderSpecialWindow(mx, my);
     if (hand_) {
         const int w = hand_->def->width * kCell, h = hand_->def->height * kCell;
         drawItemPicture(*hand_->def, {mx - w / 2, my - h / 2, w, h});

@@ -91,6 +91,7 @@ struct ItemDef {
     // gems, the cards and the element medicines. They never go to the
     // warehouse (ShadowFlare.exe 0x446320).
     std::int32_t specialPage = -1;
+    std::int32_t specialX = 0, specialY = 0;  // 0x80[2], in cells of the page
     // Bowguns (subtype 5; see docs/archery.md): what they shoot (0xfc: 0 a
     // stone, 1 an arrow, 2 a fire arrow, 3 an ice arrow), how many at once
     // (0x100: 0 one, 1 two, 3, 5 or 7 in a fan), how fast in world units a

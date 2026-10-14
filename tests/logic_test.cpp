@@ -755,7 +755,18 @@ void testMagic() {
     check(t.count(204, 1) == 2 && t.count(204, 6) == 3 && t.count(204, 29) == 7 && t.count(204, 30) == 8, "table 204");
     check(t.count(205, 10) == 3 && t.count(206, 20) == 5, "tables 205 and 206");
     check(t.count(207, 9) == 1 && t.count(207, 10) == 3 && t.count(207, 21) == 5, "table 207");
-    check(sf::discElementLevels(0, 20000)[sf::kFire] == 20, "the disc's fire anchor");
+    check(sf::discElementLevels(0, 20000)[sf::kFire] == 10 && sf::discElementLevels(0, 20000)[sf::kWater] == -10, "the disc's fire anchor");
+    {
+        int x = 0, y = 0;
+        sf::moveOnDisc(x, y, sf::kFire, 4000);
+        check(x == 0 && y == 4000 && sf::discElementLevels(x, y)[sf::kFire] == 2, "Fire Medicine moves 4000 towards fire");
+        x = 0, y = 18000;
+        sf::moveOnDisc(x, y, sf::kFire, 4000);
+        check(x == 0 && y == 20000, "and stops on the anchor");
+        x = 0, y = 0;
+        sf::moveOnDisc(x, y, sf::kHoly, 4000);
+        check(x == 2828 && y == -2828, "or slants towards a corner element");
+    }
     check(sf::elementLevels({}, L{15, -12, 3})[0] == 10 && sf::elementLevels({}, L{15, -12, 3})[1] == -10, "levels stay in -10..10");
 
     // 0x412a40: blows get table 7 at the level in the monster's opposite.

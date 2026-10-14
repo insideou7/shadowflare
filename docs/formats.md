@@ -1060,8 +1060,7 @@ it to the town warehouse, wherever the hero is:
   says the warehouse is full). Gold already added to stacks stays there.
 - An item kept on a special items page (item word 0x7c) goes back to its
   place on that page instead, unless one like it is there already, and
-  never to the warehouse. With no special items window yet, ours keeps it
-  in the hand.
+  never to the warehouse (see below).
 
 The mine picture above it, (336, 88)-(381, 133), answers 11: a click with
 an empty hand takes one mine off the count into the hand (silently), and
@@ -1128,6 +1127,39 @@ anywhere else on the window closes it.
 
 The open pack draws its own box, an iron-strapped oak strongbox, as part
 of the panel, and frame 6 of Inventory.sheet is the same box lit up.
+
+### The special items window
+
+X, or the button under the item window's bag (x 376-442, y 394-402; Status.njp
+pattern 0x74, lit 0x75 under the pointer, 0x4039f0), opens the special
+items window in the item window's place on the right (DAT_0048ce68; the
+two never show together; X does nothing while trading, 0x442b85). Its
+picture is Status.njp pattern 0x65 with its own button back (0x72, lit
+0x73; 0x40f900). It keeps four lists on the player (+0x548 to +0x554),
+drawn from x = 336 at y 72 (9 x 2 cells, quest items), 168 (9 x 1, gems),
+232 (9 x 1, stones and cards) and 296 (9 x 2, the element medicines)
+(0x407170).
+
+Every item with a special page (item word 0x7c, 0 to 3) has its own place
+there (0x80, 0x84 in cells) and only ever goes there: picked up from the
+ground with its take sound, unless one with the same class and code is
+there already, when it stays on the ground (0x449ef0); bought; given by
+`SETITEMDIRECT` (0x430ffe case 0x4b); or let go over the bag or the
+Warehouse Transfer Box (0x446320, silently). `CHECKITEMEXIST` and
+`DELETEITEM` look there first (cases 0x3a, 0x3b).
+
+A left click in the window does nothing but its button (0x448620). A right
+click on the fourth section uses the medicine there as a consumable
+(0x44a240) and takes it away when it did something; one anywhere off the
+four sections closes the window, and off the window goes on to the world
+(0x44ae20). The item under the pointer shows its box while the hand is
+empty (0x408db0). The medicines move the hero's point on the attribute
+disc ([magic.md](magic.md)), and the status window's dot shows where it is,
+48 pixels from the middle at the disc's edge (0x405750).
+
+The open pack draws its own window (System/Game/Pattern/Special.sheet:
+frame 0 the window, 1 its button lit) and has the button in the inventory
+panel, lit as Inventory.sheet frame 7 (tools/art/ui.py).
 
 The status window (Status.njp pattern 5, 0x405750) writes its numbers the
 same way, with Font01 like the item window: level (303, 41), experience

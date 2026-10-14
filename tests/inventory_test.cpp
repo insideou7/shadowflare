@@ -876,6 +876,59 @@ void testRightClickEquip() {
           "rings fill the free accessory slots");
 }
 
+// The special items window (0x449ef0, 0x430ffe cases 0x3a, 0x3b and 0x4b).
+void testSpecialItems() {
+    sf::ItemTable table;
+    auto gem = def(Class::Special, 0, 1, 1);
+    gem.code = 100003;
+    gem.specialPage = 1;
+    gem.specialX = 3;
+    auto medicine = def(Class::Consumable, 0, 1, 2);
+    medicine.code = 30000001;
+    medicine.specialPage = 3;
+    medicine.specialX = 1;
+    auto stone = def(Class::Special, 0, 1, 1);
+    stone.code = 99000001;
+    stone.specialPage = 0;
+    stone.specialX = 1;
+    stone.specialY = 1;
+    auto sword = def(Class::Weapon, sf::ItemDef::kSword, 1, 4, 12);
+    table.items = {gem, medicine, stone, sword};
+    const sf::ItemDef& g = table.items[0];
+    const sf::ItemDef& m = table.items[1];
+    const sf::ItemDef& s = table.items[2];
+
+    sf::Inventory inventory;
+    check(inventory.addSpecial({&g, 1}), "a gem goes to its page");
+    check(!inventory.addSpecial({&g, 1}), "but only one of each");
+    check(!inventory.addSpecial({&table.items[3], 1}), "items without a page do not");
+    check(inventory.add({&m, 1}) && inventory.bag().empty(), "the bag sends a medicine to its page");
+    check(inventory.pickUp({&s, 1}) && inventory.bag().empty(), "and a picked-up stone");
+    check(inventory.specialPage(1).size() == 1 && inventory.specialPage(1)[0].x == 3 && inventory.specialPage(1)[0].y == 0,
+          "each at its own place");
+    check(inventory.specialIndexAt(3, 1, 1) == 0 && inventory.specialIndexAt(3, 1, 2) == -1 && inventory.specialIndexAt(3, 0, 0) == -1,
+          "a 1 x 2 medicine covers two cells");
+    check(inventory.has(Class::Special, 100003) && inventory.carries(Class::Special, 99000001), "CHECKITEMEXIST looks there");
+    check(inventory.removeOne(Class::Special, 100003) && !inventory.has(Class::Special, 100003), "DELETEITEM takes from there");
+
+    sf::SaveGame save;
+    save.map = "a";
+    save.discX = 0;
+    save.discY = 4000;
+    save.store(inventory);
+    // Older saves had such items in the bag; they move to their page.
+    save.bag.push_back({{4, 100003, 1}, 0, 0});
+    const auto loaded = sf::SaveGame::parse(save.write());
+    check(loaded.discX == 0 && loaded.discY == 4000, "the disc point is saved");
+    sf::Inventory back;
+    check(loaded.restore(back, table) == 0, "every special item comes back");
+    check(back.specialPage(3).size() == 1 && back.specialPage(0).size() == 1 && back.specialPage(1).size() == 1 &&
+              back.bag().empty(),
+          "on their pages, the old save's gem too");
+    back.removeSpecial(3, 0);
+    check(back.specialPage(3).empty(), "a used medicine is taken away");
+}
+
 // The second weapon set (0x406aa0, 0x451930).
 void testWeaponSets() {
     sf::Inventory inv;
@@ -984,6 +1037,7 @@ void testGiantStorageSave() {
 }
 
 int main() {
+    testSpecialItems();
     testItemSounds();
     testTakeAll();
     testBagPlacement();

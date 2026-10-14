@@ -639,7 +639,7 @@ void Game::renderHelp() {
         {"SPACE", "COMPANION ACTIVE/INACTIVE", true},
         {"S", "STATUS WINDOW", true},
         {"I", "ITEMS WINDOW", true},
-        {"X", "SPECIAL ITEMS WINDOW", false},
+        {"X", "SPECIAL ITEMS WINDOW", true},
         {"M", "MAGIC WINDOW", true},
         {"Q", "MISSION LIST", true},
         {"N", "MAP; ARROWS SCROLL IT, ENTER CENTERS IT", true},

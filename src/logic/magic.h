@@ -27,12 +27,15 @@ constexpr int oppositeElement(int element) { return element ^ 1; }
 using ElementLevels = std::array<int, kElementCount>;
 
 // The hero's own element levels come from a point on the attribute disc
-// (player + 0x1d4): each element has an anchor on a circle of radius 20000
-// and its level is (20000 - distance to the anchor) / 1000 (0x44fba0). A new
-// hero stands in the middle, so every level starts at 0. What the hero
-// wears is added to that, and each level is kept between -10 and 10
-// (0x44fca0, 0x44fe30).
+// (player + 0x74): each element has an anchor on a circle of radius 20000
+// and its level is (20000 - distance to the anchor) / 2000 (0x44fba0), 10
+// on the anchor and -10 on the one opposite. A new hero stands in the
+// middle, so every level starts at 0. What the hero wears is added to
+// that, and each level is kept between -10 and 10 (0x44fca0, 0x44fe30).
 ElementLevels discElementLevels(int x, int y);
+// Moves a point on the disc `distance` units straight towards an
+// element's anchor, or onto it when it is that close (0x44fd10).
+void moveOnDisc(int& x, int& y, int element, int distance);
 ElementLevels elementLevels(const ElementLevels& base, const ElementLevels& worn);
 
 // The 22 spells, numbered as the original numbers them (Table.Tbd tables

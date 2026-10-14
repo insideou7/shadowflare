@@ -130,6 +130,8 @@ public:
 
     // Shows the inventory panel (toggled with I).
     void setInventoryOpen(bool open) { showInventory_ = open; }
+    // Shows the special items window (toggled with X).
+    void setSpecialWindowOpen(bool open) { specialOpen_ = open; }
 
     // Draws the walkability grid over the map (toggled with J).
     void setShowJudge(bool show) { showJudge_ = show; }
@@ -522,7 +524,9 @@ private:
     bool drawPanelPicture();
     void renderGroundItems(int camX, int camY);
     void renderInventory();
+    bool drawSpecialPicture();
     void renderItemTotals();
+    void renderSpecialButton(int mx, int my);
     void putInWarehouse();  // the held item, into the Warehouse Transfer Box
     // The I and II tabs under the weapon and shield slots (0x406aa0); true
     // when the click was on one.
@@ -1157,8 +1161,26 @@ private:
     void saveSettings();
     void applyScreenMode();
     void takeScreenshot();
-    // Closes the inventory panel, putting a held item back or dropping it.
+    // Closes the inventory panel or the special items window, putting a
+    // held item back or dropping it.
     void closeInventory();
+    // Opens the item window in the special items window's place.
+    void openItemWindow() {
+        showInventory_ = true;
+        specialOpen_ = false;
+    }
+    // A window covers the right half: the item window or the special one.
+    bool rightWindowOpen() const { return showInventory_ || specialOpen_; }
+    // The special items window (special_items.cpp, after 0x407170,
+    // 0x40f900, 0x408db0, 0x448620 and 0x44ae20).
+    void toggleSpecialWindow();
+    void openSpecialWindow();
+    bool specialWindowClick(int x, int y, bool right);
+    // The button in the bottom of the item and special windows that
+    // switches between them, lit under the pointer.
+    bool specialButtonLit(int x, int y) const;
+    void renderSpecialWindow(int mx, int my);
+
     // A key from the manual for something the engine does not have yet.
     void notYet(const char* what);
     // What a left click at a point on the screen is aimed at, by the click
@@ -1229,6 +1251,9 @@ private:
     std::optional<std::size_t> objectTarget_;              // a map object likewise, in control_.placements
     std::vector<Label> labels_;
     int playerHp_ = 0;
+    // The hero's point on the attribute disc (player +0x74), which their
+    // own element levels come from; the medicines move it (0x44fd10).
+    int discX_ = 0, discY_ = 0;
     int playerMp_ = 0;
     MagicTables magic_ = MagicTables::standard();
     SpellBook spells_;
@@ -1313,6 +1338,9 @@ private:
     std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
     bool showInventory_ = false;
+    // The special items window (X), in the item window's place on the
+    // right (DAT_0048ce68); the two never show together.
+    bool specialOpen_ = false;
     bool drawnPanel_ = false;  // the item window has a picture this frame
     // The weight gauge's marks as last drawn (-1 until it is first shown),
     // whether they had caught up with the weight, and the tick they last

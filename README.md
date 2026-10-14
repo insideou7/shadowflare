@@ -112,6 +112,7 @@ Options:
   both take a fourth number for how worn the item starts, e.g. `--equip 0:0:1:150`
 - `--drop <class>:<code>[:<count>]` put an item on the ground next to the player
 - `--inventory` start with the inventory panel open
+- `--special` start with the special items window (X) open
 - `--status` start with the status window open
 - `--save-file <path>` save to and load from this one file instead of the six slots
 - `--save-folder <dir>` keep the six save slots in this folder; `--load-data`
