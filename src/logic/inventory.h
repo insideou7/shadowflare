@@ -75,6 +75,26 @@ int itemSound(const ItemDef& def, int event);
 enum class EquipSlot { Helmet, Body, Boots, Weapon, Shield, Accessory1, Accessory2, Accessory3, Accessory4 };
 inline constexpr int kEquipSlotCount = 9;
 
+// The gold split box (ShadowFlare.exe 0x4429b0): takes `amount` gold from
+// the Gold stack at `index` of a bag or warehouse's list into an empty
+// hand. Less than the stack makes a new Gold item of that much; all of it
+// takes the stack itself. False, with nothing changed, for any other
+// amount, a stack that isn't gold or a full hand.
+template <class Placed>
+bool splitGold(std::vector<Placed>& list, int index, int amount, const ItemDef* goldDef, std::optional<Item>& hand) {
+    if (hand || index < 0 || static_cast<std::size_t>(index) >= list.size() || amount <= 0) return false;
+    Item& stack = list[static_cast<std::size_t>(index)].item;
+    if (!stack.def->isGold() || amount > stack.count) return false;
+    if (amount == stack.count) {
+        hand = stack;
+        list.erase(list.begin() + index);
+        return true;
+    }
+    hand = Item::make(goldDef ? goldDef : stack.def, amount);
+    stack.count -= amount;
+    return true;
+}
+
 // The player's bag, worn equipment and gold. Pure rules, no drawing: the
 // game turns mouse clicks into cell and slot numbers.
 class Inventory {
@@ -93,6 +113,7 @@ public:
         NoRoom,       // the item does not fit there
         WrongSlot,    // that slot does not take this kind of item
         LevelTooLow,  // the player's level is below the item's required level
+        Locked,       // the weapon or shield slot is shared with the other weapon set
     };
 
     // The belt pocket, 4 x 2 cells under the HP and MP gauges (player
@@ -114,6 +135,8 @@ public:
     // (0x466da0). False, with nothing changed, when there is not room or
     // not enough.
     bool addGold(int amount);
+    // The gold split box on a bag stack (see splitGold).
+    bool splitGold(int index, int amount, std::optional<Item>& hand) { return sf::splitGold(bag_, index, amount, goldDef_, hand); }
     void clear();
 
     // Whether a w x h item fits with its top-left at (x, y).
@@ -168,6 +191,34 @@ public:
     // A right click on a worn item: takes it off into the bag's first free
     // place, or NoRoom.
     Result unequipToBag(EquipSlot slot);
+
+    // The second weapon set (Caps Lock, and the I and II tabs under the
+    // weapon and shield slots; ShadowFlare.exe 0x406aa0 and 0x451930). The
+    // set not in use keeps its weapon and shield aside (player +0x50c and
+    // +0x510). Each set's weapon and shield can instead be shared with the
+    // other set: a right click on the tab in use while its slot is empty
+    // brings the other set's item over and keeps it there whichever set is
+    // in use, and the slot can't be changed until another right click
+    // puts it back with the other set.
+    enum WeaponSetPart { kSetWeapon = 0, kSetShield = 1 };
+    int weaponSet() const { return weaponSet_; }  // 0 is set I, 1 set II
+    const std::optional<Item>& spare(int part) const { return spare_[static_cast<std::size_t>(part)]; }
+    bool shared(int part, int set) const { return shared_[static_cast<std::size_t>(part * 2 + set)]; }
+    // Whether the weapon or shield slot in use is shared, and so can't be
+    // changed.
+    bool slotShared(EquipSlot slot) const;
+    // Changes to the other set (0x451930): the weapon and the shield trade
+    // places with the ones kept aside, unless they are shared.
+    void swapWeaponSets();
+    // A left click on tab `set`: changes to that set if it isn't the one in
+    // use. Returns whether it changed.
+    bool chooseWeaponSet(int set);
+    // A right click on tab `set` of the weapon or shield row: only the tab
+    // in use answers, sharing an empty slot or ending the sharing. Returns
+    // whether an item moved.
+    bool toggleShared(int part, int set);
+    // A saved game's sets, without checking them.
+    void setWeaponSets(int set, const std::array<bool, 4>& shared, const std::array<std::optional<Item>, 2>& spare);
 
     // Uses one consumable from the bag (right click), removing it. Returns
     // what it was, or null when the entry is not a consumable.
@@ -251,6 +302,9 @@ private:
     std::vector<Placed> bag_;
     std::array<std::optional<Item>, kBeltWidth * kBeltHeight> belt_;
     std::array<std::optional<Item>, kEquipSlotCount> equipped_;
+    int weaponSet_ = 0;
+    std::array<std::optional<Item>, 2> spare_;  // the other set's weapon and shield
+    std::array<bool, 4> shared_{};              // set I weapon, set II weapon, set I shield, set II shield
     int gold_ = 0;  // only without a Gold item
     const ItemDef* goldDef_ = nullptr;
 };

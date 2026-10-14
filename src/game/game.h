@@ -197,6 +197,10 @@ public:
     bool powerActive() const { return power_.active(); }
     // The magic window (M), on page 0-3 (for tests).
     void openMagicWindow(int page = 0);
+    // A shop's window by INITTRADE's number, or a warehouse (kStorage,
+    // kGiantStorage), as TRADE and STORAGE open them.
+    void openTrade(int shop);
+    void openStorageWindow(bool giant) { openTrade(giant ? kGiantStorage : kStorage); }
 
     // Lays a mine where the player stands, as B does (for scripted tests).
     void layMineHere() { layMine(); }
@@ -371,6 +375,17 @@ private:
     void renderShop();
     bool drawShopPicture();
     void closeShop();
+    // The warehouse window open, either one, and the goods it shows: the
+    // warehouse's, or the Giant Warehouse's page in view.
+    bool storageOpen() const { return openShop_ == kStorage || openShop_ == kGiantStorage; }
+    ShopStock& openStock();
+    // The Giant Warehouse's tabs and close button (0x447ca0); true when the
+    // click was on its header.
+    bool giantStorageHeaderClick(int x, int y);
+    void renderGiantStorageTabs();
+    // Whether page `page` of the Giant Warehouse can be used: I and II
+    // always, the others once a script sets EXSTRG n.
+    bool giantPageOpen(int page) const;
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
     Actor* actorById(std::int32_t id);
     const Actor* actorById(std::int32_t id) const;
@@ -509,6 +524,34 @@ private:
     void renderInventory();
     void renderItemTotals();
     void putInWarehouse();  // the held item, into the Warehouse Transfer Box
+    // The I and II tabs under the weapon and shield slots (0x406aa0); true
+    // when the click was on one.
+    bool weaponSetTabClick(int x, int y, bool right);
+    void renderWeaponSetTabs();
+    // Caps Lock: the sets change once the hero is not in the middle of an
+    // attack or a spell (0x4429b0, 0x48d7d0).
+    void swapWeaponSetsSoon() {
+        swapWeaponSetsPending_ = true;
+        swapWeaponSetsIfFree();
+    }
+    void swapWeaponSetsIfFree();
+    // The item window's mine picture (0x446320 case 11): a click with an
+    // empty hand takes a mine into the hand, one with a mine puts it back.
+    void mineSlotClick();
+    // The gold split box: a right click on a stack of gold in the bag or a
+    // warehouse asks how much of it to take into the hand (0x44a6f0,
+    // 0x44a9f0, 0x44ab60; settled at 0x4429b0).
+    struct GoldSplit {
+        enum class From { Bag, Storage, GiantStorage } from = From::Bag;
+        int x = 0, y = 0;  // the cell of the stack
+        int boxX = 0, boxY = 0;
+        std::string text;
+        bool fresh = true;  // the amount shown is replaced by the first digit typed
+    };
+    void openGoldSplit(GoldSplit::From from, int cellX, int cellY, int mouseX, int mouseY);
+    bool goldSplitEvent(const SDL_Event& event);
+    void finishGoldSplit();
+    void renderGoldSplit();
     void renderItemPopup(const Item& item, int mx, int my);
     // The colours the item and status windows write numbers in (0x405590):
     // plain, lowered by what is worn (red) and raised by it (tan).
@@ -1103,6 +1146,9 @@ private:
     SDL_Rect optionChoiceRect(int row, int choice);
     void setOption(OptionRow row, int index);
     void chooseOption(OptionRow row);
+    // The YES / NO question before SAVE AND RETURN TO TITLE and SAVE AND
+    // EXIT (0x4103c0): answered with the mouse, or Enter and Esc.
+    void answerSaveQuestion(bool yes);
     void closeOptions();
     void optionsEvent(const SDL_Event& event);
     void renderOptions();
@@ -1294,6 +1340,11 @@ private:
     std::optional<Dialogue> dialogue_;
     std::map<int, ShopStock> shops_;  // by INITTRADE's shop number; kStorage is the warehouse
     static constexpr int kStorage = -1;
+    static constexpr int kGiantStorage = -2;  // the Giant Warehouse, in giantStorage_
+    std::array<ShopStock, kGiantStoragePages> giantStorage_;
+    int giantPage_ = 0;
+    std::optional<GoldSplit> goldSplit_;
+    bool swapWeaponSetsPending_ = false;
     std::optional<int> openShop_;
     int entryPoint_ = 0;
     std::vector<int> answers_;
@@ -1405,6 +1456,8 @@ private:
     bool optionsOpen_ = false;
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
+    // The row whose YES / NO question shows in place of the menu.
+    std::optional<OptionRow> saveQuestion_;
     OptionsTab optionsTab_ = OptionsTab::Settings;
     // Frames drawn in the second counted so far, and the last second's count.
     Uint64 fpsSince_ = 0;
