@@ -7,6 +7,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
+# Crash reports to sentry.io (sentry-native, downloaded and built when on).
+# Nothing is sent without a DSN: SFE_SENTRY_DSN here, or the
+# SHADOWFLARE_SENTRY_DSN environment variable when the game starts.
+option(SFE_SENTRY "Send crash reports to Sentry (needs a DSN)" OFF)
+set(SFE_SENTRY_DSN "" CACHE STRING "Sentry DSN built into the game (empty: only SHADOWFLARE_SENTRY_DSN)")
 
 # Data file readers: no SDL dependency, so they can be tested on their own.
 add_library(sf_formats STATIC
@@ -165,4 +170,20 @@ else()
         target_link_libraries(shadowflare PRIVATE SDL2::SDL2main)
     endif()
     target_link_libraries(shadowflare PRIVATE SDL2::SDL2)
+endif()
+
+if(SFE_SENTRY AND NOT EMSCRIPTEN)
+    include(FetchContent)
+    # The in-process backend needs no crashpad_handler next to the program.
+    set(SENTRY_BACKEND inproc CACHE STRING "" FORCE)
+    set(SENTRY_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(SENTRY_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(sentry
+        GIT_REPOSITORY https://github.com/getsentry/sentry-native.git
+        GIT_TAG 0.16.8
+        GIT_SHALLOW TRUE)
+    FetchContent_MakeAvailable(sentry)
+    target_link_libraries(shadowflare PRIVATE sentry::sentry)
+    target_compile_definitions(shadowflare PRIVATE SF_SENTRY SF_SENTRY_DSN="${SFE_SENTRY_DSN}")
 endif()

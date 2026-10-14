@@ -164,6 +164,13 @@ of range"), it writes `crash.txt` next to the program: what went wrong, the
 call stack and the last 40 log lines. Debug and RelWithDebInfo builds name the
 functions and lines in the stack. `--crash-test` crashes on purpose to try it.
 
+Crashes can also go to [Sentry](https://sentry.io). Configure with
+`-DSFE_SENTRY=ON`, which downloads and builds sentry-native, and give it your
+project's DSN with `-DSFE_SENTRY_DSN=<dsn>` or the `SHADOWFLARE_SENTRY_DSN`
+environment variable. Without a DSN nothing is sent. A crash is uploaded the
+next time the game starts, with the last log lines as breadcrumbs; a failed
+Debug check is sent at once.
+
 ## Layout
 
     src/core/       logging and shared helpers

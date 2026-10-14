@@ -12,6 +12,7 @@ namespace {
 std::mutex recentMutex;
 std::array<std::string, 40> recentLines;
 std::size_t nextLine = 0;
+Listener listener = nullptr;
 
 }  // namespace
 
@@ -25,10 +26,15 @@ void write(Level level, std::string_view message) {
     }
     std::FILE* out = level >= Level::Warn ? stderr : stdout;
     std::fprintf(out, "[%s] %.*s\n", tag, static_cast<int>(message.size()), message.data());
-    std::lock_guard lock(recentMutex);
-    recentLines[nextLine % recentLines.size()] = std::format("[{}] {}", tag, message);
-    ++nextLine;
+    {
+        std::lock_guard lock(recentMutex);
+        recentLines[nextLine % recentLines.size()] = std::format("[{}] {}", tag, message);
+        ++nextLine;
+    }
+    if (listener) listener(level, message);
 }
+
+void setListener(Listener l) { listener = l; }
 
 std::string recent() {
     // A crash may come while another thread holds the lock; skip the lines

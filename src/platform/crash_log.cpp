@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include <csignal>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <ctime>
@@ -14,6 +15,10 @@
 #include <string>
 
 #include "core/log.h"
+
+#if defined(SF_SENTRY)
+#include <sentry.h>
+#endif
 
 #if defined(_WIN32)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -37,6 +42,9 @@ namespace {
 
 // Found up front: little is safe to call once the program is broken.
 char crashPath[1024] = "crash.txt";
+#if defined(SF_SENTRY)
+bool sentryOn = false;
+#endif
 // One crash.txt a run: the first failure is the one that matters (a failed
 // Debug check is followed by abort() when Abort is pressed).
 bool written = false;
@@ -143,6 +151,55 @@ void finish(std::FILE* f) {
     std::fprintf(stderr, "[ERROR] The game crashed; details in %s\n", crashPath);
 }
 
+#if defined(SF_SENTRY)
+
+// Log lines go to Sentry as breadcrumbs, so a report shows what led to it.
+void addBreadcrumb(log::Level level, std::string_view message) {
+    sentry_value_t crumb = sentry_value_new_breadcrumb("default", std::string(message).c_str());
+    sentry_value_set_by_key(crumb, "level", sentry_value_new_string(level == log::Level::Error  ? "error"
+                                                                    : level == log::Level::Warn ? "warning"
+                                                                    : level == log::Level::Debug ? "debug"
+                                                                                                 : "info"));
+    sentry_add_breadcrumb(crumb);
+}
+
+// Crashes (signals, Windows exceptions) are caught by Sentry itself; what
+// it cannot see, a Debug check or an uncaught exception's message, is sent
+// here.
+void sendToSentry(const char* reason) {
+    if (!sentryOn) return;
+    sentry_value_t event = sentry_value_new_message_event(SENTRY_LEVEL_FATAL, "crash", reason);
+    sentry_value_set_stacktrace(event, nullptr, 0);
+    sentry_capture_event(event);
+    sentry_flush(3000);
+}
+
+void startSentry(const char* base) {
+    const char* dsn = std::getenv("SHADOWFLARE_SENTRY_DSN");
+    if (!dsn || !*dsn) dsn = SF_SENTRY_DSN;
+    if (!*dsn) return;
+    sentry_options_t* options = sentry_options_new();
+    sentry_options_set_dsn(options, dsn);
+    const std::string database = std::string(base) + ".sentry-native";
+    sentry_options_set_database_path(options, database.c_str());
+    sentry_options_set_release(options, "shadowflare");
+#if defined(NDEBUG)
+    sentry_options_set_environment(options, "release");
+#else
+    sentry_options_set_environment(options, "debug");
+#endif
+    if (sentry_init(options) != 0) {
+        log::warn("Sentry did not start; crashes are only written to {}", crashPath);
+        return;
+    }
+    sentryOn = true;
+    std::atexit([] { sentry_close(); });
+    log::setListener(addBreadcrumb);
+    log::info("Crash reports go to Sentry");
+}
+
+#endif
+
 void report(const char* reason) {
     std::FILE* f = begin(reason);
     if (!f) return;
@@ -175,6 +232,9 @@ int onCrtReport(int type, char* message, int* returnValue) {
         std::string reason = "Debug check failed: ";
         reason += message ? message : "";
         report(reason.c_str());
+#if defined(SF_SENTRY)
+        sendToSentry(reason.c_str());
+#endif
     }
     (void)returnValue;
     return FALSE;  // let the usual dialog show as well
@@ -207,6 +267,9 @@ void onTerminate() {
         }
     }
     report(reason.c_str());
+#if defined(SF_SENTRY)
+    sendToSentry(reason.c_str());
+#endif
     std::signal(SIGABRT, SIG_DFL);
     std::abort();
 }
@@ -215,10 +278,8 @@ void onTerminate() {
 
 void install() {
 #if !defined(__EMSCRIPTEN__)
-    if (char* base = SDL_GetBasePath()) {
-        std::snprintf(crashPath, sizeof crashPath, "%scrash.txt", base);
-        SDL_free(base);
-    }
+    char* base = SDL_GetBasePath();
+    std::snprintf(crashPath, sizeof crashPath, "%scrash.txt", base ? base : "");
     std::set_terminate(onTerminate);
     std::signal(SIGSEGV, onSignal);
     std::signal(SIGABRT, onSignal);
@@ -230,6 +291,11 @@ void install() {
     _CrtSetReportHook2(_CRT_RPTHOOK_INSTALL, onCrtReport);
 #endif
 #endif
+    // After ours, so Sentry's handlers run first and then pass on to ours.
+#if defined(SF_SENTRY)
+    startSentry(base ? base : "");
+#endif
+    SDL_free(base);
 #endif
 }
 
