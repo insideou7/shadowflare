@@ -212,6 +212,13 @@ public:
     void openOptions(bool inGame);
     // Reads the options from this file and writes them back when they change.
     void setSettingsFile(std::string path);
+    // Where pictures of the original's maps for the area map (N) are kept
+    // once drawn, so each is drawn only once.
+    void setMapPictureFolder(std::string folder) { mapPictureFolder_ = std::move(folder); }
+    // Draws every map's picture for the area map into `folder` as
+    // <map>.png (Map/Overview in an open pack), or with no folder where
+    // the game keeps them (setMapPictureFolder); returns how many.
+    int renderMapPictures(const std::string& folder);
     const Settings& settings() const { return settings_; }
     void setHelpOpen(bool open) { helpOpen_ = open; }
 
@@ -344,6 +351,7 @@ private:
     void talkTo(Actor& person);
 
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
+    void loadMapLayers(std::size_t index);
     void loadScenario(const std::string& dir);
     // Puts the scenario being left in visited_, unless the game is being
     // started or loaded (forgetVisitedScenarios).
@@ -1006,6 +1014,13 @@ private:
     // original's own art, else ours, drawn from the map itself.
     void drawAreaMapPicture(int left, int top);
     void buildAreaMapPicture();
+    // Our picture of the map, drawn from it: w x h pixels, empty if it
+    // cannot be drawn.
+    std::vector<std::uint32_t> drawAreaMapPixels(int& w, int& h);
+    // Where our picture of the current map is kept between runs ("" when
+    // it is not: the open pack brings its own, in Map/Overview).
+    std::string areaMapPictureFile();
+    std::optional<std::uint64_t> skinFingerprint_;
     void renderScenery(int camX, int camY, bool ground = true);  // ground and objects, no one on them
 
     // The Settings Menu and Help window (options.cpp). The menu has two
@@ -1275,6 +1290,7 @@ private:
     TexturePtr worldTexture_;
     int worldTextureW_ = 0, worldTextureH_ = 0;
     bool fullSize_ = false;
+    int shotWidth_ = 0, shotHeight_ = 0;  // the view's size while the area map's picture is drawn (else 0)
 
     double cameraX_ = 0, cameraY_ = 0;  // top-left of the view, in map pixels
     std::uint64_t ticks_ = 0;
@@ -1282,6 +1298,7 @@ private:
     bool menuOpen_ = false;
     Settings settings_;
     std::string settingsFile_;
+    std::string mapPictureFolder_;
     bool optionsOpen_ = false;
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;

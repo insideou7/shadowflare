@@ -29,9 +29,10 @@ add_library(sf_formats STATIC
 )
 target_include_directories(sf_formats PUBLIC src)
 
-# stb_image decodes the open content pack's PNGs and stb_vorbis its sounds.
-# Third-party code is built on its own so it keeps its own warnings.
-add_library(sf_stb STATIC src/formats/stb_image.cpp src/formats/stb_vorbis.cpp)
+# stb_image decodes the open content pack's PNGs, stb_image_write saves the
+# pictures of the maps and stb_vorbis decodes the sounds. Third-party code
+# is built on its own so it keeps its own warnings.
+add_library(sf_stb STATIC src/formats/stb_image.cpp src/formats/stb_image_write.cpp src/formats/stb_vorbis.cpp)
 target_include_directories(sf_stb PUBLIC third_party/stb)
 target_link_libraries(sf_formats PRIVATE sf_stb)
 
@@ -107,6 +108,15 @@ foreach(target sf_formats sf_logic shadowflare)
 endforeach()
 
 include(CTest)
+# The area map's pictures of the original's maps in our art, drawn ahead of
+# time from the original files in game/ (otherwise each is drawn the first
+# time its map is opened, and kept): cmake --build build --target map_pictures
+add_custom_target(map_pictures
+    COMMAND ${CMAKE_COMMAND} -E env SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy $<TARGET_FILE:shadowflare> --our-art --render-maps
+    DEPENDS shadowflare
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    USES_TERMINAL)
+
 if(BUILD_TESTING)
     add_executable(formats_test tests/formats_test.cpp)
     target_link_libraries(formats_test PRIVATE sf_formats)
