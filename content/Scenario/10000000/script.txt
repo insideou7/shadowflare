@@ -12,8 +12,8 @@
 # to it finds it (warp:0, which a new game already has) and shows its
 # name over it, and a click on it opens the GATE window.
 
-object=10001,2726,10298,2977,gate
-object=8800,1337,11100,3837,gate-ground
+object=9361,2086,9658,2337,gate
+object=8160,697,10460,3197,gate-ground
 
 [message 1]
 So the army did send someone. I command what is left of the

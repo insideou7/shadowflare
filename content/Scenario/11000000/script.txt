@@ -2,8 +2,8 @@
 # it (warp:4) and shows its name over it, and a click on it opens the
 # GATE window.
 
-object=2881,4566,3178,4817,gate
-object=1680,3177,3980,5677,gate-ground
+object=2241,3926,2538,4177,gate
+object=1040,2537,3340,5037,gate-ground
 
 [message 1]
 Cold Svalt Town
