@@ -17,7 +17,7 @@ namespace sf {
 
 namespace {
 
-constexpr SDL_Rect kOptionsPanel{100, 52, 440, 370};
+constexpr SDL_Rect kOptionsPanel{100, 46, 440, 388};
 constexpr int kRowHeight = 18;
 constexpr int kFirstRowY = kOptionsPanel.y + 40;
 constexpr int kChoicesX = kOptionsPanel.x + 210;
@@ -58,6 +58,9 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     if (canSwapArt()) rows.push_back(R::Art);
     if (optionsInGame_) {
         rows.insert(rows.end(), {R::MissionList, R::Map, R::Help, R::SaveAndTitle, R::SaveAndExit});
+        // Ours: quits without saving. The original's menu has no such row,
+        // so original mode leaves it out.
+        if (!originalMode()) rows.push_back(R::Exit);
     } else {
         rows.insert(rows.end(), {R::Help, R::Back});
     }
@@ -98,6 +101,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::Help: return "HELP";
         case OptionRow::SaveAndTitle: return "SAVE AND RETURN TO TITLE";
         case OptionRow::SaveAndExit: return "SAVE AND EXIT";
+        case OptionRow::Exit: return "EXIT";
         case OptionRow::Back: return "BACK";
         case OptionRow::XpRate: return "EXPERIENCE RATE";
         case OptionRow::ShowFps: return "SHOW FPS";
@@ -291,7 +295,8 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::MissionList:
         case OptionRow::Map:
         case OptionRow::SaveAndTitle:
-        case OptionRow::SaveAndExit: playSound(0x38); break;
+        case OptionRow::SaveAndExit:
+        case OptionRow::Exit: playSound(0x38); break;
         case OptionRow::Back: playSound(0x39); break;
         default: break;
     }
@@ -317,6 +322,7 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::SaveAndExit:
             if (saveGame()) quit_ = true;
             break;
+        case OptionRow::Exit: quit_ = true; break;
         case OptionRow::Back: closeOptions(); break;
         case OptionRow::ClickPriority:
             // Enter brings the next one to the front.
