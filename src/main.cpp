@@ -507,12 +507,20 @@ void frame(void* userData) {
         }
     }
 
+#ifdef __EMSCRIPTEN__
+    // In a browser the saves are files in memory; the page copies them to
+    // the browser's storage every few seconds.
+    if (app.frames % 120 == 0) EM_ASM({ Module.sf.syncSaves(); });
+#endif
+
     ++app.frames;
     const bool ticksDone = app.ticks >= 0 && static_cast<long>(app.game->tickCount()) >= app.ticks;
     if (app.game->wantsQuit() || ticksDone || (app.maxFrames >= 0 && app.frames >= app.maxFrames)) {
         app.running = false;
 #ifdef __EMSCRIPTEN__
+        // Back to the page's start screen, once the saves are kept.
         emscripten_cancel_main_loop();
+        EM_ASM({ if (Module.sfGameExit) Module.sfGameExit(); });
 #endif
     }
 }
@@ -528,7 +536,13 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
+#ifdef __EMSCRIPTEN__
+    // The browser goes on calling frame() after main() has given up its
+    // stack, so the app cannot live there.
+    static App app;
+#else
     App app;
+#endif
     app.maxFrames = options.maxFrames;
     app.ticks = options.ticks;
     app.clicks = options.clicks;
