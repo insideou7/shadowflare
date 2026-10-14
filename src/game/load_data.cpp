@@ -101,6 +101,7 @@ void Game::readSaveSlots() {
             slot.sex = save.sex;
             slot.job = save.career ? save.career->current : Career::at(slot.level).current;
             slot.name = save.name;
+            slot.otherData = !saveFitsData(save.map, save.scenario);
         } catch (const FormatError& e) {
             log::warn("{}: {}", slot.file, e.what());
             slot.damaged = true;
@@ -168,6 +169,8 @@ void Game::loadDataKey(SDL_Keycode key) {
                 playSound(0x37);
                 d.step = S::Leaving;
                 d.ticks = 0;
+            } else if (enter && count > 0 && d.slots[static_cast<std::size_t>(d.chosen)].otherData) {
+                // Its box says Other Data; it can only be deleted here.
             } else if (enter && count > 0) {
                 playSound(0x37);
                 d.step = S::Mode;
@@ -349,6 +352,13 @@ void Game::renderSaveSlot(const LoadData::Slot* slot, int index, int x, int y, i
     auto pad = [](std::string_view label, const std::string& value) {
         return std::string(label.size() + 1, ' ') + value;
     };
+    if (slot->otherData) {
+        // Ours: saved with the other game data, so it cannot be played here.
+        text(39, 12, "Other Data", white);
+        text(39, 32, "Name.", gold);
+        text(39, 32, pad("Name.", slot->name), white);
+        return;
+    }
     text(39, 12, "Level.", gold);
     text(39, 12, pad("Level.", std::to_string(slot->level)), white);
     text(104, 12, "Job.", gold);
