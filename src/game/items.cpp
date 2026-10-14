@@ -281,7 +281,11 @@ void Game::pickUpItems() {
 }
 
 void Game::updateEquipment() {
-    if (player_) player_->visibleLayers = inventory_.heroLayers();
+    if (player_) {
+        player_->visibleLayers = inventory_.heroLayers();
+        player_->layerTints.clear();
+        for (const auto& c : inventory_.heroColours()) player_->layerTints.push_back({c.layer, c.rgb[0], c.rgb[1], c.rgb[2]});
+    }
     // Taking off what raised the most leaves only that many (0x450183).
     mineCount_ = std::min(mineCount_, mostMines());
     // What the hero wears can raise the companion's stats.

@@ -103,6 +103,14 @@ int Character::frameCount() const {
     return dir ? dir->frameCount : 0;
 }
 
+void Character::setFrame(int frame) {
+    const int count = frameCount();
+    if (count <= 0) return;
+    frame_ = std::clamp(frame, 0, count - 1);
+    progress_ = 0;
+    reached(frame_);
+}
+
 bool Character::finished() const {
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return true;
@@ -161,6 +169,7 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
     struct Item {
         const AnimationSet::Cell* cell;
         bool shadow;
+        int layer;
     };
     std::vector<Item> items;
     for (std::size_t i = 0; i < dir->layers.size(); ++i) {
@@ -170,7 +179,7 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
         const bool shadow = AnimationSet::isShadow(cell.status);
         if (shadow && alpha < 255) continue;
         if (!shadow && std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
-        items.push_back({&cell, shadow});
+        items.push_back({&cell, shadow, static_cast<int>(i)});
     }
     // Shadows first, then the rest from the highest priority down: a
     // lower number is nearer the viewer (armour over the body).
@@ -196,7 +205,14 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
             SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
             SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
         } else {
-            SDL_SetTextureColorMod(sprite->texture, tint.r, tint.g, tint.b);
+            SDL_Color c = tint;
+            for (const auto& t : layerTints) {
+                if (t.layer != item.layer) continue;
+                // SDL can only darken: strengths over 1000 stay at full.
+                auto scale = [](Uint8 v, int permille) { return static_cast<Uint8>(v * std::clamp(permille, 0, 1000) / 1000); };
+                c = {scale(c.r, t.r), scale(c.g, t.g), scale(c.b, t.b), c.a};
+            }
+            SDL_SetTextureColorMod(sprite->texture, c.r, c.g, c.b);
             SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
         }
         SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};

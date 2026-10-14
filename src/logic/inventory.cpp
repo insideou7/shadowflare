@@ -582,4 +582,16 @@ std::vector<int> Inventory::heroLayers() const {
     return layers;
 }
 
+std::vector<Inventory::LayerColour> Inventory::heroColours() const {
+    std::vector<LayerColour> out;
+    for (const EquipSlot slot : {EquipSlot::Body, EquipSlot::Weapon, EquipSlot::Shield}) {
+        const auto& worn = equipped(slot);
+        if (!worn || worn->def->heroLayer < 0) continue;
+        LayerColour c{worn->def->heroLayer, worn->def->layerTint};
+        if (worn->colour >= 0 && worn->colour < static_cast<int>(kDyes.size())) c.rgb = kDyes[static_cast<std::size_t>(worn->colour)];
+        out.push_back(c);
+    }
+    return out;
+}
+
 }  // namespace sf

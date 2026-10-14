@@ -170,6 +170,8 @@ IF temp:20 = 0 @healer-heal
 IF temp:20 ! 0 @healer-done
 
 [sentence healer-heal]
+# The healer casts (person chart 3) as the hero is healed.
+C_ACTIONREQ healer 4 -1 -1 -1 -1
 HEALLIFE
 HEALMENTAL
 TALK msg:23 temp:20 0 0 -1 -1

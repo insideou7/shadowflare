@@ -125,8 +125,19 @@ public:
         return g_.player_ ? static_cast<std::int32_t>(g_.player_->y) : 0;
     }
     void stopCharacter(std::int32_t id, bool stop) override {
-        if (auto* a = g_.actorById(id)) a->stopped = stop;
+        auto* a = g_.actorById(id);
+        if (!a) return;
+        a->stopped = stop;
+        // Either ends a scripted action: they stand again (0x45d480).
+        if (a->scripted && !a->hostile()) {
+            a->scripted.reset();
+            a->character.play(chart::kIdle);
+        }
     }
+    void requestAction(const ActionRequest& r) override { g_.requestAction(r); }
+    void openChangeColor() override { g_.openChangeColor(); }
+    void toggleCardGame() override { g_.toggleCardGame(); }
+    int cardGameResult() const override { return g_.cardGame_.result(); }
     void faceCharacter(std::int32_t id, std::int32_t towards) override {
         auto* a = g_.actorById(id);
         if (!a || !g_.player_) return;
@@ -826,6 +837,56 @@ void Game::renderShop() {
             uiText(box.x + 6, box.y + 5 + static_cast<int>(k) * kLineHeight, lines[k].first, lines[k].second);
         }
     }
+}
+
+// C_ACTIONREQ on a person (0x45d480 sets its state, 0x45d3d0 plays it):
+// state 1 stands, 2 walks, 3 talks and 4 on play chart state - 1. Monsters
+// and objects take the command through their own code, which no scenario
+// uses.
+void Game::requestAction(const ScriptHost::ActionRequest& r) {
+    Actor* a = actorById(r.character);
+    if (!a || a->hostile()) return;
+    if (r.action <= 1) {
+        a->scripted.reset();
+        a->character.play(chart::kIdle);
+        return;
+    }
+    const int chart = r.action - 1;
+    if (!a->character.hasChart(chart)) {
+        log::info("{} has no chart {} for action {}", r.character, chart, r.action);  // our art may not draw it
+        return;
+    }
+    a->scripted = Actor::ScriptedAction{chart, r.loop, r.from, r.to};
+    log::info("{} plays action {} (chart {}, {} frames){}", r.character, r.action, chart, a->character.frameCount(), r.loop ? ", looping" : "");
+    a->character.restart(chart);
+}
+
+// A scripted action's frame: played once it ends on its last frame and the
+// person stands; looping, the frame after `to` (or the last) is `from` (or
+// the first) again (0x45d850).
+void Game::tickScriptedAction(Actor& a) {
+    auto& s = *a.scripted;
+    Character& c = a.character;
+    if (c.chart() != s.chart) {
+        a.scripted.reset();
+        return;
+    }
+    const int last = c.frameCount() - 1;
+    if (s.loop) {
+        const int end = s.to == -1 ? last : std::min(s.to, last);
+        if (c.frame() >= end) {
+            c.setFrame(s.from == -1 ? 0 : s.from);
+            return;
+        }
+        c.tick();
+        return;
+    }
+    if (c.frame() >= last) {
+        a.scripted.reset();
+        c.play(chart::kIdle);
+        return;
+    }
+    c.tick();
 }
 
 }  // namespace sf

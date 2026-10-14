@@ -51,6 +51,7 @@ add_library(sf_logic STATIC
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
     src/logic/mines.cpp
+    src/logic/card_game.cpp
     src/logic/settings.cpp
     src/logic/item_labels.cpp
     src/logic/partner.cpp
@@ -90,6 +91,8 @@ add_executable(shadowflare
     src/game/transport.cpp
     src/game/pointer.cpp
     src/game/warp_gate.cpp
+    src/game/card_game.cpp
+    src/game/change_color.cpp
     src/game/panel.cpp
     src/game/power.cpp
     src/game/magic_window.cpp

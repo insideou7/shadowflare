@@ -112,6 +112,7 @@ struct ScenarioScript {
         kEveryTick = 5,
         kOnRoutine = 6,    // ROUTIN `character` runs these, as a subroutine (0x4309f0)
         kOnStart = 7,      // the scenario was entered
+        kOnCardGameEnd = 8,  // the card game ended (0x40da90 runs them, character -1)
     };
 
     struct Operand {

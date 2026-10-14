@@ -17,6 +17,7 @@
 #include "audio/mixer.h"
 #include "game/character.h"
 #include "logic/ai_select.h"
+#include "logic/card_game.h"
 #include "logic/explored_map.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
@@ -260,6 +261,10 @@ public:
     // and picking the n-th gate listed on the page showing (for testing).
     void openWarpGate(int gate, int page = 0);
     void chooseWarpGate(int row);
+    // STARTCARDGAME (card_game.cpp) and CHANGECOLOR (change_color.cpp), as
+    // the scripts open them; also --card-game and --change-color.
+    void toggleCardGame();
+    void openChangeColor();
 
     // Saves the game to a text file (F10) or loads it back (F11). False, with
     // a message on screen, when that fails. Each hero has their own file, as
@@ -306,6 +311,14 @@ private:
         int wanderPause = 0;
         bool active = true;   // SETINACTIVE hides a character
         bool stopped = false;  // C_STOP holds it still while it talks
+        // A person's C_ACTIONREQ action: the chart it plays, and the frames
+        // it repeats when it loops (0x45d850).
+        struct ScriptedAction {
+            int chart = 0;
+            bool loop = false;
+            int from = -1, to = -1;
+        };
+        std::optional<ScriptedAction> scripted;
         std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
         bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
         bool alive() const { return state != State::Dead; }
@@ -1024,6 +1037,25 @@ private:
     bool warpGateClick(int x, int y, bool right);
     void renderWarpGate();
 
+    // People's scripted actions (C_ACTIONREQ, talk.cpp).
+    void requestAction(const ScriptHost::ActionRequest& r);
+    void tickScriptedAction(Actor& a);
+
+    // The card game (card_game.cpp): Black Jack over the whole screen,
+    // which STARTCARDGAME opens (0x434297) and 0x40da90 plays and draws.
+    // The world waits while it is open; its end runs the event 8 triggers.
+    void tickCardGame();
+    bool cardGameEvent(const SDL_Event& event);
+    void renderCardGame();
+
+    // The Change Color window (change_color.cpp; 0x40f9e0 draws it and
+    // takes its clicks): CHANGECOLOR opens it, and the hero dyes the weapon,
+    // shield and body armour they wear one of sixteen colours, turning a
+    // picture of themselves round to see it. Cancel puts the colours back.
+    void closeChangeColor(bool keep);
+    bool changeColorEvent(const SDL_Event& event);
+    void renderChangeColor();
+
     // Darkness in dungeons (darkness.cpp), as ShadowFlare.exe draws it in
     // its frame code (0x41e4f0): the screen is lit by an ellipse round the
     // hero and by the lights some characters carry, dimmed by the area's
@@ -1315,6 +1347,18 @@ private:
     ClickTarget hover_;           // what a click there would go for
     std::optional<std::map<int, open::EnemyName>> enemyNames_;
 
+    CardGame cardGame_{[this](int n) { return random_.next(n); }};
+    double cardTickCarry_ = 0;  // the card game runs at the original's 30 ticks a second
+    std::optional<SDL_Point> cardClick_;  // a left click for its next tick
+    // The Change Color window (0xa06c): which item's tab is chosen (0
+    // weapon, 1 shield, 2 armour; 0xa9e0), the way the picture faces
+    // (0xa9f0) and the colours to put back on Cancel (0xa9e4-0xa9ec).
+    struct ChangeColor {
+        int tab = -1;
+        int direction = 0;
+        std::array<int, 3> saved{-1, -1, -1};
+    };
+    std::optional<ChangeColor> changeColor_;
     WarpGates warpGates_;
     bool warpOpen_ = false;     // the GATE window (0xa05c)
     int warpOpener_ = 0;        // the gate that opened it (0x48d72c keeps -1 - gate)

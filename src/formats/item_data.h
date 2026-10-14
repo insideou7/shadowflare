@@ -83,6 +83,9 @@ struct ItemDef {
     // body armour, shields), -1 = none.
     std::int32_t heroLayer = -1;
     std::int32_t glowLayer = -1;  // a second layer some weapons add (fire glow, aura)
+    // The red, green and blue strengths (per mille) `heroLayer` is drawn
+    // with while it is not dyed (0x444d64).
+    std::array<std::int32_t, 3> layerTint{1000, 1000, 1000};
     bool twoHandedFlag = false;   // weapons that are two-handed whatever their subtype
     // The page of the special items window it is kept on (0x7c), at its
     // own place there (0x80), or -1: quest items, the orbs and stones, the

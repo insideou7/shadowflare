@@ -596,6 +596,8 @@ void Game::handleEvent(const SDL_Event& event) {
         dialogueEvent(event);
         return;
     }
+    if (cardGameEvent(event)) return;
+    if (changeColorEvent(event)) return;
     // The open map takes the arrow keys and Enter, held keys repeating.
     if (event.type == SDL_KEYDOWN && mapOpen_ && areaMapKey(event.key.keysym.sym)) return;
     switch (event.type) {
@@ -865,6 +867,10 @@ void Game::tick() {
         answers_.erase(answers_.begin());
         closeDialogue(answer);
     }
+    if (cardGame_.open()) {
+        tickCardGame();  // the world waits while the cards are out
+        return;
+    }
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
     tickVisual();
     tickRain();
@@ -889,7 +895,11 @@ void Game::tick() {
                 tickEnemy(actor);
             }
         }
-        actor.character.tick();
+        if (actor.scripted) {
+            tickScriptedAction(actor);
+        } else {
+            actor.character.tick();
+        }
         monsterCries(actor);
     }
     if (!player_) return;
@@ -1667,9 +1677,11 @@ void Game::renderMap() {
     renderMissions();
     renderAreaMap();
     renderWarpGate();
+    renderChangeColor();
     renderHud();
     renderMissionHud();
     renderPartnerGauge();
+    renderCardGame();
     renderDialogue();
     renderHelp();
 }
