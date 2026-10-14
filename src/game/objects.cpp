@@ -171,6 +171,22 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
     SDL_SetTextureAlphaMod(sprite->texture, 255);
 }
 
+SDL_Rect Game::sceneObjectPicture(const SceneObject& o) {
+    const auto& p = placementOf(o);
+    if (o.animation) return o.animation->pictureBounds(sprites_);
+    if (!o.body) return {};
+    const int pattern = o.prop >= 0 ? o.prop : p.look.pattern;
+    const auto* pieces = skin_ && o.prop < 0 ? skin_->scenarioObject(p.kind, pattern) : nullptr;
+    if (pieces && pieces->empty()) return {};
+    const SpriteTexture* sprite = sprites_.get(*o.body, pattern, false);
+    int sx, sy;
+    worldToScreen(p.x, p.y, sx, sy);
+    if (!sprite) return pieces ? SDL_Rect{sx - 1024, sy - 1024, 2048, 2048} : SDL_Rect{};
+    SDL_Rect picture{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+    if (pieces) picture = {picture.x - 32, picture.y - 32, picture.w + 64, picture.h + 64};
+    return picture;
+}
+
 // CCHECK (0x4346b0): the left button is held on the object, which is shown
 // and usable, and the hero stands within reach of its rectangle.
 bool Game::workingObject(std::int32_t id) const {

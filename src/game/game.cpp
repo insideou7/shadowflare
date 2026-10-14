@@ -1436,13 +1436,37 @@ void Game::renderMap() {
         double x, y;
         const Character* character;
         const Effect* effect;
+        SDL_Rect picture;  // where it lands, in map pixels
+        // One past the last of drawOrder_ it stands in front of and
+        // overlaps: it may not go under anything before that.
+        std::size_t frontOf = 0;
+    };
+    // Effects can be large (a burst, a pillar of fire), so they take a
+    // generous box rather than their exact frame.
+    auto effectBox = [](const Effect& e) {
+        int sx, sy;
+        worldToScreen(static_cast<int>(e.x), static_cast<int>(e.y), sx, sy);
+        return SDL_Rect{sx - 192, sy - 384, 384, 480};
     };
     std::vector<Drawable> drawables;
-    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr});
-    for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e});
+    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr, c->pictureBounds(sprites_)});
+    for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
     const std::vector<Effect> gate = transportGateParts();
-    for (const Effect& e : gate) drawables.push_back({e.x, e.y, nullptr, &e});
+    for (const Effect& e : gate) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
     std::ranges::stable_sort(drawables, [](const Drawable& a, const Drawable& b) { return a.x + a.y < b.x + b.y; });
+    // Where each map object's picture lands, by place in drawOrder_.
+    std::vector<SDL_Rect> pictures(drawOrder_.size());
+    if (!drawables.empty()) {
+        for (std::size_t k = 0; k < drawOrder_.size(); ++k) pictures[k] = objectPicture(map_->objects().objects[drawOrder_[k]]);
+    }
+    for (Drawable& d : drawables) {
+        for (std::size_t k = drawOrder_.size(); k-- > 0;) {
+            if (SDL_HasIntersection(&pictures[k], &d.picture) && map_->objects().objects[drawOrder_[k]].inFront(d.x, d.y)) {
+                d.frontOf = k + 1;
+                break;
+            }
+        }
+    }
 
     // Semi-transparent Shadow off draws them solid black.
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
@@ -1467,10 +1491,17 @@ void Game::renderMap() {
             if (d.effect) renderEffect(*d.effect, camX, camY);
         };
         // Everyone an object hides goes first, even if someone nearer the
-        // front is still waiting for a later object.
-        auto drawHidden = [&](const MapObject& o) {
+        // front is still waiting for a later object. Only an object whose
+        // picture covers part of theirs counts: one that draws nothing (an
+        // invisible blocker) or lands elsewhere on screen would pull them
+        // under the pieces between it and where they stand, like a monster
+        // in front of a palisade drawn behind it. Someone beside the end of
+        // a wall, and in front of a piece still to come (the other side of
+        // a fence's corner), waits for that piece.
+        auto drawHidden = [&](const MapObject& o, const SDL_Rect& picture, std::size_t place) {
             for (auto it = pending.begin(); it != pending.end();) {
-                if (o.hides(it->x, it->y)) {
+                if (SDL_HasIntersection(&picture, &it->picture) && o.hides(it->x, it->y) &&
+                    (place >= it->frontOf || o.surelyHides(it->x, it->y))) {
                     draw(*it);
                     it = pending.erase(it);
                 } else {
@@ -1479,19 +1510,19 @@ void Game::renderMap() {
             }
         };
         std::size_t next = 0;  // into scene
-        auto drawSceneUpTo = [&](long long depth) {
+        auto drawSceneUpTo = [&](long long depth, std::size_t place) {
             for (; next < scene.size() && scene[next].first.depth() <= depth; ++next) {
-                drawHidden(scene[next].first);
+                if (!pending.empty()) drawHidden(scene[next].first, sceneObjectPicture(*scene[next].second), place);
                 drawSceneObject(*scene[next].second, shadows, camX, camY, shadowAlpha);
             }
         };
-        for (std::size_t i : drawOrder_) {
-            const MapObject& o = objects[i];
-            drawSceneUpTo(o.depth());
-            drawHidden(o);
+        for (std::size_t k = 0; k < drawOrder_.size(); ++k) {
+            const MapObject& o = objects[drawOrder_[k]];
+            drawSceneUpTo(o.depth(), k);
+            if (!pending.empty()) drawHidden(o, pictures[k], k);
             drawObject(o, shadows, camX, camY, shadowAlpha);
         }
-        drawSceneUpTo(LLONG_MAX);
+        drawSceneUpTo(LLONG_MAX, drawOrder_.size());
         for (const Drawable& d : pending) draw(d);
     }
     // Semi-transparent Player: a faint copy on top shows the hero through
@@ -1556,6 +1587,30 @@ void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int 
         SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha));
     }
     SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
+}
+
+SDL_Rect Game::objectPicture(const MapObject& o) {
+    if (map_->isShadowBank(o.bank)) return {};
+    const auto* pieces = skin_ ? skin_->replacement(o) : nullptr;
+    if (pieces && pieces->empty()) return {};
+    const SpriteBank* bank = map_->bank(o.bank);
+    const SpriteTexture* sprite = bank ? sprites_.get(*bank, o.pattern, false) : nullptr;
+    int sx, sy;
+    worldToScreen(o.x, o.y, sx, sy);
+    if (!sprite) {
+        if (!pieces) return {};
+        // A prop with no original picture to measure: take it as
+        // covering anyone near it.
+        return {sx - 1024, sy - 1024, 2048, 2048};
+    }
+    SDL_Rect picture{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+    if (pieces) {
+        // Our props are made to fill the original's picture; allow a
+        // little for where they spill over.
+        constexpr int kSpill = 32;
+        picture = {picture.x - kSpill, picture.y - kSpill, picture.w + 2 * kSpill, picture.h + 2 * kSpill};
+    }
+    return picture;
 }
 
 // The map's ground and objects with no one on them, for the map window.

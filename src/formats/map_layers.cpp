@@ -116,6 +116,14 @@ bool MapObject::hides(double worldX, double worldY) const {
     return worldX + worldY < nearX + nearY;
 }
 
+bool MapObject::inFront(double worldX, double worldY) const {
+    return (worldX > x + judge[2] || worldY > y + judge[3]) && !(worldX < x + judge[0] || worldY < y + judge[1]);
+}
+
+bool MapObject::surelyHides(double worldX, double worldY) const {
+    return (worldX < x + judge[0] || worldY < y + judge[1]) && !(worldX > x + judge[2] || worldY > y + judge[3]);
+}
+
 ObjectLayer ObjectLayer::parse(std::span<const std::uint8_t> data) {
     BinaryReader in(data);
     const std::string_view magic = in.chars(16);

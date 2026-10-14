@@ -215,4 +215,28 @@ void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, 
     }
 }
 
+SDL_Rect Character::pictureBounds(SpriteCache& sprites) const {
+    SDL_Rect bounds{0, 0, 0, 0};
+    const auto* dir = currentDirection();
+    if (!dir) return bounds;
+    int sx, sy;
+    worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
+    for (std::size_t i = 0; i < dir->layers.size(); ++i) {
+        const auto& layer = dir->layers[i];
+        if (frame_ >= static_cast<int>(layer.size())) continue;
+        const auto& cell = layer[frame_];
+        if (cell.status == AnimationSet::kShadowStatus) continue;
+        if (std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
+        const SpriteTexture* sprite = sprites.get(model_->body, cell.pattern, false, grey);
+        if (!sprite) continue;
+        const SDL_Rect r{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
+        if (SDL_RectEmpty(&bounds)) {
+            bounds = r;
+        } else {
+            SDL_UnionRect(&bounds, &r, &bounds);
+        }
+    }
+    return bounds;
+}
+
 }  // namespace sf
