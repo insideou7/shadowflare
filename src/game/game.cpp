@@ -1431,6 +1431,20 @@ void Game::render(double interpolation) {
 }
 
 void Game::renderMap() {
+    // The one under the pointer is drawn brighter (0x40ee70 adds 300 to
+    // its red, green and blue): a character, a chest, lever or door, or an
+    // item on the ground.
+    // Worked out before the world picture below becomes the render target,
+    // as the mouse is read through the screen's logical size.
+    updateHover();
+    for (std::size_t i = 0; i < actors_.size(); ++i) {
+        const bool lit = hovered(Settings::kEnemy, i) || hovered(Settings::kPerson, i);
+        actors_[i].character.glow = lit ? kHoverGlow : 0;
+    }
+    for (auto& o : sceneObjects_) {
+        if (o.animation) o.animation->glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
+    }
+
     SDL_SetRenderDrawColor(renderer_, 0, 0, 0, 255);
     SDL_RenderClear(renderer_);
     // Zoomed out, the world is drawn as at full size to a picture of all
@@ -1457,17 +1471,6 @@ void Game::renderMap() {
     }
     renderGroundItems(camX, camY);
 
-    // The one under the pointer is drawn brighter (0x40ee70 adds 300 to
-    // its red, green and blue): a character, a chest, lever or door, or an
-    // item on the ground.
-    updateHover();
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
-        const bool lit = hovered(Settings::kEnemy, i) || hovered(Settings::kPerson, i);
-        actors_[i].character.glow = lit ? kHoverGlow : 0;
-    }
-    for (auto& o : sceneObjects_) {
-        if (o.animation) o.animation->glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
-    }
 
     // Objects and characters, back to front. Shadows go first so nothing
     // stands under one; characters draw their own shadows.
