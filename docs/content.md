@@ -185,6 +185,7 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 | `speed=` | per mille of its AI's speeds | 1000 |
 | `stun=` | what it takes off a stun's chance and length, and 1 if its stuns may run past 15 ticks | 0/0/0 |
 | `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
+| `shot=` | what one attack throws instead of striking: kind/height/speed/start/attack (see docs/archery.md) | throws nothing |
 
 Every monster in the pack has the original's numbers.
 `tools/content/enemy_stats.py` copies them from the player's own copy:

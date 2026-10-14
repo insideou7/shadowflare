@@ -270,6 +270,11 @@ code (0x45b043) reads + 0x134 to + 0x158.
 | 35-37 | 0x14c | each spell's power |
 | 38-40 | 0x140 | the level whose Table.Tbd columns each spell uses (hit, element) |
 | 41-43 | 0x158 | added to each spell's hit |
+| 44 | 0x184 | what one of its attacks throws or shoots: the shot controller (1 a stone, 0, 4, 5, 7 arrows, 6 a big shot; -1 nothing). See [archery.md](archery.md) |
+| 45 | 0x190 | how high the shot flies |
+| 46 | 0x188 | the shot's speed, world units a tick |
+| 47 | 0x18c | how far out from the monster the shot starts |
+| 48 | 0x194 | the attack (0-2) that throws instead of striking |
 | 49 | 0x198 | chance of dropping gold, percent (usually 10; read at 0x45a030) |
 | 64-66 | 0x11c | each attack's chart, less 4 (0x45a749 plays chart 4 + this) |
 | 67-69 | 0x164 | each spell's chart, less 7 (0x45ac90 plays chart 7 + this) |
@@ -277,7 +282,7 @@ code (0x45b043) reads + 0x134 to + 0x158.
 | 77 | | movement speed, per mille (usually 1000) |
 
 Words 26-28 (monster + 0x110, which the attack code hands on with the
-target search, probably each attack's reach), 44-48, 52-60, 70-75 and 78 are copied too but their use is not known
+target search, probably each attack's reach), 52-60, 70-75 and 78 are copied too but their use is not known
 yet. Before this was read from the exe, the engine took word 9 as the
 attack and 10-12 as hit, defence and evasion, which made monsters far too
 weak.
