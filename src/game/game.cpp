@@ -1379,6 +1379,7 @@ void Game::render(double interpolation) {
     // pointer's square and the pointer (0x416bb0, 0x4087b0).
     const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !loadData_ && !menuOpen_;
     if (hovering) renderHoverName();
+    renderFps();
     if (screenshotPending_) takeScreenshot();
     if (hovering) renderClickSquare();
     renderPointer();

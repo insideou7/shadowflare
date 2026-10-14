@@ -151,7 +151,7 @@ public:
     // (logic/rules.h). Off by default.
     void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
     bool originalMode() const { return rules_.originalMode(); }
-    // The Cheats tab's experience rate in percent; 100 in original mode.
+    // The Debug tab's experience rate in percent; 100 in original mode.
     int xpRate() const { return originalMode() ? Settings::kXpRateNormal : settings_.xpRate; }
 
     // Draws the original game with our art or its own, at once and
@@ -979,13 +979,13 @@ private:
     void renderScenery(int camX, int camY);  // ground and objects, no one on them
 
     // The Settings Menu and Help window (options.cpp). The menu has two
-    // tabs: the original's settings, and our cheats.
-    enum class OptionsTab { Settings, Cheats, Count };
+    // tabs: the original's settings, and our debug options and cheats.
+    enum class OptionsTab { Settings, Debug, Count };
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Back,
-        // Cheats tab.
-        XpRate
+        // Debug tab.
+        XpRate, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
@@ -1005,6 +1005,7 @@ private:
     void optionsEvent(const SDL_Event& event);
     void renderOptions();
     void renderHelp();
+    void renderFps();  // the Debug tab's frame rate, top left
     void saveSettings();
     void applyScreenMode();
     void takeScreenshot();
@@ -1236,6 +1237,9 @@ private:
     bool optionsInGame_ = false;
     int optionsChoice_ = 0;
     OptionsTab optionsTab_ = OptionsTab::Settings;
+    // Frames drawn in the second counted so far, and the last second's count.
+    Uint64 fpsSince_ = 0;
+    int fpsFrames_ = 0, fps_ = 0;
     // The volume slider row being dragged with the mouse, or -1.
     int optionsDrag_ = -1;
     bool helpOpen_ = false;
