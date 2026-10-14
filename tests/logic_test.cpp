@@ -845,6 +845,8 @@ void testMagic() {
           "the names of items on the ground are ours alone");
     check(sf::Rules::ours().noEmptyGoldInWarehouse && !sf::Rules::original().noEmptyGoldInWarehouse,
           "original mode leaves empty gold in the warehouse");
+    check(sf::Rules::ours().absorptionHeals && !sf::Rules::original().absorptionHeals,
+          "absorption heals the hero only outside original mode");
 }
 
 void testPowerMode() {

@@ -623,6 +623,29 @@ void testModifiers() {
     hidden.equip(Slot::Shield, sf::Item::make(&shieldDef, random));
     check(hidden.modifier(M::kModCompanionHp) == 0, "a hidden shield adds nothing");
 
+    // Reflection and Absorption (0x44f7a0, 0x44f990): the chances add up
+    // over everything worn, broken items too; the rates only of items
+    // with a chance.
+    sf::Item mirror = broken;
+    mirror.modifiers[M::kModReflectionChance] = 30;
+    mirror.modifiers[M::kModReflectionRate] = 40;
+    auto ringDef = def(Class::Accessory, 0, 1, 1, 0);
+    sf::Item ring = sf::Item::make(&ringDef);
+    ring.modifiers[M::kModReflectionChance] = 20;
+    ring.modifiers[M::kModReflectionRate] = 10;
+    sf::Item noChance = sf::Item::make(&ringDef);
+    noChance.modifiers[M::kModReflectionRate] = 1000;
+    sf::Inventory reflecting;
+    reflecting.equip(Slot::Weapon, mirror);
+    reflecting.equip(Slot::Accessory1, ring);
+    reflecting.equip(Slot::Accessory2, noChance);
+    check(reflecting.chanceModifier(M::kModReflectionChance, M::kModReflectionRate, 49) == 50,
+          "reflection works under the chance, the rates of items with a chance added up");
+    check(reflecting.chanceModifier(M::kModReflectionChance, M::kModReflectionRate, 50) == 0,
+          "and not at or over it");
+    check(reflecting.chanceModifier(M::kModAbsorptionChance, M::kModAbsorptionRate, 0) == 0,
+          "no chance, no absorption");
+
     // Saves keep the rolls.
     sf::Inventory inv;
     inv.addAt(item, 0, 0);
