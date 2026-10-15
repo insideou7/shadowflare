@@ -24,6 +24,12 @@ the original's sampled or reused, and the music is our own. Monster stats
 and behaviour (`ai.txt`), the item definitions (`items.txt`) and the
 dogs' names and stats (`partners.txt`) are our own too.
 
+The unique weapons' pictures (`System/Game/Pattern/Item0002` and
+`Character/ITEM/00000009`) build their swords, axes, hammers and crossbow
+prods on Quaternius's Medieval Weapons Pack (CC0, public domain; kept in
+[tools/art/quaternius](../tools/art/quaternius)), repainted and reshaped
+per item by `tools/art/uniques.py`.
+
 ## License
 
 Everything in this folder is under the MIT license, the same as the
