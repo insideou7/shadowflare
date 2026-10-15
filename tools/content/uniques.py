@@ -49,8 +49,6 @@ UNIDENTIFIED = {"ring": "Ring", "darkring": "Ring", "amulet": "Amulet", "pendant
 # one it has: bastard sword as long sword, rod and staff, great sword and
 # axe as two-handed sword, hunter's cloth and robe as cloth, tower and
 # board shields as the round shield. The glow layers (3, 4) are left out.
-OPEN_LAYERS = {5, 6, 9, 12, 16, 17, 18, 19}
-LAYER_STAND_IN = {14: 17, 15: 18, 20: 19, 21: 19, 7: 5, 8: 5, 10: 9, 11: 9}
 
 
 def read_names():
@@ -84,10 +82,9 @@ def section(r, kind, name, frame):
     if any(r.get("elements", [])):
         out.append("elements=" + numbers(trim(r["elements"])))
     if "layer" in r:
-        layer = r["layer"]
-        if layer >= 0 and layer not in OPEN_LAYERS:
-            layer = LAYER_STAND_IN[layer]
-        out.append(f"layer={layer}")
+        out.append(f"layer={r['layer']}")
+        if r["layer"] >= 0 and list(r["layer_tint"]) != [1000, 1000, 1000]:
+            out.append("layer-tint=" + numbers(r["layer_tint"]))
     if r["class"] == 0:
         if r["shot_kind"] != -1:
             shot = [r["shot_kind"], r["shot_spread"], r["shot_speed"], r["shot_turn"], r["shot_pierces"]]
