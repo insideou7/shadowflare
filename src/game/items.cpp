@@ -570,6 +570,8 @@ bool Game::inventoryClick(int x, int y, bool right) {
             if (index >= 0 && inventory_.bag()[static_cast<std::size_t>(index)].item.def->isGold()) {
                 const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
                 openGoldSplit(GoldSplit::From::Bag, placed.x, placed.y, x, y);
+            } else if (rules_.rightClickStores && storageOpen() && index >= 0) {
+                storeFromBag(index);
             } else if (rules_.rightClickSells && openShop_ && !storageOpen()) {
                 sellFromBag(index);
             } else if (rules_.rightClickEquips && index >= 0 &&
@@ -987,18 +989,8 @@ void Game::windowText(int x, int y, std::string_view text, SDL_Color color, int 
         uiText(x, y, text, color);
         return;
     }
-    for (const auto& [dx, colour] : {std::pair{shadow, kShadow}, std::pair{0, color}}) {
-        SDL_SetTextureColorMod(font->texture, colour.r, colour.g, colour.b);
-        int cx = x + dx;
-        for (const char ch : text) {
-            const auto c = static_cast<unsigned char>(ch);
-            const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
-            const SDL_Rect dst{cx, y + dx, 6, 12};
-            SDL_RenderCopy(renderer_, font->texture, &src, &dst);
-            cx += 6;
-        }
-    }
-    SDL_SetTextureColorMod(font->texture, 255, 255, 255);
+    fontText(*bank, *font, x + shadow, y + shadow, text, kShadow);
+    fontText(*bank, *font, x, y, text, color);
 }
 
 // A number as the item window writes it (0x405590): its last digit ends at
@@ -1177,7 +1169,7 @@ void Game::renderItemPopup(const Item& item, int mx, int my) {
 
     int w = 0;
     for (auto& [text, colour] : lines) {
-        if (text.size() > 50) text.resize(50);
+        if (text.size() > 50) text.resize(fontCut(text, 50));
         w = std::max(w, uiTextWidth(text));
     }
     w += 8;
@@ -1253,6 +1245,11 @@ void Game::renderInventory() {
         renderSpecialButton(mx, my);
         if (hover && !hand_) renderItemPopup(*hover, mx, my);
     }
+    // The warehouse's item under the pointer gets the same box as the
+    // bag's (0x409000, 0x4090b0 call 0x409160 as the bag does), drawn here
+    // so the item window doesn't cover it.
+    if (storageHover_ && !hand_ && storageOpen()) renderItemPopup(*storageHover_, mx, my);
+    storageHover_ = nullptr;
     if (specialOpen_) renderSpecialWindow(mx, my);
     if (hand_) {
         const int w = hand_->def->width * kCell, h = hand_->def->height * kCell;
@@ -1325,7 +1322,15 @@ void Game::renderHud() {
         drawText(renderer_, 8, kScreenHeight - 46, std::format("GOLD {}", inventory_.gold()), kGoldColor);
     }
     if (messageTicks_ > 0 && !message_.empty()) {
-        drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
+        // Names in Japanese need the original's font; the stand-in one has
+        // no such letters.
+        if (std::ranges::any_of(message_, [](char c) { return fontLeadByte(static_cast<unsigned char>(c)); }) && uiFont()) {
+            const int x = (kScreenWidth - uiTextWidth(message_)) / 2;
+            uiText(x + 1, 37, message_, {0, 0, 0, 255});
+            uiText(x, 36, message_, kWhite);
+        } else {
+            drawText(renderer_, (kScreenWidth - textWidth(message_)) / 2, 40, message_, kWhite);
+        }
     }
 }
 

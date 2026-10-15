@@ -53,6 +53,13 @@ struct Rules {
     // (0x44a6f0); items are worn by picking them up and dropping them on
     // the figure.
     bool rightClickEquips = true;
+    // With a warehouse open, right clicking an item in the bag puts it in
+    // the warehouse (the page in view of the Giant Warehouse), and right
+    // clicking one in the warehouse puts it in the bag, each in its first
+    // free place. Gold still opens the box that asks how much. In the
+    // original a right click on either only uses a consumable (0x44a6f0,
+    // 0x44ab60); items are moved by picking them up and putting them down.
+    bool rightClickStores = true;
     // Gold put in the Warehouse Transfer Box that exactly fills the
     // warehouse's gold stacks leaves a Gold item of 0 behind, which the
     // original puts down in the warehouse (0x446320). Ours drops it.
@@ -84,7 +91,7 @@ struct Rules {
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
-               !outlineUnderPointer && !rightClickSells && !rightClickEquips &&
+               !outlineUnderPointer && !rightClickSells && !rightClickEquips && !rightClickStores &&
                !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy && !gameOverWindow;
     }
     static Rules ours() { return {}; }
@@ -100,6 +107,7 @@ struct Rules {
         r.outlineUnderPointer = false;
         r.rightClickSells = false;
         r.rightClickEquips = false;
+        r.rightClickStores = false;
         r.noEmptyGoldInWarehouse = false;
         r.groundItemNames = false;
         r.absorptionHeals = false;

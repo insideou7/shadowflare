@@ -210,7 +210,7 @@ void Game::renderHoverName() {
             const Actor& a = actors_[hover_.index];
             // The open pack's people are named for its scripts, not shown.
             if (!a.hostile() && openPack) return;
-            name = toAscii(a.placement.name);
+            name = toFontText(a.placement.name);
             color = rgb(a.placement.nameColor);
             height = a.placement.nameHeight;
             wx = a.character.x;
@@ -221,7 +221,7 @@ void Game::renderHoverName() {
         case Settings::kObject: {
             if (openPack) return;
             const auto& p = control_.placements[hover_.index];
-            name = toAscii(p.name);
+            name = toFontText(p.name);
             color = rgb(p.nameColor);
             height = p.nameHeight;
             wx = p.x;
@@ -233,7 +233,7 @@ void Game::renderHoverName() {
             if (itemNamesShown()) return;
             const GroundItem& g = groundItems_[hover_.index];
             const ItemDef& def = *g.item.def;
-            name = def.isGold() ? std::format("{} Gold", g.item.count) : toAscii(g.item.shownName());
+            name = def.isGold() ? std::format("{} Gold", g.item.count) : toFontText(g.item.shownName());
             color = qualityColor(def.quality);
             wx = g.x;
             wy = g.y;
@@ -321,7 +321,7 @@ std::vector<Game::ItemLabel> Game::itemLabels() const {
     for (const Anchor& a : anchors) {
         const GroundItem& g = groundItems_[a.item];
         const ItemDef& def = *g.item.def;
-        std::string name = def.isGold() ? std::format("{} Gold", g.item.count) : toAscii(g.item.shownName());
+        std::string name = def.isGold() ? std::format("{} Gold", g.item.count) : toFontText(g.item.shownName());
         trim(name);
         if (name.empty()) continue;
         // As renderHoverName lays out an item's name.

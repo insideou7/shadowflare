@@ -1129,6 +1129,11 @@ void parseItems(std::span<const std::uint8_t> text, ItemTable& table) {
             numbers(value, item->elements);
         } else if (key == "layer") {
             item->heroLayer = lines.toInt(value);
+        } else if (key == "layer-tint") {
+            // The worn layer's colour, red, green and blue in thousandths.
+            const auto v = lines.ints(value);
+            if (v.size() != 3) lines.fail("layer-tint= takes red, green and blue");
+            for (std::size_t k = 0; k < 3; ++k) item->layerTint[k] = v[k];
         } else if (key == "glow") {
             item->glowLayer = lines.toInt(value);
         } else if (key == "page") {

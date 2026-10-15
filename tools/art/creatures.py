@@ -473,7 +473,7 @@ def build_heroine():
 
 # The hero's equipment, one animation layer each, numbered as in the
 # original's Player/Male/Animation00.Caf (and items.txt's layer=): 5-8
-# body armour, 9-11 shields, 12-21 weapons. Armour wraps the body parts it
+# body armour, 9-11 shields, 12-21 weapons (13, the knuckle guard, is not drawn). Armour wraps the body parts it
 # covers a little larger than they are, so that with the body held out of
 # the render it still hides everything under it.
 _gear_materials = {}
@@ -500,6 +500,14 @@ def gear_material(name):
                                      bump=0.05)
         m["brass"] = studio.material("gear brass", (0.78, 0.60, 0.28), (0.40, 0.28, 0.10), scale=30, rough=0.35)
         m["wood"] = studio.material("gear wood", (0.50, 0.32, 0.16), (0.24, 0.14, 0.06), scale=10, stretch=(12, 12, 1))
+        m["hide"] = studio.material("gear hide", (0.44, 0.36, 0.20), (0.20, 0.15, 0.07), scale=20, rough=0.65,
+                                    bump=0.5)
+        m["moss"] = studio.material("gear moss cloth", (0.30, 0.36, 0.20), (0.12, 0.15, 0.08), scale=18, bump=0.4)
+        m["robe"] = studio.material("gear robe", (0.30, 0.26, 0.42), (0.11, 0.09, 0.17), scale=14, bump=0.3,
+                                    stretch=(1, 1, 4))
+        m["trim"] = studio.material("gear robe trim", (0.62, 0.20, 0.16), (0.28, 0.07, 0.05), scale=20)
+        m["iron"] = studio.material("gear iron", (0.52, 0.53, 0.55), (0.18, 0.18, 0.20), scale=20, rough=0.4,
+                                    bump=0.3, grime=0.5)
         m["oak"] = studio.material("gear oak", (0.46, 0.30, 0.15), (0.22, 0.13, 0.05), scale=6, stretch=(1, 12, 1))
         crystal = studio.material("gear crystal", (0.55, 0.80, 1.0), (0.20, 0.45, 0.85), scale=8, rough=0.15, bump=0)
         bsdf = crystal.node_tree.nodes["Principled BSDF"]
@@ -700,17 +708,136 @@ def gear_bowgun(rig):
     hang(shape("cone", (0.025, 0.025, 0.06), m("steel"), rotation=along), g, (0.72, 0, 0.13))
 
 
+def gear_hunter(rig):
+    """Hunting Coat: a hide jerkin and coat skirt over moss-green cloth,
+    leather bracers, belt and boots."""
+    m = gear_material
+    if hasattr(rig, "body"):
+        body_armour(rig, {"torso": (m("hide"), 0.055), "upperarm": (m("moss"), 0.045),
+                          "forearm": (m("leather"), 0.05), "belt": (m("dark"), 0.075),
+                          "hips": (m("hide"), 0.06), "thigh": (m("moss"), 0.045),
+                          "shin": (m("leather"), 0.05), "foot": (m("dark"), 0.05)})
+        for side in ("arm_l", "arm_r"):
+            rig.attach(shape("ball", (0.14, 0.14, 0.09), m("hide")), side, (0, 0, 0.0))
+        return
+    gear_cloth(rig)
+
+
+def gear_robe(rig):
+    """Robe: a violet robe down to the ankles with a red collar and sash,
+    wide sleeves and soft boots."""
+    m = gear_material
+    if hasattr(rig, "body"):
+        body_armour(rig, {"torso": (m("robe"), 0.05), "neck": (m("trim"), 0.04),
+                          "upperarm": (m("robe"), 0.05), "forearm": (m("robe"), 0.06),
+                          "belt": (m("trim"), 0.07), "hips": (m("robe"), 0.06), "thigh": (m("robe"), 0.06),
+                          "shin": (m("robe"), 0.055), "foot": (m("dark"), 0.045)})
+        return
+    gear_cloth(rig)
+
+
+def board(outline, thickness, mat):
+    """A flat board cut to an outline of (y, z) points, thickness along x:
+    a shield's face, held out like the Round Shield's disc."""
+    n = len(outline)
+    verts = [(x, y, z) for x in (-thickness / 2, thickness / 2) for y, z in outline]
+    faces = [tuple(range(n)), tuple(range(2 * n - 1, n - 1, -1))]
+    faces += [(k, (k + 1) % n, n + (k + 1) % n, n + k) for k in range(n)]
+    mesh = bpy.data.meshes.new("board")
+    mesh.from_pydata(verts, [], faces)
+    mesh.validate()
+    obj = bpy.data.objects.new("board", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    return studio.assign(obj, mat)
+
+
+def shield_board(rig, outline, rim, face, boss):
+    """A shield on the left forearm: a rim, the face a little in front of
+    it and smaller, and a boss. The outline is (across, up) points around
+    the shield's centre; up runs along the forearm, which hangs down when
+    the arm is at rest."""
+    m = gear_material
+    centre = (0.21, 0.02, -0.62)
+    for mat, grow, depth in ((rim, 1.0, 0.0), (face, 0.9, 0.022)):
+        b = board([(SHIELD_FACE_UP * v * grow, u * grow) for u, v in outline], 0.03, m(mat))
+        rig.attach(b, "arm_l", (centre[0] + depth, centre[1], centre[2]))
+    rig.attach(shape("ball", (0.07, 0.11, 0.11), m(boss)), "arm_l", (centre[0] + 0.06, centre[1], centre[2]))
+
+
+SHIELD_FACE_UP = 1
+
+
+def gear_tower_shield(rig):
+    """Tower Shield: a tall iron board with a steel rim and a gently arched
+    top, from the shoulder to below the knee."""
+    arch = [(0.40 * math.cos(math.pi * k / 8), 0.40 + 0.08 * math.sin(math.pi * k / 8)) for k in range(9)]
+    shield_board(rig, [(-0.40, -0.42), (0.40, -0.42)] + arch, "steel", "iron", "brass")
+
+
+def gear_kite_shield(rig):
+    """Kite Shield: an oak board, rounded across the top and coming to a
+    point at the bottom, with a brass rim and boss."""
+    top = [(0.32 * math.cos(math.pi * k / 10), 0.14 + 0.18 * math.sin(math.pi * k / 10)) for k in range(11)]
+    shield_board(rig, [(0.0, -0.60)] + top, "brass", "oak", "brass")
+
+
+def gear_bastard_sword(rig):
+    """Bastard Sword: longer than the Long Sword, with a hand-and-a-half
+    grip and a wider blade."""
+    blade_weapon(rig, 0.36, 0.25, 1.32, 0.08, 0.06, angle=8)
+
+
+def gear_rod(rig):
+    """Rod: a short brass-bound rod with a red orb held in a ring."""
+    m = gear_material
+    g = grip(rig, -10)
+    hang(shape("cylinder", (0.04, 0.04, 0.48), m("brass"), rotation=(0, math.radians(90), 0)), g, (0.24, 0, 0))
+    hang(shape("cylinder", (0.05, 0.05, 0.04), m("steel"), rotation=(0, math.radians(90), 0)), g, (0.72, 0, 0))
+    hang(shape("ball", (0.10, 0.10, 0.10), m("trim")), g, (0.86, 0, 0))
+    ring = shape("cylinder", (0.12, 0.12, 0.015), m("brass"))
+    hang(ring, g, (0.86, 0, 0))
+
+
+def gear_great_sword(rig):
+    """Great Sword: the biggest blade, broad and heavy, held in both hands."""
+    blade_weapon(rig, 0.5, 0.38, 1.78, 0.14, 0.08, angle=18)
+
+
+def gear_axe(rig):
+    """Axe: a long wooden haft with an iron wedge of a head and a spike."""
+    m = gear_material
+    g = grip(rig, 5)
+    along = (0, math.radians(90), 0)
+    hang(shape("cylinder", (0.04, 0.04, 0.75), m("wood"), rotation=along), g, (0.45, 0, 0))
+    hang(shape("ball", (0.05, 0.05, 0.05), m("iron")), g, (-0.3, 0, 0))
+    head = hang(shape("box", (0.12, 0.03, 0.17), m("iron")), g, (1.05, 0, 0.18))
+    head.modifiers.clear()
+    edge = hang(shape("cylinder", (0.22, 0.22, 0.025), m("steel"), rotation=(math.radians(90), 0, 0)), g,
+                (1.05, 0, 0.28))
+    edge.scale = (0.12, 0.25, 0.025)
+    hang(shape("cone", (0.04, 0.04, 0.09), m("iron"), rotation=(0, 0, 0)), g, (1.05, 0, -0.06))
+    hang(shape("cylinder", (0.05, 0.05, 0.08), m("iron"), rotation=along), g, (1.05, 0, 0))
+
+
 # layer: (name, builder, armour). Armour casts no shadow of its own: the
 # body's shadow, drawn on layer 0, already covers it.
 GEAR = {
     5: ("cloth", gear_cloth, True),
     6: ("plate", gear_plate, True),
+    7: ("hunter", gear_hunter, True),
+    8: ("robe", gear_robe, True),
     9: ("round_shield", gear_round_shield, False),
+    10: ("tower_shield", gear_tower_shield, False),
+    11: ("kite_shield", gear_kite_shield, False),
     12: ("short_sword", gear_short_sword, False),
+    14: ("bastard_sword", gear_bastard_sword, False),
+    15: ("rod", gear_rod, False),
     16: ("bowgun", gear_bowgun, False),
     17: ("long_sword", gear_long_sword, False),
     18: ("staff", gear_staff, False),
     19: ("two_hand_sword", gear_two_hand_sword, False),
+    20: ("great_sword", gear_great_sword, False),
+    21: ("axe", gear_axe, False),
 }
 
 

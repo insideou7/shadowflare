@@ -925,6 +925,18 @@ last frame.
 The open content does the same in its Remote Town (`Scenario/10000000`,
 `content.txt` `start=10000000`) with our own words.
 
+## Fonts: `System/Common/Pattern/Font00.njp` and `Font01.njp`
+
+Both banks hold 65 patterns. Pattern 0 is the half-width set, a 96 x 192
+sheet of 16 x 16 cells of 6 x 12 pixels, one per byte value (0xa1-0xdf are
+half-width katakana). Patterns 1-64 are the full-width (Shift-JIS) sets,
+192 x 192 sheets of 16 x 16 cells of 12 x 12, the second byte picking the
+cell. RKC_UPDIB.dll's text routine (0x10001cce) reads a byte of 0x80-0x9f
+or 0xe0-0xff as the first of two and draws pattern byte - 0x7f or byte -
+0xbf, two half cells wide. Fifteen items in the English `Item.Ibn` still
+carry Japanese names (for example class 1 code 21100, 闇装束), so the
+original shows them in Kanji.
+
 ## The pointer (ShadowFlare.exe 0x4087b0, 0x416bb0, 0x40ee70)
 
 The pointer is `System/Common/Pattern/System.njp` (UPD bank 3, loaded with

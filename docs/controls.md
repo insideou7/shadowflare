@@ -28,6 +28,13 @@ bag. That is ours too (`rightClickEquips`); in original mode a right click
 in the bag only uses consumables and one on a worn item does nothing, so
 items are worn by picking them up and dropping them on the figure.
 
+With a warehouse open, a right click on an item in the bag puts it in the
+warehouse (the page in view of the Giant Warehouse), and a right click on
+an item in the warehouse puts it in the bag, each in its first free place.
+Gold still asks how much. That is ours (`rightClickStores`); in original
+mode a right click on either only uses a consumable. Holding the pointer
+over a warehouse item shows the same box as in the bag, in both modes.
+
 What a click picks when things overlap is set by Click Priority in the
 Settings Menu, and how far from the cursor it reaches by Click Range.
 
@@ -184,6 +191,7 @@ and this tab. Original mode turns every cheat off and dims its row.
 | Luck | multiplies the drop weight of unique (gold-named) items wherever a monster's drop (or a script's drop list) picks an item by weight: 1x, 2x, 5x, 10x or 20x, 1x by default. A cheat. With the original files about 2% of dropped equipment is unique at 1x, 4% at 2x, 8% at 5x, 13% at 10x and 23% at 20x; magic items are already about 88% at 1x, so luck leaves them alone. Above 1x it also lets uniques up to the hero's level drop where the drop list's highest item level is lower; the first areas' lists stop at item level 1-3 and the lowest unique is level 4, so without this no unique could drop there (with the original files, a level 5 hero at 20x finds one in about 40 ordinary kills there). It only changes which item comes, not how often something drops, and never gives a unique from a pick the drop tables keep to normal and magic items. Items a drop list names outright (potions, mines, quest items) are not affected, and the open pack has no unique items yet. Luck also rolls the modifiers of dropped items (magic and unique) nearer the top of their ranges: each value is the best of 1, 2, 5, 10 or 20 rolls, so on average it lands 50%, 67%, 83%, 91% or 95% of the way up (in the original data, mostly attack, defense, hit, evasion and their magic forms, and attack and walk speed). Shop stock and items placed on maps roll as usual. Saved as `luck` in `options.txt`. |
 | Gold Rate | multiplies the gold monsters drop and the gold scripts put out of objects (chests, pots, barrels and so on): 1x, 2x, 5x, 10x, 20x or 100x, 1x by default. A cheat. Gold that people hand over as a reward, shop prices and selling are not changed. Gold over 10,000 lands in more piles of at most 10,000 around the first, as the bag's gold stacks hold no more; one drop gives at most 10,000,000. Saved as `gold_rate` in `options.txt`. |
 | Unlock All Gates | marks every warp gate found (its `WARP` flag) in the game being played, so the GATE window lists them all, with the original files or the open pack. A cheat, for testing; only in a game, and dimmed once every gate is found. It changes the save's flags, not `options.txt`. The same as the `--warp-flag all` test flag. |
+| Unlock All Storage | opens every page of the Giant Warehouse (tabs III to X; its `EXSTRG` flags) in the game being played, with the original files or the open pack. The original opens them one by one as quest rewards (see [formats.md](formats.md#weapon-sets-the-giant-warehouse-and-the-gold-split-box)); the warehouse itself is still on the Tower of Ordeal's 12th floor. A cheat, for testing; only in a game, dimmed once every page is open, and off in original mode. It changes the save's flags, not `options.txt`. |
 | Show FPS | ON shows the frames drawn in the last second in the top left corner, in every mode. Off by default; saved as `show_fps`. |
 
 To add an option or cheat: give it an `OptionRow` on the Debug tab in

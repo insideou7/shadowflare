@@ -414,6 +414,11 @@ void testItems() {
     sf::open::parseItems(bytes("[item weapon 2]\nname=B\npool=2\n"), both);
     const auto* b = both.find(sf::ItemDef::Class::Weapon, 2);
     check(both.items.size() == 2 && b && b->poolMask == 2, "a second item file and pool=");
+    const auto tinted = sf::open::parseItems(bytes("[item weapon 1]\nlayer=17\nlayer-tint=600,800,1200\n"));
+    const auto* t = tinted.find(sf::ItemDef::Class::Weapon, 1);
+    check(t && t->heroLayer == 17 && t->layerTint[0] == 600 && t->layerTint[1] == 800 && t->layerTint[2] == 1200,
+          "layer-tint=");
+    expectRejected("layer-tint needs three", "[item weapon 1]\nlayer-tint=1,2\n", [](auto& d) { sf::open::parseItems(d); });
     const auto drops = sf::open::parseDrops(bytes("[drops 1]\npick=any,any,1,9\npick=any,any,1,9,111,3\n"));
     check(drops.entries.size() == 2 && drops.entries[0].pool == 1 && drops.entries[1].pool == 3,
           "picks take pool 1 unless they say otherwise");
@@ -526,6 +531,32 @@ void testPackUniques() {
         check(false, e.what());
     }
     check(items.items.size() > before, "the pack has the original's unique items");
+    // Every picture a unique names is in its sheet, and the hero and heroine
+    // both have the layer it is drawn with while worn.
+    const auto text = [&](const std::string& path) {
+        const auto d = read(path.c_str());
+        return std::string(d.begin(), d.end());
+    };
+    const auto frames = [&](const std::string& sheet) {
+        const auto t = text(sheet);
+        int n = 0;
+        for (std::size_t at = 0; (at = t.find("\nframe=", at)) != std::string::npos; ++at) ++n;
+        return n;
+    };
+    const auto layers = [&](const std::string& anim) {
+        std::set<int> out;
+        const auto t = text(anim);
+        for (std::size_t at = 0; (at = t.find('\n', at)) != std::string::npos;) {
+            ++at;
+            std::size_t k = at;
+            while (k < t.size() && t[k] >= '0' && t[k] <= '9') ++k;
+            if (k == at || k >= t.size() || t[k] != '.') continue;
+            out.insert(std::atoi(t.c_str() + k + 1));
+        }
+        return out;
+    };
+    const auto male = layers(SF_CONTENT_DIR "/Player/Male/Animation00.anim");
+    const auto female = layers(SF_CONTENT_DIR "/Player/Female/Animation00.anim");
     std::set<std::pair<int, int>> pictures;
     for (std::size_t i = before; i < items.items.size(); ++i) {
         const auto& def = items.items[i];
@@ -533,6 +564,14 @@ void testPackUniques() {
               "uniques are quality 2 with a set price and both names");
         check(def.invBank >= 1 && def.groundFolder >= 8, "uniques have their own pictures");
         check(pictures.insert({def.invBank, def.invPattern}).second, "no two uniques share a picture");
+        check(def.invPattern < frames(std::format("{}/System/Game/Pattern/Item{:04d}.sheet", SF_CONTENT_DIR, def.invBank)),
+              std::format("{}'s bag picture is in its sheet", def.name).c_str());
+        check(def.groundPicture < frames(std::format("{}/Character/ITEM/{:08d}/Pattern.sheet", SF_CONTENT_DIR, def.groundFolder)),
+              std::format("{}'s ground picture is in its sheet", def.name).c_str());
+        if (def.heroLayer > 0) {
+            check(male.contains(def.heroLayer) && female.contains(def.heroLayer),
+                  std::format("{} is drawn on the hero and heroine (layer {})", def.name, def.heroLayer).c_str());
+        }
     }
 }
 

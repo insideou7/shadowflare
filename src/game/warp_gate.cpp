@@ -66,7 +66,7 @@ void Game::loadWarpGates() {
             log::warn("gates.txt: {}", e.what());
         }
     }
-    for (auto& g : warpGates_.list) g.name = toAscii(g.name);
+    for (auto& g : warpGates_.list) g.name = toFontText(g.name);
     log::info("Loaded {} warp gates", warpGates_.count());
 }
 

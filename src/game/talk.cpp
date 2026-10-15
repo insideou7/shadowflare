@@ -47,22 +47,26 @@ int directionTowards(double dx, double dy) {
 
 }  // namespace
 
-// The original's messages are Shift-JIS. The English release only uses a
-// few double-byte characters: the wide space and the middle dot.
-std::string toAscii(const std::string& text) {
+// The original's messages are Shift-JIS. Its font draws every
+// double-byte character (fontLeadByte), so they are kept, but the English
+// release's wide space and middle dot are written half-width, as its
+// half-width font lines them up.
+std::string toFontText(const std::string& text) {
     std::string out;
     for (std::size_t i = 0; i < text.size(); ++i) {
         const auto c = static_cast<unsigned char>(text[i]);
-        if (c < 0x80) {
+        if (!fontLeadByte(c)) {
             out += static_cast<char>(c);
-        } else if ((c >= 0x81 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfc)) {
-            const auto next = i + 1 < text.size() ? static_cast<unsigned char>(text[i + 1]) : 0;
-            // Full width is two half-width cells; 0xa5 is the original
-            // font's half-width middle dot.
-            if (c == 0x81 && next == 0x40) out += "  ";
-            if (c == 0x81 && next == 0x45) out += "\xa5 ";
-            ++i;
+            continue;
         }
+        if (i + 1 >= text.size()) break;  // a lead byte with nothing after it
+        const auto next = static_cast<unsigned char>(text[i + 1]);
+        // Full width is two half-width cells; 0xa5 is the original
+        // font's half-width middle dot.
+        if (c == 0x81 && next == 0x40) out += "  ";
+        else if (c == 0x81 && next == 0x45) out += "\xa5 ";
+        else out += text.substr(i, 2);
+        ++i;
     }
     return out;
 }
@@ -112,13 +116,17 @@ public:
         }
     }
     void createItemTable(int list, int x, int y) override { g_.dropFromList(list, x, y); }
+    // x: and y: of a character the scenario does not have are -1, as in
+    // the exe (0x4346b0). Some scripts name trap vents their map lacks,
+    // such as 10057004 in Vaporous Forest; those shots go off at (-1, -1)
+    // and hurt no one.
     std::int32_t characterX(std::int32_t id) const override {
-        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->first);
-        return g_.player_ ? static_cast<std::int32_t>(g_.player_->x) : 0;
+        if (const auto at = g_.characterAt(id)) return static_cast<std::int32_t>(at->first);
+        return -1;
     }
     std::int32_t characterY(std::int32_t id) const override {
-        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->second);
-        return g_.player_ ? static_cast<std::int32_t>(g_.player_->y) : 0;
+        if (const auto at = g_.characterAt(id)) return static_cast<std::int32_t>(at->second);
+        return -1;
     }
     void stopCharacter(std::int32_t id, bool stop) override {
         auto* a = g_.actorById(id);
@@ -160,7 +168,7 @@ public:
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
     int random(int n) override { return g_.random_.next(n); }
     void showQuestName(int quest) override { g_.showMissionName(quest); }
-    void showAreaName(const std::string& name) override { g_.showAreaName(toAscii(name)); }
+    void showAreaName(const std::string& name) override { g_.showAreaName(toFontText(name)); }
     int entryPoint() const override { return g_.entryPoint_; }
     void openStorage(bool giant) override { trade(giant ? Game::kGiantStorage : Game::kStorage); }
     void identifyItems() override { g_.inventory_.identifyAll(); }
@@ -361,7 +369,7 @@ void Game::renderLabels() {
         // Messages end in line breaks; each line is centred.
         std::vector<std::string> lines;
         std::string line;
-        for (const char c : toAscii(l.label.text) + '\n') {
+        for (const char c : toFontText(l.label.text) + '\n') {
             if (c != '\n') {
                 line += c;
             } else if (!line.empty()) {
@@ -458,8 +466,14 @@ void Game::openDialogue(const ScriptHost::Talk& talk) {
         d.lines.push_back(line);
         line.clear();
     };
-    for (const char c : toAscii(talk.text)) {
-        if (c == '\n') {
+    bool trail = false;  // the second byte of a double-byte character
+    for (const char c : toFontText(talk.text)) {
+        if (trail || fontLeadByte(static_cast<unsigned char>(c))) {
+            // Never an option mark or a line break, though a trail byte can
+            // be '~'.
+            trail = !trail;
+            line += c;
+        } else if (c == '\n') {
             endLine();
         } else if (c == '~') {
             if (!inOption) {
@@ -507,6 +521,8 @@ const SpriteTexture* Game::uiFont() {
     return t && t->width >= 96 && t->height >= 192 ? t : nullptr;
 }
 
+// A double-byte character takes two half-width cells, so text is as wide
+// as it is long either way.
 int Game::uiTextWidth(std::string_view text) {
     return uiFont() ? static_cast<int>(text.size()) * 6 : textWidth(text);
 }
@@ -519,17 +535,46 @@ void Game::uiText(int x, int y, std::string_view text, SDL_Color color) {
         drawText(renderer_, x, y, plain, color);
         return;
     }
-    SDL_SetTextureColorMod(font->texture, color.r, color.g, color.b);
-    SDL_SetTextureAlphaMod(font->texture, color.a);
-    for (const char ch : text) {
-        const auto c = static_cast<unsigned char>(ch);
+    fontText(*itemBank("System/Common/Pattern/Font00"), *font, x, y, text, color);
+}
+
+// Text in one of the original's fonts, as RKC_UPDIB.dll writes it
+// (0x10001cce): a lead byte (fontLeadByte) and the byte after it are one
+// character, the after byte's 12 x 12 cell of a 16 x 16 grid in pattern
+// lead - 0x7f (0x80-0x9f) or lead - 0xbf (0xe0-0xff), two half cells wide.
+// Fonts without those patterns (the open pack's) show a question mark.
+void Game::fontText(const SpriteBank& bank, const SpriteTexture& half, int x, int y, std::string_view text, SDL_Color color) {
+    SDL_SetTextureColorMod(half.texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(half.texture, color.a);
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        auto c = static_cast<unsigned char>(text[i]);
+        int width = 6;
+        if (fontLeadByte(c) && i + 1 < text.size()) {
+            const auto trail = static_cast<unsigned char>(text[++i]);
+            const int pattern = c <= 0x9f ? c - 0x7f : c - 0xbf;
+            const SpriteTexture* full =
+                pattern < static_cast<int>(bank.patterns.size()) ? sprites_.get(bank, pattern, false) : nullptr;
+            if (full && full->width >= 192 && full->height >= 192) {
+                SDL_SetTextureColorMod(full->texture, color.r, color.g, color.b);
+                SDL_SetTextureAlphaMod(full->texture, color.a);
+                const SDL_Rect src{(trail % 16) * 12, (trail / 16) * 12, 12, 12};
+                const SDL_Rect dst{x, y, 12, 12};
+                SDL_RenderCopy(renderer_, full->texture, &src, &dst);
+                SDL_SetTextureColorMod(full->texture, 255, 255, 255);
+                SDL_SetTextureAlphaMod(full->texture, 255);
+                x += 12;
+                continue;
+            }
+            c = '?';
+            width = 12;  // a missing character keeps its width
+        }
         const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
         const SDL_Rect dst{x, y, 6, 12};
-        SDL_RenderCopy(renderer_, font->texture, &src, &dst);
-        x += 6;
+        SDL_RenderCopy(renderer_, half.texture, &src, &dst);
+        x += width;
     }
-    SDL_SetTextureColorMod(font->texture, 255, 255, 255);
-    SDL_SetTextureAlphaMod(font->texture, 255);
+    SDL_SetTextureColorMod(half.texture, 255, 255, 255);
+    SDL_SetTextureAlphaMod(half.texture, 255);
 }
 
 // Where the box goes: above the speaker, kept on screen.
@@ -675,7 +720,8 @@ bool Game::shopClick(int x, int y, bool right) {
         if (right) {
             // A right click off the cells leaves. On a stack of gold it asks
             // how much to take, and on a potion or other consumable it uses
-            // it, as in the bag (0x44a9f0, 0x44ab60).
+            // it, as in the bag (0x44a9f0, 0x44ab60). Ours puts anything
+            // else in the bag instead (Rules::rightClickStores).
             if (!inside(grid, x, y)) {
                 if (!hand_) closeShop();
             } else if (const int i = stock.indexAt(cx, cy); !hand_ && i >= 0) {
@@ -683,6 +729,8 @@ bool Game::shopClick(int x, int y, bool right) {
                 if (placed.item.def->isGold()) {
                     openGoldSplit(openShop_ == kGiantStorage ? GoldSplit::From::GiantStorage : GoldSplit::From::Storage, placed.x,
                                   placed.y, x, y);
+                } else if (rules_.rightClickStores) {
+                    takeFromStorage(i);
                 } else if (applyConsumable(*placed.item.def)) {
                     stock.goods.erase(stock.goods.begin() + i);
                 }
@@ -772,6 +820,36 @@ void Game::sellFromBag(int index) {
     if (!sellHand()) inventory_.clickBag(hand_, x, y);
 }
 
+// Takes the item up and puts it in the open warehouse's first free place
+// in one click; with no room it goes back where it was.
+void Game::storeFromBag(int index) {
+    if (hand_ || !storageOpen() || index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
+    const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
+    const int x = placed.x, y = placed.y;
+    if (inventory_.clickBag(hand_, x, y) != Inventory::Result::Done || !hand_) return;
+    const ItemDef& held = *hand_->def;
+    openStock().takeIn(hand_, !rules_.noEmptyGoldInWarehouse);
+    if (hand_) {
+        inventory_.clickBag(hand_, x, y);
+        showMessage("The warehouse is full");
+    } else {
+        playSound(itemSound(held, kItemPut));
+    }
+}
+
+// A warehouse item goes to the bag's first free place.
+void Game::takeFromStorage(int index) {
+    auto& stock = openStock();
+    if (hand_ || index < 0 || static_cast<std::size_t>(index) >= stock.goods.size()) return;
+    const Item item = stock.goods[static_cast<std::size_t>(index)].item;
+    if (!inventory_.add(item)) {
+        showMessage("No room in the bag");
+        return;
+    }
+    stock.goods.erase(stock.goods.begin() + index);
+    playSound(itemSound(*item.def, kItemTake));
+}
+
 void Game::closeShop() {
     if (!openShop_ || hand_) return;
     openShop_.reset();
@@ -809,7 +887,10 @@ bool Game::drawShopPicture() {
 void Game::renderShop() {
     if (!openShop_) return;
     int mx = 0, my = 0;
-    {
+    if (const auto at = pointerPosition()) {
+        mx = static_cast<int>(at->x);
+        my = static_cast<int>(at->y);
+    } else {
         int wx, wy;
         SDL_GetMouseState(&wx, &wy);
         float lx, ly;
@@ -845,7 +926,7 @@ void Game::renderShop() {
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
     if (storageOpen()) {
-        if (hover && !hand_) lines.emplace_back(hover->shownName(), qualityColor(hover->def->quality));
+        storageHover_ = hover;
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
@@ -938,6 +1019,17 @@ bool Game::giantPageOpen(int page) const {
     if (page < 2) return true;
     const auto flag = flags_.find({ScenarioScript::kExtraStorage, page});
     return flag != flags_.end() && flag->second == 1;
+}
+
+int Game::unlockAllGiantPages() {
+    int unlocked = 0;
+    for (int page = 2; page < kGiantStoragePages; ++page) {
+        auto& flag = flags_[{ScenarioScript::kExtraStorage, page}];
+        if (flag != 1) ++unlocked;
+        flag = 1;
+    }
+    log::info("Unlocked {} Giant Warehouse pages", unlocked);
+    return unlocked;
 }
 
 namespace {

@@ -51,9 +51,24 @@ class FileSystem;
 class Skin;
 struct SaveGame;
 
-// The original's Shift-JIS text as the font draws it (talk.cpp): the
-// English release only uses a few double-byte characters.
-std::string toAscii(const std::string& text);
+// The original's Shift-JIS text as its fonts draw it (talk.cpp).
+std::string toFontText(const std::string& text);
+
+// Whether a byte starts a double-byte (Shift-JIS) character, as the
+// original's text routine (RKC_UPDIB.dll 0x10001cce) reads them.
+inline bool fontLeadByte(unsigned char c) { return (c >= 0x80 && c <= 0x9f) || c >= 0xe0; }
+
+// How much of text fits in `max` bytes without cutting a double-byte
+// character in half.
+inline std::size_t fontCut(std::string_view text, std::size_t max) {
+    std::size_t end = 0;
+    while (end < text.size()) {
+        const std::size_t next = end + (fontLeadByte(static_cast<unsigned char>(text[end])) ? 2 : 1);
+        if (next > max) break;
+        end = next;
+    }
+    return std::min(end, text.size());
+}
 
 // An SDL texture the game owns.
 struct TextureFree {
@@ -275,6 +290,9 @@ public:
     // The Debug tab's UNLOCK ALL GATES: marks every named gate found.
     // Returns how many were not found before.
     int unlockAllWarpGates();
+    // The Debug tab's UNLOCK ALL STORAGE: opens every page of the Giant
+    // Warehouse (its EXSTRG flags). Returns how many were not open before.
+    int unlockAllGiantPages();
     // The GATE window, as WARPGATE `gate` opens it, on one of its pages;
     // and picking the n-th gate listed on the page showing (for testing).
     void openWarpGate(int gate, int page = 0);
@@ -374,6 +392,9 @@ private:
     const SpriteTexture* uiFont();
     int uiTextWidth(std::string_view text);
     void uiText(int x, int y, std::string_view text, SDL_Color color);
+    // Text in an original font bank whose pattern 0 is `half`, with its
+    // double-byte characters.
+    void fontText(const SpriteBank& bank, const SpriteTexture& half, int x, int y, std::string_view text, SDL_Color color);
     void renderDialogue();
     // Floating text from MESSAGEBOX (talk.cpp).
     struct Label {
@@ -398,6 +419,13 @@ private:
     bool sellHand();
     // Right click on a bag item while a shop is open (Rules::rightClickSells).
     void sellFromBag(int index);
+    // Right click on a bag item or a warehouse item while a warehouse is
+    // open (Rules::rightClickStores).
+    void storeFromBag(int index);
+    void takeFromStorage(int index);
+    // The warehouse item under the pointer, whose box renderInventory
+    // draws over both windows; set by renderShop each frame.
+    const Item* storageHover_ = nullptr;
     void renderShop();
     bool drawShopPicture();
     void closeShop();
@@ -1206,7 +1234,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, GoldRate, UnlockGates, ShowFps
+        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
