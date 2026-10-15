@@ -774,7 +774,7 @@ void Game::handleEvent(const SDL_Event& event) {
             if (areaMapClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
             // Tab and a click give the companion an order.
             if (SDL_GetKeyboardState(nullptr)[SDL_SCANCODE_TAB] &&
-                partnerOrder(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) {
+                partnerOrder(static_cast<float>(event.button.x), static_cast<float>(event.button.y), event.button.button == SDL_BUTTON_RIGHT)) {
                 break;
             }
             if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
@@ -790,7 +790,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
                     startCast(wx, wy);
                 } else if (startCombo(aimX, aimY)) {
-                } else if (const auto target = clickTarget(event.button.x, event.button.y, 1u << Settings::kEnemy);
+                } else if (const auto target = clickTarget(static_cast<float>(event.button.x), static_cast<float>(event.button.y), 1u << Settings::kEnemy);
                            target.kind == Settings::kEnemy) {
                     // With the attack chosen (F9) it strikes the monster under it.
                     attackTarget_ = target.index;
@@ -802,7 +802,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 mouseHeld_ = true;
                 // Clicking a person walks up to them to talk, unless
                 // something nearer the front of the click priority is there.
-                const auto target = clickTarget(event.button.x, event.button.y, ~0u);
+                const auto target = clickTarget(static_cast<float>(event.button.x), static_cast<float>(event.button.y), ~0u);
                 if (target.kind == Settings::kPerson && player_) {
                     talkTarget_ = target.index;
                     attackTarget_.reset();
@@ -851,7 +851,10 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
     if (kinds & (1u << Settings::kItem)) {
         for (const ItemLabel& label : itemLabels()) {
             const LabelBox& b = label.box;
-            if (screenX >= b.x && screenX < b.x + b.w && screenY >= b.y && screenY < b.y + b.h) return {Settings::kItem, label.item};
+            const float x = static_cast<float>(b.x), y = static_cast<float>(b.y);
+            if (screenX >= x && screenX < x + static_cast<float>(b.w) && screenY >= y && screenY < y + static_cast<float>(b.h)) {
+                return {Settings::kItem, label.item};
+            }
         }
     }
     for (const int kind : settings_.clickPriority) {

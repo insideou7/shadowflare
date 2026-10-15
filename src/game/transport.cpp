@@ -212,7 +212,7 @@ void Game::renderTransportGateName() {
     float lx, ly;
     SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
     const double reach = 32 * zoom();
-    if (std::abs(lx - sx) > reach || std::abs(ly - sy) > reach) return;
+    if (std::abs(lx - static_cast<float>(sx)) > reach || std::abs(ly - static_cast<float>(sy)) > reach) return;
     const int w = uiTextWidth(heroName_);
     const int top = sy - static_cast<int>(34 * zoom());
     const SDL_Rect box{sx - w / 2 - 4, top, w + 6, 15};

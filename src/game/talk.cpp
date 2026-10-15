@@ -102,7 +102,7 @@ public:
             return;
         }
         // Gold comes in piles of at most 10,000, spread out a little.
-        for (int k = 0; amount > 0; ++k) {
+        while (amount > 0) {
             const int pile = std::min(amount, 10000);
             g_.dropItem({def, pile}, x + g_.random_.next(200) - 100, y + g_.random_.next(200) - 100);
             amount -= pile;

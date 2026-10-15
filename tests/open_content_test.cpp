@@ -134,11 +134,11 @@ void testAnimation() {
     {
         // Effects: no direction (8), additive layers ("*") and opacity ("%").
         const std::string text = "sheet=a\n[chart 0 once]\n8*=0,1%500@2\n8.1=2\n";
-        const auto anim = sf::open::parseAnimation(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
-        const auto& dir = anim.set.charts[0].directions[8];
-        check(dir.frameCount == 2 && dir.layers[0][0].status == sf::AnimationSet::kAdditiveStatus, "additive layer");
-        check(dir.layers[0][1].trans == 500 && dir.layers[0][1].priority == 2 && dir.layers[0][0].trans == 1000, "opacity");
-        check(dir.layers[1][0].status == 0 && anim.set.charts[0].directions[0].frameCount == 0, "direction 8 alone");
+        const auto effect = sf::open::parseAnimation(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+        const auto& fx = effect.set.charts[0].directions[8];
+        check(fx.frameCount == 2 && fx.layers[0][0].status == sf::AnimationSet::kAdditiveStatus, "additive layer");
+        check(fx.layers[0][1].trans == 500 && fx.layers[0][1].priority == 2 && fx.layers[0][0].trans == 1000, "opacity");
+        check(fx.layers[1][0].status == 0 && effect.set.charts[0].directions[0].frameCount == 0, "direction 8 alone");
     }
     expectRejected("frames outside a chart", "sheet=a\n0=1\n", [](auto& d) { sf::open::parseAnimation(d); });
 }
@@ -229,8 +229,8 @@ void testScenario() {
     const auto field = sf::open::parseScenario(bytes("town=10000000\ntransport=1\n")).control;
     check(field.town == 10000000 && field.transport, "an area's town and Transport");
     check(!sf::open::parseScenario(bytes("map=a\n")).control.transport, "no Transport unless the area says so");
-    expectRejected("lamp size", "lamp=1,2,6\n", [](auto& d) { sf::open::parseScenario(d); });
-    expectRejected("glow alone", "glow=1\n", [](auto& d) { sf::open::parseScenario(d); });
+    expectRejected("lamp size", "lamp=1,2,6\n", [](auto& data) { sf::open::parseScenario(data); });
+    expectRejected("glow alone", "glow=1\n", [](auto& data) { sf::open::parseScenario(data); });
 }
 
 void testScript() {

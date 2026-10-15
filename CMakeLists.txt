@@ -43,9 +43,14 @@ target_include_directories(sf_formats PUBLIC src)
 
 # stb_image decodes the open content pack's PNGs, stb_image_write saves the
 # pictures of the maps and stb_vorbis decodes the sounds. Third-party code
-# is built on its own so it keeps its own warnings.
+# is built on its own with its warnings off: they are not ours to fix.
 add_library(sf_stb STATIC src/formats/stb_image.cpp src/formats/stb_image_write.cpp src/formats/stb_vorbis.cpp)
-target_include_directories(sf_stb PUBLIC third_party/stb)
+if(MSVC)
+    target_compile_options(sf_stb PRIVATE /w)
+else()
+    target_compile_options(sf_stb PRIVATE -w)
+endif()
+target_include_directories(sf_stb SYSTEM PUBLIC third_party/stb)
 target_link_libraries(sf_formats PRIVATE sf_stb)
 
 # Game rules that need no window: scripts, AI choice, movement.
@@ -127,6 +132,9 @@ endif()
 foreach(target sf_formats sf_logic shadowflare)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
+        # fopen, sscanf, getenv and localtime are portable C; MSVC's _s
+        # versions are not, so its "unsafe function" warning is turned off.
+        target_compile_definitions(${target} PRIVATE _CRT_SECURE_NO_WARNINGS)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
     endif()

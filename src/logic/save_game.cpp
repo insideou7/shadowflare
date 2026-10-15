@@ -134,7 +134,7 @@ std::string SaveGame::write() const {
     }
     for (const auto& [key, value] : flags) out += std::format("flag={},{},{}\n", key.first, key.second, value);
     // seen=area,width,height, then the runs of unseen and seen map cells.
-    for (const auto& [area, map] : explored) out += std::format("seen={},{}\n", area, map.encode());
+    for (const auto& [area, cells] : explored) out += std::format("seen={},{}\n", area, cells.encode());
     // Items: class,code,count[,x,y], then wear,unidentified and the rolled
     // modifiers as index,value pairs, when any of them is not 0.
     for (const auto& e : bag) out += std::format("bag={},{},{},{},{}{}\n", e.item.cls, e.item.code, e.item.count, e.x, e.y, condition(e.item));
@@ -305,9 +305,9 @@ void SaveGame::store(const Inventory& inventory) {
         for (const auto& p : inventory.specialPage(page)) special.push_back({ref(p.item), page, p.y});
     }
     belt.clear();
-    for (int y = 0; y < Inventory::kBeltHeight; ++y) {
-        for (int x = 0; x < Inventory::kBeltWidth; ++x) {
-            if (const auto& item = inventory.beltAt(x, y)) belt.push_back({ref(*item), x, y});
+    for (int row = 0; row < Inventory::kBeltHeight; ++row) {
+        for (int col = 0; col < Inventory::kBeltWidth; ++col) {
+            if (const auto& item = inventory.beltAt(col, row)) belt.push_back({ref(*item), col, row});
         }
     }
     for (int slot = 0; slot < kEquipSlotCount; ++slot) {

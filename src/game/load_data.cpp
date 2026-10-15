@@ -324,7 +324,7 @@ void Game::renderSaveSlot(const LoadData::Slot* slot, int index, int x, int y, i
         SDL_SetRenderDrawColor(renderer_, 10, 8, 6, a);
         SDL_RenderFillRect(renderer_, &box);
         const Uint8 b = static_cast<Uint8>(150 * brightness / 255);
-        SDL_SetRenderDrawColor(renderer_, b, b * 4 / 5, b / 2, a);
+        SDL_SetRenderDrawColor(renderer_, b, static_cast<Uint8>(b * 4 / 5), static_cast<Uint8>(b / 2), a);
         SDL_RenderDrawRect(renderer_, &box);
         const std::string number = std::to_string(index + 1);
         drawText(renderer_, x + 10, y + 30, number, {b, static_cast<Uint8>(b * 4 / 5), static_cast<Uint8>(b / 2), a}, 2);

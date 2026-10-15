@@ -127,12 +127,12 @@ void Character::setFrame(int frame) {
     reached(frame_);
 }
 
-int Character::frameCountOf(int chart, int direction) const {
+int Character::frameCountOf(int chart, int facing) const {
     const auto& charts = model_->animations.charts;
     if (chart < 0 || static_cast<std::size_t>(chart) >= charts.size()) return 0;
     const auto& dirs = charts[static_cast<std::size_t>(chart)].directions;
-    if (direction < 0 || static_cast<std::size_t>(direction) >= dirs.size()) return 0;
-    return dirs[static_cast<std::size_t>(direction)].frameCount;
+    if (facing < 0 || static_cast<std::size_t>(facing) >= dirs.size()) return 0;
+    return dirs[static_cast<std::size_t>(facing)].frameCount;
 }
 
 bool Character::finished() const {
