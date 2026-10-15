@@ -28,6 +28,13 @@ bag. That is ours too (`rightClickEquips`); in original mode a right click
 in the bag only uses consumables and one on a worn item does nothing, so
 items are worn by picking them up and dropping them on the figure.
 
+With a warehouse open, a right click on an item in the bag puts it in the
+warehouse (the page in view of the Giant Warehouse), and a right click on
+an item in the warehouse puts it in the bag, each in its first free place.
+Gold still asks how much. That is ours (`rightClickStores`); in original
+mode a right click on either only uses a consumable. Holding the pointer
+over a warehouse item shows the same box as in the bag, in both modes.
+
 What a click picks when things overlap is set by Click Priority in the
 Settings Menu, and how far from the cursor it reaches by Click Range.
 

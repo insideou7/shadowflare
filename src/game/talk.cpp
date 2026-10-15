@@ -666,7 +666,8 @@ bool Game::shopClick(int x, int y, bool right) {
         if (right) {
             // A right click off the cells leaves. On a stack of gold it asks
             // how much to take, and on a potion or other consumable it uses
-            // it, as in the bag (0x44a9f0, 0x44ab60).
+            // it, as in the bag (0x44a9f0, 0x44ab60). Ours puts anything
+            // else in the bag instead (Rules::rightClickStores).
             if (!inside(grid, x, y)) {
                 if (!hand_) closeShop();
             } else if (const int i = stock.indexAt(cx, cy); !hand_ && i >= 0) {
@@ -674,6 +675,8 @@ bool Game::shopClick(int x, int y, bool right) {
                 if (placed.item.def->isGold()) {
                     openGoldSplit(openShop_ == kGiantStorage ? GoldSplit::From::GiantStorage : GoldSplit::From::Storage, placed.x,
                                   placed.y, x, y);
+                } else if (rules_.rightClickStores) {
+                    takeFromStorage(i);
                 } else if (applyConsumable(*placed.item.def)) {
                     stock.goods.erase(stock.goods.begin() + i);
                 }
@@ -763,6 +766,36 @@ void Game::sellFromBag(int index) {
     if (!sellHand()) inventory_.clickBag(hand_, x, y);
 }
 
+// Takes the item up and puts it in the open warehouse's first free place
+// in one click; with no room it goes back where it was.
+void Game::storeFromBag(int index) {
+    if (hand_ || !storageOpen() || index < 0 || static_cast<std::size_t>(index) >= inventory_.bag().size()) return;
+    const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
+    const int x = placed.x, y = placed.y;
+    if (inventory_.clickBag(hand_, x, y) != Inventory::Result::Done || !hand_) return;
+    const ItemDef& held = *hand_->def;
+    openStock().takeIn(hand_, !rules_.noEmptyGoldInWarehouse);
+    if (hand_) {
+        inventory_.clickBag(hand_, x, y);
+        showMessage("The warehouse is full");
+    } else {
+        playSound(itemSound(held, kItemPut));
+    }
+}
+
+// A warehouse item goes to the bag's first free place.
+void Game::takeFromStorage(int index) {
+    auto& stock = openStock();
+    if (hand_ || index < 0 || static_cast<std::size_t>(index) >= stock.goods.size()) return;
+    const Item item = stock.goods[static_cast<std::size_t>(index)].item;
+    if (!inventory_.add(item)) {
+        showMessage("No room in the bag");
+        return;
+    }
+    stock.goods.erase(stock.goods.begin() + index);
+    playSound(itemSound(*item.def, kItemTake));
+}
+
 void Game::closeShop() {
     if (!openShop_ || hand_) return;
     openShop_.reset();
@@ -800,7 +833,10 @@ bool Game::drawShopPicture() {
 void Game::renderShop() {
     if (!openShop_) return;
     int mx = 0, my = 0;
-    {
+    if (const auto at = pointerPosition()) {
+        mx = static_cast<int>(at->x);
+        my = static_cast<int>(at->y);
+    } else {
         int wx, wy;
         SDL_GetMouseState(&wx, &wy);
         float lx, ly;
@@ -836,7 +872,7 @@ void Game::renderShop() {
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
     if (storageOpen()) {
-        if (hover && !hand_) lines.emplace_back(hover->shownName(), qualityColor(hover->def->quality));
+        storageHover_ = hover;
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);

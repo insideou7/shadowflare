@@ -562,6 +562,8 @@ bool Game::inventoryClick(int x, int y, bool right) {
             if (index >= 0 && inventory_.bag()[static_cast<std::size_t>(index)].item.def->isGold()) {
                 const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
                 openGoldSplit(GoldSplit::From::Bag, placed.x, placed.y, x, y);
+            } else if (rules_.rightClickStores && storageOpen() && index >= 0) {
+                storeFromBag(index);
             } else if (rules_.rightClickSells && openShop_ && !storageOpen()) {
                 sellFromBag(index);
             } else if (rules_.rightClickEquips && index >= 0 &&
@@ -1245,6 +1247,11 @@ void Game::renderInventory() {
         renderSpecialButton(mx, my);
         if (hover && !hand_) renderItemPopup(*hover, mx, my);
     }
+    // The warehouse's item under the pointer gets the same box as the
+    // bag's (0x409000, 0x4090b0 call 0x409160 as the bag does), drawn here
+    // so the item window doesn't cover it.
+    if (storageHover_ && !hand_ && storageOpen()) renderItemPopup(*storageHover_, mx, my);
+    storageHover_ = nullptr;
     if (specialOpen_) renderSpecialWindow(mx, my);
     if (hand_) {
         const int w = hand_->def->width * kCell, h = hand_->def->height * kCell;

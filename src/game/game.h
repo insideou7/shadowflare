@@ -395,6 +395,13 @@ private:
     bool sellHand();
     // Right click on a bag item while a shop is open (Rules::rightClickSells).
     void sellFromBag(int index);
+    // Right click on a bag item or a warehouse item while a warehouse is
+    // open (Rules::rightClickStores).
+    void storeFromBag(int index);
+    void takeFromStorage(int index);
+    // The warehouse item under the pointer, whose box renderInventory
+    // draws over both windows; set by renderShop each frame.
+    const Item* storageHover_ = nullptr;
     void renderShop();
     bool drawShopPicture();
     void closeShop();
