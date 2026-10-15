@@ -187,6 +187,9 @@ public:
     // The Debug tab's luck in percent (unique drops); 100 in
     // original mode.
     int luck() const { return originalMode() ? Settings::kLuckNormal : settings_.luck; }
+    // The Debug tab's gold rate in percent (monster and chest gold); 100
+    // in original mode.
+    int goldRate() const { return originalMode() ? Settings::kGoldRateNormal : settings_.goldRate; }
 
     // Draws the original game with our art or its own, at once and
     // without reloading the map, like a remaster's classic-graphics
@@ -1231,7 +1234,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, UnlockGates, UnlockStorage, ShowFps
+        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;

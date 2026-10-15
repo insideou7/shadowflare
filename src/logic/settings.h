@@ -26,6 +26,9 @@ struct Settings {
     // Debug tab: the luck to pick from, in percent, in the same steps.
     static constexpr std::array<int, 5> kLuckRates = kXpRates;
     static constexpr int kLuckNormal = 100;
+    // Debug tab: the gold rates to pick from, in percent.
+    static constexpr std::array<int, 6> kGoldRates{100, 200, 500, 1000, 2000, 10000};
+    static constexpr int kGoldRateNormal = 100;
     // Ours: how big the world is drawn, in percent. Each notch of the
     // scroll wheel moves it kZoomStep, from 100 (the original's view)
     // out to kMinZoom.
@@ -53,6 +56,9 @@ struct Settings {
     // Ours, on the Debug tab: unique items' drop weight is multiplied by
     // this, in percent. Original mode always plays at 100.
     int luck = kLuckNormal;
+    // Ours, on the Debug tab: gold dropped by monsters and found in chests
+    // is multiplied by this, in percent. Original mode always plays at 100.
+    int goldRate = kGoldRateNormal;
     // Ours, on the Debug tab: the frame rate in the top left corner.
     bool showFps = false;
     // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
@@ -71,6 +77,8 @@ struct Settings {
     static int clampXpRate(int percent);
     // The same for kLuckRates.
     static int clampLuck(int percent);
+    // The same for kGoldRates.
+    static int clampGoldRate(int percent);
 
     std::string write() const;
     // Unknown keys and bad values are skipped, keeping the defaults, so an
