@@ -173,8 +173,9 @@ have no 0x40 frame, so the stone leaves halfway through the attack.
 
 - A shot that leaves the map's walkability grid is removed. The original
   flies it on into nothing.
-- The open pack's hero has no shooting chart, so it plays the punch chart
-  instead. The open pack's one bowgun, the Wood Bowgun (weapon 1000010,
+- The open pack's hero and heroine have a shooting chart of their own
+  (chart 10, 17 frames, the bolt leaving on frame 3, as the original's),
+  rendered by tools/art/creatures.py. The open pack's one bowgun, the Wood Bowgun (weapon 1000010,
   sold by Remote Town's smith and dropped from item level 3), shoots one
   arrow like the original's; fighting with it is how an open-pack hero
   earns the hunter's class.

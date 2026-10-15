@@ -1407,6 +1407,8 @@ void Game::strikeEnemy(Actor& enemy) {
         const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3));
         absorbFrom(enemy, damage);
         hurtEnemy(enemy, damage);
+    } else {
+        showMiss(enemy.character.x, enemy.character.y);
     }
     // Every blow wears the weapon a little, hit or miss.
     sayBroken(inventory_.wearFromAttacking(random_));
@@ -1453,7 +1455,10 @@ void Game::strikePlayer(Actor& enemy, int slot) {
     const HeroStats stats = playerStats();
     // The blow also catches an ACTIVE companion in front of the monster.
     if (partnerInReach(enemy)) strikePartner(enemy, slot);
-    if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) return;
+    if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) {
+        showMiss(player_->x, player_->y);
+        return;
+    }
     // The blow lands: a thud at the monster, unless Counter Burst killed it
     // first (0x45a2f0).
     const auto landed = [&] {

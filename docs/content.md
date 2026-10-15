@@ -89,7 +89,8 @@ numbered from 0 in the order they appear. Images are PNG with alpha.
 Directions are 0 = south, then counter-clockwise on screen: south-east,
 east, north-east, north, north-west, west, south-west. A direction left out
 uses direction 0. Chart numbers follow the original: 0 idle, 1 walk; for
-the player 3 hit and 5 punch, for monsters 2 hit, 3 death and 4 attack.
+the player 3 hit, 5 punch, 10 shooting a bowgun, 11 Heal's casting and 13
+casting, for monsters 2 hit, 3 death, 4 attack and 7 casting.
 
 A character can have several layers per frame, like the original's
 `.Caf`: the body, then one layer per piece of equipment, numbered as in

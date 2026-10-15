@@ -222,7 +222,10 @@ void Game::stepShot(Effect& e) {
 bool Game::shotStrikes(Effect& e, Actor& enemy) {
     const Effect::Shot& s = *e.shot;
     const auto& st = enemy.placement.stats;
-    if (random_.next(100) >= hitChance(s.hit, st.evasion)) return false;
+    if (random_.next(100) >= hitChance(s.hit, st.evasion)) {
+        showMiss(enemy.character.x, enemy.character.y);
+        return false;
+    }
     playSound(e.hitSound, e.x, e.y);
     if (s.hitOption > 0) spawnEffect(s.hitOption, enemy.character.x, enemy.character.y);
     const int damage = heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, random_.next(3));

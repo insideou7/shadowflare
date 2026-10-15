@@ -30,6 +30,13 @@ constexpr double kTargetHalf = 50.0;
 // Ours: the original lets a missile fly until it meets something or a
 // wall. This stops one lost in open ground.
 constexpr double kMissileRange = 6000.0;
+// The height spells' missiles fly at: the hero's and monsters' (the
+// controller's height word, +0x24, as the casts start them).
+constexpr double kHeroMissileHeight = 200.0, kMonsterMissileHeight = 250.0;
+// "MISS!!": OPTION 11000011's picture, starting this high over whoever
+// was missed (0x417a60).
+constexpr int kMissOption = 11000011;
+constexpr double kMissHeight = 400.0;
 // What an effect is drawn for when the content has no animation for it.
 constexpr int kMissingLength = 16;
 // Special items (class 4) that add 5 to Life and Mental Recovery while
@@ -317,7 +324,10 @@ void Game::castMonsterSpell(Actor& enemy, int slot) {
 // Deathscythe freeze them in ice while it lasts.
 void Game::monsterSpellHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(e.hit, stats[HeroStats::kMagicEvasion])) return;
+    if (random_.next(100) >= hitChance(e.hit, stats[HeroStats::kMagicEvasion])) {
+        showMiss(player_->x, player_->y);
+        return;
+    }
     const int element = magic_.spell(e.spell).element;
     const int damage = damageToHero(magic_, e.power, element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
     log::info("{} hits the hero for {}", magic_.spell(e.spell).name, damage);
@@ -353,7 +363,10 @@ void Game::iceOnHero(int ticks) {
 // by the damage rule its own blows take (0x45f9f0).
 void Game::monsterSpellHitsPartner(const Effect& e) {
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(e.hit, st.magicEvasion)) return;
+    if (random_.next(100) >= hitChance(e.hit, st.magicEvasion)) {
+        showMiss(partner_->character.x, partner_->character.y);
+        return;
+    }
     const int damage = spellDamage(e.power, magic_.spell(e.spell).element, st.element, st.magicDefense, random_.next(3), random_.next(4));
     log::info("{} hits the companion for {}", magic_.spell(e.spell).name, damage);
     if (e.hitOption >= 0) spawnEffect(e.hitOption, partner_->character.x, partner_->character.y).followsPartner = true;
@@ -366,7 +379,10 @@ bool Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int
     const int element = magic_.spell(spell).element;
     if (hitOption >= 0) spawnEffect(hitOption, enemy.character.x, enemy.character.y);
     // Spells must beat the monster's magic evasion (0x45eb2b).
-    if (random_.next(100) >= hitChance(hit, s.magicEvasion)) return false;
+    if (random_.next(100) >= hitChance(hit, s.magicEvasion)) {
+        showMiss(enemy.character.x, enemy.character.y);
+        return false;
+    }
     // Every monster hit is one use towards the spell's next level.
     trainSpell(spell);
     const int damage = spellDamage(power, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
@@ -414,6 +430,45 @@ Game::Effect& Game::spawnEffect(int option, double x, double y, int chart) {
     e.life = effectLength(option, chart);
     pendingEffects_.push_back(std::move(e));
     return pendingEffects_.back();
+}
+
+// "MISS!!" pops up over whoever was missed: a still picture, made here
+// rather than by spawnEffect, hopping where it was put (stepHop).
+void Game::showMiss(double x, double y) {
+    log::info("Missed at ({:.0f}, {:.0f})", x, y);
+    Effect e;
+    e.id = nextEffectId_++;
+    e.option = kMissOption;
+    e.pattern = 0;
+    e.x = x;
+    e.y = y;
+    e.life = -1;
+    e.height = kMissHeight;
+    e.hop = Effect::Hop{};
+    e.hop->floor = kMissHeight;
+    pendingEffects_.push_back(std::move(e));
+}
+
+// One of the original's ticks of the hop (0x42c900): up by a tenth of its
+// speed, which falls by 100 a tick. Each time it comes down to where it
+// started it bounces, at 300 and then 200; after the third landing it
+// fades by a tenth a tick and is gone.
+void Game::stepHop(Effect& e) {
+    Effect::Hop& h = *e.hop;
+    e.height += h.speed / 10;
+    if (e.height < h.floor) {
+        e.height = h.floor;
+        if (h.landings == 0) h.speed = 300;
+        if (h.landings == 1) h.speed = 200;
+        if (h.landings != 3) ++h.landings;
+    }
+    h.speed -= 100;
+    if (h.landings == 3) {
+        e.light = std::max(0, h.fade);
+        h.fade -= 100;
+        if (h.fade == 0) e.dead = true;
+    }
+    ++e.age;
 }
 
 Game::Effect* Game::findEffect(int id) {
@@ -472,6 +527,7 @@ void Game::stepCast(SpellCast& c) {
         e.diesOnHit = true;
         hurts(e, box, false, hitOption);
         e.hitSound = kMagicHitSound;
+        e.height = c.caster >= 0 ? kMonsterMissileHeight : kHeroMissileHeight;
         return e;
     };
     auto blockedAt = [&](double x, double y) { return !map_ || !map_->ground().walkable(x, y); };
@@ -724,6 +780,10 @@ void Game::stepCast(SpellCast& c) {
 
 // One of the original's ticks of an effect: follow, home in, fly, hurt.
 void Game::stepEffect(Effect& e) {
+    if (e.hop) {
+        stepHop(e);
+        return;
+    }
     if (e.trap) {
         stepTrap(e);
         return;

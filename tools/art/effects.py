@@ -1940,9 +1940,49 @@ EFFECTS = {
 }
 
 
-# Still pictures an OPTION folder also has (Pattern.png and .sheet).
+# The word that pops up over whoever an attack or spell misses (OPTION
+# 11000011's one Pattern picture), in our own lettering: chunky capitals,
+# warm white fading to amber at the foot, with a dark outline so it reads
+# on any ground.
+MISS_GLYPHS = {
+    "M": ["10001", "11011", "10101", "10101", "10001", "10001", "10001"],
+    "I": ["111", "010", "010", "010", "010", "010", "111"],
+    "S": ["0111", "1000", "1000", "0110", "0001", "0001", "1110"],
+    "!": ["1", "1", "1", "1", "1", "0", "1"],
+}
+
+
+def miss_word():
+    text = "MISS!"
+    cells = [MISS_GLYPHS[ch] for ch in text]
+    w = sum(len(c[0]) + 1 for c in cells) - 1 + 2  # a pixel between letters, an outline round
+    h = 7 + 2
+    im = Image.new("RGBA", (w, h))
+    px = im.load()
+    solid = set()
+    x0 = 1
+    for c in cells:
+        for y, row in enumerate(c):
+            for x, bit in enumerate(row):
+                if bit == "1":
+                    solid.add((x0 + x, 1 + y))
+        x0 += len(c[0]) + 1
+    for x, y in solid:
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if (x + dx, y + dy) not in solid:
+                    px[x + dx, y + dy] = (40, 22, 10, 255)
+    for x, y in solid:
+        k = (y - 1) / 6
+        px[x, y] = (255, int(250 - 70 * k), int(215 - 175 * k), 255)
+    return [(im, w // 2, h // 2)]
+
+
+# Still pictures an OPTION folder also has (Pattern.png and .sheet). Those
+# with no entry in EFFECTS are still pictures only.
 PATTERNS = {
     10000020: gate_pieces,
+    11000011: miss_word,
 }
 
 
@@ -1950,8 +1990,12 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     pack = Path(sys.argv[1])
-    wanted = [int(a) for a in sys.argv[2:]] or list(EFFECTS)
+    wanted = [int(a) for a in sys.argv[2:]] or list(EFFECTS) + [n for n in PATTERNS if n not in EFFECTS]
     for number in wanted:
+        if number not in EFFECTS:
+            write_pattern(PATTERNS[number](), pack / "Character" / "OPTION" / f"{number:08d}")
+            print(f"{number:08d}: a still picture")
+            continue
         e = Effect(number)
         EFFECTS[number](e)
         e.write(pack / "Character" / "OPTION" / f"{number:08d}")

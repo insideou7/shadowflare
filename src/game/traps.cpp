@@ -152,7 +152,10 @@ void Game::throwShot(Actor& enemy, int slot) {
 // spark and sound where it lands, and a fire or ice arrow's effect.
 void Game::shotHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) return;
+    if (random_.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) {
+        showMiss(player_->x, player_->y);
+        return;
+    }
     playSound(e.trap->shot.hitSound, e.x, e.y);
     int defense = stats[HeroStats::kDefense];
     if (power_.active()) defense = defense * 12 / 10;
@@ -197,7 +200,10 @@ void Game::shotHitsPlayer(const Effect& e) {
 // The same shot on an ACTIVE companion, as strikePartner's blow.
 void Game::shotHitsPartner(const Effect& e) {
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(e.trap->hit, st.evasion)) return;
+    if (random_.next(100) >= hitChance(e.trap->hit, st.evasion)) {
+        showMiss(partner_->character.x, partner_->character.y);
+        return;
+    }
     playSound(e.trap->shot.hitSound, e.x, e.y);
     hurtPartner(spellDamage(e.trap->power, e.trap->element, st.element, st.defense, random_.next(3), random_.next(4)));
 }
@@ -208,7 +214,10 @@ void Game::shotHitsPartner(const Effect& e) {
 // stay on the hero, and the blow may stun them.
 void Game::trapHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) return;
+    if (random_.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) {
+        showMiss(player_->x, player_->y);
+        return;
+    }
     playSound(e.trap->shot.hitSound, e.x, e.y);
     int damage = e.trap->power;
     if (!e.trap->fixedDamage) {
@@ -252,7 +261,10 @@ void Game::stunHero(const Stun& stun) {
 void Game::trapHitsPartner(const Effect& e) {
     Partner& p = *partner_;
     const PartnerStats& st = p.stats;
-    if (random_.next(100) >= hitChance(kTrapHit, st.evasion)) return;
+    if (random_.next(100) >= hitChance(kTrapHit, st.evasion)) {
+        showMiss(p.character.x, p.character.y);
+        return;
+    }
     playSound(e.trap->shot.hitSound, e.x, e.y);
     const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, random_.next(3)));
     hurtPartner(damage);

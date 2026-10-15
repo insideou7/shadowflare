@@ -391,7 +391,10 @@ void Game::strikePartner(Actor& enemy, int slot) {
     const auto& s = enemy.placement.stats;
     const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(s.hits[k], st.evasion)) return;
+    if (random_.next(100) >= hitChance(s.hits[k], st.evasion)) {
+        showMiss(partner_->character.x, partner_->character.y);
+        return;
+    }
     hurtPartner(spellDamage(s.attacks[k], s.element, st.element, st.defense, random_.next(3), random_.next(4)));
     playSound(6, enemy.character.x, enemy.character.y);  // the blow lands (0x45a2f0)
 }
