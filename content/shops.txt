@@ -222,3 +222,43 @@ sell=weapon,1000110
 sell=armour,4000100
 sell=armour,3000100
 sell=accessory,1000101
+
+[shop 26]                # Berini Village's smith
+sell=weapon,1000100
+sell=weapon,2000100
+sell=weapon,5000100
+sell=weapon,1000110
+sell=armour,4000100
+sell=armour,1000100
+sell=armour,2000100
+sell=armour,3000100
+
+[shop 27]                # Berini Village's merchant
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 28]                # Ento Village's smith
+sell=weapon,1000101
+sell=weapon,2000101
+sell=weapon,5000100
+sell=weapon,1000110
+sell=armour,4000100
+sell=armour,1000100
+sell=armour,2000100
+sell=armour,3000100
+
+[shop 29]                # Ento Village's merchant
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 36]                # Berini Village's magic goods
+sell=weapon,1000101
+sell=armour,4000100
+sell=accessory,1000101
+
+[shop 37]                # Ento Village's magic goods
+sell=weapon,2000101
+sell=armour,3000100
+sell=accessory,1000101

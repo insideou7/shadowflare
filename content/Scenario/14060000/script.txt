@@ -1,0 +1,286 @@
+# Written by tools/content/scripts.py after the original's scenario 4060000
+# (The Road of The Netherworld, B1F), in our own words (tools/content/words/14060000.txt).
+
+object=13628,41180,13925,41431,o200,states=1/1/1,at=13766/41293
+object=13598,41150,13946,41470,o201,states=1/0/0,at=13766/41293
+object=12517,40161,15025,42463,o202,states=0/0/0,at=13370/40788
+object=13966,41492,14016,41540,o203,states=1/0/0,at=13766/41293
+object=13966,41492,14016,41540,o204,states=1/0/0,at=13766/41293
+object=37648,11582,37878,11680,o21000,obj_silver_x,states=1/1/1,at=37713/11586
+object=37648,11582,37878,11680,o21001,obj_silver_open_x,states=0/0/0,at=37713/11586
+object=37629,12211,37859,12309,o21002,obj_silver_x,states=1/1/1,at=37694/12215
+object=37629,12211,37859,12309,o21003,obj_silver_open_x,states=0/0/0,at=37694/12215
+object=37631,12859,37861,12957,o21004,obj_silver_x,states=1/1/1,at=37696/12863
+object=37631,12859,37861,12957,o21005,obj_silver_open_x,states=0/0/0,at=37696/12863
+object=42250,11561,42480,11659,o21006,obj_silver_x,states=1/1/1,at=42315/11565
+object=42250,11561,42480,11659,o21007,obj_silver_open_x,states=0/0/0,at=42315/11565
+object=42231,12190,42461,12288,o21008,obj_silver_x,states=1/1/1,at=42296/12194
+object=42231,12190,42461,12288,o21009,obj_silver_open_x,states=0/0/0,at=42296/12194
+object=42233,12838,42463,12936,o21010,obj_silver_x,states=1/1/1,at=42298/12842
+object=42233,12838,42463,12936,o21011,obj_silver_open_x,states=0/0/0,at=42298/12842
+temp=1000011,288
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000016,288
+temp=1000017,-1
+temp=1000018,-1
+temp=1000019,-1
+temp=1000020,-1
+temp=1000021,288
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,-1
+temp=1000025,-1
+temp=1000026,288
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,-1
+temp=1000030,-1
+temp=1000031,288
+temp=1000032,-1
+temp=1000033,-1
+temp=1000034,-1
+temp=1000035,-1
+temp=1000036,288
+temp=1000037,-1
+temp=1000038,-1
+temp=1000039,-1
+temp=1000040,-1
+temp=1000041,34
+temp=1000042,35
+temp=1000043,36
+temp=1000044,77
+temp=1000045,78
+temp=1000046,33
+temp=1000047,27
+temp=1000048,28
+temp=1000049,38
+temp=1000050,39
+temp=1000051,3
+temp=1000052,25
+temp=1000053,26
+temp=1000054,30
+temp=1000055,37
+temp=1000056,10
+temp=1000057,40
+temp=1000058,41
+temp=1000059,42
+temp=1000060,43
+temp=1000061,53
+temp=1000062,80
+
+[message 1000000]
+The Road of The Netherworld, B1F
+
+[message 1000001]
+The Road of The Netherworld, B1F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000002
+IF temp:1000002 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000061 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 14000009 1
+
+[sentence s3]
+CHANGESCENARIO 14060001 0
+
+[sentence s4]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000002
+IF temp:1000002 = 0 @s5
+IF temp:1000002 > 0 @s9
+IF temp:1000002 > -1 @s11
+
+[sentence s5]
+IF warp:48 = 0 @s6
+IF temp:1000009 ! 1000 @s7
+IF temp:1000010 = 0 @s8
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s6]
+SETFLAG warp:48 1
+
+[sentence s7]
+ADD temp:1000009 50
+
+[sentence s8]
+PLAYSOUND temp:1000062 0 x:o200 y:o200
+SETFLAG temp:1000010 1
+
+[sentence s9]
+IF temp:1000009 ! 0 @s10
+SETFLAG temp:1000010 0
+DELETEWARPGATE 0
+
+[sentence s10]
+SUB temp:1000009 50
+
+[sentence s11]
+SETCHARTRANS o203 temp:1000009
+SETCHARTRANS o204 temp:1000009
+
+[sentence s12]
+on=talk o200
+WARPGATE 0
+
+[sentence s13]
+on=tick
+CHECKENEMYLIVE 14000000 14000999 temp:1000002
+IF temp:1000002 = -1 @s14
+
+[sentence s14]
+IF shown:o21000 = 1 @s15
+
+[sentence s15]
+SETINACTIVE o21000
+SETACTIVE o21001
+PLAYSOUND temp:1000044 0 x:o21000 y:o21000
+IF net:1000000 = 0 @s16
+SETINACTIVE o21002
+SETACTIVE o21003
+PLAYSOUND temp:1000044 0 x:o21002 y:o21002
+IF net:1000000 = 0 @s21
+SETINACTIVE o21004
+SETACTIVE o21005
+PLAYSOUND temp:1000044 0 x:o21004 y:o21004
+IF net:1000001 = 0 @s26
+SETINACTIVE o21006
+SETACTIVE o21007
+PLAYSOUND temp:1000044 0 x:o21006 y:o21006
+IF net:1000002 = 0 @s31
+SETINACTIVE o21008
+SETACTIVE o21009
+PLAYSOUND temp:1000044 0 x:o21008 y:o21008
+IF net:1000003 = 0 @s36
+SETINACTIVE o21010
+SETACTIVE o21011
+PLAYSOUND temp:1000044 0 x:o21010 y:o21010
+IF net:1000004 = 0 @s41
+
+[sentence s16]
+SETFLAG temp:1000000 x:o21000
+SETFLAG temp:1000001 y:o21000
+IF temp:1000014 = -1 @s17
+IF temp:1000014 ! -1 @s20
+SETFLAG 1245560 1
+
+[sentence s17]
+IF temp:1000011 = -1 @s18
+IF temp:1000011 ! -1 @s19
+
+[sentence s18]
+CREATEITEM temp:1000012 temp:1000013 temp:1000000 temp:1000001 -1 -1
+
+[sentence s19]
+CREATEITEMTABLE temp:1000011 temp:1000000 temp:1000001
+
+[sentence s20]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000014 temp:1000015
+
+[sentence s21]
+SETFLAG temp:1000000 x:o21002
+SETFLAG temp:1000001 y:o21002
+IF temp:1000019 = -1 @s22
+IF temp:1000019 ! -1 @s25
+SETFLAG net:1000000 1
+
+[sentence s22]
+IF temp:1000016 = -1 @s23
+IF temp:1000016 ! -1 @s24
+
+[sentence s23]
+CREATEITEM temp:1000017 temp:1000018 temp:1000000 temp:1000001 -1 -1
+
+[sentence s24]
+CREATEITEMTABLE temp:1000016 temp:1000000 temp:1000001
+
+[sentence s25]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000019 temp:1000020
+
+[sentence s26]
+SETFLAG temp:1000000 x:o21004
+SETFLAG temp:1000001 y:o21004
+IF temp:1000024 = -1 @s27
+IF temp:1000024 ! -1 @s30
+SETFLAG net:1000001 1
+
+[sentence s27]
+IF temp:1000021 = -1 @s28
+IF temp:1000021 ! -1 @s29
+
+[sentence s28]
+CREATEITEM temp:1000022 temp:1000023 temp:1000000 temp:1000001 -1 -1
+
+[sentence s29]
+CREATEITEMTABLE temp:1000021 temp:1000000 temp:1000001
+
+[sentence s30]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000024 temp:1000025
+
+[sentence s31]
+SETFLAG temp:1000000 x:o21006
+SETFLAG temp:1000001 y:o21006
+IF temp:1000029 = -1 @s32
+IF temp:1000029 ! -1 @s35
+SETFLAG net:1000002 1
+
+[sentence s32]
+IF temp:1000026 = -1 @s33
+IF temp:1000026 ! -1 @s34
+
+[sentence s33]
+CREATEITEM temp:1000027 temp:1000028 temp:1000000 temp:1000001 -1 -1
+
+[sentence s34]
+CREATEITEMTABLE temp:1000026 temp:1000000 temp:1000001
+
+[sentence s35]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000029 temp:1000030
+
+[sentence s36]
+SETFLAG temp:1000000 x:o21008
+SETFLAG temp:1000001 y:o21008
+IF temp:1000034 = -1 @s37
+IF temp:1000034 ! -1 @s40
+SETFLAG net:1000003 1
+
+[sentence s37]
+IF temp:1000031 = -1 @s38
+IF temp:1000031 ! -1 @s39
+
+[sentence s38]
+CREATEITEM temp:1000032 temp:1000033 temp:1000000 temp:1000001 -1 -1
+
+[sentence s39]
+CREATEITEMTABLE temp:1000031 temp:1000000 temp:1000001
+
+[sentence s40]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000034 temp:1000035
+
+[sentence s41]
+SETFLAG temp:1000000 x:o21010
+SETFLAG temp:1000001 y:o21010
+IF temp:1000039 = -1 @s42
+IF temp:1000039 ! -1 @s45
+SETFLAG net:1000004 1
+
+[sentence s42]
+IF temp:1000036 = -1 @s43
+IF temp:1000036 ! -1 @s44
+
+[sentence s43]
+CREATEITEM temp:1000037 temp:1000038 temp:1000000 temp:1000001 -1 -1
+
+[sentence s44]
+CREATEITEMTABLE temp:1000036 temp:1000000 temp:1000001
+
+[sentence s45]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000039 temp:1000040

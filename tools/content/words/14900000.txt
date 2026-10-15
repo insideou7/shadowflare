@@ -1,0 +1,73 @@
+# West Gate of Calado: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Mabry the trader, who moved here from Berini Village; Thea
+# the spirit healer, sent here from the village for safety.
+# Renamed (original -> ours): Gabli->Mabry, Ally->Thea.
+
+[message 1000000]
+West Gate of Calado
+
+[message 1000001]
+West Gate of Calado
+
+[message 1000002]
+Looking for something? Have a look.
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000003]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000004]
+You don't have enough gold.
+
+[message 1000005]
+That's in fine shape. Nothing to fix.
+
+[message 1000006]
+I can tell you what it is for %d Gold. Deal?
+
+                         ~Yes~  ~No~
+
+[message 1000007]
+You've nothing I need to identify.
+
+[message 1000008]
+Name's Mabry.
+
+[message 1000009]
+I kept a shop in Berini Village,
+just a little way down the road.
+
+[message 1000010]
+The monsters out there keep growing bolder,
+so I packed up and came here to the gate.
+
+[message 1000011]
+Whatever you're after, just ask.
+
+[message 1000012]
+I'm Thea.
+
+[message 1000013]
+I served in Berini Village until it grew
+too dangerous. They moved me here instead.
+
+[message 1000014]
+Spirits, hear me!
+Mend these wounds!
+
+[message 1000015]
+If you get hurt out there, come find me.

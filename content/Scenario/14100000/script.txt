@@ -1,0 +1,302 @@
+# Written by tools/content/scripts.py after the original's scenario 4100000
+# (The Ruins of The Wise), in our own words (tools/content/words/14100000.txt).
+
+object=13920,10080,14079,10559,o700,states=1/0/1,at=13396/9903
+object=13760,4800,13919,5279,o701,states=1/0/1,at=13245/4704
+object=10720,7200,10879,7679,o702,states=1/0/1,at=10236/7083
+object=4800,7040,4959,7519,o703,states=1/0/1,at=4331/6937
+object=1824,7954,1936,8161,o20000,obj_chest_y,states=1/1/1,at=1846/8021
+object=1824,7954,1936,8161,o20001,obj_chest_open_y,states=0/0/0,at=1846/8021
+object=2241,7909,2351,8127,o20002,obj_chest_y,states=1/1/1,at=2264/7984
+object=2241,7909,2351,8127,o20003,obj_chest_open_y,states=0/0/0,at=2264/7984
+temp=1000015,17
+temp=1000016,236
+temp=1000017,-1
+temp=1000018,-1
+temp=1000019,-1
+temp=1000020,-1
+temp=1000021,236
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,-1
+temp=1000025,-1
+temp=1000027,34
+temp=1000028,35
+temp=1000029,36
+temp=1000030,77
+temp=1000031,78
+temp=1000032,33
+temp=1000033,27
+temp=1000034,28
+temp=1000035,38
+temp=1000036,39
+temp=1000037,3
+temp=1000038,25
+temp=1000039,26
+temp=1000040,30
+temp=1000041,37
+temp=1000042,10
+temp=1000043,40
+temp=1000044,41
+temp=1000045,42
+temp=1000046,43
+temp=1000047,53
+temp=1000048,80
+temp=1000049,64
+
+[message 1000000]
+The Ruins of The Wise
+
+[message 1000001]
+Well, well! A visitor, of all things.
+
+[message 1000002]
+So Eskil has sent someone my way at last.
+Hm? Oh, it's nothing. Pay me no mind.
+
+[message 1000003]
+My name is Ezra. I study illusion magic,
+the craft behind the Tower of Trials
+here in these ruins.
+
+[message 1000004]
+The grimling faith forbids such study,
+so I carry on with it in secret.
+
+[message 1000005]
+I'll teach you a spell called Identify.
+Just keep it from the grimlings. Our secret.
+
+[message 1000006]
+Is there something else you need?
+
+[message 1000007]
+Hm? Who are you,
+and what are you doing here?
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000304 5
+
+[sentence s2]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF quest:44 ! 0 @s3
+IF quest:44 = 0 @s6
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s3]
+CHECKMEMORIZEDMAGIC temp:1000015 temp:1000005
+IF temp:1000005 = 0 @s4
+IF temp:1000005 ! 0 @s5
+
+[sentence s4]
+SETFLAG temp:1000002 msg:1000001
+SETFLAG temp:1000001 0
+
+[sentence s5]
+SETFLAG temp:1000002 msg:1000006
+SETFLAG temp:1000001 100
+
+[sentence s6]
+SETFLAG temp:1000002 msg:1000007
+SETFLAG temp:1000001 200
+
+[sentence s7]
+on=talk-end p0
+IF temp:1000001 = 4 @s8
+IF temp:1000001 = 100 @s9
+IF temp:1000001 = 200 @s10
+IF temp:1000001 = -1 @s11
+IF temp:1000001 ! -1 @s12
+IF temp:1000001 = 4 @s13
+
+[sentence s8]
+SETFLAG temp:1000001 -1
+
+[sentence s9]
+SETFLAG temp:1000001 -1
+
+[sentence s10]
+SETFLAG temp:1000001 -1
+
+[sentence s11]
+C_MOVABLE p0
+
+[sentence s12]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s13]
+MEMORIZEMAGIC temp:1000015
+SETQUESTFLAG 44 2 0
+GETEXPERIENCE 50
+PLAYSOUND temp:1000049 1 0 0
+
+[sentence s14]
+on=tick
+IF playmode:0 ! 2 @s15
+
+[sentence s15]
+IF shown:o700 = 1 @s16
+
+[sentence s16]
+CHECKENEMYLIVE 14000000 14000000 temp:1000005
+IF temp:1000005 = -1 @s17
+
+[sentence s17]
+SETINACTIVE o700
+PLAYSOUND temp:1000027 0 x:o700 y:o700
+
+[sentence s18]
+PLAYSOUND temp:1000027 0 x:o700 y:o700
+
+[sentence s19]
+on=tick
+IF playmode:0 ! 2 @s20
+
+[sentence s20]
+IF shown:o701 = 1 @s21
+
+[sentence s21]
+CHECKENEMYLIVE 14000001 14000001 temp:1000005
+IF temp:1000005 = -1 @s22
+
+[sentence s22]
+SETINACTIVE o701
+PLAYSOUND temp:1000027 0 x:o701 y:o701
+
+[sentence s23]
+PLAYSOUND temp:1000027 0 x:o701 y:o701
+
+[sentence s24]
+on=tick
+IF playmode:0 ! 2 @s25
+
+[sentence s25]
+IF shown:o702 = 1 @s26
+
+[sentence s26]
+CHECKENEMYLIVE 14000002 14000002 temp:1000005
+IF temp:1000005 = -1 @s27
+
+[sentence s27]
+SETINACTIVE o702
+PLAYSOUND temp:1000027 0 x:o702 y:o702
+
+[sentence s28]
+PLAYSOUND temp:1000027 0 x:o702 y:o702
+
+[sentence s29]
+on=tick
+IF playmode:0 ! 2 @s30
+
+[sentence s30]
+IF shown:o703 = 1 @s31
+
+[sentence s31]
+CHECKENEMYLIVE 14000003 14000004 temp:1000005
+IF temp:1000005 = -1 @s32
+
+[sentence s32]
+SETINACTIVE o703
+PLAYSOUND temp:1000027 0 x:o703 y:o703
+
+[sentence s33]
+PLAYSOUND temp:1000027 0 x:o703 y:o703
+
+[sentence s34]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000030 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s35
+
+[sentence s35]
+SETFLAG temp:1000003 x:o20000
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20000
+ADD temp:1000004 200
+IF temp:1000019 = -1 @s36
+IF temp:1000019 ! -1 @s39
+SETFLAG net:1000000 1
+
+[sentence s36]
+IF temp:1000016 = -1 @s37
+IF temp:1000016 ! -1 @s38
+
+[sentence s37]
+CREATEITEM temp:1000017 temp:1000018 temp:1000003 temp:1000004 -1 -1
+
+[sentence s38]
+CREATEITEMTABLE temp:1000016 temp:1000003 temp:1000004
+
+[sentence s39]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000019 temp:1000020
+
+[sentence s40]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000031 0 x:o20000 y:o20000
+
+[sentence s41]
+IF shown:o20000 = 0 @s42
+IF shown:o20000 = 1 @s43
+
+[sentence s42]
+PLAYSOUND temp:1000031 0 x:o20000 y:o20000
+
+[sentence s43]
+PLAYSOUND temp:1000030 0 x:o20000 y:o20000
+
+[sentence s44]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000030 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s45
+
+[sentence s45]
+SETFLAG temp:1000003 x:o20002
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20002
+ADD temp:1000004 200
+IF temp:1000024 = -1 @s46
+IF temp:1000024 ! -1 @s49
+SETFLAG net:1000001 1
+
+[sentence s46]
+IF temp:1000021 = -1 @s47
+IF temp:1000021 ! -1 @s48
+
+[sentence s47]
+CREATEITEM temp:1000022 temp:1000023 temp:1000003 temp:1000004 -1 -1
+
+[sentence s48]
+CREATEITEMTABLE temp:1000021 temp:1000003 temp:1000004
+
+[sentence s49]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000024 temp:1000025
+
+[sentence s50]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000031 0 x:o20002 y:o20002
+
+[sentence s51]
+IF shown:o20002 = 0 @s52
+IF shown:o20002 = 1 @s53
+
+[sentence s52]
+PLAYSOUND temp:1000031 0 x:o20002 y:o20002
+
+[sentence s53]
+PLAYSOUND temp:1000030 0 x:o20002 y:o20002

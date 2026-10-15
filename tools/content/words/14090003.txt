@@ -1,0 +1,66 @@
+# Tower of Rebellion, 4F: the rebels on the top floor, in our own words,
+# by the original's message numbers (tools/content/scripts.py).
+# Their leader stays loyal to the late Archbishop Krator and takes the
+# hero for one of Lord Valdric's men, until Mrs. Krator is mentioned.
+# Our cast as in cast4.md: Lord Valdric, Archbishop Krator, Mrs. Krator.
+
+[message 1000000]
+Tower of Rebellion, 4F
+
+[message 1000001]
+And who might you be?
+You've no business up here.
+
+[message 1000002]
+So... Lord Valdric sent you, did he?
+
+[message 1000003]
+You'd slander Archbishop Krator!?
+Who could think he turned into a demon?
+I won't hear it!
+
+[message 1000004]
+Hm? Mrs. Krator, you say?
+
+[message 1000005]
+Impossible!
+How would someone like you know her?
+
+[message 1000006]
+What did you say?
+
+[message 1000007]
+.....
+
+[message 1000008]
+She asked this of you...
+It was her wish that sent you up here?
+
+[message 1000009]
+.....
+
+[message 1000010]
+Very well. We'll give up the tower.
+The archbishop would grieve to know
+our stand had brought his wife harm.
+
+[message 1000011]
+Our revolt is over. Please let her know.
+
+[message 1000012]
+Wh-who goes there?
+
+[message 1000013]
+So it's finished...
+
+[message 1000014]
+How did you get up here?
+
+[message 1000015]
+Mercy... please, don't kill me!
+
+[message 1000016]
+Get back!
+
+[message 1000017]
+I haven't done anything!

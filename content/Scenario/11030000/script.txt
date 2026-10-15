@@ -2,6 +2,7 @@
 # the area's name as the hero arrives (by the entry they came in by),
 # what the hero says on arriving, and the missions finished here.
 
+
 object=9476,12885,9636,13045,hole0,hole,hidden
 object=9476,12885,9636,13045,hole0-open,hole_open,hidden
 object=9476,12885,9636,13045,hole0-broken,hole_broken,hidden

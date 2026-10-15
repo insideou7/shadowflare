@@ -1,0 +1,16 @@
+# Forest of Death: place signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Forest of Death
+
+[message 1000001]
+Forest of Death
+
+[message 1000002]
+The gate is shut tight.
+There's no way in.
+
+[message 1000003]
+The gate is shut tight.
+There's no way in.

@@ -1,0 +1,274 @@
+# Ento Village: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# The villagers were people once; Aurion's power turned them into demons.
+# Our cast (invented here): Elder Haldor, the village head; Grell, who
+# runs the shop and does repairs; Marek, the other trader; Toller, Wilma,
+# Berwin (once a knight), Ulric, Fenna, Coll, Jessa and Hamund, villagers.
+# Earlier names used: Aurion, Valmere, Morvane, the grimlings, burrow.
+# Kept as plain game terms or pack titles: Goliate (his mansion and forest
+# are pack titles), Ruins of Exorcism, Orphe Beach, Demon's Forest,
+# Devil's Castle, Ruins of Remoteness, Antalusia, Giant Warehouse VIII.
+
+[message 1000000]
+Ento Village
+
+[message 1000001]
+Ento Village
+
+[message 1000002]
+...
+
+[message 1000003]
+So, a visitor. Be welcome.
+
+[message 1000004]
+You stand in Ento Village, where demons live.
+Every one of us was human once, before
+Aurion's power changed us.
+
+[message 1000005]
+That power grows a little more each day,
+and what is left of the people we were
+gets harder to hold on to...
+
+[message 1000006]
+Somehow it has passed you by.
+That is why I have a favor to ask.
+
+[message 1000007]
+Demons have taken the Ruins of Exorcism on
+Orphe Beach. Will you win them back? To reach
+the beach, go west through the Demon's Forest.
+
+[message 1000008]
+There is no one else we can turn to.
+
+[message 1000009]
+We are all relying on you.
+
+[message 1000010]
+You have our thanks.
+Please, take this for your trouble.
+
+[message 1000011]
+The magic has grown fiercer of late.
+I fear something is coming.
+
+[message 1000012]
+Aurion's power has touched you, yet you are
+still human. Only strong magic of your own
+could protect you like that.
+
+[message 1000013]
+...
+
+[message 1000014]
+Valmere herself gave you this...?
+
+[message 1000015]
+Morvane, the devil? Is that who you seek?
+
+[message 1000016]
+They say the Devil's Castle lies at Aurion's
+western edge. None of us has ever ventured
+that deep, so I cannot promise it.
+
+[message 1000017]
+The creatures that prowl these parts
+carry a demon's strength.
+Stay on your guard.
+
+[message 1000018]
+Stay on your guard.
+
+[message 1000019]
+The gate of the Devil's Castle is sealed?
+Then there is nothing we can do for you.
+Still, I think you will find a way inside!
+
+[message 1000020]
+Ah, one more thing. I've heard that Morvane
+keeps a servant he trusts above all others,
+by the name of Goliate.
+
+[message 1000021]
+Goliate's mansion stands somewhere in Aurion.
+
+[message 1000022]
+Track him down, and he may lead
+you to Morvane.
+
+[message 1000023]
+Hmm...
+
+[message 1000024]
+Goliate too? You beat him as well?!
+
+[message 1000025]
+I can hardly believe it!
+
+[message 1000026]
+...
+
+[message 1000027]
+What drives you toward the Devil's Castle,
+I cannot say...
+
+[message 1000028]
+But if his power keeps on growing, it will
+not stop at Aurion. It will spread to the
+lands beyond as well.
+
+[message 1000029]
+None of us can go back to the outside world.
+We are afraid of how far the darkness
+has taken us.
+
+[message 1000030]
+If only you had the strength
+to bring Morvane down...
+
+[message 1000031]
+Will you face Morvane, so that no one else
+has to end up the way we have?
+
+[message 1000032]
+I beg you.
+
+[message 1000033]
+I beg you.
+
+[message 1000034]
+Thank you. We can never be wholly human again,
+but at least the demon power should
+spread no further.
+
+[message 1000035]
+It is a poor reward, but Giant Warehouse VIII
+is yours to use from now on.
+
+[message 1000036]
+We owe you more than we can say.
+
+[message 1000037]
+Well? Are you buying or just looking?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000038]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000039]
+You can't afford that.
+
+[message 1000040]
+Nothing here needs mending.
+
+[message 1000041]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000042]
+You've nothing on you that still needs a name.
+
+[message 1000043]
+Name's Grell. Don't ask me how,
+but I ended up keeping shop in this village.
+
+[message 1000044]
+I suppose I just fancied setting up here.
+
+[message 1000045]
+Then one day something struck me out of nowhere,
+and I turned into this ugly thing.
+
+[message 1000046]
+Anyway, go on and buy something.
+
+[message 1000047]
+(Growl)
+
+[message 1000048]
+My goods are worth a look.
+
+[message 1000049]
+(Growl)
+
+[message 1000050]
+(Roar)
+
+[message 1000051]
+This is Ento Village. Everyone here was
+human, until a demon power took hold of us...
+
+[message 1000052]
+A village of demons, to put it plainly.
+
+[message 1000053]
+I was so ill I doubted I'd see another year.
+I came to Aurion hoping to buy myself a little
+more time, and yet...
+
+[message 1000054]
+How I wish I had never come.
+
+[message 1000055]
+Hard to believe, but I was a knight once.
+I came to Aurion to learn its secrets.
+And now look at me... a monster.
+
+[message 1000056]
+Each day I remember less of my life as a man.
+One day soon I may lose my reason altogether.
+
+[message 1000057]
+Other children picked on me when I was small.
+I wanted to be so strong that nobody
+could ever push me around again.
+
+[message 1000058]
+I found that strength here. But it cost me
+something worth far more.
+
+[message 1000059]
+Head a long way west and you'll come to
+ruins. I was told the devil makes his home there.
+
+[message 1000060]
+Take care.
+The evil in Aurion is beyond cruel.
+
+[message 1000061]
+I'd say this burrow is a way of getting about.
+Not long ago I watched demons vanish into it.
+
+[message 1000062]
+So why does nothing happen when I step on it?
+
+[message 1000063]
+They say the grimlings once rounded up demons
+and penned them in a forest somewhere.
+
+[message 1000064]
+Stay away from it. It's a demons' nest, and
+not even the grimlings could keep it in hand.
+
+[message 1000065]
+I heard a wizard from Antalusia
+was out looking for some ruins.
+
+[message 1000066]
+The Ruins of Remoteness, if I remember right.

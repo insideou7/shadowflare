@@ -1035,12 +1035,24 @@ def build_ogre():
 def wing(rig, joint, side, span, bone, skin, base=(0, 0, 0)):
     """A bat's wing: red bones fanning out from a wrist, with a membrane
     stretched between them and back to the body."""
+    return bat_wing(rig, joint, side, span, bone, skin, (-0.1, 0.45, 0.30),
+                    ((-0.05, 0.95, 0.85), (-0.35, 1.15, 0.45), (-0.65, 1.05, 0.0), (-0.85, 0.70, -0.35)),
+                    (-0.55, 0.20, -0.55), base)
+
+
+def bat_wing(rig, joint, side, span, bone, skin, wrist, tips, back, base=(0, 0, 0)):
+    """wing() with its own shape: the wrist, the finger tips and where the
+    membrane meets the body again, as left-wing points in units of span
+    from the shoulder (y is mirrored for the right wing)."""
     base = Vector(base)
     shoulder = base
-    wrist = base + Vector((-0.1, 0.45 * side, 0.30)) * span
-    tips = [base + Vector(v) * span for v in ((-0.05, 0.95 * side, 0.85), (-0.35, 1.15 * side, 0.45),
-                                              (-0.65, 1.05 * side, 0.0), (-0.85, 0.70 * side, -0.35))]
-    back = base + Vector((-0.55, 0.20 * side, -0.55)) * span
+
+    def at(v):
+        return base + Vector((v[0], v[1] * side, v[2])) * span
+
+    wrist = at(wrist)
+    tips = [at(v) for v in tips]
+    back = at(back)
     segment(rig, joint, shoulder, wrist, 0.05 * span, bone)
     for t in tips:
         segment(rig, joint, wrist, t, 0.025 * span, bone)
@@ -2350,6 +2362,438 @@ BUILDERS.update({"person3": build_gate_guard, "person31": build_blue_bishop, "pe
                  "person36": build_bronze_knight, "person37": build_steel_knight, "person38": build_shrine_keeper})
 HEIGHT.update({"person3": 3.75, "person31": 3.95, "person32": 4.1, "person33": 3.7, "person34": 3.0,
                "person35": 2.6, "person36": 4.0, "person37": 3.85, "person38": 3.4})
+
+
+# The fourth area's people: kind 39 the injured demon lying in the Forest
+# of Poison, 40 Mrs. Jurg of Berini Village and 41-45 the villagers of
+# Ento, whom Hiperion's power turned into demons. On MakeHuman bodies like
+# the third area's, with snouts, horns, claws, tails and wings of shapes.
+def sole(side):
+    """Where a foot's sole is, in its knee joint's space (bind()'s marker)."""
+    return bpy.data.objects[f"marker knee_{side}"].location.copy()
+
+
+def palm(rig, side):
+    """Where a hand's palm is, in its elbow joint's space."""
+    p = rig.rest["weapon"].copy()
+    p.y *= 1 if side == "r" else -1
+    return p
+
+
+def claws(rig, joint, at, mat, count=3, length=0.14, spread=0.45, radius=0.03, pitch=0.0):
+    """A fan of claws from `at` in a joint's space, pointing forward (+x)
+    and tipped down by pitch."""
+    for k in range(count):
+        a = spread * (k - (count - 1) / 2)
+        way = Vector((math.cos(a) * math.cos(pitch), math.sin(a) * math.cos(pitch), -math.sin(pitch)))
+        rig.attach(sharp("cone", (radius, radius, length / 2), mat,
+                         rotation=Vector((0, 0, 1)).rotation_difference(way).to_euler()), joint,
+                   tuple(Vector(at) + way * length / 2))
+
+
+def demon_claws(rig, mat, foot=0.16, hand=0.09, toes=3):
+    """Claws on both feet (forward from the toes) and both hands (down
+    from the fingers)."""
+    for side in ("l", "r"):
+        claws(rig, f"knee_{side}", sole(side) + Vector((0.12, 0, 0.03)), mat, count=toes, length=foot)
+        claws(rig, f"elbow_{side}", palm(rig, side) + Vector((0, 0, -0.06)), mat, length=hand, spread=0.35,
+              radius=0.02, pitch=math.radians(80))
+
+
+def tail(rig, mat, length, radius, droop, spikes=None, spike_size=0.12):
+    """A tail on its own joint behind the hips, curving back and down to
+    `droop` below the joint, tapering from radius; a row of spikes along
+    its top if spikes is a material."""
+    rig.joint("tail", "hips", (-0.14, 0, -0.06))
+    n = 7
+    points = [Vector((-length * i / n, 0, -droop * math.sin(0.5 * math.pi * i / n))) for i in range(n + 1)]
+    for i in range(n):
+        r = radius * (1 - 0.8 * i / n)
+        segment(rig, "tail", points[i], points[i + 1], r, mat)
+        rig.attach(shape("ball", (r, r, r), mat), "tail", tuple(points[i + 1]))
+        if spikes:
+            rig.attach(sharp("cone", (spike_size * 0.35, spike_size * 0.2, spike_size * (1 - 0.6 * i / n)), spikes,
+                             rotation=(0, math.radians(-40), 0)), "tail", tuple(points[i] + Vector((0, 0, r * 0.9))))
+
+
+def build_injured_demon():
+    """The injured demon (people kind 39), lying where it fell in the Forest
+    of Poison: a dark slate body on its back in a pool of blood, its great
+    wings of blue bone and pale membrane spread on the ground, spears and
+    arrows stuck in it and broken round it. It stirs as it breathes."""
+    import mpfb_body
+    skin = studio.material("slate skin", (0.30, 0.30, 0.40), (0.12, 0.12, 0.18), scale=20, bump=0.5)
+    bone = studio.material("blue bone", (0.20, 0.22, 0.74), (0.07, 0.07, 0.34), scale=24, rough=0.45)
+    membrane = studio.material("pale membrane", (0.88, 0.86, 0.64), (0.54, 0.52, 0.36), scale=5, bump=0.2)
+    membrane.use_backface_culling = False
+    blood = studio.material("blood", (0.48, 0.04, 0.04), (0.24, 0.01, 0.01), scale=12, rough=0.3)
+    haft = studio.material("haft", (0.42, 0.28, 0.16), (0.18, 0.10, 0.05), scale=25, stretch=(1, 1, 4))
+    steel = studio.material("spearhead", (0.82, 0.82, 0.84), (0.44, 0.44, 0.48), scale=30, rough=0.3)
+    height = 3.8
+
+    def pick(centre, bones, normal):
+        return skin
+
+    rig = npc(height, dict(gender=1.0, age=0.5, muscle=0.8, weight=0.4, height=0.7, proportions=0.6), pick)
+    # Small horns, and the wings from the shoulder blades.
+    for side in (1, -1):
+        rig.attach(sharp("cone", (0.04, 0.04, 0.10), bone, rotation=(math.radians(-25 * side), math.radians(-30), 0)),
+                   "head", (-0.02, 0.09 * side, rig.top * 0.82))
+        name = "bat_l" if side > 0 else "bat_r"
+        rig.joint(name, "spine", (0.02, 0.12 * side, rig.shoulder - 0.06))
+        wing(rig, name, side, 2.3, bone, membrane)
+        rig.joints[name].scale = (0.15, 1, 1)  # pressed flat on the ground
+    # The pool of blood under its back (the body's -x is the ground once it
+    # lies on its back), spears in its chest and broken shafts about it.
+    for y, z, ry, rz in ((0, 0.25, 0.60, 0.95), (0.50, 0.75, 0.36, 0.30), (-0.55, -0.10, 0.32, 0.40),
+                         (0.20, -0.60, 0.30, 0.36), (-0.40, 0.95, 0.26, 0.22), (0.68, 0.05, 0.16, 0.24),
+                         (-0.15, -0.95, 0.10, 0.30), (0.75, -0.40, 0.08, 0.26)):
+        rig.attach(shape("ball", (0.012, ry, rz), blood), "hips", (-0.26, y, z))
+    for k in range(24):  # spattered over the wings too
+        a = 2.4 * k
+        r = 0.45 + 0.08 * (k % 7)
+        rig.attach(shape("ball", (0.01, 0.03 + 0.01 * (k % 3), 0.05 + 0.02 * (k % 2)), blood), "hips",
+                   (-0.26 if k % 2 else 0.05, 1.2 * r * math.cos(a), 0.30 + 1.5 * r * math.sin(a)))
+    for at, way, length in (((0.10, 0.06, 0.45), (1.0, 0.5, 0.6), 1.1), ((0.12, -0.10, 0.20), (1.0, -0.4, -0.3), 0.8),
+                            ((0.0, 0.25, -0.30), (1.0, 0.7, 0.1), 0.5)):
+        way = Vector(way).normalized()
+        segment(rig, "spine", Vector(at), Vector(at) + way * length * 1.2, 0.03, haft)
+        rig.attach(sharp("cone", (0.04, 0.03, 0.08), steel, rotation=Vector((0, 0, 1)).rotation_difference(-way).to_euler()),
+                   "spine", tuple(Vector(at) - way * 0.04))
+    for y, z, a, length in ((0.95, 0.55, 0.4, 1.0), (-0.80, 1.05, -0.9, 0.6), (-0.70, -0.60, 0.2, 0.45)):
+        way = Vector((0, math.cos(a), math.sin(a)))
+        segment(rig, "hips", Vector((-0.24, y, z)), Vector((-0.24, y, z)) + way * length, 0.03, haft)
+        rig.attach(sharp("cone", (0.035, 0.012, 0.07), steel, rotation=Vector((0, 0, 1)).rotation_difference(way).to_euler()),
+                   "hips", tuple(Vector((-0.24, y, z)) + way * (length + 0.06)))
+    # Its middle, not its feet, on the spot it stands on.
+    rig.rest["hips"] = rig.rest["hips"] - Vector((0, 0, rig.hip * 0.95))
+    rig.kind = "injured demon"
+    # Drawn with no direction (8), like the original: it lies as it fell.
+    rig.animations = {"idle": (101, True, 0)}
+
+    def lying(s, c, k):
+        twitch = 3 * s - 4 * s ** 3  # three times a breath
+        return stand(s, root=(0, -math.pi / 2, 0), spine=(0, 0.05 * s, 0), head=(0.25, 0.2, 0.3),
+                     arm_l=(1.25, 0.1, 0), elbow_l=(0, -0.5, 0), arm_r=(-1.0, -0.4, 0), elbow_r=(0, -0.9, 0),
+                     leg_l=(0.22, 0.05, 0), leg_r=(-0.12, -0.35, 0), knee_r=(0, 0.5, 0),
+                     bat_l=(0.35 + 0.06 * twitch, 0, 0), bat_r=(-0.25, 0, 0))
+
+    rig.poses = {"idle": lying}
+    return rig
+
+
+def build_hooded_woman():
+    """Mrs. Jurg (people kind 40): a small woman in a long lilac-grey robe
+    with its hood up, her hands together at her chest round a little lamp."""
+    import mpfb_body
+    skin = studio.material("skin", (0.90, 0.74, 0.62), (0.70, 0.52, 0.42), scale=30, bump=0.05)
+    robe = studio.material("lilac robe", (0.72, 0.64, 0.76), (0.38, 0.32, 0.44), scale=10, bump=0.4,
+                           stretch=(1, 1, 3))
+    lamp = studio.material("lamp glow", (1.0, 0.64, 0.24), (0.90, 0.38, 0.08), scale=30, rough=0.3)
+    height = 3.4
+
+    def pick(centre, bones, normal):
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        return robe
+
+    rig = npc(height, dict(gender=0.0, age=0.7, muscle=0.3, weight=0.4, height=0.3, proportions=0.5), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        face = normal.y < -0.35 and 0.86 < z < 0.95 and abs(centre.x) < 0.17
+        if part in ("head", "neck") and not face:
+            return robe, 0.06  # the hood
+        if part in ("torso", "upperarm"):
+            return robe, 0.05
+        if part == "forearm":
+            return robe, 0.07  # wide sleeves
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # The robe to the ground, the hood's peak over her brow and the lamp.
+    length = rig.hip + 0.06
+    rig.attach(sharp("flare", (0.27, 0.28, length / 2), robe), "hips", (0.0, 0, 0.14 - length / 2))
+    rig.attach(shape("ball", (0.19, 0.20, 0.15), robe), "head", (-0.02, 0, rig.top * 0.72))
+    rig.attach(shape("ball", (0.05, 0.05, 0.06), lamp), "spine", (0.36, 0, rig.shoulder - 0.40))
+    rig.kind = "hooded woman"
+    hands = dict(arm_l=(0.05, -0.25, 0), elbow_l=(-0.7, -1.5, 0), arm_r=(-0.05, -0.25, 0), elbow_r=(0.7, -1.5, 0))
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, **hands),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.35, arms=False, **hands),
+    }
+    return rig
+
+
+def build_purple_demon():
+    """Giraa and Beng (people kind 41): a gaunt purple demon, hunched, with
+    long arms hanging wide and clawed hands and feet, a snout, a brown cap
+    with a pale band, a white bib under a brown jerkin, an orange belt and
+    a long lilac apron front and back."""
+    import mpfb_body
+    skin = studio.material("purple skin", (0.70, 0.52, 0.70), (0.40, 0.26, 0.42), scale=18, bump=0.4)
+    jerkin = studio.material("brown jerkin", (0.42, 0.22, 0.12), (0.18, 0.08, 0.04), scale=18, bump=0.3)
+    bib = studio.material("white bib", (0.92, 0.88, 0.80), (0.62, 0.58, 0.52), scale=20)
+    belt = studio.material("orange belt", (0.90, 0.48, 0.12), (0.52, 0.22, 0.04), scale=26, rough=0.5)
+    apron = studio.material("lilac apron", (0.68, 0.54, 0.72), (0.36, 0.26, 0.40), scale=10, bump=0.3,
+                            stretch=(1, 1, 4))
+    cap = studio.material("brown cap", (0.44, 0.24, 0.10), (0.20, 0.10, 0.04), scale=22, bump=0.3)
+    band = studio.material("pale band", (0.90, 0.86, 0.74), (0.60, 0.56, 0.46), scale=26)
+    claw = studio.material("dark claws", (0.30, 0.20, 0.22), (0.10, 0.06, 0.08), scale=30, rough=0.4)
+    height = 4.95
+
+    def pick(centre, bones, normal):
+        return skin
+
+    long_arms = [(f"arms/{s}-{p}-{t}-incr.target.gz", 1.0) for s in "lr" for p in ("upperarm", "lowerarm")
+                 for t in ("scale-vert", "muscle", "scale-horiz")]
+    rig = npc(height, dict(gender=1.0, age=0.5, muscle=1.0, weight=0.8, height=0.9, proportions=0.3), pick,
+              targets=long_arms + [(f"hands/{s}-hand-scale-incr.target.gz", 1.0) for s in "lr"])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "torso" and 0.50 < z < 0.76:
+            return jerkin, 0.06
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    rig.attach(shape("box", (0.05, 0.15, 0.24), bib), "spine", (0.27, 0, rig.shoulder - 0.32))
+    rig.attach(shape("cylinder", (0.25, 0.28, 0.05), belt), "hips", (0.0, 0, 0.16))
+    length = rig.hip * 0.62
+    for x in (0.22, -0.22):  # the apron's two long flaps
+        rig.attach(shape("box", (0.025, 0.20, length / 2), apron, rotation=(0, math.radians(-8 if x > 0 else 8), 0)),
+                   "hips", (x * 1.1, 0, 0.12 - length / 2))
+    # Snout, cap and claws.
+    rig.attach(shape("ball", (0.15, 0.10, 0.09), skin), "head", (0.18, 0, rig.top * 0.28))
+    rig.attach(shape("ball", (0.21, 0.20, 0.16), cap), "head", (-0.02, 0, rig.top * 0.82))
+    rig.attach(shape("cylinder", (0.20, 0.19, 0.03), band), "head", (-0.02, 0, rig.top * 0.70))
+    demon_claws(rig, claw)
+    rig.kind = "purple demon"
+    hunch = dict(spine=(0, 0.32, 0), head=(0, -0.10, 0))
+    arms = dict(arm_l=(0.50, -0.30, 0), elbow_l=(-0.2, -0.90, 0), arm_r=(-0.50, -0.30, 0), elbow_r=(0.2, -0.90, 0))
+    rig.poses = {
+        "idle": lambda s, c, k: dict(stand(s, **arms), spine=(0, 0.32 + 0.02 * s, 0), head=(0, -0.10, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.45, arms=False, **hunch,
+                                       arm_l=(0.55, -0.35 + 0.25 * s, 0), arm_r=(-0.55, -0.35 - 0.25 * s, 0),
+                                       elbow_l=(-0.2, -0.90, 0), elbow_r=(0.2, -0.90, 0)),
+    }
+    return rig
+
+
+def build_jackal_demon():
+    """Darl and Mars (people kind 42): a muscular demon with a jackal's long
+    snout and tall ears, tawny fur, a ragged grey-green loincloth to the
+    knees and clawed feet, standing with his arms folded."""
+    import mpfb_body
+    fur = studio.material("tawny fur", (0.70, 0.52, 0.28), (0.34, 0.22, 0.08), scale=30, bump=0.7, stretch=(1, 1, 3))
+    cloth = studio.material("grey green cloth", (0.54, 0.60, 0.52), (0.28, 0.32, 0.26), scale=10, bump=0.4,
+                            stretch=(1, 1, 4))
+    claw = studio.material("claws", (0.36, 0.26, 0.18), (0.14, 0.09, 0.05), scale=30, rough=0.4)
+    nose = studio.material("nose", (0.20, 0.12, 0.08), (0.08, 0.04, 0.03), scale=30, rough=0.3)
+    height = 4.5
+
+    def pick(centre, bones, normal):
+        return fur
+
+    rig = npc(height, dict(gender=1.0, age=0.4, muscle=1.0, weight=0.75, height=0.8, proportions=0.6), pick,
+              targets=[("torso/torso-scale-horiz-incr.target.gz", 0.6), ("torso/torso-vshape-incr.target.gz", 1.0)])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "thigh" and z > 0.36:
+            return cloth, 0.05
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # The loincloth, ragged at the hem, and a belt of the same cloth.
+    length = rig.hip * 0.52
+    rig.attach(sharp("flare", (0.34, 0.36, length / 2), cloth), "hips", (0.0, 0, 0.14 - length / 2))
+    rig.attach(shape("cylinder", (0.25, 0.28, 0.05), cloth), "hips", (0.0, 0, 0.15))
+    for k in range(12):
+        a = 2 * math.pi * (k + 0.5) / 12
+        rig.attach(sharp("cone", (0.07, 0.03, 0.08 + 0.05 * (k % 3)), cloth, rotation=(0, math.pi, a)), "hips",
+                   (0.33 * math.cos(a), 0.35 * math.sin(a), 0.14 - length - 0.04 * (k % 3)))
+    # The jackal's head: a long snout, a dark nose and tall ears.
+    rig.attach(sharp("cone", (0.10, 0.09, 0.17), fur, rotation=(0, math.radians(100), 0)), "head",
+               (0.24, 0, rig.top * 0.30))
+    rig.attach(shape("ball", (0.035, 0.035, 0.03), nose), "head", (0.41, 0, rig.top * 0.27))
+    for side in (1, -1):
+        rig.attach(sharp("cone", (0.07, 0.03, 0.13), fur, rotation=(math.radians(-18 * side), math.radians(-15), 0)),
+                   "head", (-0.06, 0.10 * side, rig.top * 0.95))
+    demon_claws(rig, claw, hand=0.06)
+    rig.kind = "jackal demon"
+    folded = dict(arm_l=(0.30, -0.70, 0), elbow_l=(-1.95, 0, 0), arm_r=(-0.30, -0.70, 0), elbow_r=(1.75, 0, 0))
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, leg_l=(0.10, 0, 0), leg_r=(-0.10, 0, 0), **folded),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.5, arms=False, **folded),
+    }
+    return rig
+
+
+def build_golden_demon():
+    """Esta and Hols (people kind 43): a muscular golden demon with great
+    bat wings on golden bones, silver bracers, shoulder plate, belt and
+    greaves, dark brown breeches and little horns."""
+    import mpfb_body
+    gold = studio.material("golden skin", (0.88, 0.66, 0.16), (0.48, 0.30, 0.04), scale=16, rough=0.4, bump=0.4)
+    silver = studio.material("silver", (0.88, 0.88, 0.90), (0.46, 0.46, 0.52), scale=26, rough=0.3, bump=0.3)
+    breeches = studio.material("dark breeches", (0.34, 0.22, 0.12), (0.12, 0.07, 0.03), scale=18, bump=0.3)
+    membrane = studio.material("wing membrane", (0.62, 0.56, 0.46), (0.34, 0.28, 0.22), scale=5, bump=0.2)
+    membrane.use_backface_culling = False
+    height = 3.95
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("thigh", "shin") and z > 0.25:
+            return breeches
+        return gold
+
+    rig = npc(height, dict(gender=1.0, age=0.45, muscle=1.0, weight=0.8, height=0.7, proportions=0.5), pick,
+              targets=[("torso/torso-scale-horiz-incr.target.gz", 0.5)])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "forearm" and z < 0.62:
+            return silver, 0.04  # bracers
+        if part in ("shin", "foot") and z < 0.25:
+            return silver, 0.04  # greaves
+        if part == "thigh":
+            return breeches, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "armour")
+    rig.attach(shape("cylinder", (0.25, 0.29, 0.05), silver), "hips", (0.0, 0, 0.15))
+    for side in (1, -1):
+        rig.attach(shape("box", (0.04, 0.07, 0.10), silver), "hips", (0.24, 0.12 * side, 0.05))
+        rig.attach(sharp("cone", (0.035, 0.035, 0.09), gold, rotation=(math.radians(-25 * side), math.radians(-25), 0)),
+                   "head", (0.0, 0.09 * side, rig.top * 0.82))
+        name = "bat_l" if side > 0 else "bat_r"
+        rig.joint(name, "spine", (-0.18, 0.12 * side, rig.shoulder - 0.04))
+        # Spread wide beside him, arching over his shoulders and down to
+        # his feet, cupped a little forward.
+        bat_wing(rig, name, side, 1.8, gold, membrane, (-0.15, 0.40, 0.36),
+                 ((-0.05, 0.95, 0.32), (0.20, 1.40, 0.0), (0.42, 1.28, -0.70), (0.45, 0.92, -1.35)),
+                 (-0.10, 0.25, -0.75))
+    rig.attach(shape("ball", (0.22, 0.20, 0.16), silver), "arm_l", (0, 0.06, 0.04))  # one shoulder plate
+    rig.kind = "golden demon"
+
+    def wings(s):
+        return dict(bat_l=(0.04 * s, 0, 0.06 * s), bat_r=(-0.04 * s, 0, -0.06 * s))
+
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.28, -0.1, 0), elbow_l=(0, -0.3, 0), arm_r=(-0.28, -0.1, 0),
+                                      elbow_r=(0, -0.3, 0), **wings(s)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.5, **wings(s)),
+    }
+    return rig
+
+
+def build_lizard_demon():
+    """Darlon, Deble, Mad and Rocur (people kind 44): a grey lizard demon
+    with a crest swept back from its head, long curved spines down its
+    back, a spiked tail, dark leggings and great three-toed clawed feet."""
+    import mpfb_body
+    hide = studio.material("grey hide", (0.66, 0.64, 0.58), (0.32, 0.30, 0.28), scale=40, bump=0.8)
+    legs = studio.material("dark leggings", (0.30, 0.30, 0.30), (0.12, 0.12, 0.12), scale=20, bump=0.4)
+    spike = studio.material("pale spikes", (0.88, 0.86, 0.76), (0.52, 0.50, 0.42), scale=30, rough=0.4)
+    height = 4.85
+
+    def pick(centre, bones, normal):
+        return hide
+
+    rig = npc(height, dict(gender=1.0, age=0.5, muscle=1.0, weight=0.9, height=0.8, proportions=0.5), pick,
+              targets=[("torso/torso-scale-horiz-incr.target.gz", 0.8), ("torso/torso-scale-depth-incr.target.gz", 0.5)]
+              + [(f"arms/{s}-{p}-muscle-incr.target.gz", 1.0) for s in "lr" for p in ("upperarm", "lowerarm")])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part in ("thigh", "shin") and 0.08 < z < 0.50:
+            return legs, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # A blunt snout, the crest and the spines down the back.
+    rig.attach(shape("ball", (0.16, 0.12, 0.10), hide), "head", (0.16, 0, rig.top * 0.30))
+    rig.attach(sharp("cone", (0.09, 0.05, 0.30), hide, rotation=(0, math.radians(-40), 0)), "head",
+               (-0.16, 0, rig.top * 0.95))
+    for k in range(4):
+        for side in (1, -1):
+            rig.attach(sharp("cone", (0.06, 0.05, 0.28 - 0.04 * k), spike,
+                             rotation=(math.radians(-60 * side), math.radians(-60 - 8 * k), 0)), "spine",
+                       (-0.30, (0.20 + 0.04 * k) * side, rig.shoulder - 0.05 - 0.17 * k))
+    tail(rig, hide, 1.4, 0.13, rig.hip - 0.18, spikes=spike)
+    demon_claws(rig, spike, foot=0.22)
+    for side in ("l", "r"):  # the dewclaw behind each foot
+        claws(rig, f"knee_{side}", sole(side) + Vector((-0.06, 0, 0.03)), spike, count=1, length=0.10,
+              pitch=math.radians(180))
+    rig.kind = "lizard demon"
+    rig.poses = {
+        "idle": lambda s, c, k: dict(stand(s, arm_l=(0.30, -0.1, 0), elbow_l=(0, -0.45, 0), arm_r=(-0.30, -0.1, 0),
+                                           elbow_r=(0, -0.45, 0), leg_l=(0.12, 0, 0), leg_r=(-0.12, 0, 0)),
+                                     tail=(0, 0, 0.12 * s)),
+        "walk": lambda s, c, k: dict(stroll(s, c, swing=0.5), tail=(0, 0, 0.25 * s)),
+    }
+    return rig
+
+
+def build_horned_demon():
+    """Gargan (people kind 45): a huge demon in a long coat of green scales
+    banded with gold, curled ram's horns, heavy shoulders and a spiked tail
+    behind him."""
+    import mpfb_body
+    hide = studio.material("green hide", (0.28, 0.44, 0.26), (0.10, 0.20, 0.10), scale=30, bump=0.7)
+    scales = studio.material("green scale coat", (0.30, 0.50, 0.28), (0.06, 0.16, 0.06), scale=14, bump=1.0,
+                             spot=0.10, spot_colour=(0.70, 0.56, 0.22))
+    horn = studio.material("horn", (0.84, 0.72, 0.46), (0.46, 0.36, 0.20), scale=40, rough=0.4, stretch=(4, 1, 1))
+    spike = studio.material("pale spikes", (0.90, 0.86, 0.70), (0.54, 0.50, 0.36), scale=30, rough=0.4)
+    height = 4.8
+
+    def pick(centre, bones, normal):
+        return hide
+
+    rig = npc(height, dict(gender=1.0, age=0.6, muscle=0.9, weight=1.0, height=0.8, proportions=0.4), pick,
+              targets=[("torso/torso-scale-horiz-incr.target.gz", 1.0), ("torso/torso-scale-depth-incr.target.gz", 0.8)])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        if part in ("torso", "upperarm", "forearm", "thigh"):
+            return scales, 0.12
+        return None
+
+    mpfb_body.shell(body, gear, "coat")
+    length = rig.hip * 0.80
+    rig.attach(sharp("flare", (0.56, 0.58, length / 2), scales), "hips", (0.0, 0, 0.12 - length / 2))
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.26, 0.24, 0.22), scales), "arm_l" if side > 0 else "arm_r", (0, 0.03 * side, 0.02))
+        # A ram's horn: back from the temple, down round the ear and forward.
+        rig.attach(tube([(0.00, 0.10 * side, 0.30), (-0.16, 0.20 * side, 0.36), (-0.24, 0.30 * side, 0.12),
+                         (-0.04, 0.34 * side, -0.10), (0.14, 0.30 * side, 0.0)], 0.065, horn), "head")
+    rig.attach(shape("ball", (0.14, 0.12, 0.10), hide), "head", (0.16, 0, rig.top * 0.28))
+    tail(rig, hide, 1.3, 0.14, rig.hip - 0.18, spikes=spike, spike_size=0.16)
+    demon_claws(rig, spike, foot=0.16)
+    rig.kind = "horned demon"
+    rig.poses = {
+        "idle": lambda s, c, k: dict(stand(s, arm_l=(0.38, -0.05, 0), elbow_l=(0, -0.3, 0), arm_r=(-0.38, -0.05, 0),
+                                           elbow_r=(0, -0.3, 0)), tail=(0, 0, 0.10 * s)),
+        "walk": lambda s, c, k: dict(stroll(s, c, swing=0.4, arms=False, arm_l=(0.38, 0.25 * s, 0),
+                                            arm_r=(-0.38, -0.25 * s, 0)), tail=(0, 0, 0.22 * s)),
+    }
+    return rig
+
+
+BUILDERS.update({"person39": build_injured_demon, "person40": build_hooded_woman, "person41": build_purple_demon,
+                 "person42": build_jackal_demon, "person43": build_golden_demon, "person44": build_lizard_demon,
+                 "person45": build_horned_demon})
+HEIGHT.update({"person39": 1.0, "person40": 3.3, "person41": 4.4, "person42": 4.4, "person43": 4.2,
+               "person44": 4.8, "person45": 4.8})
+SIZE.update({"person39": 240, "person43": 240})
 
 
 BANDITS = {

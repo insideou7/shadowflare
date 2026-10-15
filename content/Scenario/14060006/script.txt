@@ -1,0 +1,46 @@
+# Written by tools/content/scripts.py after the original's scenario 4060006
+# (Devil's Castle, 4F), in our own words (tools/content/words/14060006.txt).
+
+temp=1000009,34
+temp=1000010,35
+temp=1000011,36
+temp=1000012,77
+temp=1000013,78
+temp=1000014,33
+temp=1000015,27
+temp=1000016,28
+temp=1000017,38
+temp=1000018,39
+temp=1000019,3
+temp=1000020,25
+temp=1000021,26
+temp=1000022,30
+temp=1000023,37
+temp=1000024,10
+temp=1000025,40
+temp=1000026,41
+temp=1000027,42
+temp=1000028,43
+temp=1000029,53
+temp=1000030,80
+
+[message 1000000]
+Devil's Castle, 4F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14060005 1
+
+[sentence s2]
+on=tick
+IF playmode:0 ! 2 @s3
+
+[sentence s3]
+CHECKENEMYLIVE 14000000 14000000 temp:1000002
+IF temp:1000002 = -1 @s4
+
+[sentence s4]
+SETQUESTFLAG 43 2 1

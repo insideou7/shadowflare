@@ -1,0 +1,41 @@
+# Written by tools/content/scripts.py after the original's scenario 4900003
+# (The Ruins), in our own words (tools/content/words/14900003.txt).
+
+object=35188,19271,35347,19430,o1000,states=1/0/1,at=35095/19395
+temp=1000009,81
+temp=1000010,82
+temp=1000011,83
+temp=1000012,31
+temp=1000013,32
+temp=1000014,33
+temp=1000015,27
+temp=1000016,28
+temp=1000017,38
+temp=1000018,39
+temp=1000019,3
+temp=1000020,25
+temp=1000021,26
+temp=1000022,30
+temp=1000023,37
+temp=1000024,10
+temp=1000025,40
+temp=1000026,41
+temp=1000027,42
+temp=1000028,43
+
+[message 1000000]
+The Ruins
+
+[sentence s0]
+on=tick
+SETTINGRAIN 224 64 64 5
+
+[sentence s1]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s2]
+CHANGESCENARIO 14900001 2
+
+[sentence s3]
+CHANGESCENARIO 14070000 0

@@ -1,0 +1,177 @@
+# Written by tools/content/scripts.py after the original's scenario 4110000
+# (The Ruins of Remoteness), in our own words (tools/content/words/14110000.txt).
+
+object=7520,9760,7679,10239,o700,states=1/0/1,at=6994/9655
+object=4800,9600,4959,10079,o701,states=1/0/1,at=4318/9411
+object=1956,9852,2068,10059,o20000,obj_chest_y,states=1/1/1,at=1978/9919
+object=1956,9852,2068,10059,o20001,obj_chest_open_y,states=0/0/0,at=1978/9919
+object=1960,9040,2070,9258,o20002,obj_chest_y,states=1/1/1,at=1983/9115
+object=1960,9040,2070,9258,o20003,obj_chest_open_y,states=0/0/0,at=1983/9115
+temp=1000009,236
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,236
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,-1
+temp=1000018,-1
+temp=1000020,34
+temp=1000021,35
+temp=1000022,36
+temp=1000023,77
+temp=1000024,78
+temp=1000025,33
+temp=1000026,27
+temp=1000027,28
+temp=1000028,38
+temp=1000029,39
+temp=1000030,3
+temp=1000031,25
+temp=1000032,26
+temp=1000033,30
+temp=1000034,37
+temp=1000035,10
+temp=1000036,40
+temp=1000037,41
+temp=1000038,42
+temp=1000039,43
+temp=1000040,53
+temp=1000041,80
+
+[message 1000000]
+The Ruins of Remoteness
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000505 6
+
+[sentence s2]
+on=tick
+IF playmode:0 ! 2 @s3
+
+[sentence s3]
+IF shown:o700 = 1 @s4
+
+[sentence s4]
+CHECKENEMYLIVE 14000002 14000002 temp:1000002
+IF temp:1000002 = -1 @s5
+
+[sentence s5]
+SETINACTIVE o700
+PLAYSOUND temp:1000020 0 x:o700 y:o700
+
+[sentence s6]
+PLAYSOUND temp:1000020 0 x:o700 y:o700
+
+[sentence s7]
+on=tick
+IF playmode:0 ! 2 @s8
+
+[sentence s8]
+IF shown:o701 = 1 @s9
+
+[sentence s9]
+CHECKENEMYLIVE 14000003 14000003 temp:1000002
+IF temp:1000002 = -1 @s10
+
+[sentence s10]
+SETINACTIVE o701
+PLAYSOUND temp:1000020 0 x:o701 y:o701
+
+[sentence s11]
+PLAYSOUND temp:1000020 0 x:o701 y:o701
+
+[sentence s12]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s13
+
+[sentence s13]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s14
+IF temp:1000012 ! -1 @s17
+SETFLAG net:1000000 1
+
+[sentence s14]
+IF temp:1000009 = -1 @s15
+IF temp:1000009 ! -1 @s16
+
+[sentence s15]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s16]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s17]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s18]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s19]
+IF shown:o20000 = 0 @s20
+IF shown:o20000 = 1 @s21
+
+[sentence s20]
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s21]
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+
+[sentence s22]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s23
+
+[sentence s23]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s24
+IF temp:1000017 ! -1 @s27
+SETFLAG net:1000001 1
+
+[sentence s24]
+IF temp:1000014 = -1 @s25
+IF temp:1000014 ! -1 @s26
+
+[sentence s25]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s26]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s27]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s28]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s29]
+IF shown:o20002 = 0 @s30
+IF shown:o20002 = 1 @s31
+
+[sentence s30]
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s31]
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002

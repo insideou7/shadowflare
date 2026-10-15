@@ -133,3 +133,53 @@ entry=50
 name=Dark Elves Hiding Place
 scenario=13240000
 entry=50
+
+[gate 40]
+name=Berini Village
+scenario=14900001
+entry=50
+
+[gate 41]
+name=Ento Village
+scenario=14900002
+entry=50
+
+[gate 42]
+name=The Ruins of Kashugal
+scenario=14000001
+entry=50
+
+[gate 43]
+name=Labyrinth of the Lake
+scenario=14000002
+entry=50
+
+[gate 44]
+name=The Ancient Institute
+scenario=14000003
+entry=50
+
+[gate 45]
+name=The Ruins of Exorcism
+scenario=14000005
+entry=50
+
+[gate 46]
+name=Goliate's Mansion
+scenario=14000007
+entry=50
+
+[gate 47]
+name=Forest of Death
+scenario=14000009
+entry=50
+
+[gate 48]
+name=The Road of The Netherworld
+scenario=14060000
+entry=50
+
+[gate 49]
+name=Forest of Madness
+scenario=14130000
+entry=50

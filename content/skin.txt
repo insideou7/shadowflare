@@ -1190,6 +1190,12 @@ none=
 9=obj_sealed_y
 10=obj_sealed_left_y
 11=obj_sealed_right_y
+# The Enemy Hole's pieces (object 2): only the burrow in the middle is
+# drawn, standing (8), glowing as a monster climbs out (14) and caved in (3).
+[objects object/00000002]
+8=hole
+14=hole_open
+3=hole_broken
 [objects object/00000003]
 0-3=obj_button
 4-5=obj_button_down

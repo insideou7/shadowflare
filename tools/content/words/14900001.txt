@@ -1,0 +1,201 @@
+# Berini Village: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Mrs. Krator, widow of the late Archbishop Krator; Hollis the
+# smith; Edda the spirit healer; Barnaby the trader; Abel, Gideon, Hattie,
+# Agnes, Silas, Emmett and Lorna, villagers. Coined here: the Mending
+# Stone (Mrs. Krator's reward). Plain game terms and place titles kept:
+# Giant Warehouse VII, Aurion, the green orb, The Ruins of Kashugal,
+# The Ruins of The Wise.
+# Renamed (original -> ours): Mrs. Jurg->Mrs. Krator, Zaperi->Hollis,
+# Meicin->Edda, Dodolly->Barnaby, Collin->Abel, Lubran->Gideon,
+# Dolly->Hattie, Mayble->Agnes, Dalian->Silas, Forst->Emmett,
+# Marchiane->Lorna, Spirit Stone->the Mending Stone.
+
+[message 1000000]
+Berini Village
+
+[message 1000001]
+Berini Village
+
+[message 1000002]
+I know your face.
+
+[message 1000003]
+Yes... It was you who brought
+my husband down, wasn't it?
+
+[message 1000004]
+Forgive me, I never told you who I am.
+I was married to Krator, who was once
+the archbishop.
+
+[message 1000005]
+Don't worry. I hold nothing against you.
+
+[message 1000006]
+Losing our son to the war broke his mind.
+
+[message 1000007]
+...
+
+[message 1000008]
+...
+
+[message 1000009]
+There is one favor I'd ask of you...
+
+[message 1000010]
+We once made our home in a village west of here.
+It lies in ruins now, overrun by demons.
+
+[message 1000011]
+Somewhere in those ruins is a keepsake from
+our happier years. I would be so grateful
+if you could bring it back to me.
+
+[message 1000012]
+It must still be lying among the ruins.
+Would you go and look for it?
+
+[message 1000013]
+It must still be lying among the ruins.
+Would you please find it for me?
+
+[message 1000014]
+Yes, that's the one! It's from the day my husband
+and I first met. Oh, thank you so much!
+
+[message 1000015]
+Bless you. Without something of his to hold,
+I don't think I could go on.
+
+[message 1000016]
+No words could ever repay you.
+Please take the use of Giant Warehouse VII,
+and my husband's old Mending Stone as well.
+
+[message 1000017]
+I don't really understand it myself, but they
+say the Mending Stone helps wounds heal faster.
+
+[message 1000018]
+Thank you, truly, for all you've done.
+
+[message 1000019]
+Thank you, truly, for all you've done.
+
+[message 1000020]
+Well? Are you buying or just looking?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000021]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000022]
+You can't afford that.
+
+[message 1000023]
+Nothing here needs mending.
+
+[message 1000024]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000025]
+You've got nothing that needs identifying.
+
+[message 1000026]
+Name's Hollis.
+
+[message 1000027]
+This place was once full of people and bustle.
+Hardly anyone is left now.
+
+[message 1000028]
+Where are all these foul creatures coming from?
+It isn't safe here anymore...
+
+[message 1000029]
+Go on, have a look at my wares.
+
+[message 1000030]
+I'm Edda, a witch who serves
+the holy spirits.
+
+[message 1000031]
+The one before me couldn't stand this village,
+so I was sent to take her place.
+
+[message 1000032]
+Holy spirits, close these wounds!
+
+[message 1000033]
+If you're ever unwell, come and find me.
+
+[message 1000034]
+Have a look, I've some fine things today!
+
+[message 1000035]
+Welcome to Berini Village.
+
+[message 1000036]
+It used to be lively here, but now...
+
+[message 1000037]
+Since Archbishop Krator died,
+his widow has been heartbroken...
+
+[message 1000038]
+Oh, the late archbishop's house is just over there.
+
+[message 1000039]
+Even the woods around here have turned pale white.
+They were never like this before.
+
+[message 1000040]
+Could Aurion's magic have swallowed
+up the whole forest?
+
+[message 1000041]
+No one knows a thing about this tower:
+when it was built, who built it, or why.
+
+[message 1000042]
+And its door is sealed shut.
+
+[message 1000043]
+Long ago, Berini Village stood west
+of this town. The demons left it
+in ruins.
+
+[message 1000044]
+They came without warning, and everyone
+fled here to this town for safety.
+
+[message 1000045]
+South of town you'll find The Ruins of Kashugal.
+
+[message 1000046]
+I've heard the green orb is still kept
+somewhere in those ruins.
+
+[message 1000047]
+Want to hear something?
+
+[message 1000048]
+I was told a wizard who knows The Ruins of The Wise
+lives in a dwarf village far to the southeast!
