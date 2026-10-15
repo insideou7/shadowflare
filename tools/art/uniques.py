@@ -16,8 +16,10 @@ ring, bracelet, amulet, ...) made its own: the metal follows its level
 and glow follow what it does (its strongest element, else its main
 modifier: red for attack and strength, blue for mental power, green for
 hit and evasion, and so on), and the shapes (band, setting, number of
-stones, chain) are picked from its code, so no two look alike. Nothing is
-taken from the original's pictures.
+stones, chain) are picked from its code, so no two look alike. Swords,
+axes, hammers and crossbow prods start from Quaternius's CC0 models in
+tools/art/quaternius, repainted the same way. Nothing is taken from the
+original's pictures.
 """
 
 import math
@@ -35,6 +37,7 @@ try:
     import creatures  # noqa: E402
     import items  # noqa: E402
     import studio  # noqa: E402
+    from mathutils import Vector
 except ImportError:  # packing only
     bpy = None
 
@@ -345,11 +348,11 @@ def hard(obj):
     return obj
 
 
-def steel_material(item, colour, rng):
+def steel_material(item, colour, rng, shade=1.0):
     """Blade steel, a little tinted by the item's element; deep items
     darker or brighter."""
     level = int(item["level"].split(",")[0])
-    base = (0.78, 0.80, 0.84)
+    base = tuple(c * shade for c in (0.78, 0.80, 0.84))
     best = max(item["element-mod"], key=lambda e: e[2], default=None)
     mix = 0.25 if best and best[2] > 0 else 0.08
     if best and best[0] == "dark" and best[2] > 0:
@@ -449,6 +452,83 @@ def blade(kind, item, steel, metal, gem, rng):
     return made, kind in ("twohand", "greatsword", "bastard")
 
 
+# Quaternius's Medieval Weapons (CC0, tools/art/quaternius) for the kinds
+# it has; the rest are built from shapes below.
+MODELS = {"shortsword": ("Dagger", "Dagger_2"), "longsword": ("Sword", "Sword_2"),
+          "bastard": ("Sword_Big", "Sword_Golden"), "twohand": ("Claymore", "Sword_Big"),
+          "greatsword": ("Claymore",), "axe": ("Axe", "Axe_Small", "Axe_Double"),
+          "mace": ("Hammer_Small", "Hammer_Double")}
+# Kind -> (height, width stretch) of the model.
+MODEL_SIZE = {"shortsword": (0.8, 1.0), "longsword": (1.1, 1.0), "bastard": (1.2, 1.1), "twohand": (1.4, 1.1),
+              "greatsword": (1.5, 1.35), "axe": (1.25, 1.0), "mace": (1.25, 1.0)}
+# Models whose blade is painted gold: there the gold is the steel.
+GOLD_BLADES = {"Sword_Golden"}
+BOWS = ("Bow_Wooden", "Bow_Wooden2", "Bow_Golden", "Bow_Evil")
+
+
+def object_noise(mat, emission=0.35):
+    """Lays a material's noise in the object's own space: generated
+    coordinates stretch it along long thin models into streaks. Dims any
+    glow too, which floods the flat faces."""
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    for noise in [n for n in nodes if n.type == "TEX_NOISE" and not n.inputs["Vector"].is_linked]:
+        coords = nodes.new("ShaderNodeTexCoord")
+        links.new(coords.outputs["Object"], noise.inputs["Vector"])
+    bsdf = nodes["Principled BSDF"]
+    bsdf.inputs["Emission Strength"].default_value *= emission
+    return mat
+
+
+def model(name, paint):
+    """Imports a Quaternius model standing up along +Z, its flat towards
+    -Y, the bottom at z=0; paint maps its material names (DarkSteel,
+    LightWood, ...) to ours."""
+    before = set(bpy.data.objects)
+    bpy.ops.wm.obj_import(filepath=str(HERE / "quaternius" / f"{name}.obj"), forward_axis="NEGATIVE_Z",
+                          up_axis="Y")
+    objs = [o for o in bpy.data.objects if o not in before]
+    # The importer turns the object, not its mesh; bake that in.
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in objs:
+        o.select_set(True)
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    for o in objs:
+        for slot in o.material_slots:
+            slot.material = object_noise(paint[slot.material.name.split(".")[0]])
+    bpy.context.view_layer.update()
+    low = min((o.matrix_world @ Vector(c)).z for o in objs for c in o.bound_box)
+    for o in objs:
+        o.location.z -= low
+    return objs
+
+
+def model_weapon(item, kind, metal, gem, colour, rng):
+    """A sword, axe or hammer on one of Quaternius's models, painted in
+    the item's metal, steel and stone and stretched a little its own way."""
+    name = rng.choice(MODELS[kind])
+    steel = steel_material(item, colour, rng)
+    dark_steel = steel_material(item, colour, rng, shade=0.8)
+    blades = kind in BLADES
+    grip = leather_material(rng) if blades else wood_material(rng)
+    dark_grip = leather_material(rng) if blades else wood_material(rng, dark=True)
+    paint = {"Steel": dark_steel, "LightSteel": steel, "DarkSteel": metal, "Black": metal, "Gold": metal,
+             "LightGold": metal, "DarkWood": dark_grip, "LightWood": grip, "DarkBrown": grip, "Red": gem,
+             "LightRed": gem}
+    if name in GOLD_BLADES:
+        paint.update({"Gold": dark_steel, "LightGold": steel})
+    if not blades:  # the head's darker steel takes the item's metal
+        paint["Steel"] = metal
+    objs = model(name, paint)
+    height, stretch = MODEL_SIZE[kind]
+    points = items.bounds(objs)
+    scale = height / max(p.z for p in points)
+    wide = stretch * rng.uniform(0.9, 1.12)
+    for o in objs:
+        o.scale = (scale * wide, scale, scale * rng.uniform(0.95, 1.05))
+        o.location *= scale
+    return objs
+
+
 def build_weapon(item):
     """Builds a weapon point up along +Z, its flat towards -Y."""
     shape = creatures.shape
@@ -456,6 +536,8 @@ def build_weapon(item):
     kind = item["kind"]
     metal = metal_material(metal_info, rng)
     gem = stone_material(colour, glow, rng)
+    if kind in MODELS:
+        return model_weapon(item, kind, metal, gem, colour, rng)
     if kind in BLADES:
         steel = steel_material(item, colour, rng)
         made, two = blade(kind, item, steel, metal, gem, rng)
@@ -497,13 +579,16 @@ def build_weapon(item):
             made.append(put(shape("box", (0.03, 0.03, 0.04), metal), (0, 0, 0.55)))
             made.append(put(shape("ball", (0.03, 0.03, 0.03), gem), (0, -0.03, 0.45)))
             return made
-        span = rng.uniform(0.3, 0.42)
+        # The prod is one of Quaternius's bows laid across the stock.
+        span = rng.uniform(0.6, 0.84)
         prod = steel_material(item, colour, rng) if rng.random() < 0.6 else wood
-        for side in (-1, 1):
-            made.append(put(shape("box", (span / 2, 0.02, 0.025), prod, rotation=(0, side * 0.25, 0)),
-                            (side * span / 2, 0, 0.66 - span * 0.12)))
-            made.append(put(shape("box", (0.005, 0.005, span * 0.5), studio.material("string", (0.85, 0.82, 0.7)),
-                                  rotation=(0, side * math.radians(62), 0)), (side * span * 0.46, 0, 0.52)))
+        paint = {"DarkWood": wood_material(rng, dark=True), "LightWood": prod, "Gold": metal, "Black": metal,
+                 "Red": gem, "White": studio.material("string", (0.85, 0.82, 0.7))}
+        for o in model(rng.choice(BOWS), paint):
+            o.rotation_euler = (0, math.radians(90), 0)  # string towards the butt
+            o.scale = (span / 5.44,) * 3
+            o.location = (0, 0, 0.6)
+            made.append(o)
         made.append(put(shape("box", (0.035, 0.03, 0.04), metal), (0, 0, 0.7)))
         made.append(put(shape("cylinder", (0.012, 0.012, 0.25), wood), (0, -0.04, 0.6)))  # the bolt
         made.append(put(shape("cone", (0.025, 0.025, 0.05), gem), (0, -0.04, 0.88)))
