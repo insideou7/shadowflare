@@ -20,7 +20,7 @@ from the original.
 import sys
 from pathlib import Path
 
-from first_area import OFFSET, find, read_mct
+from first_area import find, original_number, read_mct
 
 # Named fields after the 18 positional ones: (key, words), written when
 # they differ from what the engine assumes without them.
@@ -79,7 +79,7 @@ def main():
         ours = [i for i, line in enumerate(lines) if line.startswith("enemy=")]
         if not ours:
             continue
-        theirs = [c for c in originals.get(number - OFFSET, []) if c["kind"] in kinds]
+        theirs = [c for c in originals.get(original_number(number), []) if c["kind"] in kinds]
         if len(theirs) != len(ours):
             raise SystemExit(f"{f}: {len(ours)} monsters but the original has {len(theirs)}")
         for n, i in enumerate(ours):

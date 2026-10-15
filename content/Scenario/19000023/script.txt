@@ -1,0 +1,448 @@
+# Written by tools/content/scripts.py after the original's scenario 99000023
+# (Tower of Ordeal), in our own words (tools/content/words/19000023.txt).
+
+object=1760,4960,2079,5439,o300,states=1/1/1,at=1909/5110
+object=1760,1760,2079,2239,o301,states=1/1/1,at=1922/1977
+object=6891,4480,7050,4639,o1100,states=1/1/1,at=6984/4556
+object=7296,3304,7421,3417,o200,states=1/1/0,at=7378/3372
+object=6697,2712,8009,3998,o202,states=0/0/0,at=7378/3372
+temp=1000016,-1
+temp=1000018,100
+temp=1000020,4
+temp=1000021,99000015
+temp=1000022,99000016
+temp=1000023,99000017
+temp=1000024,99000018
+temp=1000026,4
+temp=1000027,100008
+temp=1000033,30
+temp=1000034,40
+temp=1000035,80
+temp=1000036,1
+temp=1000037,-1
+temp=1000038,-1
+temp=1000041,30
+temp=1000042,40
+temp=1000043,80
+temp=1000044,1
+temp=1000045,-1
+temp=1000046,-1
+temp=1000049,30
+temp=1000050,40
+temp=1000051,80
+temp=1000052,1
+temp=1000053,-1
+temp=1000054,-1
+temp=1000057,30
+temp=1000058,40
+temp=1000059,80
+temp=1000060,1
+temp=1000061,-1
+temp=1000062,-1
+temp=1000064,81
+temp=1000065,82
+temp=1000066,83
+temp=1000067,31
+temp=1000068,32
+temp=1000069,33
+temp=1000070,27
+temp=1000071,28
+temp=1000072,38
+temp=1000073,39
+temp=1000074,3
+temp=1000075,25
+temp=1000076,26
+temp=1000077,30
+temp=1000078,37
+temp=1000079,10
+temp=1000080,40
+temp=1000081,41
+temp=1000082,42
+temp=1000083,43
+temp=1000084,53
+temp=1000085,80
+temp=1000086,51
+temp=1000087,64
+temp=1000088,24
+
+[message 1000000]
+Tower of Ordeal, Top Floor
+
+[message 1000001]
+Tower of Ordeal, Top Floor
+
+[message 1000002]
+Look at that!
+You reached the very top
+of the tower.
+
+[message 1000003]
+With skill like yours, you may well
+hold every magic card already.
+
+[message 1000004]
+Oh, the magic cards!
+
+[message 1000005]
+There's no game I love more
+than Black Jack with those cards.
+
+[message 1000006]
+Care for a hand? Win four in a row
+and I'll pay you three times your stake.
+
+  ~10,000 GOLD~
+  ~20,000 GOLD~
+  ~30,000 GOLD~
+  ~40,000 GOLD~
+
+[message 1000007]
+Don't be shy! Sit down and play!
+
+[message 1000008]
+That isn't enough gold.
+Running a little short, are we?
+
+[message 1000009]
+The hand is mine.
+Better luck next time.
+
+[message 1000010]
+Not bad. That one was a tie.
+Next hand!
+
+[message 1000011]
+Not bad at all.
+Next hand!
+
+[message 1000012]
+Well, I never!
+I've never met a player like you.
+
+Take this as your prize.
+Come back for a hand whenever you can.
+
+[message 1000013]
+Well, I never!
+You're a fine player!
+
+As your prize, the Giant Warehouse IX is yours to use.
+
+[message 1000014]
+You've beaten me fair and square!
+Which prize will you take?
+  ~Items~
+  ~150,000GOLD~
+
+[message 1000015]
+Well played.
+Here is your prize.
+
+[message 1000016]
+I have some very fine things for sale.
+
+[message 1000017]
+(A deep growl)
+
+[message 1000018]
+Beyond lies the road to the tower's Annex,
+the hardest trial of all. Once you set out,
+there is no turning back. Prepare yourself.
+
+[sentence s0]
+on=start
+INITTRADE 2 38
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000084 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 19000022 1
+
+[sentence s3]
+CHANGESCENARIO 19000024 0
+
+[sentence s4]
+on=tick
+IF temp:1000030 = 0 @s5
+IF temp:1000030 ! 0 @s6
+
+[sentence s5]
+CREATEEFFECTCHAR 20018 10000001
+PLAYSOUND temp:1000086 0 x:10000001 y:10000001
+GETRANDAM 20 40 temp:1000030
+
+[sentence s6]
+SUB temp:1000030 1
+
+[sentence s7]
+on=talk o300
+STORAGE 0
+
+[sentence s8]
+on=talk o301
+STORAGE 0
+
+[sentence s9]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000006 1
+CHECKITEMEXIST temp:1000020 temp:1000021 temp:1000005
+IF temp:1000005 ! 1 @s10
+CHECKITEMEXIST temp:1000020 temp:1000022 temp:1000005
+IF temp:1000005 ! 1 @s11
+CHECKITEMEXIST temp:1000020 temp:1000023 temp:1000005
+IF temp:1000005 ! 1 @s12
+CHECKITEMEXIST temp:1000020 temp:1000024 temp:1000005
+IF temp:1000005 ! 1 @s13
+IF temp:1000006 = 1 @s14
+IF temp:1000006 = 0 @s15
+
+[sentence s10]
+SETFLAG temp:1000006 0
+
+[sentence s11]
+SETFLAG temp:1000006 0
+
+[sentence s12]
+SETFLAG temp:1000006 0
+
+[sentence s13]
+SETFLAG temp:1000006 0
+
+[sentence s14]
+TALK msg:1000004 -1 0 -1 -1 -1
+SETFLAG temp:1000015 10
+
+[sentence s15]
+TALK msg:1000002 -1 0 -1 -1 -1
+SETFLAG temp:1000015 0
+
+[sentence s16]
+on=talk-end p0
+IF temp:1000015 = -1 @s17
+IF temp:1000015 = 0 @s18
+IF temp:1000015 = 20 @s19
+IF temp:1000015 = 11 @s29
+IF temp:1000015 = 10 @s30
+IF temp:1000015 = 30 @s31
+IF temp:1000015 = 40 @s34
+
+[sentence s17]
+C_MOVABLE p0
+
+[sentence s18]
+SETFLAG temp:1000015 -1
+TALK msg:1000003 -1 0 -1 -1 -1
+
+[sentence s19]
+SETFLAG temp:1000019 0
+IF temp:1000002 = 0 @s20
+IF temp:1000002 = 1 @s21
+IF temp:1000002 = 2 @s22
+IF temp:1000002 = 3 @s23
+IF temp:1000002 = 4 @s24
+IF temp:1000019 ! 0 @s25
+IF temp:1000019 = 0 @s28
+
+[sentence s20]
+SETFLAG temp:1000019 10000
+
+[sentence s21]
+SETFLAG temp:1000019 20000
+
+[sentence s22]
+SETFLAG temp:1000019 30000
+
+[sentence s23]
+SETFLAG temp:1000019 40000
+
+[sentence s24]
+SETFLAG temp:1000019 50000
+
+[sentence s25]
+GETTOTALGOLD temp:1000005
+IF temp:1000005 < temp:1000019 @s26
+SETFLAG temp:1000006 temp:1000019
+SUB temp:1000006 1
+IF temp:1000005 > temp:1000006 @s27
+
+[sentence s26]
+SETFLAG temp:1000015 -1
+TALK msg:1000008 -1 0 -1 -1 -1
+
+[sentence s27]
+PAYGOLD temp:1000019
+SETFLAG temp:1000025 0
+STARTCARDGAME
+
+[sentence s28]
+SETFLAG temp:1000015 -1
+TALK msg:1000007 -1 0 -1 -1 -1
+
+[sentence s29]
+SETFLAG temp:1000015 20
+TALK msg:1000006 temp:1000002 0 5 -1 -1
+
+[sentence s30]
+SETFLAG temp:1000015 11
+TALK msg:1000005 -1 0 -1 -1 -1
+
+[sentence s31]
+IF temp:1000002 = 0 @s32
+IF temp:1000002 = 1 @s33
+
+[sentence s32]
+CREATEITEMTABLE 259 x:p0 y:p0
+
+[sentence s33]
+SETFLAG temp:1000005 temp:1000019
+MUL temp:1000005 3
+CREATEITEM 4 0 x:p0 y:p0 temp:1000005 temp:1000005
+
+[sentence s34]
+STARTCARDGAME
+
+[sentence s35]
+on=card-game-end
+GETCARDGAMERESULT temp:1000005
+IF temp:1000005 = 0 @s36
+IF temp:1000005 = 1 @s37
+IF temp:1000005 = 2 @s46
+
+[sentence s36]
+SETFLAG temp:1000015 40
+TALK msg:1000010 temp:1000002 0 -1 p0 -1
+
+[sentence s37]
+SETFLAG temp:1000014 0
+IF temp:1000025 = 3 @s38
+IF temp:1000014 = 0 @s45
+
+[sentence s38]
+IF temp:1000019 = 30000 @s39
+IF temp:1000019 = 40000 @s41
+IF temp:1000019 = 50000 @s43
+IF temp:1000014 = 0 @s44
+
+[sentence s39]
+CHECKITEMEXIST temp:1000026 temp:1000027 temp:1000013
+IF temp:1000013 ! 1 @s40
+
+[sentence s40]
+SETFLAG temp:1000014 1
+SETFLAG temp:1000015 -1
+TALK msg:1000012 temp:1000002 0 -1 p0 -1
+CREATEITEMTABLE 258 x:p0 y:p0
+SETFLAG temp:1000005 temp:1000019
+MUL temp:1000005 3
+CREATEITEM 4 0 x:p0 y:p0 temp:1000005 temp:1000005
+PLAYSOUND temp:1000087 1 0 0
+
+[sentence s41]
+IF exstrg:8 = 0 @s42
+
+[sentence s42]
+SETFLAG temp:1000014 1
+SETFLAG temp:1000015 -1
+TALK msg:1000013 temp:1000002 0 -1 p0 -1
+SETFLAG exstrg:8 1
+SETFLAG temp:1000005 temp:1000019
+MUL temp:1000005 3
+CREATEITEM 4 0 x:p0 y:p0 temp:1000005 temp:1000005
+PLAYSOUND temp:1000087 1 0 0
+
+[sentence s43]
+SETFLAG temp:1000014 1
+SETFLAG temp:1000015 30
+TALK msg:1000014 temp:1000002 0 -1 p0 -1
+
+[sentence s44]
+SETFLAG temp:1000014 1
+SETFLAG temp:1000015 -1
+TALK msg:1000015 temp:1000002 0 -1 p0 -1
+SETFLAG temp:1000005 temp:1000019
+MUL temp:1000005 3
+CREATEITEM 4 0 x:p0 y:p0 temp:1000005 temp:1000005
+
+[sentence s45]
+SETFLAG temp:1000015 40
+TALK msg:1000011 temp:1000002 0 -1 p0 -1
+ADD temp:1000025 1
+
+[sentence s46]
+SETFLAG temp:1000015 -1
+TALK msg:1000009 temp:1000002 0 -1 p0 -1
+
+[sentence s47]
+on=talk p100
+C_STOP p100
+C_SETANGLETO p100 0
+SETFLAG temp:1000001 msg:1000016
+TALK temp:1000001 -1 0 -1 -1 -1
+
+[sentence s48]
+on=talk-end p100
+C_MOVABLE p100
+TRADE 2
+
+[sentence s49]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000031 < 30 @s50
+IF temp:1000031 ! 0 @s51
+
+[sentence s50]
+SETFLAG temp:1000005 temp:1000031
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s51]
+MESSAGEBOX o1100 0 -64 msg:1000018 160 160 192 temp:1000005
+SUB temp:1000031 1
+
+[sentence s52]
+on=talk o1100
+SETFLAG temp:1000031 150
+
+[sentence s53]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s54
+IF temp:1000005 > 0 @s59
+
+[sentence s54]
+IF warp:50 = 0 @s55
+IF 1245560 ! 1000 @s56
+IF temp:1000029 = 0 @s57
+MESSAGEBOX o200 0 -48 msg:1000001 224 224 224 1000
+SETFLAG temp:1000006 temp:1000028
+REM temp:1000006 60
+IF temp:1000006 = 0 @s58
+ADD temp:1000028 1
+
+[sentence s55]
+SETFLAG warp:50 1
+
+[sentence s56]
+ADD 1245560 50
+
+[sentence s57]
+PLAYSOUND temp:1000085 0 x:o200 y:o200
+SETFLAG temp:1000029 1
+
+[sentence s58]
+CREATEEFFECTCHAR 20018 o200
+PLAYSOUND temp:1000086 0 x:o200 y:o200
+
+[sentence s59]
+DELETEWARPGATE 0
+SETFLAG temp:1000029 0
+
+[sentence s60]
+on=talk o200
+WARPGATE 0

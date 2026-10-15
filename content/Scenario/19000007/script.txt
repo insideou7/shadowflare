@@ -1,0 +1,497 @@
+# Written by tools/content/scripts.py after the original's scenario 99000007
+# (Tower of Ordeal), in our own words (tools/content/words/19000007.txt).
+
+object=1617,2943,1916,3402,o300,states=1/1/1,at=1758/3152
+object=7035,3535,7160,3648,o200,states=1/1/0,at=7117/3603
+object=6436,2943,7748,4229,o202,states=0/0/0,at=7117/3603
+temp=1000014,-1
+temp=1000016,100
+temp=1000019,81
+temp=1000020,82
+temp=1000021,83
+temp=1000022,31
+temp=1000023,32
+temp=1000024,33
+temp=1000025,27
+temp=1000026,28
+temp=1000027,38
+temp=1000028,39
+temp=1000029,3
+temp=1000030,25
+temp=1000031,26
+temp=1000032,30
+temp=1000033,37
+temp=1000034,10
+temp=1000035,40
+temp=1000036,41
+temp=1000037,42
+temp=1000038,43
+temp=1000039,53
+temp=1000040,80
+temp=1000041,51
+temp=1000042,24
+
+[message 1000000]
+Light of the living,
+close these wounds!
+
+[message 1000001]
+Come, let me tend to your hurts.
+
+[message 1000002]
+Keep your strength up.
+
+[message 1000003]
+Climbing high, are we? I've the gear for it.
+
+  ~Buy and sell          ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000004]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000005]
+You can't afford that.
+
+[message 1000006]
+Nothing here needs mending.
+
+[message 1000007]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000008]
+You've got nothing that needs identifying.
+
+[message 1000009]
+Tower of Ordeal, 6F
+
+[message 1000010]
+Tower of Ordeal, 6F
+
+[sentence s0]
+on=start
+INITTRADE 0 8
+SETCOMPASSES msg:1000010
+GETENTRYPOINT temp:1000004
+IF temp:1000004 = 2 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000039 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 19000008 0
+
+[sentence s3]
+on=talk o300
+STORAGE 0
+
+[sentence s4]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+TALK msg:1000003 temp:1000001 0 3 -1 -1
+
+[sentence s5]
+on=talk-end p1
+IF temp:1000015 = 6 @s6
+IF temp:1000015 = 5 @s7
+IF temp:1000015 = 4 @s8
+IF temp:1000015 = 3 @s13
+IF temp:1000015 = 2 @s14
+IF temp:1000015 = 1 @s15
+IF temp:1000015 = 0 @s52
+SETFLAG temp:1000001 -1
+
+[sentence s6]
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 -1
+
+[sentence s7]
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 -1
+
+[sentence s8]
+IF temp:1000001 ! 0 @s9
+IF temp:1000001 = 0 @s10
+
+[sentence s9]
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 -1
+
+[sentence s10]
+GETTOTALGOLD temp:1000004
+SETFLAG temp:1000005 0
+IF temp:1000004 < temp:1000016 @s11
+IF temp:1000005 = 0 @s12
+
+[sentence s11]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 5
+SETFLAG temp:1000005 1
+
+[sentence s12]
+PAYGOLD temp:1000016
+IDENTIFY
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 -1
+
+[sentence s13]
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s14]
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s15]
+GETREPAIRPRICE 0 temp:1000004
+GETREPAIRPRICE 1 temp:1000005
+GETREPAIRPRICE 2 temp:1000006
+GETREPAIRPRICE 3 temp:1000007
+GETREPAIRPRICE 4 temp:1000008
+SETFLAG temp:1000009 0
+ADD temp:1000009 temp:1000004
+ADD temp:1000009 temp:1000005
+ADD temp:1000009 temp:1000006
+ADD temp:1000009 temp:1000007
+ADD temp:1000009 temp:1000008
+GETREPAIRPRICE -1 temp:1000010
+GETTOTALGOLD temp:1000013
+SETFLAG temp:1000012 temp:1000001
+IF temp:1000012 = 0 @s16
+IF temp:1000012 = 1 @s21
+IF temp:1000012 = 2 @s26
+IF temp:1000012 = 3 @s31
+IF temp:1000012 = 4 @s36
+IF temp:1000012 = 5 @s41
+IF temp:1000012 = 6 @s46
+IF temp:1000012 = 7 @s51
+
+[sentence s16]
+IF temp:1000004 ! 0 @s17
+IF temp:1000004 = 0 @s20
+
+[sentence s17]
+SETFLAG temp:1000011 0
+IF temp:1000004 > temp:1000013 @s18
+IF temp:1000011 = 0 @s19
+
+[sentence s18]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s19]
+REPAIR 0
+PAYGOLD temp:1000004
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s20]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s21]
+IF temp:1000005 ! 0 @s22
+IF temp:1000005 = 0 @s25
+
+[sentence s22]
+SETFLAG temp:1000011 0
+IF temp:1000005 > temp:1000013 @s23
+IF temp:1000011 = 0 @s24
+
+[sentence s23]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s24]
+REPAIR 1
+PAYGOLD temp:1000005
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s25]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s26]
+IF temp:1000006 ! 0 @s27
+IF temp:1000006 = 0 @s30
+
+[sentence s27]
+SETFLAG temp:1000011 0
+IF temp:1000006 > temp:1000013 @s28
+IF temp:1000011 = 0 @s29
+
+[sentence s28]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s29]
+REPAIR 2
+PAYGOLD temp:1000006
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s30]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s31]
+IF temp:1000007 ! 0 @s32
+IF temp:1000007 = 0 @s35
+
+[sentence s32]
+SETFLAG temp:1000011 0
+IF temp:1000007 > temp:1000013 @s33
+IF temp:1000011 = 0 @s34
+
+[sentence s33]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s34]
+REPAIR 3
+PAYGOLD temp:1000007
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s35]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s36]
+IF temp:1000008 ! 0 @s37
+IF temp:1000008 = 0 @s40
+
+[sentence s37]
+SETFLAG temp:1000011 0
+IF temp:1000008 > temp:1000013 @s38
+IF temp:1000011 = 0 @s39
+
+[sentence s38]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s39]
+REPAIR 4
+PAYGOLD temp:1000008
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s40]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s41]
+IF temp:1000009 ! 0 @s42
+IF temp:1000009 = 0 @s45
+
+[sentence s42]
+SETFLAG temp:1000011 0
+IF temp:1000009 > temp:1000013 @s43
+IF temp:1000011 = 0 @s44
+
+[sentence s43]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s44]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:1000009
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s45]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s46]
+IF temp:1000010 ! 0 @s47
+IF temp:1000010 = 0 @s50
+
+[sentence s47]
+SETFLAG temp:1000011 0
+IF temp:1000010 > temp:1000013 @s48
+IF temp:1000011 = 0 @s49
+
+[sentence s48]
+TALK msg:1000005 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 2
+SETFLAG temp:1000011 1
+
+[sentence s49]
+REPAIR -1
+PAYGOLD temp:1000010
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 2
+
+[sentence s50]
+TALK msg:1000006 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 3
+
+[sentence s51]
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+SETFLAG temp:1000001 -1
+
+[sentence s52]
+IF temp:1000001 = 0 @s53
+IF temp:1000001 = 1 @s54
+IF temp:1000001 = 2 @s57
+IF temp:1000001 = 3 @s58
+
+[sentence s53]
+TRADE 0
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+
+[sentence s54]
+CHECKUNOPINIONITEM temp:1000004
+IF temp:1000004 = 1 @s55
+IF temp:1000004 = 0 @s56
+
+[sentence s55]
+SETMSGDEFINE temp:1000016 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000007 temp:1000001 0 1 -1 -1
+SETFLAG temp:1000015 4
+
+[sentence s56]
+TALK msg:1000008 temp:1000001 0 -1 -1 -1
+SETFLAG temp:1000015 6
+
+[sentence s57]
+GETREPAIRPRICE 0 temp:1000004
+GETREPAIRPRICE 1 temp:1000005
+GETREPAIRPRICE 2 temp:1000006
+GETREPAIRPRICE 3 temp:1000007
+GETREPAIRPRICE 4 temp:1000008
+SETFLAG temp:1000009 0
+ADD temp:1000009 temp:1000004
+ADD temp:1000009 temp:1000005
+ADD temp:1000009 temp:1000006
+ADD temp:1000009 temp:1000007
+ADD temp:1000009 temp:1000008
+GETREPAIRPRICE -1 temp:1000010
+SETMSGDEFINE temp:1000004 temp:1000005 temp:1000006 temp:1000007 temp:1000008 temp:1000009 temp:1000010 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000004 temp:1000001 0 7 -1 -1
+SETFLAG temp:1000015 1
+
+[sentence s58]
+C_MOVABLE p1
+SETFLAG temp:1000015 0
+
+[sentence s59]
+on=talk p0
+SETFLAG temp:1000006 0
+GETPLAYERLIFE temp:1000004 temp:1000005
+IF temp:1000004 ! temp:1000005 @s60
+GETPLAYERMENTAL temp:1000004 temp:1000005
+IF temp:1000004 ! temp:1000005 @s61
+GETPARTNERLIFE temp:1000004 temp:1000005
+IF temp:1000004 ! temp:1000005 @s62
+C_STOP p0
+C_SETANGLETO p0 0
+IF temp:1000006 = 1 @s63
+IF temp:1000006 = 0 @s64
+
+[sentence s60]
+SETFLAG temp:1000006 1
+
+[sentence s61]
+SETFLAG temp:1000006 1
+
+[sentence s62]
+SETFLAG temp:1000006 1
+
+[sentence s63]
+TALK msg:1000000 -1 0 -1 -1 -1
+SETFLAG temp:1000014 msg:1000000
+
+[sentence s64]
+IF temp:1000014 = -1 @s65
+IF temp:1000014 = msg:1000000 @s66
+TALK temp:1000014 -1 0 -1 -1 -1
+IF temp:1000014 = msg:1000001 @s67
+
+[sentence s65]
+SETFLAG temp:1000014 msg:1000001
+
+[sentence s66]
+SETFLAG temp:1000014 msg:1000001
+
+[sentence s67]
+SETFLAG temp:1000014 msg:1000002
+
+[sentence s68]
+on=talk-end p0
+C_MOVABLE p0
+IF temp:1000014 = msg:1000000 @s69
+
+[sentence s69]
+C_ACTIONREQ p0 4 -1 -1 -1 -1
+HEALLIFE
+HEALMENTAL
+PLAYSOUND temp:1000042 0 x:p0 y:p0
+
+[sentence s70]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000004
+IF temp:1000004 = 0 @s71
+IF temp:1000004 > 0 @s76
+
+[sentence s71]
+IF warp:23 = 0 @s72
+IF 1246352 ! 1000 @s73
+IF temp:1000018 = 0 @s74
+MESSAGEBOX o200 0 -48 msg:1000009 224 224 224 1000
+SETFLAG temp:1000005 temp:1000017
+REM temp:1000005 60
+IF temp:1000005 = 0 @s75
+ADD temp:1000017 1
+
+[sentence s72]
+SETFLAG warp:23 1
+
+[sentence s73]
+ADD 1246312 50
+
+[sentence s74]
+PLAYSOUND temp:1000040 0 x:o200 y:o200
+SETFLAG temp:1000018 1
+
+[sentence s75]
+CREATEEFFECTCHAR 20018 o200
+PLAYSOUND temp:1000041 0 x:o200 y:o200
+
+[sentence s76]
+DELETEWARPGATE 0
+SETFLAG temp:1000018 0
+
+[sentence s77]
+on=talk o200
+WARPGATE 0

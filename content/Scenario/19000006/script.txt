@@ -1,0 +1,489 @@
+# Written by tools/content/scripts.py after the original's scenario 99000006
+# (Tower of Ordeal), in our own words (tools/content/words/19000006.txt).
+
+object=11886,3094,12075,3283,o1,states=1/0/0,at=12010/3210
+object=18756,13633,18855,13732,o51000,states=1/0/1,at=18803/13686
+object=15513,13836,15612,13935,o51001,states=1/0/1,at=15560/13889
+object=15395,7523,15494,7622,o51002,states=1/0/1,at=15442/7576
+object=18241,7918,18340,8017,o51003,states=1/0/1,at=18288/7971
+object=5440,7520,5759,8159,o11000,states=1/1/1,at=5644/7855
+object=5440,7520,5759,7679,o11001,states=0/0/0,at=5644/7855
+object=5440,8000,5759,8159,o11002,states=0/0/0,at=5644/7855
+object=1600,5280,2079,5599,o11003,states=1/1/1,at=1936/5534
+object=1920,5280,2079,5599,o11004,states=0/0/0,at=1936/5534
+object=1440,5280,1599,5599,o11005,states=0/0/0,at=1936/5534
+object=5280,1440,5599,2079,o11006,states=1/1/1,at=5538/1881
+object=5280,1440,5599,1599,o11007,states=0/0/0,at=5538/1881
+object=5280,1920,5599,2079,o11008,states=0/0/0,at=5538/1881
+object=6880,9920,7519,10239,o11009,states=1/1/1,at=7241/10079
+object=7360,9920,7519,10239,o11010,states=0/0/0,at=7241/10079
+object=6880,9920,7039,10239,o11011,states=0/0/0,at=7241/10079
+object=10080,12160,10399,12639,o11012,states=1/1/1,at=10345/12515
+object=10080,12160,10399,12319,o11013,states=0/0/0,at=10345/12515
+object=10080,12640,10399,12799,o11014,states=0/0/0,at=10345/12515
+object=14720,12320,15039,12959,o11015,states=1/1/1,at=14909/12679
+object=14720,12320,15039,12479,o11016,states=0/0/0,at=14909/12679
+object=14720,12800,15039,12959,o11017,states=0/0/0,at=14909/12679
+object=16640,5760,17119,6079,o11018,states=1/1/1,at=16959/5921
+object=16960,5760,17119,6079,o11019,states=0/0/0,at=16959/5921
+object=16480,5760,16639,6079,o11020,states=0/0/0,at=16959/5921
+object=14560,6400,14879,6879,o11021,states=1/1/1,at=14693/6676
+object=14560,6240,14879,6399,o11022,states=0/0/0,at=14693/6676
+object=14560,6720,14879,6879,o11023,states=0/0/0,at=14693/6676
+object=11360,5600,11999,5919,o11024,states=1/1/1,at=11785/5775
+object=11840,5600,11999,5919,o11025,states=0/0/0,at=11785/5775
+object=11360,5600,11519,5919,o11026,states=0/0/0,at=11785/5775
+temp=1000014,30
+temp=1000015,40
+temp=1000016,80
+temp=1000017,1
+temp=1000018,-1
+temp=1000019,-1
+temp=1000022,30
+temp=1000023,40
+temp=1000024,80
+temp=1000025,1
+temp=1000026,-1
+temp=1000027,-1
+temp=1000030,30
+temp=1000031,40
+temp=1000032,80
+temp=1000033,1
+temp=1000034,-1
+temp=1000035,-1
+temp=1000038,30
+temp=1000039,40
+temp=1000040,80
+temp=1000041,1
+temp=1000042,-1
+temp=1000043,-1
+temp=1000045,81
+temp=1000046,82
+temp=1000047,83
+temp=1000048,31
+temp=1000049,32
+temp=1000050,33
+temp=1000051,27
+temp=1000052,28
+temp=1000053,38
+temp=1000054,39
+temp=1000055,3
+temp=1000056,25
+temp=1000057,26
+temp=1000058,30
+temp=1000059,37
+temp=1000060,10
+temp=1000061,40
+temp=1000062,41
+temp=1000063,42
+temp=1000064,43
+
+[message 1000000]
+Tower of Ordeal, 5F
+
+[message 1000001]
+So you reached this floor.
+That was well fought.
+
+[message 1000002]
+Still, many more beasts wait above,
+far worse than any you met below.
+
+[message 1000003]
+Gain more experience out in the world, then
+return. More of this tower will open to you then.
+
+[message 1000004]
+If you need to grow stronger,
+the warp gates will carry you far and wide.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 19000005 1
+
+[sentence s2]
+on=judge o1
+IF quest:12 = 2 @s3
+
+[sentence s3]
+CHANGESCENARIO 19000007 0
+
+[sentence s4]
+on=tick
+IF quest:12 = 2 @s5
+IF quest:12 ! 2 @s6
+
+[sentence s5]
+ABSOLUTEOBJECTFLAG o11024 0 0 0
+ABSOLUTEOBJECTFLAG o11025 1 1 1
+ABSOLUTEOBJECTFLAG o11026 1 1 1
+
+[sentence s6]
+ABSOLUTEOBJECTFLAG o11024 1 1 1
+ABSOLUTEOBJECTFLAG o11025 0 0 0
+ABSOLUTEOBJECTFLAG o11026 0 0 0
+
+[sentence s7]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+IF temp:1000012 = 1 @s8
+IF temp:1000012 = 0 @s11
+
+[sentence s8]
+IF quest:12 = 2 @s9
+IF quest:12 ! 2 @s10
+
+[sentence s9]
+TALK msg:1000004 -1 0 -1 -1 -1
+SETFLAG temp:1000011 0
+
+[sentence s10]
+TALK msg:1000003 -1 0 -1 -1 -1
+SETFLAG temp:1000011 0
+
+[sentence s11]
+TALK msg:1000001 -1 0 -1 -1 -1
+SETFLAG temp:1000011 10
+SETFLAG temp:1000012 1
+
+[sentence s12]
+on=talk-end p0
+IF temp:1000011 = 0 @s13
+IF temp:1000011 = 10 @s14
+
+[sentence s13]
+C_MOVABLE p0
+
+[sentence s14]
+SETFLAG temp:1000011 0
+TALK msg:1000002 -1 0 -1 -1 -1
+
+[sentence s15]
+on=tick
+IF temp:1000013 = temp:1000014 @s16
+IF temp:1000013 ! temp:1000014 @s18
+
+[sentence s16]
+GETNEARPLAYERPOS o51000 0 2000 temp:1000004 temp:1000005 temp:1000006
+IF temp:1000004 ! -1 @s17
+
+[sentence s17]
+SUB temp:1000005 x:o51000
+SUB temp:1000006 y:o51000
+CALCANGLE temp:1000005 temp:1000006 temp:1000007
+CREATEOPTIONANGLE x:o51000 y:o51000 0 temp:1000007 temp:1000016 temp:1000015 350 200 -1 temp:1000017 temp:1000018 temp:1000019 temp:1000020 1
+PLAYSOUND temp:1000055 0 x:o51000 y:o51000
+SETFLAG temp:1000013 0
+
+[sentence s18]
+ADD temp:1000013 1
+
+[sentence s19]
+on=tick
+IF temp:1000021 = temp:1000022 @s20
+IF temp:1000021 ! temp:1000022 @s22
+
+[sentence s20]
+GETNEARPLAYERPOS o51001 0 2000 temp:1000004 temp:1000005 temp:1000006
+IF temp:1000004 ! -1 @s21
+
+[sentence s21]
+SUB temp:1000005 x:o51001
+SUB temp:1000006 y:o51001
+CALCANGLE temp:1000005 temp:1000006 temp:1000007
+CREATEOPTIONANGLE x:o51001 y:o51001 0 temp:1000007 temp:1000024 temp:1000023 350 200 -1 temp:1000025 temp:1000026 temp:1000027 temp:1000028 1
+PLAYSOUND temp:1000055 0 x:o51001 y:o51001
+SETFLAG temp:1000021 0
+
+[sentence s22]
+ADD temp:1000021 1
+
+[sentence s23]
+on=tick
+IF temp:1000029 = temp:1000030 @s24
+IF temp:1000029 ! temp:1000030 @s26
+
+[sentence s24]
+GETNEARPLAYERPOS o51002 0 2000 temp:1000004 temp:1000005 temp:1000006
+IF temp:1000004 ! -1 @s25
+
+[sentence s25]
+SUB temp:1000005 x:o51002
+SUB temp:1000006 y:o51002
+CALCANGLE temp:1000005 temp:1000006 temp:1000007
+CREATEOPTIONANGLE x:o51002 y:o51002 0 temp:1000007 temp:1000032 temp:1000031 350 200 -1 temp:1000033 temp:1000034 temp:1000035 temp:1000036 1
+PLAYSOUND temp:1000055 0 x:o51002 y:o51002
+SETFLAG temp:1000029 0
+
+[sentence s26]
+ADD temp:1000029 1
+
+[sentence s27]
+on=tick
+IF temp:1000037 = temp:1000038 @s28
+IF temp:1000037 ! temp:1000038 @s30
+
+[sentence s28]
+GETNEARPLAYERPOS o51003 0 2000 temp:1000004 temp:1000005 temp:1000006
+IF temp:1000004 ! -1 @s29
+
+[sentence s29]
+SUB temp:1000005 x:o51003
+SUB temp:1000006 y:o51003
+CALCANGLE temp:1000005 temp:1000006 temp:1000007
+CREATEOPTIONANGLE x:o51003 y:o51003 0 temp:1000007 temp:1000040 temp:1000039 350 200 -1 temp:1000041 temp:1000042 temp:1000043 temp:1000044 1
+PLAYSOUND temp:1000055 0 x:o51003 y:o51003
+SETFLAG temp:1000037 0
+
+[sentence s30]
+ADD temp:1000037 1
+
+[sentence s31]
+on=tick
+IF playmode:0 ! 2 @s32
+
+[sentence s32]
+IF shown:o11000 = 1 @s33
+
+[sentence s33]
+CHECKENEMYLIVE 14000010 14000025 temp:1000004
+IF temp:1000004 = -1 @s34
+
+[sentence s34]
+SETINACTIVE o11000
+SETACTIVE o11001
+SETACTIVE o11002
+PLAYSOUND temp:1000045 0 x:o11000 y:o11000
+SETINACTIVE o11003
+SETACTIVE o11004
+SETACTIVE o11005
+PLAYSOUND temp:1000045 0 x:o11003 y:o11003
+
+[sentence s35]
+on=talk o11000
+IF shown:o11000 = 1 @s36
+
+[sentence s36]
+PLAYSOUND temp:1000047 0 x:o11000 y:o11000
+
+[sentence s37]
+IF shown:o11000 = 0 @s38
+IF shown:o11000 = 1 @s39
+
+[sentence s38]
+PLAYSOUND temp:1000045 0 x:o11000 y:o11000
+
+[sentence s39]
+PLAYSOUND temp:1000046 0 x:o11000 y:o11000
+
+[sentence s40]
+on=talk o11003
+IF shown:o11003 = 1 @s41
+
+[sentence s41]
+PLAYSOUND temp:1000047 0 x:o11003 y:o11003
+
+[sentence s42]
+IF shown:o11003 = 0 @s43
+IF shown:o11003 = 1 @s44
+
+[sentence s43]
+PLAYSOUND temp:1000045 0 x:o11003 y:o11003
+
+[sentence s44]
+PLAYSOUND temp:1000046 0 x:o11003 y:o11003
+
+[sentence s45]
+on=tick
+IF playmode:0 ! 2 @s46
+
+[sentence s46]
+IF shown:o11006 = 1 @s47
+
+[sentence s47]
+CHECKENEMYLIVE 14000026 14000033 temp:1000004
+IF temp:1000004 = -1 @s48
+
+[sentence s48]
+SETINACTIVE o11006
+SETACTIVE o11007
+SETACTIVE o11008
+PLAYSOUND temp:1000045 0 x:o11006 y:o11006
+
+[sentence s49]
+on=talk o11006
+IF shown:o11006 = 1 @s50
+
+[sentence s50]
+PLAYSOUND temp:1000047 0 x:o11006 y:o11006
+
+[sentence s51]
+IF shown:o11006 = 0 @s52
+IF shown:o11006 = 1 @s53
+
+[sentence s52]
+PLAYSOUND temp:1000045 0 x:o11006 y:o11006
+
+[sentence s53]
+PLAYSOUND temp:1000046 0 x:o11006 y:o11006
+
+[sentence s54]
+on=tick
+IF playmode:0 ! 2 @s55
+
+[sentence s55]
+IF shown:o11009 = 1 @s56
+
+[sentence s56]
+CHECKENEMYLIVE 14000034 14000046 temp:1000004
+IF temp:1000004 = -1 @s57
+
+[sentence s57]
+SETINACTIVE o11009
+SETACTIVE o11010
+SETACTIVE o11011
+PLAYSOUND temp:1000045 0 x:o11009 y:o11009
+
+[sentence s58]
+on=talk o11009
+IF shown:o11009 = 1 @s59
+
+[sentence s59]
+PLAYSOUND temp:1000047 0 x:o11009 y:o11009
+
+[sentence s60]
+IF shown:o11009 = 0 @s61
+IF shown:o11009 = 1 @s62
+
+[sentence s61]
+PLAYSOUND temp:1000045 0 x:o11009 y:o11009
+
+[sentence s62]
+PLAYSOUND temp:1000046 0 x:o11009 y:o11009
+
+[sentence s63]
+on=tick
+IF playmode:0 ! 2 @s64
+
+[sentence s64]
+IF shown:o11012 = 1 @s65
+
+[sentence s65]
+CHECKENEMYLIVE 14000047 14000052 temp:1000004
+IF temp:1000004 = -1 @s66
+
+[sentence s66]
+SETINACTIVE o11012
+SETACTIVE o11013
+SETACTIVE o11014
+PLAYSOUND temp:1000045 0 x:o11012 y:o11012
+
+[sentence s67]
+on=talk o11012
+IF shown:o11012 = 1 @s68
+
+[sentence s68]
+PLAYSOUND temp:1000047 0 x:o11012 y:o11012
+
+[sentence s69]
+IF shown:o11012 = 0 @s70
+IF shown:o11012 = 1 @s71
+
+[sentence s70]
+PLAYSOUND temp:1000045 0 x:o11012 y:o11012
+
+[sentence s71]
+PLAYSOUND temp:1000046 0 x:o11012 y:o11012
+
+[sentence s72]
+on=tick
+IF playmode:0 ! 2 @s73
+
+[sentence s73]
+IF shown:o11015 = 1 @s74
+
+[sentence s74]
+CHECKENEMYLIVE 14000053 14000062 temp:1000004
+IF temp:1000004 = -1 @s75
+
+[sentence s75]
+SETINACTIVE o11015
+SETACTIVE o11016
+SETACTIVE o11017
+PLAYSOUND temp:1000045 0 x:o11015 y:o11015
+
+[sentence s76]
+on=talk o11015
+IF shown:o11015 = 1 @s77
+
+[sentence s77]
+PLAYSOUND temp:1000047 0 x:o11015 y:o11015
+
+[sentence s78]
+IF shown:o11015 = 0 @s79
+IF shown:o11015 = 1 @s80
+
+[sentence s79]
+PLAYSOUND temp:1000045 0 x:o11015 y:o11015
+
+[sentence s80]
+PLAYSOUND temp:1000046 0 x:o11015 y:o11015
+
+[sentence s81]
+on=tick
+IF playmode:0 ! 2 @s82
+
+[sentence s82]
+IF shown:o11018 = 1 @s83
+
+[sentence s83]
+CHECKENEMYLIVE 14000063 14000080 temp:1000004
+IF temp:1000004 = -1 @s84
+
+[sentence s84]
+SETINACTIVE o11018
+SETACTIVE o11019
+SETACTIVE o11020
+PLAYSOUND temp:1000045 0 x:o11018 y:o11018
+SETINACTIVE o11021
+SETACTIVE o11022
+SETACTIVE o11023
+PLAYSOUND temp:1000045 0 x:o11021 y:o11021
+
+[sentence s85]
+on=talk o11018
+IF shown:o11018 = 1 @s86
+
+[sentence s86]
+PLAYSOUND temp:1000047 0 x:o11018 y:o11018
+
+[sentence s87]
+IF shown:o11018 = 0 @s88
+IF shown:o11018 = 1 @s89
+
+[sentence s88]
+PLAYSOUND temp:1000045 0 x:o11018 y:o11018
+
+[sentence s89]
+PLAYSOUND temp:1000046 0 x:o11018 y:o11018
+
+[sentence s90]
+on=talk o11021
+IF shown:o11021 = 1 @s91
+
+[sentence s91]
+PLAYSOUND temp:1000047 0 x:o11021 y:o11021
+
+[sentence s92]
+IF shown:o11021 = 0 @s93
+IF shown:o11021 = 1 @s94
+
+[sentence s93]
+PLAYSOUND temp:1000045 0 x:o11021 y:o11021
+
+[sentence s94]
+PLAYSOUND temp:1000046 0 x:o11021 y:o11021

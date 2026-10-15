@@ -530,6 +530,13 @@ mod=magic-level,1,1
 # two; the two swords take 90000010 and 90000011, as 90000000 is a unique
 # here. Names and looks are ours; what each does is the original's.
 
+[item special 98000000]
+name=Phoenix Elixir
+size=1,1
+price=20000
+icon=0,24
+ground=7,24              # in the bag, it brings the hero back once (docs/combat.md)
+
 [item special 99000000]
 name=Merchant's Sapphire
 quality=3

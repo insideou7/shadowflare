@@ -337,7 +337,8 @@ pack's gates are the original's first-, second- and third-area ones (gate 0
 Remote Town, 4 Cold Svalt Town, 13 to 22 Kanfore, Fanann and the second
 area's forests and mines, 25 to 38 the South Camp of Yugunos, the third
 area's towns and its fields, 40 to 49 Berini and Ento Villages and the
-fourth area's forests, ruins and roads), at the original's places, with the props sheet's warp circle under them.
+fourth area's forests, ruins and roads, and 12, 23, 24, 39 and 50 on the
+Tower of Ordeal's rest floors), at the original's places, with the props sheet's warp circle under them.
 
 ### enemies.txt
 
@@ -595,9 +596,10 @@ Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the holes in the ground (blood00,
 deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
-## The first four areas
+## The first four areas and the Tower of Ordeal
 
-The pack's maps are the original's first four areas, laid out with our art.
+The pack's maps are the original's first four areas and its Tower of
+Ordeal (area 99), laid out with our art.
 The first area is the opening fields, Remote Town, the Dusty Ruins, Cold
 Svalt Town and the forests and four dungeons round it, 29 maps
 (`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). The second is the
@@ -610,15 +612,25 @@ original uses one map for two scenarios, the later scenario's copy is
 named after its number (`Map/y01_01_13020002.txt`), since each scenario
 crops and keys it its own way. The fourth is West Calado, Berini and Ento
 Villages and the swamps, forests, mansion, castle and roads past them, 45
-maps (`Map/4th_*`, `c04_*`, `fort4_*`, `ruin4_*` and others). Their scenarios are numbered 10000000 plus the original's
-number (Remote Town is `Scenario/10000000`, Kanfore `Scenario/12100000`),
+maps (`Map/4th_*`, `c04_*`, `fort4_*`, `ruin4_*` and others). The Tower
+of Ordeal is the road to it from Cold Svalt Town, its twenty floors, top
+floor and thirteen-floor Annex, 38 maps (`Map/y00_*`, `y01_*`, `y04_*`).
+Their scenarios are numbered 10000000 plus the original's
+number (Remote Town is `Scenario/10000000`, Kanfore `Scenario/12100000`);
+the tower's 99xxxxxx are 19xxxxxx (`Scenario/19000013` is its 12th floor),
+so every pack number stays apart from the original's,
 and their exits lead to each other as the original's do. A new game
 starts in Remote Town, as the original's does. The road from the first
 area to the second (Near the Remote Town to the Caravan) opens, as in the
 original, once save flag 71 is set, which Cold Svalt Town's commander does
 when the first area's missions are done. The third area has no road from
 the second: as in the original, Fanann's story opens the warp gate of the
-South Camp of Yugunos (gate 25), and the story goes on from there.
+South Camp of Yugunos (gate 25), and the story goes on from there. The
+road to the tower leaves Cold Svalt Town from the start, as in the
+original; its guard lets the hero by once save flag 20 is 2, which Cold
+Svalt Town's wizard sets after the hero beats the Immortal Remains'
+gargoyles, and its doors on the 5th, 12th
+and 17th floors open as the original's do, by missions done.
 
 Each can be walked on exactly where the original's can: its judge grid
 is the original's, cell for cell (cells of 160 world units, about the
@@ -659,7 +671,7 @@ reads the original's text; the words are ours, in
 `tools/content/words/<scenario>.txt` by the original's message numbers,
 each keeping its message's purpose and its options and numbers in order:
 
-    python3 tools/content/scripts.py <game folder> content 2|3|4 [scenario ...]
+    python3 tools/content/scripts.py <game folder> content 2|3|4|99 [scenario ...]
 
 It names messages it has no words for. The shops the scripts open are in
 `shops.txt` and their missions in `missions.txt`.
@@ -706,8 +718,7 @@ it also checks the maps against the crop):
 
     python3 tools/content/open_areas.py <game folder> content
 
-A game saved in an area the open pack does not have (anywhere past the
-fourth area) shows as Other Data on the Load Data screen there. Items the
+A game saved in an area the open pack does not have shows as Other Data on the Load Data screen there. Items the
 pack has no stand-in for are left out when it loads.
 
 ## Rebuilding content/

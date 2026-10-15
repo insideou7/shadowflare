@@ -3,7 +3,9 @@
 original's: the opening fields, Remote Town, the Dusty Ruins, Cold Svalt
 Town and the forests and four dungeons round it (29 maps), then the
 Caravan, Kanfore, Fanann and the forests, mines, forts and caves round
-them (33 maps). Needs the player's own copy of the game.
+them (33 maps), then the third and fourth areas and the Tower of Ordeal
+(area 99, numbered 19xxxxxx in the pack). Needs the player's own copy of
+the game.
 
     python3 tools/content/first_area.py <game folder> <content pack> [area ...]
 
@@ -84,9 +86,15 @@ DUNGEONS4 = [4010000, 4020000, 4030000, 4040000, 4050000, 4050001, 4050002, 4060
              4060003, 4060004, 4060005, 4060006, 4070000, 4070001, 4080000, 4080001, 4080002, 4080003,
              4080004, 4090000, 4090001, 4090002, 4090003, 4100000, 4110000, 4120000, 4120001, 4140000]
 
+# The Tower of Ordeal (the original's area 99), reached from Cold Svalt
+# Town: the road to it, its six lower floors, its upper floors with the
+# Giant Warehouse's floor among them and its Annex, all indoors.
+DUNGEONS99 = list(range(99000000, 99000038))
+
 # Each area's maps, in the order they are laid out.
-AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2, 3: FIELDS3 + DUNGEONS3, 4: FIELDS4 + DUNGEONS4}
-DUNGEON = set(DUNGEONS + DUNGEONS2 + DUNGEONS3 + DUNGEONS4)
+AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2, 3: FIELDS3 + DUNGEONS3, 4: FIELDS4 + DUNGEONS4,
+         99: DUNGEONS99}
+DUNGEON = set(DUNGEONS + DUNGEONS2 + DUNGEONS3 + DUNGEONS4 + DUNGEONS99)
 ALL = [n for area in AREAS.values() for n in area]
 
 # Dungeon walls by the original's wall bank: our wall pieces (plain, then
@@ -101,6 +109,8 @@ WALLS = {
 WALLS["deep02.njp"] = WALLS["deep03.njp"] = WALLS["deep04.njp"] = WALLS["deep01.njp"]
 # The third area's towers, of dark castle stone on paving.
 WALLS["yd.njp"] = ("fwall_black", [""], "fpillar_black", "Map/castlefloor.sheet", 0)
+# The Tower of Ordeal's lower floors: the same castle stone in another bank.
+WALLS["00y_obj.njp"] = WALLS["yd.njp"]
 
 # Original banks whose pieces are landmarks, drawn where the original has
 # them, with the props skin.txt gives them (None = every piece of the bank).
@@ -128,6 +138,7 @@ for _deep in ("deep02.njp", "deep03.njp", "deep04.njp"):
 # Losmans and outdoors every piece, the town's walls and gates among them.
 LANDMARKS["yd.njp"] = {0, 1, 2, 3, 4, 5, 6, 29, 30, 31, 32, 33}
 LANDMARKS["tower2.njp"] = None
+LANDMARKS["00y_obj.njp"] = LANDMARKS["yd.njp"]
 OUTDOOR_LANDMARKS = {"yd.njp": None}
 
 FOREST = ["tree1", "tree2", "tree3", "tree1", "tree2", "oak"]
@@ -143,6 +154,9 @@ MARGIN = 4   # tiles of ground round what can be walked on
 
 # Added to the original scenario numbers (once to keep clear of the old demo's).
 OFFSET = 10000000
+# The Tower of Ordeal's scenarios (99xxxxxx) are 19xxxxxx in the pack, so
+# every pack number stays below 20000000 and above every original area's.
+TOWER, OUR_TOWER = 99000000, 19000000
 
 
 def find(folder, stem, ext):
@@ -460,16 +474,18 @@ GATES = {0: [200], 1000000: [200],
          **{n: [200] for n in (3000201, 3000302, 3000303, 3000306, 3000307, 3000402, 3000505, 3240000,
                                3900000, 3900001, 3900002, 3900003, 3900004, 3900005,
                                4900001, 4900002, 4000001, 4000002, 4000003, 4000005, 4000007, 4000009,
-                               4060000, 4130000)}}
+                               4060000, 4130000,
+                               99000001, 99000007, 99000013, 99000018, 99000023)}}
 
 
 def exit_targets(number):
     """The scenarios a map's exits are written for. Exits to areas the pack
     does not have yet are left out, and the first area's maps keep only
-    their exits within it: the way on to the second area, Near the Remote
-    Town's road to the Caravan, opens only once the first area's missions
-    are done, so its script (Scenario/10000001/script.txt) adds it."""
-    return AREAS[1] if number in AREAS[1] else ALL
+    their exits within it and to the Tower of Ordeal (Cold Svalt Town's
+    road to it is open from the start): the way on to the second area, Near
+    the Remote Town's road to the Caravan, opens only once the first area's
+    missions are done, so its script (Scenario/10000001/script.txt) adds it."""
+    return AREAS[1] + AREAS[99] if number in AREAS[1] else ALL
 
 
 def written_exits(o, number):
@@ -497,7 +513,12 @@ def map_name(game, number):
 
 def our_number(number):
     """The open pack's scenario number for an original one."""
-    return OFFSET + number
+    return number - TOWER + OUR_TOWER if number >= TOWER else OFFSET + number
+
+
+def original_number(number):
+    """The original's scenario number for one of the open pack's."""
+    return number - OUR_TOWER + TOWER if number >= OUR_TOWER else number - OFFSET
 
 
 def walkable(o):

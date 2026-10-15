@@ -1,0 +1,73 @@
+# Written by tools/content/scripts.py after the original's scenario 99000016
+# (Tower of Ordeal), in our own words (tools/content/words/19000016.txt).
+
+object=2720,7040,2879,7519,o11000,states=1/1/1,at=2721/7311
+object=2720,7040,2879,7199,o11001,states=0/0/0,at=2721/7311
+object=2720,7520,2879,7679,o11002,states=0/0/0,at=2721/7311
+temp=1000009,81
+temp=1000010,82
+temp=1000011,83
+temp=1000012,31
+temp=1000013,32
+temp=1000014,33
+temp=1000015,27
+temp=1000016,28
+temp=1000017,38
+temp=1000018,39
+temp=1000019,3
+temp=1000020,25
+temp=1000021,26
+temp=1000022,30
+temp=1000023,37
+temp=1000024,10
+temp=1000025,40
+temp=1000026,41
+temp=1000027,42
+temp=1000028,43
+
+[message 1000000]
+Tower of Ordeal, 15F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 19000015 1
+
+[sentence s2]
+CHANGESCENARIO 19000017 0
+
+[sentence s3]
+on=tick
+IF playmode:0 ! 2 @s4
+
+[sentence s4]
+IF shown:o11000 = 1 @s5
+
+[sentence s5]
+CHECKENEMYLIVE 14000000 14000016 temp:1000002
+IF temp:1000002 = -1 @s6
+
+[sentence s6]
+SETINACTIVE o11000
+SETACTIVE o11001
+SETACTIVE o11002
+PLAYSOUND temp:1000009 0 x:o11000 y:o11000
+
+[sentence s7]
+on=talk o11000
+IF shown:o11000 = 1 @s8
+
+[sentence s8]
+PLAYSOUND temp:1000011 0 x:o11000 y:o11000
+
+[sentence s9]
+IF shown:o11000 = 0 @s10
+IF shown:o11000 = 1 @s11
+
+[sentence s10]
+PLAYSOUND temp:1000009 0 x:o11000 y:o11000
+
+[sentence s11]
+PLAYSOUND temp:1000010 0 x:o11000 y:o11000
