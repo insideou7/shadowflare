@@ -135,4 +135,17 @@ int rollGold(int chance, int min, int max, int bonus, Random& random) {
     return std::max(1, (min + random.next(max - min + 1)) * percent / 100);
 }
 
+int scaleGold(int amount, int percent) {
+    if (amount <= 0) return 0;
+    const long long scaled = static_cast<long long>(amount) * std::max(percent, 0) / 100;
+    return static_cast<int>(std::clamp<long long>(scaled, 1, kMaxGoldDrop));
+}
+
+std::vector<int> goldPiles(int amount, int stack) {
+    std::vector<int> piles;
+    if (stack <= 0) return piles;
+    for (; amount > 0; amount -= stack) piles.push_back(std::min(amount, stack));
+    return piles;
+}
+
 }  // namespace sf

@@ -171,6 +171,12 @@ void testLoot() {
     check(drops > 50 && drops < 150, "gold drops about 10% of the time");
     check(sf::rollGold(0, 5, 8, 0, random) == 0, "no chance, no gold");
     check(sf::rollGold(100, 10, 10, 50, random) == 15, "the Amount of Gold bonus raises it");
+    check(sf::scaleGold(37, 100) == 37 && sf::scaleGold(37, 2000) == 740 && sf::scaleGold(0, 2000) == 0,
+          "the gold rate multiplies gold, and none stays none");
+    check(sf::scaleGold(2'000'000'000, 10000) == sf::kMaxGoldDrop, "the gold rate never overflows");
+    check(sf::goldPiles(25000, 10000) == std::vector<int>{10000, 10000, 5000} && sf::goldPiles(10000, 10000).size() == 1 &&
+              sf::goldPiles(0, 10000).empty(),
+          "gold over a stack is split into piles of 10,000");
     check(sf::rollGold(100, 10, 10, -100, random) == 0, "a bonus of -100% stops gold");
 
     // Table 31 rows: 0 a Tablet; 1 any weapon, armour or accessory of item

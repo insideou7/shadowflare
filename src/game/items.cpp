@@ -250,9 +250,17 @@ void Game::dropLoot(const Actor& enemy) {
         least = (*list->gold)[1];
         most = (*list->gold)[2];
     }
-    if (const int gold = rollGold(chance, least, most, inventory_.goldBonus(), random_)) {
+    if (int gold = rollGold(chance, least, most, inventory_.goldBonus(), random_)) {
+        // Ours: the Debug tab's gold rate. Above a pile's 10,000 the rest
+        // lands in more piles around the first.
+        gold = scaleGold(gold, goldRate());
+        log::info("Dropped {} gold", gold);
         if (const ItemDef* def = items_.find(ItemDef::Class::Special, 0)) {
-            dropItem({def, gold}, x, y + 100);
+            const auto piles = goldPiles(gold, Inventory::kGoldStack);
+            for (std::size_t i = 0; i < piles.size(); ++i) {
+                const double dx = i ? random_.next(200) - 100 : 0, dy = i ? random_.next(200) - 100 : 0;
+                dropItem({def, piles[i]}, x + dx, y + 100 + dy);
+            }
         } else {
             inventory_.addGold(gold);
         }

@@ -70,7 +70,9 @@ std::string toAscii(const std::string& text) {
 // What the scenario scripts ask of the game.
 class GameScript : public ScriptHost {
 public:
-    explicit GameScript(Game& game) : g_(game) {}
+    // `character` is whose event runs the script (an object, a person, or
+    // -1 for none).
+    GameScript(Game& game, std::int32_t character) : g_(game), character_(character) {}
 
     void talk(const Talk& t) override { g_.openDialogue(t); }
     void initTrade(int shop, int list) override {
@@ -101,11 +103,12 @@ public:
             g_.dropItem(Item::make(def, g_.random_), x, y);
             return;
         }
+        // Ours: the Debug tab's gold rate raises gold from objects (chests,
+        // pots, barrels), not the rewards people hand over.
+        if (fromObject()) amount = scaleGold(amount, g_.goldRate());
         // Gold comes in piles of at most 10,000, spread out a little.
-        while (amount > 0) {
-            const int pile = std::min(amount, 10000);
+        for (const int pile : goldPiles(amount, Inventory::kGoldStack)) {
             g_.dropItem({def, pile}, x + g_.random_.next(200) - 100, y + g_.random_.next(200) - 100);
-            amount -= pile;
         }
     }
     void createItemTable(int list, int x, int y) override { g_.dropFromList(list, x, y); }
@@ -282,7 +285,13 @@ public:
     }
 
 private:
+    bool fromObject() const {
+        using C = ScenarioControl;
+        return character_ >= C::idBase(C::Group::Object) && character_ < C::idBase(C::Group::Person);
+    }
+
     Game& g_;
+    std::int32_t character_;
 };
 
 const Game::Actor* Game::actorById(std::int32_t id) const {
@@ -372,7 +381,7 @@ void Game::renderLabels() {
 
 void Game::runScript(std::int32_t sentence, std::int32_t character) {
     if (!script_ || pendingScenario_) return;
-    GameScript host(*this);
+    GameScript host(*this, character);
     ScriptRunner runner(*script_, flags_, &host, character);
     runner.setRules(rules_);
     if (const auto change = runner.run(sentence)) {

@@ -1103,6 +1103,13 @@ void testSettings() {
               sf::Settings::parse("xp_rate=2.5\n").xpRate == 200 && sf::Settings::parse("xp_rate=50\n").xpRate == 2000 &&
               sf::Settings::parse("xp_rate=20\n").xpRate == 2000 && sf::Settings::parse("xp_rate=fast\n").xpRate == 100,
           "experience rates are kept to 1x, 2x, 5x, 10x and 20x");
+    sf::Settings rich;
+    rich.goldRate = 10000;
+    check(rich.write().find("gold_rate=100\n") != std::string::npos && sf::Settings::parse(rich.write()).goldRate == 10000,
+          "the gold rate is saved as a multiplier and read back");
+    check(sf::Settings{}.goldRate == 100 && sf::Settings::parse("gold_rate=50\n").goldRate == 2000 &&
+              sf::Settings::parse("gold_rate=999\n").goldRate == 10000 && sf::Settings::parse("gold_rate=0\n").goldRate == 100,
+          "gold rates are kept to 1x, 2x, 5x, 10x, 20x and 100x");
     sf::Settings lucky;
     lucky.luck = 500;
     check(lucky.write().find("luck=5\n") != std::string::npos && sf::Settings::parse(lucky.write()).luck == 500,
