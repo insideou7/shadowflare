@@ -10,7 +10,7 @@ namespace {
 
 constexpr std::int64_t kTopOfTable = 999999999;
 
-constexpr std::array<std::int64_t, 98> kExperiencePerLevel = {
+constexpr std::array<std::int64_t, 99> kExperiencePerLevel = {
     25, 80, 150, 200, 300, 400, 600, 1200, 2000, 2200,
     2400, 3000, 6000, 20000, 25000, 30000, 40000, 50000, 60000, 120000,
     150000, 200000, 250000, 300000, 400000, 500000, 600000, 800000, 1000000, 1200000,
@@ -20,7 +20,7 @@ constexpr std::array<std::int64_t, 98> kExperiencePerLevel = {
     12000000, 12000000, 12000000, 12000000, 13000000, 13000000, 13000000, 13000000, 13000000, 15000000,
     15000000, 15000000, 15000000, 15000000, 20000000, 20000000, 20000000, 20000000, 20000000, 25000000,
     40000000, 50000000, 60000000, 70000000, 80000000, 100000000, 150000000, 200000000, 250000000, 300000000,
-    350000000, 400000000, 450000000, 500000000, 550000000, 600000000, 650000000, 700000000,
+    350000000, 400000000, 450000000, 500000000, 550000000, 600000000, 650000000, 700000000, kTopOfTable,
 };
 
 // Table.Tbd table 900, column 0, and what columns 1-4 add; table 901 for
@@ -101,8 +101,11 @@ LevelCurve LevelCurve::fromTables(const GameTables& tables) {
     if (!table || table->cols < 1) return curve;
     for (int row = 0; row < table->rows; ++row) {
         const std::int64_t need = table->value(row, 0);
-        if (need <= 0 || need >= kTopOfTable) break;
+        if (need <= 0) break;
+        // The last row, 999999999, is what level 99 takes: a quest reward
+        // can still pay it (the script command at 0x430f80 case 0x44), and level 100 shows Max.
         curve.needs.push_back(need);
+        if (need >= kTopOfTable) break;
     }
     return curve;
 }

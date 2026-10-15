@@ -115,6 +115,11 @@ original: only the mouse makes these sounds.
   with the tabs (Caps Lock is silent). Gold taken with the split box plays
   0x55. A right click that empties a slot of the magic window's bar plays
   0x39.
+- **Special items, Change Color and the card game** (0x448620, 0x40f9e0,
+  0x40da90). The special items window's switch button plays 0x3a. In the
+  Change Color window the tabs, OK and Cancel play 0x3a. The card game
+  plays 0x2c for each card dealt, 0x40 when the hero wins and 0x41 when
+  they lose.
 - **New character** (0x423ca0, 0x424d80). Moving between the hero and the
   heroine plays 0x3a, but only when the choice changes. Choosing one, BACK,
   EXIT, and closing the name box with a name play 0x37. In the mode window,
@@ -178,15 +183,13 @@ Each spell's controller plays its sounds where they happen (0x42a860-0x42f890):
 
 These sounds belong to things the engine does not have yet:
 
-- **Windows the engine lacks.** The special items page (0x446320), the
-  Change Color window (0x40f9e0), the card game (0x40da90, 0x2c, 0x40 and
-  0x41) and the online menus. The shop's unpaid
-  hand and right-click buying (0x4480c0, 0x44b020), and picking up into
-  the hand while the item window is open (0x449ef0), are also missing.
-- **Fights.** The Warrior's combo shouts (0x60-0x65) and swings, the
-  ice on a frozen hero (119), the Elixir (17) and the companion's idle
-  (88) are played (docs/combat.md, docs/partners.md), as is life
-  absorption (61).
+- **Online menus.** Online play is not in the engine.
+- **The shop's hand.** The original takes a bought item into the hand,
+  unpaid, and plays its take sound there (0x4480c0); the engine buys
+  straight into the bag with the same sound. Right-click buying (0x44b020)
+  is left out on purpose.
+- **Picking up into the hand** while the item window is open (0x449ef0):
+  the engine always picks up into the belt or the bag.
 
 ## The open pack's sounds and music
 

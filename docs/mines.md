@@ -70,8 +70,17 @@ tools/art/items.py (`placed`) and the effects by tools/art/effects.py.
 - That picture 1 of the Pattern is the armed look (object word 29) and the
   scale from a piece's height to the screen are read from the code's shape,
   not checked against the running game.
-- The mine's sounds (one every 20 ticks while it lies, and the blast) are
-  not played yet, as the engine has no sound.
-- Kills by mines count as the hero's kills like any other; whether the
-  original counts them toward the class offer has not been checked.
 - No rule here differs from the original, so original mode changes nothing.
+
+## Checked against the original
+
+- Sounds (0x42bd40): the mine beeps 54 (0x36) every 20 ticks from tick 40,
+  and the blast plays 29 (0x1d), then 6 once when it hits something. The
+  engine plays all three (src/game/mines.cpp).
+- Kills: the blast's hit carries the hero as its owner and kind 0, a blow,
+  not 3, a spell (0x42bd40 fills the hit with 0, 0 and the hero's number;
+  spells fill 0, 3). So the kill counter (0x4134a0) counts a mine kill
+  like a blow with whatever is in the hero's hand: by its weapon kind
+  toward the class offer, as magic with a staff or rod, and only in the
+  total with bare hands. It also counts toward power mode. The engine does
+  the same (Game::hurtEnemy with bySpell false).
