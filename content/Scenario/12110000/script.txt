@@ -1,0 +1,779 @@
+# Written by tools/content/scripts.py after the original's scenario 2110000
+# (Tower of the Wizard), in our own words (tools/content/words/12110000.txt).
+
+object=27049,19272,27173,19497,o20000,obj_chest_y,states=1/1/1,at=27072/19348
+object=27049,19272,27173,19497,o20001,obj_chest_open_y,states=0/0/0,at=27072/19348
+object=27057,18634,27181,18859,o20002,obj_chest_y,states=1/1/1,at=27080/18710
+object=27057,18634,27181,18859,o20003,obj_chest_open_y,states=0/0/0,at=27080/18710
+object=27058,17982,27182,18207,o20004,obj_chest_y,states=1/1/1,at=27081/18058
+object=27058,17982,27182,18207,o20005,obj_chest_open_y,states=0/0/0,at=27081/18058
+object=27056,17334,27180,17559,o20006,obj_chest_y,states=1/1/1,at=27079/17410
+object=27056,17334,27180,17559,o20007,obj_chest_open_y,states=0/0/0,at=27079/17410
+object=24050,9803,24280,9901,o20008,obj_chest_x,states=1/1/1,at=24115/9807
+object=24050,9803,24280,9901,o20009,obj_chest_open_x,states=0/0/0,at=24115/9807
+object=22293,9640,22523,9738,o20010,obj_chest_x,states=1/1/1,at=22358/9644
+object=22293,9640,22523,9738,o20011,obj_chest_open_x,states=0/0/0,at=22358/9644
+object=20690,9643,20920,9741,o20012,obj_chest_x,states=1/1/1,at=20755/9647
+object=20690,9643,20920,9741,o20013,obj_chest_open_x,states=0/0/0,at=20755/9647
+object=18946,9627,19176,9725,o20014,obj_chest_x,states=1/1/1,at=19011/9631
+object=18946,9627,19176,9725,o20015,obj_chest_open_x,states=0/0/0,at=19011/9631
+temp=1000012,4
+temp=1000013,99000003
+temp=1000014,10000
+temp=1000015,140
+temp=1000016,-1
+temp=1000017,-1
+temp=1000018,-1
+temp=1000019,-1
+temp=1000020,140
+temp=1000021,-1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,-1
+temp=1000025,140
+temp=1000026,-1
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,-1
+temp=1000030,140
+temp=1000031,-1
+temp=1000032,-1
+temp=1000033,-1
+temp=1000034,-1
+temp=1000035,140
+temp=1000036,-1
+temp=1000037,-1
+temp=1000038,-1
+temp=1000039,-1
+temp=1000040,140
+temp=1000041,-1
+temp=1000042,-1
+temp=1000043,-1
+temp=1000044,-1
+temp=1000045,140
+temp=1000046,-1
+temp=1000047,-1
+temp=1000048,-1
+temp=1000049,-1
+temp=1000050,140
+temp=1000051,-1
+temp=1000052,-1
+temp=1000053,-1
+temp=1000054,-1
+temp=1000055,34
+temp=1000056,35
+temp=1000057,36
+temp=1000058,77
+temp=1000059,78
+temp=1000060,33
+temp=1000061,27
+temp=1000062,28
+temp=1000063,38
+temp=1000064,39
+temp=1000065,3
+temp=1000066,25
+temp=1000067,26
+temp=1000068,30
+temp=1000069,37
+temp=1000070,10
+temp=1000071,40
+temp=1000072,41
+temp=1000073,42
+temp=1000074,43
+temp=1000075,53
+temp=1000076,80
+
+[message 1000000]
+Tower of the Wizard, 1F
+
+[message 1000001]
+Tower of the Wizard, 2F
+
+[message 1000002]
+Tower of the Wizard, 3F
+
+[message 1000003]
+Tower of the Wizard, 4F
+
+[message 1000004]
+Tower of the Wizard, 5F
+
+[message 1000005]
+Tower of the Wizard, 6F
+
+[message 1000006]
+Tower of the Wizard, 7F
+
+[message 1000007]
+Tower of the Wizard, 8F
+
+[message 1000008]
+Tower of the Wizard, 9F
+
+[message 1000009]
+Tower of the Wizard, 10F
+
+[message 1000010]
+Tower of the Wizard
+
+[message 1000011]
+A fighter, are you?
+Forgive me, I've no time just now.
+
+[message 1000012]
+Ah, welcome, young one.
+I am Orsolan, a wizard.
+
+[message 1000013]
+The elves' village won't let you pass, and that
+troubles you. Did you know the dragons are why?
+
+[message 1000014]
+The dragons sealed in the mine are only young,
+yet even so few creatures alive can match them.
+They are far stronger than the great lizard
+the knights brought down.
+
+[message 1000015]
+Let those dragons out of their prison,
+and this whole land would burn.
+
+[message 1000016]
+That is why
+the seal works are so closely watched.
+We have kept everyone away...
+
+[message 1000017]
+But a band of thieves prowling these parts
+learned that the dragons are here. The fools
+have been trying to break the seal.
+
+[message 1000018]
+Should they manage it, it would be their death.
+They don't seem to grasp that...
+
+[message 1000019]
+Some of the elves who guarded the works were
+called away to the war, and the thieves made
+use of the gap to seize the place.
+
+[message 1000020]
+The seal is strong
+and won't give way easily.
+I hope they'll tire of it soon,
+but they keep at it.
+
+[message 1000021]
+Worse, the thieves took the seal crystal,
+the key that opens the seal works.
+
+[message 1000022]
+It was kept under lock and guard,
+and still they got it.
+
+[message 1000023]
+Now the elves are more afraid than ever.
+Some whisper that humans took the crystal
+to turn the dragons into weapons of war.
+The elves trust no one now.
+
+[message 1000024]
+So I need your help.
+The thieves carried the crystal to their fort in
+the Forest of Knight's Misery, west of Cross Agora.
+
+[message 1000025]
+They mean to use the crystal
+to break the seal.
+
+[message 1000026]
+Take the crystal back before they succeed.
+Do that, and you'll show the elves that
+humans can be trusted.
+
+[message 1000027]
+You are the only one I can rely on.
+Will you take this on?
+
+[message 1000028]
+Good fortune go with you...
+
+[message 1000029]
+You brought it back! Thank you!
+I'll send word to the elves' village.
+They'll let you in now.
+
+[message 1000030]
+Don't breathe easy yet...
+One of the thieves was cleverer than the rest.
+Parts of the seal are broken already...
+
+[message 1000031]
+We must be quick...
+
+[message 1000032]
+The dragons are waking.
+They must be stopped!
+
+[message 1000033]
+Remarkable!
+You defeated the dragons! Though, to be fair,
+the seal had sapped much of their strength...
+
+[message 1000034]
+Hollis...
+Merrit...
+Calder...
+
+[message 1000035]
+My friends, burned by the dragons' fire, can
+rest in peace at last, wherever they are...
+
+[message 1000036]
+You've avenged my friends. I, Orsolan, thank
+you with all my heart.
+
+[message 1000037]
+Please take this small gift
+as a sign of my thanks.
+
+[message 1000038]
+May the heavens watch over you.
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+IF temp:1000005 > -1 @s1
+IF temp:1000005 < 0 @s2
+
+[sentence s1]
+SETFLAG temp:1000006 msg:1000000
+DIV temp:1000005 2
+ADD temp:1000005 temp:1000006
+SETCOMPASSES temp:1000005
+
+[sentence s2]
+SETCOMPASSES msg:1000010
+
+[sentence s3]
+CHANGESCENARIO 12100005 1
+
+[sentence s4]
+CHANGESCENARIO 12110000 2
+
+[sentence s5]
+CHANGESCENARIO 12110000 1
+
+[sentence s6]
+CHANGESCENARIO 12110000 4
+
+[sentence s7]
+CHANGESCENARIO 12110000 3
+
+[sentence s8]
+CHANGESCENARIO 12110000 6
+
+[sentence s9]
+CHANGESCENARIO 12110000 5
+
+[sentence s10]
+CHANGESCENARIO 12110000 8
+
+[sentence s11]
+CHANGESCENARIO 12110000 7
+
+[sentence s12]
+CHANGESCENARIO 12110000 10
+
+[sentence s13]
+CHANGESCENARIO 12110000 9
+
+[sentence s14]
+CHANGESCENARIO 12110000 12
+
+[sentence s15]
+CHANGESCENARIO 12110000 11
+
+[sentence s16]
+CHANGESCENARIO 12110000 14
+
+[sentence s17]
+CHANGESCENARIO 12110000 13
+
+[sentence s18]
+CHANGESCENARIO 12110000 16
+
+[sentence s19]
+CHANGESCENARIO 12110000 15
+
+[sentence s20]
+CHANGESCENARIO 12110000 18
+
+[sentence s21]
+CHANGESCENARIO 12110000 17
+
+[sentence s22]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF quest:14 = 2 @s23
+IF quest:14 = 1 @s28
+IF quest:13 = 1 @s31
+IF quest:13 = 0 @s32
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s23]
+IF quest:17 = 2 @s24
+IF quest:17 ! 2 @s27
+
+[sentence s24]
+IF save:46 = 1 @s25
+IF save:46 = 0 @s26
+
+[sentence s25]
+SETFLAG temp:1000002 msg:1000038
+SETFLAG temp:1000001 600
+
+[sentence s26]
+SETFLAG temp:1000002 msg:1000033
+SETFLAG temp:1000001 500
+SETFLAG save:46 1
+
+[sentence s27]
+SETFLAG temp:1000002 msg:1000032
+SETFLAG temp:1000001 400
+
+[sentence s28]
+CHECKITEMEXIST temp:1000012 temp:1000013 temp:1000005
+IF temp:1000005 = 1 @s29
+IF temp:1000005 = 0 @s30
+
+[sentence s29]
+DELETEITEM temp:1000012 temp:1000013
+SETFLAG temp:1000002 msg:1000029
+SETFLAG temp:1000001 300
+SETQUESTFLAG 14 2 0
+
+[sentence s30]
+SETFLAG temp:1000002 msg:1000028
+SETFLAG temp:1000001 200
+
+[sentence s31]
+SETFLAG temp:1000002 msg:1000012
+SETFLAG temp:1000001 100
+SETQUESTFLAG 13 2 0
+
+[sentence s32]
+SETFLAG temp:1000002 msg:1000011
+SETFLAG temp:1000001 0
+
+[sentence s33]
+on=talk-end p0
+IF temp:1000001 = 0 @s34
+IF temp:1000001 = 115 @s35
+IF temp:1000001 = 200 @s36
+IF temp:1000001 = 302 @s37
+IF temp:1000001 = 400 @s38
+IF temp:1000001 = 504 @s39
+IF temp:1000001 = 600 @s40
+IF temp:1000001 = -1 @s41
+IF temp:1000001 ! -1 @s42
+IF temp:1000001 = 115 @s43
+IF temp:1000001 = 504 @s44
+
+[sentence s34]
+SETFLAG temp:1000001 -1
+
+[sentence s35]
+SETFLAG temp:1000001 -1
+
+[sentence s36]
+SETFLAG temp:1000001 -1
+
+[sentence s37]
+SETFLAG temp:1000001 -1
+
+[sentence s38]
+SETFLAG temp:1000001 -1
+
+[sentence s39]
+SETFLAG temp:1000001 -1
+
+[sentence s40]
+SETFLAG temp:1000001 -1
+
+[sentence s41]
+C_MOVABLE p0
+
+[sentence s42]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s43]
+SETQUESTFLAG 14 1 0
+DRAWQUESTNAME 14
+
+[sentence s44]
+CREATEITEM 4 0 x:p0 y:p0 temp:1000014 temp:1000014
+
+[sentence s45]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000058 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s46
+
+[sentence s46]
+SETFLAG temp:1000003 x:o20000
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20000
+ADD temp:1000004 200
+IF temp:1000018 = -1 @s47
+IF temp:1000018 ! -1 @s50
+SETFLAG net:1000000 1
+
+[sentence s47]
+IF temp:1000015 = -1 @s48
+IF temp:1000015 ! -1 @s49
+
+[sentence s48]
+CREATEITEM temp:1000016 temp:1000017 temp:1000003 temp:1000004 -1 -1
+
+[sentence s49]
+CREATEITEMTABLE temp:1000015 temp:1000003 temp:1000004
+
+[sentence s50]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000018 temp:1000019
+
+[sentence s51]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000059 0 x:o20000 y:o20000
+
+[sentence s52]
+IF shown:o20000 = 0 @s53
+IF shown:o20000 = 1 @s54
+
+[sentence s53]
+PLAYSOUND temp:1000059 0 x:o20000 y:o20000
+
+[sentence s54]
+PLAYSOUND temp:1000058 0 x:o20000 y:o20000
+
+[sentence s55]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000058 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s56
+
+[sentence s56]
+SETFLAG temp:1000003 x:o20002
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20002
+ADD temp:1000004 200
+IF temp:1000023 = -1 @s57
+IF temp:1000023 ! -1 @s60
+SETFLAG net:1000001 1
+
+[sentence s57]
+IF temp:1000020 = -1 @s58
+IF temp:1000020 ! -1 @s59
+
+[sentence s58]
+CREATEITEM temp:1000021 temp:1000022 temp:1000003 temp:1000004 -1 -1
+
+[sentence s59]
+CREATEITEMTABLE temp:1000020 temp:1000003 temp:1000004
+
+[sentence s60]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000023 temp:1000024
+
+[sentence s61]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000059 0 x:o20002 y:o20002
+
+[sentence s62]
+IF shown:o20002 = 0 @s63
+IF shown:o20002 = 1 @s64
+
+[sentence s63]
+PLAYSOUND temp:1000059 0 x:o20002 y:o20002
+
+[sentence s64]
+PLAYSOUND temp:1000058 0 x:o20002 y:o20002
+
+[sentence s65]
+on=talk o20004
+SETINACTIVE o20004
+SETACTIVE o20005
+PLAYSOUND temp:1000058 0 x:o20004 y:o20004
+IF net:1000002 = 0 @s66
+
+[sentence s66]
+SETFLAG temp:1000003 x:o20004
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20004
+ADD temp:1000004 200
+IF temp:1000028 = -1 @s67
+IF temp:1000028 ! -1 @s70
+SETFLAG net:1000002 1
+
+[sentence s67]
+IF temp:1000025 = -1 @s68
+IF temp:1000025 ! -1 @s69
+
+[sentence s68]
+CREATEITEM temp:1000026 temp:1000027 temp:1000003 temp:1000004 -1 -1
+
+[sentence s69]
+CREATEITEMTABLE temp:1000025 temp:1000003 temp:1000004
+
+[sentence s70]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000028 temp:1000029
+
+[sentence s71]
+on=talk o20005
+SETACTIVE o20004
+SETINACTIVE o20005
+PLAYSOUND temp:1000059 0 x:o20004 y:o20004
+
+[sentence s72]
+IF shown:o20004 = 0 @s73
+IF shown:o20004 = 1 @s74
+
+[sentence s73]
+PLAYSOUND temp:1000059 0 x:o20004 y:o20004
+
+[sentence s74]
+PLAYSOUND temp:1000058 0 x:o20004 y:o20004
+
+[sentence s75]
+on=talk o20006
+SETINACTIVE o20006
+SETACTIVE o20007
+PLAYSOUND temp:1000058 0 x:o20006 y:o20006
+IF net:1000003 = 0 @s76
+
+[sentence s76]
+SETFLAG temp:1000003 x:o20006
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20006
+ADD temp:1000004 200
+IF temp:1000033 = -1 @s77
+IF temp:1000033 ! -1 @s80
+SETFLAG net:1000003 1
+
+[sentence s77]
+IF temp:1000030 = -1 @s78
+IF temp:1000030 ! -1 @s79
+
+[sentence s78]
+CREATEITEM temp:1000031 temp:1000032 temp:1000003 temp:1000004 -1 -1
+
+[sentence s79]
+CREATEITEMTABLE temp:1000030 temp:1000003 temp:1000004
+
+[sentence s80]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000033 temp:1000034
+
+[sentence s81]
+on=talk o20007
+SETACTIVE o20006
+SETINACTIVE o20007
+PLAYSOUND temp:1000059 0 x:o20006 y:o20006
+
+[sentence s82]
+IF shown:o20006 = 0 @s83
+IF shown:o20006 = 1 @s84
+
+[sentence s83]
+PLAYSOUND temp:1000059 0 x:o20006 y:o20006
+
+[sentence s84]
+PLAYSOUND temp:1000058 0 x:o20006 y:o20006
+
+[sentence s85]
+on=talk o20008
+SETINACTIVE o20008
+SETACTIVE o20009
+PLAYSOUND temp:1000058 0 x:o20008 y:o20008
+IF net:1000004 = 0 @s86
+
+[sentence s86]
+SETFLAG temp:1000003 x:o20008
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20008
+ADD temp:1000004 200
+IF temp:1000038 = -1 @s87
+IF temp:1000038 ! -1 @s90
+SETFLAG net:1000004 1
+
+[sentence s87]
+IF temp:1000035 = -1 @s88
+IF temp:1000035 ! -1 @s89
+
+[sentence s88]
+CREATEITEM temp:1000036 temp:1000037 temp:1000003 temp:1000004 -1 -1
+
+[sentence s89]
+CREATEITEMTABLE temp:1000035 temp:1000003 temp:1000004
+
+[sentence s90]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000038 temp:1000039
+
+[sentence s91]
+on=talk o20009
+SETACTIVE o20008
+SETINACTIVE o20009
+PLAYSOUND temp:1000059 0 x:o20008 y:o20008
+
+[sentence s92]
+IF shown:o20008 = 0 @s93
+IF shown:o20008 = 1 @s94
+
+[sentence s93]
+PLAYSOUND temp:1000059 0 x:o20008 y:o20008
+
+[sentence s94]
+PLAYSOUND temp:1000058 0 x:o20008 y:o20008
+
+[sentence s95]
+on=talk o20010
+SETINACTIVE o20010
+SETACTIVE o20011
+PLAYSOUND temp:1000058 0 x:o20010 y:o20010
+IF net:1000005 = 0 @s96
+
+[sentence s96]
+SETFLAG temp:1000003 x:o20010
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20010
+ADD temp:1000004 200
+IF temp:1000043 = -1 @s97
+IF temp:1000043 ! -1 @s100
+SETFLAG net:1000005 1
+
+[sentence s97]
+IF temp:1000040 = -1 @s98
+IF temp:1000040 ! -1 @s99
+
+[sentence s98]
+CREATEITEM temp:1000041 temp:1000042 temp:1000003 temp:1000004 -1 -1
+
+[sentence s99]
+CREATEITEMTABLE temp:1000040 temp:1000003 temp:1000004
+
+[sentence s100]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000043 temp:1000044
+
+[sentence s101]
+on=talk o20011
+SETACTIVE o20010
+SETINACTIVE o20011
+PLAYSOUND temp:1000059 0 x:o20010 y:o20010
+
+[sentence s102]
+IF shown:o20010 = 0 @s103
+IF shown:o20010 = 1 @s104
+
+[sentence s103]
+PLAYSOUND temp:1000059 0 x:o20010 y:o20010
+
+[sentence s104]
+PLAYSOUND temp:1000058 0 x:o20010 y:o20010
+
+[sentence s105]
+on=talk o20012
+SETINACTIVE o20012
+SETACTIVE o20013
+PLAYSOUND temp:1000058 0 x:o20012 y:o20012
+IF net:1000006 = 0 @s106
+
+[sentence s106]
+SETFLAG temp:1000003 x:o20012
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20012
+ADD temp:1000004 200
+IF temp:1000048 = -1 @s107
+IF temp:1000048 ! -1 @s110
+SETFLAG net:1000006 1
+
+[sentence s107]
+IF temp:1000045 = -1 @s108
+IF temp:1000045 ! -1 @s109
+
+[sentence s108]
+CREATEITEM temp:1000046 temp:1000047 temp:1000003 temp:1000004 -1 -1
+
+[sentence s109]
+CREATEITEMTABLE temp:1000045 temp:1000003 temp:1000004
+
+[sentence s110]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000048 temp:1000049
+
+[sentence s111]
+on=talk o20013
+SETACTIVE o20012
+SETINACTIVE o20013
+PLAYSOUND temp:1000059 0 x:o20012 y:o20012
+
+[sentence s112]
+IF shown:o20012 = 0 @s113
+IF shown:o20012 = 1 @s114
+
+[sentence s113]
+PLAYSOUND temp:1000059 0 x:o20012 y:o20012
+
+[sentence s114]
+PLAYSOUND temp:1000058 0 x:o20012 y:o20012
+
+[sentence s115]
+on=talk o20014
+SETINACTIVE o20014
+SETACTIVE o20015
+PLAYSOUND temp:1000058 0 x:o20014 y:o20014
+IF net:1000007 = 0 @s116
+
+[sentence s116]
+SETFLAG temp:1000003 x:o20014
+ADD temp:1000003 200
+SETFLAG temp:1000004 y:o20014
+ADD temp:1000004 200
+IF temp:1000053 = -1 @s117
+IF temp:1000053 ! -1 @s120
+SETFLAG net:1000007 1
+
+[sentence s117]
+IF temp:1000050 = -1 @s118
+IF temp:1000050 ! -1 @s119
+
+[sentence s118]
+CREATEITEM temp:1000051 temp:1000052 temp:1000003 temp:1000004 -1 -1
+
+[sentence s119]
+CREATEITEMTABLE temp:1000050 temp:1000003 temp:1000004
+
+[sentence s120]
+CREATEITEM 4 0 temp:1000003 temp:1000004 temp:1000053 temp:1000054
+
+[sentence s121]
+on=talk o20015
+SETACTIVE o20014
+SETINACTIVE o20015
+PLAYSOUND temp:1000059 0 x:o20014 y:o20014
+
+[sentence s122]
+IF shown:o20014 = 0 @s123
+IF shown:o20014 = 1 @s124
+
+[sentence s123]
+PLAYSOUND temp:1000059 0 x:o20014 y:o20014
+
+[sentence s124]
+PLAYSOUND temp:1000058 0 x:o20014 y:o20014

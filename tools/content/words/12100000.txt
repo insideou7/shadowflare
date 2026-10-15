@@ -1,0 +1,984 @@
+# Kanfore, Mining Town: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Harlan leads the army's operation, Tobin is his second; Sella
+# the spirit healer; Venn the trader; Morrow the merchant who keeps the
+# herb garden; Hask the smith; Ostin the traveling merchant; Sir Aldric
+# the knight and Wren the elf seer; Ansel, sick with marsh fever, and his
+# daughter Posy; Dorn, Pell and Lisette, townsfolk.
+
+[message 1000000]
+Kanfore, Mining Town
+
+[message 1000001]
+Kanfore, Mining Town
+
+[message 1000002]
+So you're the one they sent. Good.
+Name's Harlan. This operation is mine
+to run.
+
+[message 1000003]
+I give the orders, but the fighting I leave
+to people like you. Bring me results;
+that's all I ask.
+
+[message 1000004]
+The man over there is Tobin, my second.
+Take your questions to him.
+
+[message 1000005]
+Let's not waste time. Here's your first job.
+
+[message 1000006]
+Everything this operation needs is stored here,
+and a band of thieves out of the demon army wants it.
+They hide in the Forest of Claws, south-east of town.
+Break that band before anything else.
+
+[message 1000007]
+Bring down the ones who lead them, and the rest
+should fall apart. Aim for the leaders.
+
+[message 1000008]
+When it's done, report back to me.
+Off you go.
+
+[message 1000009]
+Hired swords come in every kind. Some are worth
+more than a knight. Knights look the part,
+but there's often little behind the armor.
+
+[message 1000010]
+Well done.
+Your pay first. Here.
+
+[message 1000011]
+Next, I need a mining tunnel looked at. The operation
+depends on it, and it lies a long way south of here.
+
+[message 1000012]
+The way there runs through the elves' forest. I'm still
+asking them to let you through; until they agree,
+get past as quietly as you can.
+
+[message 1000013]
+Luck go with you.
+
+[message 1000014]
+I hardly believe it...
+The dragon of the old stories, slain?
+
+[message 1000015]
+I never expected that much of you...
+
+[message 1000016]
+While fighters like you still walk the land,
+these dark days are not hopeless.
+
+[message 1000017]
+Maybe I'm looking at a true hero.
+
+[message 1000018]
+Whatever stands in your way, you'll get past it.
+I'm sure of that now.
+
+[message 1000019]
+Keep our hopes alive.
+
+[message 1000020]
+The elves wouldn't let you through their forest?
+Then the talks are going badly.
+
+[message 1000021]
+I think it's the dragon from the old tales
+that has them worried.
+
+[message 1000022]
+They say it sleeps somewhere in a mine, shut in
+long ago behind a wizard's shield of magic...
+
+[message 1000023]
+It's still young, but even so it once had the strength
+to drown a whole kingdom in fire.
+
+[message 1000024]
+The elves live in fear
+of it waking.
+
+[message 1000025]
+If our army goes through that tunnel as it pleases,
+it could disturb the seal and wake the beast.
+That's what the elves are afraid of.
+
+[message 1000026]
+They take this very seriously,
+it seems.
+
+[message 1000027]
+We need someone who knows the seal well to vouch for us,
+someone who can talk the elves round...
+
+[message 1000028]
+The dragon was sealed by a well-known wizard, Orsolan.
+His tower stands deep in the Forest of Spirits,
+east of Cross Agora.
+
+[message 1000029]
+Go to him. Ask him to help us
+win the elves over.
+
+[message 1000030]
+Marsh fever has been going round the town lately.
+
+[message 1000031]
+The war held up the rebuilding of the Marsh Quarter.
+The place is filthy, and the fever was born there
+and spread from it.
+
+[message 1000032]
+With the elven remedy it's seldom deadly...
+
+[message 1000033]
+...but the remedy has run short.
+
+[message 1000034]
+It's made from herbs grown in a garden that Morrow
+the merchant keeps. We can't get any more of it.
+A bad year, he says.
+
+[message 1000035]
+And that greedy merchant named a price for more of it
+that no one could pay.
+
+[message 1000036]
+We don't trust the way he does business,
+but we can't go in there and look.
+
+[message 1000037]
+The garden is on elven land. Make trouble there
+and the operation could be held up.
+
+[message 1000038]
+I'm told an elf leader gave Morrow the garden to keep,
+as a sign of goodwill between our peoples.
+
+[message 1000039]
+Morrow's dealings make my blood boil,
+but for now my hands are tied.
+
+[message 1000040]
+I'm sorry. On the matter of the herb garden,
+we can't help you.
+
+[message 1000041]
+I heard what you did about the herb garden. Hard work,
+and it paid off: the army has all the remedy it needs.
+
+[message 1000042]
+You're better than the stories about you.
+We'll lean on you gladly from here on.
+
+[message 1000043]
+Sella can go on as before. The Guild agreed to it,
+seeing as this was no ordinary case.
+
+[message 1000044]
+Hello. I'm Tobin; I help run this operation.
+Glad to have you.
+
+[message 1000045]
+Above all, we need the road clear,
+so the army can strike before the enemy knows.
+
+[message 1000046]
+An old mine tunnel is to be our way through.
+I want you to look it over
+and make it safe.
+
+[message 1000047]
+There's also a band of thieves round here,
+and they've proved tougher than we
+reckoned on.
+
+[message 1000048]
+They fight well. Deserters from the demon army
+pulled them together.
+
+[message 1000049]
+We haven't confirmed it, but some of the demons'
+senior officers may be among them.
+
+[message 1000050]
+Why they keep going after our supplies,
+we don't know. But we can't lose
+any more time over them.
+
+[message 1000051]
+They've also cornered some of our allies. We won't leave
+anyone to them. Go and see what you can find. Good luck.
+
+[message 1000052]
+Keep at it.
+
+[message 1000053]
+Well. That's... impressive. I wouldn't have tried it.
+Never mind me.
+
+[message 1000054]
+I expect nothing short of success.
+Good luck!
+
+[message 1000055]
+Ever since the fever spread, the remedy has been scarce.
+Sella, the spirit healer, buys it herself
+and gives it to the poor.
+
+[message 1000056]
+Good of her.
+
+[message 1000057]
+Not that it's any business of mine.
+
+[message 1000058]
+She charges for her healing?
+Well, it makes sense. She paid for the remedy.
+
+[message 1000059]
+Charging without the Guild's leave is against the rules,
+and she does it. But she means no harm by it.
+
+[message 1000060]
+I'll keep it to myself for now.
+If word got out, she'd be in real trouble...
+
+[message 1000061]
+Anyway, it's nothing to do with me.
+
+[message 1000062]
+The remedy costs far more now?
+Probably a poor harvest
+of the herbs.
+
+[message 1000063]
+There's ugly talk about the man who supplies it,
+but who can blame someone for wanting a profit?
+
+[message 1000064]
+Venn did much the same, didn't he? Bought up
+the town's remedy and made a fat
+profit on it.
+
+[message 1000065]
+Had I the means, I'd be rich by now too...
+Not that it's my concern.
+
+[message 1000066]
+If I get impatient, this fight is lost.
+(sigh)
+
+[message 1000067]
+About these doubts over Morrow... fixing the price
+of the remedy, buying off the inspectors... I can't say
+I care. But people's lives hang on it,
+and that does trouble me.
+
+[message 1000068]
+What? You think I should be angry?
+Go against the people above me?
+
+[message 1000069]
+It makes no difference. No one asks what I think...
+It has nothing to do with me...
+
+[message 1000070]
+Please don't ask someone with nothing to do with it
+questions that only make things awkward...
+
+[message 1000071]
+Oh, you're wonderful. I always knew you'd do it.
+Truly!
+
+[message 1000072]
+Ha ha ha...
+
+[message 1000073]
+This war has made me a rich man.
+I can't stop laughing! Ha ha ha!
+
+[message 1000074]
+Oops. Forget I said that.
+Ha ha ha!
+
+[message 1000075]
+Time to spend some of it. What shall we try next?
+Ha ha ha!
+
+[message 1000076]
+The remedy's too dear, you think? Nothing I can do
+about that. The price follows the demand.
+
+[message 1000077]
+Take it up with Morrow if you don't like it...
+Oops. You didn't hear that!
+
+[message 1000078]
+What of it? My business is honest.
+What others do is no affair of mine!
+
+[message 1000079]
+I told you, I know nothing about Morrow!
+.......
+
+[message 1000080]
+Don't look at me like that.
+I know nothing about it.
+
+[message 1000081]
+........ngh.
+
+[message 1000082]
+.....hngh.
+
+[message 1000083]
+..Wh
+
+[message 1000084]
+Stop that.
+
+[message 1000085]
+Stop smiling at me like that.
+
+[message 1000086]
+Fine! I'll tell you everything!
+And why are you glowing like that!?
+
+[message 1000087]
+Hm..
+
+[message 1000088]
+Word is that Morrow has been raising the remedy's price on his
+own, without asking anyone, while the elves' leader is away.
+
+[message 1000089]
+We did well out of this war, trading goods and supplies.
+The elven remedy is wanted everywhere. However much
+of it we sell, people want more.
+
+[message 1000090]
+Morrow kept a stock of the remedy hidden. When the price
+went up, he sold it on the quiet to whoever paid most.
+Think what that brought him.
+
+[message 1000091]
+That's why the market ran dry. He must have found
+a buyer with deep pockets. The fighting at the front
+is harder now, all because of him.
+
+[message 1000092]
+Everyone blames him, but nothing can be done:
+the inspectors say there's nothing wrong.
+
+[message 1000093]
+Put simply, the inspectors are in his pocket.
+They're part of the whole rotten business.
+
+[message 1000094]
+That's all I'm telling you.
+
+[message 1000095]
+That's enough, isn't it?
+Stop staring at me!
+
+[message 1000096]
+I asked about Morrow..
+and got a real dressing-down!
+We're finished talking..
+
+[message 1000097]
+Please, forgive me!
+I've done nothing wrong!
+
+[message 1000098]
+What can I do for you?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000099]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000100]
+You can't afford that.
+
+[message 1000101]
+Nothing here needs mending.
+
+[message 1000102]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000103]
+There's nothing unknown here.
+
+[message 1000104]
+I'm Sella.
+They sent me here not long ago.
+Pleased to meet you.
+
+[message 1000105]
+The army pays you well, I hear?
+Then I'm afraid healing will cost you.
+
+[message 1000106]
+How are you keeping?
+
+[message 1000107]
+If you want healing, you'll need to pay.
+
+[message 1000108]
+Charging for healing is against the rules?
+I thought you'd say that!
+
+[message 1000109]
+Complain to your officers if you like.
+Let the Guild throw me out. I don't care!
+
+[message 1000110]
+..That greedy man! Doesn't he care who lives or dies?
+
+[message 1000111]
+Oh! Forgive me!
+I was miles away..
+
+[message 1000112]
+If you're hurt, I'll heal you right away.. no, wait, I didn't say that!
+Pay for your treatment!
+
+[message 1000113]
+What? Don't look at me like that.
+You don't like that I charge?
+
+[message 1000114]
+I don't care. If you don't like it,
+find someone else to heal you!
+
+[message 1000115]
+So what?
+I don't want to take your money, but...
+
+[message 1000116]
+........
+
+[message 1000117]
+The remedy is dear. I have to charge.
+
+[message 1000118]
+Anything else to complain about?
+
+[message 1000119]
+Thank you, for everything.
+I'm grateful, truly...
+I expect the healers will dismiss me in the end.
+Until then I'll heal you for nothing,
+so do come by...
+
+[message 1000120]
+Healing wounds is all I can do.
+I'm sorry...
+
+[message 1000121]
+How are things?
+
+[message 1000122]
+The townsfolk pleaded with the healers
+not to dismiss me....
+
+[message 1000123]
+.....
+
+[message 1000124]
+So I can go on
+healing you after all.
+
+[message 1000125]
+That's all I wanted to tell you.
+
+[message 1000126]
+You aren't hurt.
+
+[message 1000127]
+Healing is 200 Gold. Is that all right?
+
+                    ~Yes~  ~No~
+
+[message 1000128]
+You aren't hurt.
+Look after yourself...
+
+[message 1000129]
+Come back if you need me.
+
+[message 1000130]
+Spirits, mend these wounds.
+
+[message 1000131]
+Spirits!
+Take this pain away.
+
+[message 1000132]
+I'm sorry. You haven't enough money.
+
+[message 1000133]
+How are you keeping?
+
+[message 1000134]
+Hello there!
+Welcome to Kanfore, the mining town!
+
+[message 1000135]
+Between ourselves, the army's made this place
+lively of late!
+
+[message 1000136]
+Since they put their camp here,
+we've been doing very nicely!
+
+[message 1000137]
+There's a nasty fever about.
+Take care of yourself.
+
+[message 1000138]
+Let's make our fortunes and spend them right here.
+We'll have a fine time of it!
+
+[message 1000139]
+Hey, you. See that spirit healer over there?
+Pretty face, but she makes you pay. Imagine that!
+
+[message 1000140]
+I took a fall and couldn't get up,
+and she wanted 3 gold out of me!
+The greedy thing!
+
+[message 1000141]
+I was so cross I beat her down to 1 gold.
+She said that wouldn't even pay for the remedy.
+Nonsense, if you ask me!
+
+[message 1000142]
+When I was a boy, healers never asked a penny.
+What's happened to the world?!
+
+[message 1000143]
+She acts all kind,
+but it's the money she's after...
+
+[message 1000144]
+What? She broke the rules and risked her place
+to buy the remedy for everyone?
+
+[message 1000145]
+I'd never have guessed!
+It's been years since I met someone that good!
+
+[message 1000146]
+Who puts anything ahead of money, after all?
+That's too good to be true.
+
+[message 1000147]
+Oh...
+Should I go and say goodbye to him?
+
+[message 1000148]
+He never does a day's work.
+I only heal for free those who work hard!
+
+[message 1000149]
+Folk who don't pay their dues should be grateful
+I heal them so cheaply.
+
+[message 1000150]
+Other healers charge far more for this.
+He doesn't see that...
+
+[message 1000151]
+That girl never used to charge for healing.
+What's got into her?
+Has some smooth-talker led her astray?
+
+[message 1000152]
+.....
+
+[message 1000153]
+I feel for her.
+Her life can't have been easy.
+Those who sneer at her should be ashamed.
+
+[message 1000154]
+Well, no point being careful now.
+I've caught the marsh fever.
+
+[message 1000155]
+It's named for the Marsh Quarter, where it started.
+It spreads like nothing else, but with the remedy
+it's not too bad..
+
+[message 1000156]
+(cough)
+I'm strong, I'll pull through,
+but the weaker folk...
+
+[message 1000157]
+It spread so fast and got so bad..
+Nothing stopped it until the remedy was found.
+
+[message 1000158]
+I'll live, for Posy's sake.. I'll be fine..
+
+[message 1000159]
+I can't die before my girl
+can make her own way.
+
+[message 1000160]
+.....(cough!)
+
+[message 1000161]
+Sella, over there, always brings me remedy.
+She says not to worry about taking it,
+since it comes from the Guild's store for the town.
+But something about it feels wrong..
+
+[message 1000162]
+Oh, there you are!
+Thanks to you, there's remedy enough again,
+and everyone's well!
+
+[message 1000163]
+I'm grateful to Sella too.
+I've heard she wasn't allowed
+to charge for healing...
+
+[message 1000164]
+I never knew she'd put her own work at risk
+to buy the remedy and hand it out.
+
+[message 1000165]
+We're getting up a petition for her.
+I think it'll go through!
+It's our turn to help her.
+
+[message 1000166]
+You've done so much for us. Thank you.
+You'll always have friends here.
+
+[message 1000167]
+Dad... if only he had the elven remedy,
+he'd get better soon...
+
+[message 1000168]
+Why does the remedy keep costing more?
+We can't pay that much.
+
+[message 1000169]
+Others are in the same state. Without the remedy
+Sella gives us, no one would pull through..
+
+[message 1000170]
+Sella hasn't looked well herself lately..
+I don't know if I should still take remedy from her..
+
+[message 1000171]
+Oh! Thank you so much!
+Dad's completely well again!
+
+[message 1000172]
+And Sella's all right too!
+It's wonderful!
+
+[message 1000173]
+Well met.
+You look a fine sort.
+
+[message 1000174]
+Someone like you might...
+No, never mind...
+
+[message 1000175]
+This is Wren. She's one of the elves.
+Things between humans and elves are touchy,
+but the two of us get on well enough.
+
+[message 1000176]
+Be happy.
+Nothing matters more.
+
+[message 1000177]
+....
+
+[message 1000178]
+I'm sorry,
+but I'd rather be alone..
+
+[message 1000179]
+So the army really is on the move.
+The forest may be closed off again.
+
+[message 1000180]
+Aldric and I fought monsters side by side at the main front.
+
+[message 1000181]
+Humans and elves have long kept apart,
+but fighting together, we might get past
+what divides us...
+
+[message 1000182]
+Yet the two peoples still drift apart.
+Some folk won't give us the time of day...
+
+[message 1000183]
+Together, nothing could stand against us.
+
+[message 1000184]
+I hear the fever's getting worse. The elven remedy
+treats it well, and the herb should be
+growing in that garden...
+
+[message 1000185]
+Not enough remedy!?
+The herbs have done well this year.
+Odd...
+
+[message 1000186]
+I've heard bad things about the man
+who keeps the herb garden.
+
+[message 1000187]
+It may only be envy, since he's rich,
+but something could be going on...
+
+[message 1000188]
+....
+
+[message 1000189]
+What?
+The keeper of the herb garden..?
+
+[message 1000190]
+So that's why the remedy costs so much. It's shameful.
+Elves and humans worked so well together on that garden.
+
+[message 1000191]
+But if mistrust keeps growing,
+things between elves and humans will only get worse.
+Someone has to act.
+
+[message 1000192]
+......
+
+[message 1000193]
+We could go to Faelan, the elf ranger who keeps watch over
+the Forest of Silence, south-west of town.
+He may know what to do!
+
+[message 1000194]
+He's an elf who values friendship with humans,
+and he has friends on both sides, so he may help set
+this right. Will you go and talk to him?
+
+[message 1000195]
+The Forest of Silence lies south-west of this town.
+Watch your map so you don't lose your way.
+
+[message 1000196]
+You did it! Wonderful. Most people would never have
+managed what you've been through, but you're not most people!
+
+[message 1000197]
+You can do what
+others can't.
+
+[message 1000198]
+We won't lose heart.
+Thank you so much!
+
+[message 1000199]
+Ah, I've heard a great deal about you.
+A pleasure.
+
+[message 1000200]
+I'm Morrow. I see to the guards hereabouts.
+Heh heh heh...
+Do make friends with everyone.
+
+[message 1000201]
+Heh heh heh...
+
+[message 1000202]
+The remedy?
+Yes, we grow the herbs for it here.
+
+[message 1000203]
+I gather it's been a poor year
+for the herbs.
+
+[message 1000204]
+I only command the guards, you understand.
+Any questions, put them to the steward...
+
+[message 1000205]
+The steward, an elf, is away somewhere distant just now.
+You'll find him hard to reach.
+...Heh heh heh.
+
+[message 1000206]
+I think you ought
+to grow up a little...
+
+[message 1000207]
+Well? What is it?
+Been listening to ugly gossip about me?
+
+[message 1000208]
+Now, now, calm yourself.
+Yes, I have made more money than most.
+
+[message 1000209]
+That comes of hard work and heaven's favor.
+Heaven sees how hard I work, and to give thanks
+I made a generous gift to the temple.
+
+[message 1000210]
+The priest was most grateful.
+Not bad, eh?
+None of you could make the faithful
+smile like that.
+
+[message 1000211]
+I give of my own wealth because my heart is pure.
+A greedy man would never do such a thing.
+
+[message 1000212]
+What's more, I've already been cleared.
+An official inspector found me blameless.
+
+[message 1000213]
+So if you doubt me, you doubt the kingdom,
+the king and heaven itself.
+Think about that.
+
+[message 1000214]
+Though it's probably wasted breath,
+telling all this to a sword-for-hire...
+
+[message 1000215]
+Had you been born into money,
+you'd have a better life
+than one of blades and spells.
+
+[message 1000216]
+Even once you've paid for your sins in the world below,
+you'd do well to pray
+to heaven.
+
+[message 1000217]
+You've nothing to offer heaven,
+so I'd say you'd better pray hard!
+
+[message 1000218]
+Mwa ha ha..
+
+[message 1000219]
+Ha ha ha!
+
+[message 1000220]
+What's the matter with you?
+Have you no shame?
+
+[message 1000221]
+Heaven chose me.
+You chose wrongly...
+
+[message 1000222]
+Thrown out of the Guild and barred from trading?!
+And a prison sentence???
+
+[message 1000223]
+Lies! This is a cruel joke...
+I have deals under way!
+
+[message 1000224]
+And what about my debts?
+
+[message 1000225]
+You! Why in the world would you do this...
+
+[message 1000226]
+Oh, I see it now!
+
+[message 1000227]
+Very well, how much? How much do you want?
+
+[message 1000228]
+It's money, isn't it? You're jealous that heaven favors me.
+This is too much!
+
+[message 1000229]
+You've no idea how much money passes through my hands!
+More than ordinary folk
+earn in all their lives!
+
+[message 1000230]
+If it's money you want, just say so.
+Why treat me so cruelly?
+
+[message 1000231]
+Don't care for my manner?
+Then I'll pay you even more.
+
+[message 1000232]
+Enough to live at your ease for good!
+What do you say? Wouldn't that be nice?
+Never work another day. Imagine it!
+
+[message 1000233]
+No common soul could ever live like that.
+It's what every ordinary person dreams of,
+and I'll make it real for you! There! How about that?
+
+[message 1000234]
+But you must save me! Tell them I'm innocent!
+Saving me is worth more to you than saving
+a thousand nobodies! Can't you see that?
+
+[message 1000235]
+Curse it... I can't stand fools...
+
+[message 1000236]
+Oh....
+
+[message 1000237]
+Ruined... I'm ruined... What will become of me?
+
+[message 1000238]
+Name's Hask. I'm a smith,
+and fine work is my trade.
+
+[message 1000239]
+I can make your gear like new! And how
+about a new color for your equipment?
+
+[message 1000240]
+Heh heh heh...
+I've good things for sale.

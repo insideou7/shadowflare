@@ -1,0 +1,41 @@
+# Written by tools/content/scripts.py after the original's scenario 2200002
+# (Forest of Wesley), in our own words (tools/content/words/12200002.txt).
+
+object=8920,17161,9079,17320,o1000,states=1/0/0,at=9007/17162
+temp=1000009,90
+temp=1000010,90
+temp=1000014,34
+temp=1000015,35
+temp=1000016,36
+temp=1000017,77
+temp=1000018,78
+temp=1000019,33
+temp=1000020,27
+temp=1000021,28
+temp=1000022,38
+temp=1000023,39
+temp=1000024,3
+temp=1000025,25
+temp=1000026,26
+temp=1000027,30
+temp=1000028,37
+temp=1000029,10
+temp=1000030,40
+temp=1000031,41
+temp=1000032,42
+temp=1000033,43
+temp=1000034,53
+temp=1000035,80
+
+[message 1000000]
+Forest of Wesley
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12200001 4
+
+[sentence s2]
+CHANGESCENARIO 12250000 0

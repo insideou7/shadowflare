@@ -1,0 +1,120 @@
+# Written by tools/content/scripts.py after the original's scenario 2100002
+# (Forest of Claws), in our own words (tools/content/words/12100002.txt).
+
+object=1167,12583,1326,12742,o1000,states=1/0/0,at=1381/12717
+object=15939,18618,16236,18869,o200,states=1/1/1,at=16077/18731
+object=15909,18588,16257,18908,o201,states=1/0/0,at=16077/18731
+object=15045,17703,17121,19786,o202,states=0/0/0,at=15681/18226
+object=16277,18930,16327,18978,o203,states=1/0/0,at=16077/18731
+object=16277,18930,16327,18978,o204,states=1/0/0,at=16077/18731
+object=31840,10720,31999,11039,o700,states=1/0/1,at=31305/10474
+object=31840,11040,31999,11519,o701,states=1/0/1,at=31319/10950
+temp=1000011,81
+temp=1000012,82
+temp=1000013,83
+temp=1000014,77
+temp=1000015,78
+temp=1000016,33
+temp=1000017,27
+temp=1000018,28
+temp=1000019,38
+temp=1000020,39
+temp=1000021,3
+temp=1000022,25
+temp=1000023,26
+temp=1000024,30
+temp=1000025,37
+temp=1000026,10
+temp=1000027,40
+temp=1000028,41
+temp=1000029,42
+temp=1000030,43
+temp=1000031,53
+temp=1000032,80
+
+[message 1000000]
+Forest of Claws
+
+[message 1000001]
+Forest of Claws
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000002
+IF temp:1000002 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000031 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 12100001 1
+
+[sentence s3]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000002
+IF temp:1000002 = 0 @s4
+IF temp:1000002 > 0 @s8
+IF temp:1000002 > -1 @s10
+
+[sentence s4]
+IF warp:14 = 0 @s5
+IF temp:1000009 ! 1000 @s6
+IF temp:1000010 = 0 @s7
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s5]
+SETFLAG warp:14 1
+
+[sentence s6]
+ADD temp:1000009 50
+
+[sentence s7]
+PLAYSOUND temp:1000032 0 x:o200 y:o200
+SETFLAG temp:1000010 1
+
+[sentence s8]
+IF temp:1000009 ! 0 @s9
+SETFLAG temp:1000010 0
+DELETEWARPGATE 0
+
+[sentence s9]
+SUB temp:1000009 50
+
+[sentence s10]
+SETCHARTRANS o203 temp:1000009
+SETCHARTRANS o204 temp:1000009
+
+[sentence s11]
+on=talk o200
+WARPGATE 0
+
+[sentence s12]
+on=tick
+IF playmode:0 ! 2 @s13
+
+[sentence s13]
+IF shown:o700 = 1 @s14
+
+[sentence s14]
+CHECKENEMYLIVE 14000000 14000002 temp:1000002
+IF temp:1000002 = -1 @s15
+
+[sentence s15]
+SETINACTIVE o700
+SETINACTIVE o701
+PLAYSOUND temp:1000011 0 x:o700 y:o700
+
+[sentence s16]
+PLAYSOUND temp:1000011 0 x:o700 y:o700
+
+[sentence s17]
+on=tick
+IF playmode:0 ! 2 @s18
+
+[sentence s18]
+CHECKENEMYLIVE 14000003 14000005 temp:1000002
+IF temp:1000002 = -1 @s19
+
+[sentence s19]
+SETQUESTFLAG 11 2 1

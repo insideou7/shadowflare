@@ -13,3 +13,53 @@ entry=50
 name=Cold Svalt Town
 scenario=11000000
 entry=50
+
+[gate 13]
+name=Kanfore, Mining Town
+scenario=12100000
+entry=50
+
+[gate 14]
+name=Forest of Claws
+scenario=12100002
+entry=50
+
+[gate 15]
+name=Cross Agora
+scenario=12100004
+entry=50
+
+[gate 16]
+name=Forest of Sprits
+scenario=12100005
+entry=50
+
+[gate 17]
+name=Fort of Thieves
+scenario=12100006
+entry=50
+
+[gate 18]
+name=Fanann, Village of Elves
+scenario=12200000
+entry=50
+
+[gate 19]
+name=Mining Tunnel of Yugunos
+scenario=12200003
+entry=50
+
+[gate 20]
+name=Dragon Defense Walls
+scenario=12200003
+entry=51
+
+[gate 21]
+name=Mining Tunnel of Yugunos, B3F
+scenario=12210002
+entry=50
+
+[gate 22]
+name=Power Supply Facility
+scenario=12200005
+entry=50

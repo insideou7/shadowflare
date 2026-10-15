@@ -1,0 +1,11 @@
+# Mining Tunnel of Yugunos, B5F: the party's own thoughts, in our own
+# words, by the original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Mining Tunnel of Yugunos, B5F
+
+[message 1000001]
+Something is down here... I don't like this.
+
+[message 1000002]
+Something is down here... I don't like this.

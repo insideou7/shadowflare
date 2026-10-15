@@ -1,0 +1,8 @@
+# Labyrinth of Mauve: place names only, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Labyrinth of Mauve
+
+[message 1000001]
+Power Supply Facility

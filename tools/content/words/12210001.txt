@@ -1,0 +1,13 @@
+# Mining Tunnel of Yugunos, B2F: the party's own thoughts, in our own
+# words, by the original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Mining Tunnel of Yugunos, B2F
+
+[message 1000001]
+Some strong force is guarding this place.
+We should go straight back to Fanann.
+
+[message 1000002]
+Some strong force is guarding this place.
+We should go straight back to Fanann.

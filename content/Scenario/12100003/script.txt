@@ -1,0 +1,309 @@
+# Written by tools/content/scripts.py after the original's scenario 2100003
+# (Forest of Silence), in our own words (tools/content/words/12100003.txt).
+
+object=34739,18782,34898,18941,o1000,states=1/0/0,at=34621/18878
+temp=1000012,34
+temp=1000013,35
+temp=1000014,36
+temp=1000015,77
+temp=1000016,78
+temp=1000017,33
+temp=1000018,27
+temp=1000019,28
+temp=1000020,38
+temp=1000021,39
+temp=1000022,3
+temp=1000023,25
+temp=1000024,26
+temp=1000025,30
+temp=1000026,37
+temp=1000027,10
+temp=1000028,40
+temp=1000029,41
+temp=1000030,42
+temp=1000031,43
+temp=1000032,53
+temp=1000033,80
+
+[message 1000000]
+Forest of Silence
+
+[message 1000001]
+You're new around here, aren't you? Well met.
+I'm Faelan. I range these woods for the elves.
+
+[message 1000002]
+The humans in these parts keep their word.
+When they fell trees, they take only what
+they agreed to and spare the rest.
+
+[message 1000003]
+Because they're careful, elves and humans can
+share this land in peace. I'd ask you to
+remember that.
+
+[message 1000004]
+Lately, though, monsters are tearing the forest
+apart, and I can't see how we'll stop them...
+
+[message 1000005]
+Anyway, I'd be grateful if you looked after
+the forest too, from here on.
+
+[message 1000006]
+Hello. We've no answer to the monsters here.
+Whatever you do, stay clear of the worst of it.
+
+[message 1000007]
+Our forest...
+Nothing hurts like seeing it torn up.
+
+[message 1000008]
+Ah, news from Wren!
+Morrow's dealings have made me uneasy
+more than once.
+
+[message 1000009]
+It seems he's thrown in with crooked nobles
+who line their pockets, and this time he's
+gone much too far.
+
+[message 1000010]
+I've already told some honest nobles and the
+merchants' guild. If a proper inquiry looks
+into that garden, the truth will come out.
+
+[message 1000011]
+There's one trouble, though.
+
+[message 1000012]
+Some elves who have no love for humans will
+try to use this for their own ends.
+
+[message 1000013]
+They'll say humans can't be trusted anymore.
+They might demand payment, or demand that
+the humans quit the forest altogether.
+
+[message 1000014]
+Those elves keep their standing by stirring up
+hatred. They meddle in everything and tangle
+every matter they touch.
+
+[message 1000015]
+We mustn't throw away a bond that took
+so many years to build.
+
+[message 1000016]
+This forest has done well because humans
+and elves have been friends.
+
+[message 1000017]
+...If you've the time someday, I'll tell
+you more about it.
+
+[message 1000018]
+Anyway...
+
+[message 1000019]
+Things are going badly, and I have a plan.
+It may sound reckless. Will you at least
+hear me out?
+
+[message 1000020]
+Not long ago, savage giant spiders moved into the
+Forest of Silence. They can ruin these woods, and
+rangers have already died trying to kill them.
+
+[message 1000021]
+We're afraid they'll multiply, yet we elves
+can do nothing about them.
+
+[message 1000022]
+Humans could deal with them, though. You fight
+them better than we do. Clear them out, and
+the trouble is over.
+
+[message 1000023]
+Sir Aldric tells me you're a fine fighter.
+It won't be easy, but will you help us?
+Think it over, please.
+
+[message 1000024]
+Sir Aldric and Wren rarely speak that well of
+anyone. Now that I've met you, I can see why.
+
+[message 1000025]
+You're back! I feared I'd sent you to your death.
+I'm so glad you wiped them out.
+
+[message 1000026]
+Thanks to you, the Forest of Silence can heal
+and be quiet again. You have my deepest thanks!
+
+[message 1000027]
+And there's more good news!
+
+[message 1000028]
+Morrow's crooked trading and his deals with
+the bad nobles are out in the open. He was
+hiding a store of medicine.
+
+[message 1000029]
+The garden's owner has agreed to hand the
+medicine out to all, so the fever should
+soon lose its grip.
+
+[message 1000030]
+Well,
+Morrow won't be trading again for some time
+after this.
+
+[message 1000031]
+Nor will anyone want to deal with him; he's
+brought shame on elves everywhere.
+
+[message 1000032]
+They say he may be ruined, too. He sank
+every coin he had into herbs.
+
+[message 1000033]
+Greed blinded him, and now he's paying for it.
+A sorry man.
+
+[message 1000034]
+From now on, we'll put him to honest work
+with his hands, same as us!
+
+Ha ha ha!
+
+[message 1000035]
+Hello there! How are things?
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12100001 2
+
+[sentence s2]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+[sentence s3]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF save:36 = 5 @s4
+IF save:36 = 4 @s5
+IF save:36 = 3 @s8
+IF save:36 = 2 @s11
+IF save:36 = 1 @s12
+IF save:36 = 0 @s13
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s4]
+SETFLAG temp:1000002 msg:1000035
+SETFLAG temp:1000001 600
+
+[sentence s5]
+IF quest:18 = 2 @s6
+IF quest:18 ! 2 @s7
+
+[sentence s6]
+SETFLAG temp:1000002 msg:1000025
+SETFLAG temp:1000001 500
+SETFLAG save:47 6
+SETFLAG save:36 5
+
+[sentence s7]
+SETFLAG temp:1000002 msg:1000024
+SETFLAG temp:1000001 400
+
+[sentence s8]
+IF save:47 ! 4 @s9
+IF save:47 = 4 @s10
+
+[sentence s9]
+SETFLAG temp:1000002 msg:1000006
+SETFLAG temp:1000001 200
+
+[sentence s10]
+SETFLAG temp:1000002 msg:1000008
+SETFLAG temp:1000001 300
+SETFLAG save:47 5
+SETFLAG save:36 4
+
+[sentence s11]
+SETFLAG temp:1000002 msg:1000006
+SETFLAG temp:1000001 200
+SETFLAG save:36 3
+
+[sentence s12]
+SETFLAG temp:1000002 msg:1000005
+SETFLAG temp:1000001 100
+SETFLAG save:36 2
+
+[sentence s13]
+SETFLAG temp:1000002 msg:1000001
+SETFLAG temp:1000001 0
+SETFLAG save:36 1
+
+[sentence s14]
+on=talk-end p0
+IF temp:1000001 = 3 @s15
+IF temp:1000001 = 100 @s16
+IF temp:1000001 = 201 @s17
+IF temp:1000001 = 315 @s18
+IF temp:1000001 = 400 @s19
+IF temp:1000001 = 509 @s20
+IF temp:1000001 = 600 @s21
+IF temp:1000001 = -1 @s22
+IF temp:1000001 ! -1 @s23
+IF temp:1000001 = 315 @s24
+
+[sentence s15]
+SETFLAG temp:1000001 -1
+
+[sentence s16]
+SETFLAG temp:1000001 -1
+
+[sentence s17]
+SETFLAG temp:1000001 -1
+
+[sentence s18]
+SETFLAG temp:1000001 -1
+
+[sentence s19]
+SETFLAG temp:1000001 -1
+
+[sentence s20]
+SETFLAG temp:1000001 -1
+
+[sentence s21]
+SETFLAG temp:1000001 -1
+
+[sentence s22]
+C_MOVABLE p0
+
+[sentence s23]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s24]
+SETQUESTFLAG 18 1 0
+DRAWQUESTNAME 18
+
+[sentence s25]
+on=tick
+IF playmode:0 ! 2 @s26
+
+[sentence s26]
+CHECKENEMYLIVE 14000000 14000003 temp:1000005
+IF temp:1000005 = -1 @s27
+
+[sentence s27]
+SETQUESTFLAG 18 2 1

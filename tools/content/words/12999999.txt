@@ -1,0 +1,47 @@
+# Caravan: the merchant who survived the forest, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+
+[message 1000000]
+What do you need?
+
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000001]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000002]
+You're short of coin.
+
+[message 1000003]
+Hm... nothing of yours needs fixing.
+
+[message 1000004]
+Identifying it will cost %d Gold. Fair enough?
+
+                         ~Yes~  ~No~
+
+[message 1000005]
+You're not carrying anything unknown.
+
+[message 1000006]
+Monsters fell on us in the woods up ahead.
+I hope the rest of the merchants got away...
+
+[message 1000007]
+Still, if you're going on, you'll want
+better gear first.
+I'll make you a fair price.
+
+[message 1000008]
+Caravan

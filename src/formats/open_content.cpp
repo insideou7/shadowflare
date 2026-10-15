@@ -671,7 +671,7 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
             static const std::map<std::string_view, std::int32_t, std::less<>> kEvents = {
                 {"talk", S::kOnTalk}, {"talk-end", S::kOnTalkEnd}, {"judge", S::kOnJudge},
                 {"enemy-dead", S::kOnEnemyDead}, {"tick", S::kEveryTick}, {"start", S::kOnStart},
-                {"card-game-end", S::kOnCardGameEnd},
+                {"routine", S::kOnRoutine}, {"card-game-end", S::kOnCardGameEnd},
             };
             const auto words = Lines::split(trim(line->substr(3)), ' ');
             const auto event = kEvents.find(words[0]);
@@ -689,6 +689,7 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
             static const std::map<std::string_view, std::int32_t, std::less<>> kKinds = {
                 {"temp", S::kTemp}, {"save", S::kSave}, {"quest", S::kQuest}, {"net", S::kNet}, {"msg", S::kMessage}, {"warp", S::kWarp},
                 {"x", S::kCharacterX}, {"y", S::kCharacterY}, {"shown", -1},
+                {"alive", S::kEnemyAlive}, {"playmode", S::kPlayMode}, {"held", S::kObjectCheck}, {"exstrg", 13},
             };
             static const std::map<std::string_view, std::int32_t, std::less<>> kOperators = {
                 {"=", 0}, {"!", 1}, {"!=", 1}, {">", 2}, {"<", 3},
@@ -704,7 +705,8 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
                     const auto kind = kKinds.find(w.substr(0, colon));
                     if (kind == kKinds.end()) lines.fail(std::format("unknown operand '{}'", w));
                     const auto rest = w.substr(colon + 1);
-                    const bool position = kind->second == S::kCharacterX || kind->second == S::kCharacterY;
+                    const bool position = kind->second == S::kCharacterX || kind->second == S::kCharacterY ||
+                                          kind->second == S::kObjectCheck;
                     if (kind->second == -1) {
                         // shown:<name>: the NET flag SETACTIVE and SETINACTIVE
                         // set for someone, as the original's 1xxxxxxxx flags.
@@ -733,29 +735,48 @@ void parseScript(std::span<const std::uint8_t> text, Scenario& scenario) {
                 p.rect[2] = p.rect[3] = 60;
                 place(std::move(p));
             } else if (key == "object") {
-                // object=left,top,right,bottom,name[,prop[,hidden]]: something
-                // to click on, unseen or drawn as a prop of Map/props.sheet,
-                // which then stands in the way; `hidden` starts it inactive.
+                // object=left,top,right,bottom,name[,prop][,hidden][,states=a/b/c][,at=x/y]:
+                // something to click on, unseen or drawn as a prop of
+                // Map/props.sheet, which then stands in the way; `hidden`
+                // starts it inactive, `states` gives its shown, usable and
+                // in-the-way flags, and `at` where it stands (the prop's
+                // anchor; the rectangle's middle without it).
                 const auto f = Lines::split(value, ',');
-                if (f.size() < 5 || f.size() > 7) lines.fail("object needs left, top, right, bottom and name");
-                if (f.size() == 7 && f[6] != "hidden") lines.fail("object's last field must be 'hidden'");
+                if (f.size() < 5) lines.fail("object needs left, top, right, bottom and name");
                 const int l = lines.toInt(f[0]), t = lines.toInt(f[1]), r = lines.toInt(f[2]), b = lines.toInt(f[3]);
                 ScenarioControl::Placement p;
                 p.group = Group::Object;
                 p.x = (l + r) / 2;
                 p.y = (t + b) / 2;
+                p.direction = 8;
+                p.name = f[4];
+                p.states = {1, 1, 0};
+                std::optional<std::array<std::int32_t, 3>> states;
+                for (std::size_t i = 5; i < f.size(); ++i) {
+                    const auto field = trim(f[i]);
+                    if (field == "hidden") {
+                        states = std::array<std::int32_t, 3>{0, 0, 0};
+                    } else if (field.starts_with("states=")) {
+                        const auto v = Lines::split(field.substr(7), '/');
+                        if (v.size() != 3) lines.fail("states= needs three flags: shown/usable/in the way");
+                        states = std::array<std::int32_t, 3>{lines.toInt(v[0]), lines.toInt(v[1]), lines.toInt(v[2])};
+                    } else if (field.starts_with("at=")) {
+                        const auto v = Lines::split(field.substr(3), '/');
+                        if (v.size() != 2) lines.fail("at= needs x/y");
+                        p.x = lines.toInt(v[0]);
+                        p.y = lines.toInt(v[1]);
+                    } else if (i == 5) {
+                        p.look.prop = field;
+                        p.states = {1, 1, 1};
+                    } else {
+                        lines.fail(std::format("unknown object field '{}'", field));
+                    }
+                }
+                if (states) p.states = *states;
                 p.rect[0] = l - p.x;
                 p.rect[1] = t - p.y;
                 p.rect[2] = r - p.x;
                 p.rect[3] = b - p.y;
-                p.direction = 8;
-                p.name = f[4];
-                p.states = {1, 1, 0};
-                if (f.size() >= 6) {
-                    p.look.prop = f[5];
-                    p.states = {1, 1, 1};
-                }
-                if (f.size() == 7) p.states = {0, 0, 0};
                 place(std::move(p));
             } else if (key == "temp") {
                 // temp=id,value: a TEMP flag's value when the scenario starts

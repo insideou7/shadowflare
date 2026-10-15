@@ -99,7 +99,7 @@ def main():
     out = Path(sys.argv[3]) if len(sys.argv) > 3 else None
     names = set(sys.argv[4:])
     pictures = []
-    for number in fa.FIELDS + fa.DUNGEONS:
+    for number in fa.ALL:
         o, theirs, ours = compare(game, pack, number)
         if names and o.name not in names:
             continue

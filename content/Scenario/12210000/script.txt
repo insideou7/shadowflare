@@ -1,0 +1,350 @@
+# Written by tools/content/scripts.py after the original's scenario 2210000
+# (Mining Tunnel of Yugunos, B1F), in our own words (tools/content/words/12210000.txt).
+
+object=23422,13162,23652,13260,o20000,obj_chest_x,states=1/1/1,at=23487/13166
+object=23422,13162,23652,13260,o20001,obj_chest_open_x,states=0/0/0,at=23487/13166
+object=23427,12687,23657,12785,o20002,obj_chest_x,states=1/1/1,at=23492/12691
+object=23427,12687,23657,12785,o20003,obj_chest_open_x,states=0/0/0,at=23492/12691
+object=15124,2599,15354,2697,o20004,obj_chest_x,states=1/1/1,at=15189/2603
+object=15124,2599,15354,2697,o20005,obj_chest_open_x,states=0/0/0,at=15189/2603
+object=15104,1959,15334,2057,o20006,obj_chest_x,states=1/1/1,at=15169/1963
+object=15104,1959,15334,2057,o20007,obj_chest_open_x,states=0/0/0,at=15169/1963
+object=3889,12244,3990,12420,o20008,obj_keg,states=1/1/1,at=3924/12318
+object=3889,12244,3990,12420,o20009,obj_keg_open,states=0/0/0,at=3924/12318
+object=4521,12262,4622,12438,o20010,obj_keg,states=1/1/1,at=4556/12336
+object=4521,12262,4622,12438,o20011,obj_keg_open,states=0/0/0,at=4556/12336
+temp=1000009,144
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,144
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,-1
+temp=1000018,-1
+temp=1000019,144
+temp=1000020,-1
+temp=1000021,-1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,144
+temp=1000025,-1
+temp=1000026,-1
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,144
+temp=1000030,-1
+temp=1000031,-1
+temp=1000032,-1
+temp=1000033,-1
+temp=1000034,144
+temp=1000035,-1
+temp=1000036,-1
+temp=1000037,-1
+temp=1000038,-1
+temp=1000039,34
+temp=1000040,35
+temp=1000041,36
+temp=1000042,77
+temp=1000043,78
+temp=1000044,33
+temp=1000045,27
+temp=1000046,28
+temp=1000047,38
+temp=1000048,39
+temp=1000049,3
+temp=1000050,25
+temp=1000051,26
+temp=1000052,30
+temp=1000053,37
+temp=1000054,10
+temp=1000055,40
+temp=1000056,41
+temp=1000057,42
+temp=1000058,43
+temp=1000059,53
+temp=1000060,80
+
+[message 1000000]
+Mining Tunnel of Yugunos, B1F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 12200003 2
+
+[sentence s2]
+CHANGESCENARIO 12210001 0
+
+[sentence s3]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000042 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s4
+
+[sentence s4]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s5
+IF temp:1000012 ! -1 @s8
+SETFLAG net:1000000 1
+
+[sentence s5]
+IF temp:1000009 = -1 @s6
+IF temp:1000009 ! -1 @s7
+
+[sentence s6]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s7]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s8]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s9]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000043 0 x:o20000 y:o20000
+
+[sentence s10]
+IF shown:o20000 = 0 @s11
+IF shown:o20000 = 1 @s12
+
+[sentence s11]
+PLAYSOUND temp:1000043 0 x:o20000 y:o20000
+
+[sentence s12]
+PLAYSOUND temp:1000042 0 x:o20000 y:o20000
+
+[sentence s13]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000042 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s14
+
+[sentence s14]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s15
+IF temp:1000017 ! -1 @s18
+SETFLAG net:1000001 1
+
+[sentence s15]
+IF temp:1000014 = -1 @s16
+IF temp:1000014 ! -1 @s17
+
+[sentence s16]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s17]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s18]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s19]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000043 0 x:o20002 y:o20002
+
+[sentence s20]
+IF shown:o20002 = 0 @s21
+IF shown:o20002 = 1 @s22
+
+[sentence s21]
+PLAYSOUND temp:1000043 0 x:o20002 y:o20002
+
+[sentence s22]
+PLAYSOUND temp:1000042 0 x:o20002 y:o20002
+
+[sentence s23]
+on=talk o20004
+SETINACTIVE o20004
+SETACTIVE o20005
+PLAYSOUND temp:1000042 0 x:o20004 y:o20004
+IF net:1000002 = 0 @s24
+
+[sentence s24]
+SETFLAG temp:1000000 x:o20004
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20004
+ADD temp:1000001 200
+IF temp:1000022 = -1 @s25
+IF temp:1000022 ! -1 @s28
+SETFLAG net:1000002 1
+
+[sentence s25]
+IF temp:1000019 = -1 @s26
+IF temp:1000019 ! -1 @s27
+
+[sentence s26]
+CREATEITEM temp:1000020 temp:1000021 temp:1000000 temp:1000001 -1 -1
+
+[sentence s27]
+CREATEITEMTABLE temp:1000019 temp:1000000 temp:1000001
+
+[sentence s28]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000022 temp:1000023
+
+[sentence s29]
+on=talk o20005
+SETACTIVE o20004
+SETINACTIVE o20005
+PLAYSOUND temp:1000043 0 x:o20004 y:o20004
+
+[sentence s30]
+IF shown:o20004 = 0 @s31
+IF shown:o20004 = 1 @s32
+
+[sentence s31]
+PLAYSOUND temp:1000043 0 x:o20004 y:o20004
+
+[sentence s32]
+PLAYSOUND temp:1000042 0 x:o20004 y:o20004
+
+[sentence s33]
+on=talk o20006
+SETINACTIVE o20006
+SETACTIVE o20007
+PLAYSOUND temp:1000042 0 x:o20006 y:o20006
+IF net:1000003 = 0 @s34
+
+[sentence s34]
+SETFLAG temp:1000000 x:o20006
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20006
+ADD temp:1000001 200
+IF temp:1000027 = -1 @s35
+IF temp:1000027 ! -1 @s38
+SETFLAG net:1000003 1
+
+[sentence s35]
+IF temp:1000024 = -1 @s36
+IF temp:1000024 ! -1 @s37
+
+[sentence s36]
+CREATEITEM temp:1000025 temp:1000026 temp:1000000 temp:1000001 -1 -1
+
+[sentence s37]
+CREATEITEMTABLE temp:1000024 temp:1000000 temp:1000001
+
+[sentence s38]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000027 temp:1000028
+
+[sentence s39]
+on=talk o20007
+SETACTIVE o20006
+SETINACTIVE o20007
+PLAYSOUND temp:1000043 0 x:o20006 y:o20006
+
+[sentence s40]
+IF shown:o20006 = 0 @s41
+IF shown:o20006 = 1 @s42
+
+[sentence s41]
+PLAYSOUND temp:1000043 0 x:o20006 y:o20006
+
+[sentence s42]
+PLAYSOUND temp:1000042 0 x:o20006 y:o20006
+
+[sentence s43]
+on=talk o20008
+SETINACTIVE o20008
+SETACTIVE o20009
+PLAYSOUND temp:1000042 0 x:o20008 y:o20008
+IF net:1000004 = 0 @s44
+
+[sentence s44]
+SETFLAG temp:1000000 x:o20008
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20008
+ADD temp:1000001 200
+IF temp:1000032 = -1 @s45
+IF temp:1000032 ! -1 @s48
+SETFLAG net:1000004 1
+
+[sentence s45]
+IF temp:1000029 = -1 @s46
+IF temp:1000029 ! -1 @s47
+
+[sentence s46]
+CREATEITEM temp:1000030 temp:1000031 temp:1000000 temp:1000001 -1 -1
+
+[sentence s47]
+CREATEITEMTABLE temp:1000029 temp:1000000 temp:1000001
+
+[sentence s48]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000032 temp:1000033
+
+[sentence s49]
+on=talk o20009
+SETACTIVE o20008
+SETINACTIVE o20009
+PLAYSOUND temp:1000043 0 x:o20008 y:o20008
+
+[sentence s50]
+IF shown:o20008 = 0 @s51
+IF shown:o20008 = 1 @s52
+
+[sentence s51]
+PLAYSOUND temp:1000043 0 x:o20008 y:o20008
+
+[sentence s52]
+PLAYSOUND temp:1000042 0 x:o20008 y:o20008
+
+[sentence s53]
+on=talk o20010
+SETINACTIVE o20010
+SETACTIVE o20011
+PLAYSOUND temp:1000042 0 x:o20010 y:o20010
+IF net:1000005 = 0 @s54
+
+[sentence s54]
+SETFLAG temp:1000000 x:o20010
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20010
+ADD temp:1000001 200
+IF temp:1000037 = -1 @s55
+IF temp:1000037 ! -1 @s58
+SETFLAG net:1000005 1
+
+[sentence s55]
+IF temp:1000034 = -1 @s56
+IF temp:1000034 ! -1 @s57
+
+[sentence s56]
+CREATEITEM temp:1000035 temp:1000036 temp:1000000 temp:1000001 -1 -1
+
+[sentence s57]
+CREATEITEMTABLE temp:1000034 temp:1000000 temp:1000001
+
+[sentence s58]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000037 temp:1000038
+
+[sentence s59]
+on=talk o20011
+SETACTIVE o20010
+SETINACTIVE o20011
+PLAYSOUND temp:1000043 0 x:o20010 y:o20010
+
+[sentence s60]
+IF shown:o20010 = 0 @s61
+IF shown:o20010 = 1 @s62
+
+[sentence s61]
+PLAYSOUND temp:1000043 0 x:o20010 y:o20010
+
+[sentence s62]
+PLAYSOUND temp:1000042 0 x:o20010 y:o20010

@@ -810,7 +810,7 @@ void testWornWeight() {
 }
 
 // A save moves between the original's data and the open pack's in the
-// first area, and back to where it was.
+// first two areas, and back to where it was.
 void testSaveToOtherData() {
     sf::SaveGame save;
     save.map = "f00_01";
@@ -820,24 +820,33 @@ void testSaveToOtherData() {
     sf::ExploredMap seen(1003, 668);
     seen.reveal(400, 300, 68, 46);
     save.explored["Scenario/10000001"] = seen;
-    save.explored["Scenario/02000000"] = sf::ExploredMap(5, 5);
+    save.explored["Scenario/03900003"] = sf::ExploredMap(5, 5);
     check(sf::moveSaveToOtherData(save), "Remote Town is in both");
     check(save.scenario == "Scenario/00000000", "the original's Remote Town");
     check(save.x == 89898 && save.y == 2811, "the original's first entry of Remote Town");
     const auto near = save.explored.find("Scenario/00000001");
     check(near != save.explored.end() && near->second.width == 1920 && near->second.height == 1440,
           "the area map's mask goes to the original's size");
-    check(save.explored.contains("Scenario/02000000"), "areas only one data has are kept");
+    check(save.explored.contains("Scenario/03900003"), "areas only one data has are kept");
     check(sf::moveSaveToOtherData(save), "and back");
     check(save.scenario == "Scenario/10000000" && save.x == 4138 && save.y == 8251, "back where it was");
     const auto back = save.explored.find("Scenario/10000001");
     check(back != save.explored.end() && back->second.seen == seen.seen, "with the same cells seen");
 
+    sf::SaveGame kanfore;
+    kanfore.map = "c02_00";
+    kanfore.scenario = "Scenario/12100000";
+    kanfore.x = 7615;  // the open pack's entry 50 of Kanfore, by its warp gate
+    kanfore.y = 8414;
+    check(sf::moveSaveToOtherData(kanfore) && kanfore.scenario == "Scenario/02100000" && kanfore.x == 7615 + 7040 &&
+              kanfore.y == 8414 - 8640,
+          "the second area moves too");
+
     sf::SaveGame losmans;
-    losmans.scenario = "Scenario/02000000";
+    losmans.scenario = "Scenario/03900003";
     losmans.x = 5;
-    check(!sf::moveSaveToOtherData(losmans) && losmans.scenario == "Scenario/02000000" && losmans.x == 5,
-          "an area past the first stays as it was");
+    check(!sf::moveSaveToOtherData(losmans) && losmans.scenario == "Scenario/03900003" && losmans.x == 5,
+          "an area past the second stays as it was");
 }
 
 void testRightClickEquip() {
