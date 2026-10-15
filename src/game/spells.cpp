@@ -162,6 +162,13 @@ void Game::teachSpell(int spell, int level) {
     playerMp_ = std::max(playerMp_, 9999);
 }
 
+int Game::unlockAllSpells() {
+    const std::vector<int> learned = spells_.learnAll(magic_, career_.history, career_.current);
+    for (const int spell : learned) log::info("Learned {}", magic_.spell(spell).name);
+    log::info("Unlocked {} spells", learned.size());
+    return static_cast<int>(learned.size());
+}
+
 void Game::trainSpell(int spell) {
     // The Debug tab's experience rate counts each use that many times.
     if (!spells_.train(magic_, spell, xpRate() / Settings::kXpRateNormal)) return;

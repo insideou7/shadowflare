@@ -222,6 +222,15 @@ struct SpellBook {
     // A hero who has reached their level with this history, as if every
     // level-up had happened (for saves from before magic).
     static SpellBook replay(const MagicTables& t, const std::vector<HeroClass>& history);
+    // The spells a hero who has been the classes in `history`, the new
+    // hero's mercenary level and `current` can ever learn at a level-up
+    // (tables 104-107 not 99999), that they don't know yet. Spells only
+    // scripts teach (Identify) are not among them.
+    std::vector<int> unlearned(const MagicTables& t, const std::vector<HeroClass>& history, HeroClass current) const;
+    // The Debug tab's UNLOCK ALL MAGIC: learns each of those at level 1, as
+    // a level-up would, keeping the levels of spells already known. Returns
+    // the spells learned.
+    std::vector<int> learnAll(const MagicTables& t, const std::vector<HeroClass>& history, HeroClass current);
 
     // One use towards the spell's next level (0x44f6f0). True when it went up.
     // `times` counts it as that many uses (the experience-rate cheat), and

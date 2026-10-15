@@ -880,6 +880,21 @@ void testMagic() {
     check(sf::classPoints(t, sf::classHistory(5, C::Warrior))[0] == 5, "the new hero's level counts as a mercenary one");
     auto warrior = sf::SpellBook::replay(t, sf::classHistory(13, C::Warrior));
     check(warrior.knows(sf::kFireBall) && !warrior.knows(sf::kIceBolt), "a warrior learns Fire Ball at 80 points");
+    {
+        // UNLOCK ALL MAGIC: every spell the hero's classes learn, at level 1,
+        // keeping known levels; not other classes' spells or Identify.
+        auto all = sf::SpellBook::replay(t, sf::classHistory(13, C::Warrior));
+        all.level[sf::kFireBall] = 4;
+        const auto learned = all.learnAll(t, sf::classHistory(13, C::Warrior), C::Warrior);
+        check(!learned.empty() && all.knows(sf::kMedusa) && all.knows(sf::kCounterBurst) && all.level[sf::kIceBolt] == 1,
+              "unlock all magic teaches the warrior's spells");
+        check(all.level[sf::kFireBall] == 4 && !all.knows(sf::kMoon) && !all.knows(sf::kIdentify) && !all.knows(sf::kDreadDeathscythe),
+              "unlock all magic keeps levels and stays within the hero's classes");
+        check(all.unlearned(t, sf::classHistory(13, C::Warrior), C::Warrior).empty(), "nothing left to unlock");
+        auto merc = sf::SpellBook{};
+        check(merc.learnAll(t, {}, C::Mercenary).size() == 2 && merc.knows(sf::kTransport) && merc.knows(sf::kPlasma),
+              "a new hero unlocks the mercenary's spells");
+    }
     const int need = t.spell(sf::kPlasma).usesToLevel[0];
     for (int k = 1; k < need; ++k) book.train(t, sf::kPlasma);
     check(book.castLevel(sf::kPlasma) == 1 && book.train(t, sf::kPlasma) && book.castLevel(sf::kPlasma) == 2, "training");
