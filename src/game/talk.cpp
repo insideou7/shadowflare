@@ -836,7 +836,7 @@ void Game::renderShop() {
     // in a box by the mouse.
     std::vector<std::pair<std::string, SDL_Color>> lines;
     if (storageOpen()) {
-        if (hover && !hand_) lines.emplace_back(hover->shownName(), kWhite);
+        if (hover && !hand_) lines.emplace_back(hover->shownName(), qualityColor(hover->def->quality));
     } else if (hand_ && inside(kShopPanel, mx, my)) {
         if (hand_->def->quality == 3 || hand_->def->isGold()) {
             lines.emplace_back("Not for sale", kGrey);
@@ -844,7 +844,7 @@ void Game::renderShop() {
             lines.emplace_back(std::format("Sell for {} gold", sellPrice(*hand_, modifierPrices_) * std::max(1, hand_->count)), kGold);
         }
     } else if (hover && !hand_) {
-        lines.emplace_back(hover->shownName(), kWhite);
+        lines.emplace_back(hover->shownName(), qualityColor(hover->def->quality));
         lines.emplace_back(std::format("{} gold", buyPrice(*hover, modifierPrices_)), buyPrice(*hover, modifierPrices_) > inventory_.gold() ? kGrey : kGold);
     }
     if (!lines.empty()) {

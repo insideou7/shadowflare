@@ -1124,13 +1124,16 @@ void Game::renderSpecialButton(int mx, int my) {
 
 // What the item under the mouse is, in a box centred under the pointer and
 // kept on screen, edged in half-bright white, as the original shows it
-// (0x409160).
+// (0x409160). Ours marks an item too high a level or broken in red on the
+// stats line.
 void Game::renderItemPopup(const Item& item, int mx, int my) {
     const ItemDef& def = *item.def;
     std::vector<std::pair<std::string, SDL_Color>> lines;
     const bool unusable = def.requiredLevel > playerLevel_ || item.broken();
     const std::string name = def.isGold() ? std::format("{} {}", item.count, item.shownName()) : item.shownName();
-    lines.emplace_back(name + (item.unidentified ? "  ?" : ""), unusable ? kRed : kWhite);
+    // The name in its quality's colour, as the original's box draws it, even
+    // before the item is identified.
+    lines.emplace_back(name + (item.unidentified ? "  ?" : ""), qualityColor(def.quality));
     std::string stats;
     const auto& s = def.stats;
     // Unidentified items keep what they do to themselves.

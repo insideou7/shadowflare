@@ -1211,7 +1211,10 @@ covered (or the mission list) the world is not drawn at all.
 
 An item under the mouse is described in a box centred under the pointer,
 8 pixels below it and kept on the screen, edged in white at half strength
-(0x409160).
+(0x409160). Its text (`[name]` and the stat lines) is in the quality's
+colour, the same four as the name on the ground (0x430890 reads + 0x18),
+whether or not the item is identified; a second layer redraws the lines of
+negative stats in red (224, 0, 0).
 
 ## The GATE window
 
