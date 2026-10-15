@@ -269,7 +269,7 @@ void Game::dropFromList(int list, double x, double y) {
         const int rolls = l && l->rolls > 0 ? l->rolls : 1;
         double dx, dy;
         dropSpot(static_cast<int>(i), rolls, x, y, dx, dy);
-        dropItem(Item::make(drops[i], random_), dx, dy);
+        dropItem(Item::make(drops[i], random_, 1, luck()), dx, dy);
         log::info("Dropped {}", drops[i]->name);
     }
 }

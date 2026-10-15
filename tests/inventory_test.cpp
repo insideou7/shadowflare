@@ -276,6 +276,18 @@ void testLoot() {
     check(uniquesAt(200, 4) == 0, "uniques above the hero's level stay out");
     check(uniquesAt(200, 5) > 0, "with luck on, a unique at the hero's level may come");
 
+    // Luck rolls modifiers nearer the top of their range: best of luck/100.
+    sf::ItemDef ranged = kSword;
+    ranged.modifiers[sf::ItemDef::kModAttack] = {0, 99, 100};
+    auto meanAttack = [&](int luck) {
+        sf::Random r(3);
+        long total = 0;
+        for (int i = 0; i < 2000; ++i) total += sf::Item::make(&ranged, r, 1, luck).modifiers[sf::ItemDef::kModAttack];
+        return total / 2000.0;
+    };
+    check(meanAttack(100) > 45 && meanAttack(100) < 54, "at 1x a modifier lands mid-range on average");
+    check(meanAttack(2000) > 92, "at 20x it lands near the top");
+
     double x, y;
     sf::dropSpot(0, 2, 1000, 1000, x, y);
     check(std::abs(x - 1200) < 1e-6 && std::abs(y - 1000) < 1e-6, "the first item lands 200 to the side");
