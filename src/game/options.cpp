@@ -51,7 +51,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     // A new debug option or cheat is a row here, with its label, its
     // choices or stepper text, what setOption or stepOption does with it,
     // and a field in Settings. A cheat must do nothing in original mode.
-    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::UnlockGates, R::ShowFps};
+    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::UnlockGates, R::UnlockStorage, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
@@ -87,6 +87,13 @@ bool Game::optionEnabled(OptionRow row) const {
                                              [](const WarpGates::Gate& g) { return !g.name.empty(); });
             return static_cast<std::size_t>(named) > warpGatesFound().size();
         }
+        // Only in a game, and dimmed once every page is open.
+        case OptionRow::UnlockStorage: {
+            if (originalMode() || !map_ || !player_) return false;
+            for (int page = 0; page < kGiantStoragePages; ++page)
+                if (!giantPageOpen(page)) return true;
+            return false;
+        }
         default: return true;
     }
 }
@@ -115,6 +122,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::XpRate: return "EXPERIENCE RATE";
         case OptionRow::Luck: return "LUCK";
         case OptionRow::UnlockGates: return "UNLOCK ALL GATES";
+        case OptionRow::UnlockStorage: return "UNLOCK ALL STORAGE";
         case OptionRow::ShowFps: return "SHOW FPS";
     }
     return "";
@@ -327,7 +335,8 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit:
         case OptionRow::Exit:
-        case OptionRow::UnlockGates: playSound(0x38); break;
+        case OptionRow::UnlockGates:
+        case OptionRow::UnlockStorage: playSound(0x38); break;
         case OptionRow::Back: playSound(0x39); break;
         default: break;
     }
@@ -349,6 +358,7 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::Exit: quit_ = true; break;
         case OptionRow::Back: closeOptions(); break;
         case OptionRow::UnlockGates: unlockAllWarpGates(); break;
+        case OptionRow::UnlockStorage: unlockAllGiantPages(); break;
         case OptionRow::ClickPriority:
             // Enter brings the next one to the front.
             setOption(row, 1);

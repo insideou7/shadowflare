@@ -272,6 +272,9 @@ public:
     // The Debug tab's UNLOCK ALL GATES: marks every named gate found.
     // Returns how many were not found before.
     int unlockAllWarpGates();
+    // The Debug tab's UNLOCK ALL STORAGE: opens every page of the Giant
+    // Warehouse (its EXSTRG flags). Returns how many were not open before.
+    int unlockAllGiantPages();
     // The GATE window, as WARPGATE `gate` opens it, on one of its pages;
     // and picking the n-th gate listed on the page showing (for testing).
     void openWarpGate(int gate, int page = 0);
@@ -1176,7 +1179,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, UnlockGates, ShowFps
+        XpRate, Luck, UnlockGates, UnlockStorage, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
