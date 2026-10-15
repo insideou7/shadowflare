@@ -61,6 +61,7 @@ add_library(sf_logic STATIC
     src/logic/combat.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
+    src/logic/hero_input.cpp
     src/logic/inventory.cpp
     src/logic/loot.cpp
     src/logic/shop.cpp

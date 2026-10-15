@@ -20,6 +20,7 @@
 #include "logic/card_game.h"
 #include "logic/combat.h"
 #include "logic/explored_map.h"
+#include "logic/hero_input.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
 #include "logic/inventory.h"
@@ -489,7 +490,9 @@ private:
     // worldTexture_, made the size of the view; null if it cannot be.
     SDL_Texture* worldTexture();
     bool tryMove(Character& who, double dx, double dy);
-    void tickPlayer();
+    // The mouse and keyboard as the hero's tick reads them (logic/hero_input.h).
+    HeroInput sampleHeroInput() const;
+    void tickPlayer(const HeroInput& in);
     void swing();
     void tickEnemy(Actor& enemy);
     // Monster behaviour from Control.aid (enemy_ai.cpp).

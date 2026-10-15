@@ -960,7 +960,7 @@ void Game::tick() {
     if (fallTicks_) {
         tickFall();
     } else {
-        tickPlayer();
+        tickPlayer(sampleHeroInput());
         player_->tick();
     }
     if (power_.active()) {
@@ -1097,7 +1097,39 @@ void Game::swapWeaponSetsIfFree() {
     updateEquipment();
 }
 
-void Game::tickPlayer() {
+HeroInput Game::sampleHeroInput() const {
+    HeroInput in;
+    in.held = mouseHeld_;
+    in.stayPut = (SDL_GetModState() & KMOD_SHIFT) != 0;
+    in.running = (SDL_GetModState() & KMOD_CTRL) != 0;
+    if (!mapOpen_) {  // the open map scrolls with the arrow keys instead
+        const Uint8* keys = SDL_GetKeyboardState(nullptr);
+        in.stepX = static_cast<std::int8_t>(keys[SDL_SCANCODE_RIGHT] - keys[SDL_SCANCODE_LEFT]);
+        in.stepY = static_cast<std::int8_t>(keys[SDL_SCANCODE_DOWN] - keys[SDL_SCANCODE_UP]);
+    }
+    if (!in.held) return in;  // the pointer only matters with the button down
+    float lx, ly;
+    if (const auto at = pointerPosition()) {
+        lx = at->x;
+        ly = at->y;
+    } else {
+        int mx, my;
+        SDL_GetMouseState(&mx, &my);
+        SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
+    }
+    const auto target = clickTarget(lx, ly, (1u << Settings::kEnemy) | (1u << Settings::kItem));
+    if (target.kind == Settings::kEnemy) in.aim = HeroInput::Aim::Enemy;
+    if (target.kind == Settings::kItem) in.aim = HeroInput::Aim::Item;
+    in.index = static_cast<std::uint32_t>(target.index);
+    if (const auto object = usableObjectAt(lx, ly)) in.object = static_cast<std::int32_t>(*object);
+    double wx, wy;
+    screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
+    in.x = static_cast<float>(wx);
+    in.y = static_cast<float>(wy);
+    return in;
+}
+
+void Game::tickPlayer(const HeroInput& in) {
     swapWeaponSetsIfFree();
     if (player_->chart() != chart::kWalk && player_->chart() != chart::kPlayerRun) heroSteps(false, false);
     // A trap's stun holds the hero in the hit pose (0x435870).
@@ -1170,42 +1202,36 @@ void Game::tickPlayer() {
     // monster under it, like the original.
     // Shift holds the hero where they stand; with the button down they
     // strike in place, at whatever is in reach.
-    const bool stayPut = (SDL_GetModState() & KMOD_SHIFT) != 0;
-    if (mouseHeld_) {
-        float lx, ly;
-        if (const auto at = pointerPosition()) {
-            lx = at->x;
-            ly = at->y;
-        } else {
-            int mx, my;
-            SDL_GetMouseState(&mx, &my);
-            SDL_RenderWindowToLogical(renderer_, mx, my, &lx, &ly);
-        }
-        const auto target = clickTarget(lx, ly, (1u << Settings::kEnemy) | (1u << Settings::kItem));
+    const bool stayPut = in.stayPut;
+    // What the input names must be there: online, a joining player's game
+    // could name anything.
+    std::optional<std::size_t> enemy, item, object;
+    if (in.aim == HeroInput::Aim::Enemy && in.index < actors_.size() && actors_[in.index].hostile()) enemy = in.index;
+    if (in.aim == HeroInput::Aim::Item && in.index < groundItems_.size()) item = in.index;
+    if (in.object >= 0 && static_cast<std::size_t>(in.object) < control_.placements.size()) object = static_cast<std::size_t>(in.object);
+    if (in.held) {
         attackTarget_.reset();
         talkTarget_.reset();
         objectTarget_.reset();
         if (stayPut) {
             walkTarget_.reset();
             if (identifying_) return;  // no fighting while Identify waits
-            if (target.kind == Settings::kEnemy) attackTarget_ = target.index;
-            double wx, wy;
-            screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
-            player_->faceTowards(wx - player_->x, wy - player_->y);
+            if (enemy) attackTarget_ = *enemy;
+            player_->faceTowards(in.x - player_->x, in.y - player_->y);
             if (bowInHand()) {
-                shoot(attackTarget_, std::atan2(wy - player_->y, wx - player_->x));
+                shoot(attackTarget_, std::atan2(in.y - player_->y, in.x - player_->x));
             } else {
                 swing();
             }
             return;
         }
-        if (target.kind == Settings::kEnemy && !identifying_) {
-            attackTarget_ = target.index;
+        if (enemy && !identifying_) {
+            attackTarget_ = *enemy;
             walkTarget_.reset();
-        } else if (target.kind == Settings::kItem) {
+        } else if (item) {
             // Walking onto an item picks it up.
-            walkTarget_.emplace(groundItems_[target.index].x, groundItems_[target.index].y);
-        } else if (const auto object = usableObjectAt(lx, ly)) {
+            walkTarget_.emplace(groundItems_[*item].x, groundItems_[*item].y);
+        } else if (object) {
             // Held on a chest or switch, the hero goes up to it and then
             // stays put while the button is down (0x449240: in reach, they
             // only turn to it; holding steers only a walk under way), so
@@ -1220,9 +1246,7 @@ void Game::tickPlayer() {
                 walkTarget_.emplace(nx, ny);
             }
         } else {
-            double wx, wy;
-            screenToWorld(pixelX(lx), pixelY(ly), wx, wy);
-            walkTarget_.emplace(wx, wy);
+            walkTarget_.emplace(in.x, in.y);
         }
     }
     if (attackTarget_ && (!actors_[*attackTarget_].alive() || !actors_[*attackTarget_].active)) attackTarget_.reset();
@@ -1285,14 +1309,7 @@ void Game::tickPlayer() {
 
     // Keyboard movement in screen directions (ours: the original walks by
     // mouse only, and its letter keys open windows).
-    const Uint8* keys = SDL_GetKeyboardState(nullptr);
-    double kx = 0, ky = 0;
-    if (!mapOpen_) {  // the open map scrolls with them instead
-        if (keys[SDL_SCANCODE_LEFT]) kx -= 1;
-        if (keys[SDL_SCANCODE_RIGHT]) kx += 1;
-        if (keys[SDL_SCANCODE_UP]) ky -= 1;
-        if (keys[SDL_SCANCODE_DOWN]) ky += 1;
-    }
+    const double kx = in.stepX, ky = in.stepY;
 
     double dx = 0, dy = 0;
     if (kx != 0 || ky != 0) {
@@ -1310,14 +1327,14 @@ void Game::tickPlayer() {
         if (bowInHand()) {
             player_->faceTowards(dx, dy);
             shoot(attackTarget_, std::atan2(dy, dx));
-            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            if (!in.held && !autoFight_) attackTarget_.reset();
             return;
         }
         if (std::hypot(dx, dy) <= kMeleeRange) {
             player_->faceTowards(dx, dy);
             swing();
             // Keep punching only while the button is held.
-            if (!mouseHeld_ && !autoFight_) attackTarget_.reset();
+            if (!in.held && !autoFight_) attackTarget_.reset();
             return;
         }
     } else if (walkTarget_) {
@@ -1326,7 +1343,7 @@ void Game::tickPlayer() {
     }
 
     // Run when RUN is chosen (R), or while Ctrl is held.
-    const bool running = runMode_ || (SDL_GetModState() & KMOD_CTRL) != 0;
+    const bool running = runMode_ || in.running;
     // The original's step for this walking speed, in its ticks; power mode
     // the fastest, and the slowest when the hero wears more than they can
     // carry.

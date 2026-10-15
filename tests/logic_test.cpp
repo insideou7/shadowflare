@@ -15,6 +15,7 @@
 #include "logic/card_game.h"
 #include "logic/combat.h"
 #include "logic/explored_map.h"
+#include "logic/hero_input.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
 #include "formats/table_data.h"
@@ -1395,7 +1396,51 @@ void testCombat() {
     check(sf::inSwing(7, 0, sf::kSwingSpread) && !sf::inSwing(7, 1, sf::kSwingSpread), "swing wraps round");
 }
 
+// The hero's input survives the trip to bytes and back, and bytes a
+// player's game could send that are not a HeroInput are refused.
+void testHeroInput() {
+    using sf::HeroInput;
+    HeroInput in;
+    in.held = true;
+    in.running = true;
+    in.stepX = -1;
+    in.stepY = 1;
+    in.aim = HeroInput::Aim::Enemy;
+    in.index = 42;
+    in.object = 7;
+    in.x = 1234.5f;
+    in.y = -3.25f;
+    const auto bytes = in.encode();
+    check(HeroInput::decode(bytes) == in, "a hero input reads back as written");
+    check(HeroInput::decode(HeroInput{}.encode()) == HeroInput{}, "an empty hero input reads back");
+
+    auto bad = [&](std::size_t at, std::uint8_t value) {
+        auto b = bytes;
+        b[at] = value;
+        return !HeroInput::decode(b).has_value();
+    };
+    check(bad(0, HeroInput::kVersion + 1), "another version is refused");
+    check(bad(1, 8), "an unknown flag is refused");
+    check(bad(2, 2), "a step of two is refused");
+    check(bad(3, 0xfe), "a step of minus two is refused");
+    check(bad(4, 3), "an unknown aim is refused");
+    {
+        auto b = bytes;
+        for (int i = 0; i < 4; ++i) b[9 + i] = 0xfe;  // object -2
+        check(!HeroInput::decode(b).has_value(), "an object below -1 is refused");
+    }
+    {
+        auto b = bytes;
+        b[17] = b[18] = 0;
+        b[19] = 0xc0;
+        b[20] = 0x7f;  // x = NaN
+        check(!HeroInput::decode(b).has_value(), "a point that is not a number is refused");
+    }
+    check(!HeroInput::decode(std::span(bytes).first(bytes.size() - 1)).has_value(), "a short message is refused");
+}
+
 int main() {
+    testHeroInput();
     testItemLabels();
     testMixer();
     testLighting();
