@@ -644,7 +644,7 @@ private:
         int then = -1;          // played where it stands when its life runs out
         // Hurting: spell < 0 for effects that only show.
         int spell = -1, level = 1, power = 0, hit = 0;
-        double box = 0;            // half the side of the square it hurts in
+        JudgeRect judge;           // where it hurts, around (x, y)
         bool area = false;         // hurts everyone in its box (each once), else the first
         bool diesOnHit = false;
         bool diesOnWall = false;

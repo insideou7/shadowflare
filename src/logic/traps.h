@@ -16,6 +16,17 @@ struct JudgeRect {
 
 // The hero's judge rectangle (player + 0x2e8, set at 0x44a4c0).
 inline constexpr JudgeRect kHeroJudge{-80, -80, 79, 79};
+// The companion's judge rectangle (+0x138, as partner.cpp's box).
+inline constexpr JudgeRect kPartnerJudge{-80, -80, 80, 80};
+
+// Whether two judge rectangles, each around its own position, touch.
+inline bool judgesOverlap(double ax, double ay, const JudgeRect& a, double bx, double by, const JudgeRect& b) {
+    return ax + a.left <= bx + b.right && bx + b.left <= ax + a.right && ay + a.top <= by + b.bottom && by + b.top <= ay + a.bottom;
+}
+// A judge rectangle grown by `by` on every side.
+inline constexpr JudgeRect grown(const JudgeRect& r, int by) {
+    return {r.left - by, r.top - by, r.right + by, r.bottom + by};
+}
 
 // CALCANGLE dx dy var: the angle towards (dx, dy) in whole degrees,
 // counter-clockwise from world x with world y turned up, cut towards zero

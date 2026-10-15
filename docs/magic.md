@@ -285,7 +285,7 @@ the hand:
 | Fire Ball | 10000012 on the caster; at R a missile 10000010 from 180 in front, ±50 square, until it hits or meets a wall | 10000011 |
 | Ice Bolt | the same with 11000027 and 10000040 | 11000026 |
 | Plasma | table 205 bursts, one every 4 ticks from R, at 250, 450, ... in front: lightning 10000030 (one of 4 charts) hurting a ±100 square, splash 10000031 and glitter 10000032; a blocked spot stops the line | 11000003 |
-| Hell Fire | ring 10000002 at tick 3; at R sprays 10000000 (charts 0 and 1) and one tick of damage within 150 of the caster's square | 10000001 |
+| Hell Fire | ring 10000002 at tick 3; at R sprays 10000000 (charts 0 and 1) and one tick of damage within 150 of the caster's judge rect (the hero's -80..79), so it reaches a goblin's middle 309 out | 10000001 |
 | Ice Blast | ice 10000051 at tick 3; crystals 10000050 when it ends (L); damage within 150 of the caster at L+4; mist 10000052 at L+15 | 11000026 |
 | Heal | 11000060 on the caster (casting chart 11) | |
 | Earth Spears | table 206 spears 10000060, one every 8 ticks from R, at 250, 550, ... in front, each hurting a ±150 square | |
@@ -304,10 +304,15 @@ and the orbs (207). The open content paints its own art for all of these
 (`tools/art/effects.py`); with the original's files the engine plays the
 original's.
 
+An effect hurts whoever's judge rect touches its own (0x45e1e0 asks
+SetJudgementObject for what is in it): the hero's is -80..79 each way
+(player + 0x2e8), the companion's ±80, and a monster's the rect its
+placement gives (±80 for Dusty Ruins' goblins, ±60 in the open
+content). The squares above are the effect's own.
+
 Ours rather than the original's, until they are read from the exe:
 
-- Heroes and monsters are hit in a ±50 square (the original reads each
-  one's judge rect), and a damaging effect hurts each monster once.
+- A damaging effect hurts each monster once.
 - Plasma, Lightning Storm and Earth Spears test one point for a wall
   where the original tests a square.
 - A missile that meets nothing stops after 6000 world units.

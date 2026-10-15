@@ -1134,6 +1134,13 @@ void testTrapGeometry() {
     check(sf::rectGap(0, 0, r, 100, 100, r) == 0, "overlapping rectangles have no gap");
     check(sf::rectGap(0, 0, r, 200, 0, r) == 40, "side by side: the nearest edges less one");
     check(sf::rectGap(0, 0, r, 300, 300, r) == static_cast<int>(std::hypot(141.0, 141.0)) - 1, "apart both ways: the corners");
+    // Hell Fire hurts within 150 of the hero's rectangle (0x42a860), so it
+    // reaches a goblin (rect -80..79) whose middle is 309 away, not 310.
+    const sf::JudgeRect fire = sf::grown(r, 150);
+    check(fire.left == -230 && fire.right == 229, "grown adds to every side");
+    check(sf::judgesOverlap(0, 0, fire, 309, 0, r) && sf::judgesOverlap(0, 0, fire, -309, 0, r), "Hell Fire reaches 309 out");
+    check(!sf::judgesOverlap(0, 0, fire, 310, 0, r) && !sf::judgesOverlap(0, 0, fire, 0, -310, r), "but not 310");
+    check(sf::judgesOverlap(0, 0, fire, 300, 300, r), "and corner to corner");
 }
 
 void testArchery() {

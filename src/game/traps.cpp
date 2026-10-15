@@ -12,16 +12,10 @@ namespace sf {
 
 namespace {
 
-// The companion's judge rectangle (+0x138, as partner.cpp's box).
-constexpr JudgeRect kPartnerJudge{-80, -80, 80, 80};
 // What a trap's hit chance is set to (0x43309b); the hero's evasion is
 // taken off it, and hitChance keeps it within 20-98%.
 constexpr int kTrapHit = 9999;
 constexpr int kPartnerHitChart = 3;  // the companion's hit chart (partner.cpp)
-
-bool overlaps(double x, double y, const JudgeRect& a, double bx, double by, const JudgeRect& b) {
-    return x + a.left <= bx + b.right && bx + b.left <= x + a.right && y + a.top <= by + b.bottom && by + b.top <= y + a.bottom;
-}
 
 }  // namespace
 
@@ -74,9 +68,9 @@ void Game::stepTrap(Effect& e) {
     const TrapShot& shot = e.trap->shot;
     const bool hurts = e.age >= shot.hitFrom && (shot.hitTo < 0 || e.age <= shot.hitTo);
     if (hurts && player_) {
-        const bool heroIn = playerHp_ > 0 && overlaps(e.x, e.y, shot.box, player_->x, player_->y, kHeroJudge);
+        const bool heroIn = playerHp_ > 0 && judgesOverlap(e.x, e.y, shot.box, player_->x, player_->y, kHeroJudge);
         const bool partnerIn = partnerAlive() && partnerRecord_.active &&
-                               overlaps(e.x, e.y, shot.box, partner_->character.x, partner_->character.y, kPartnerJudge);
+                               judgesOverlap(e.x, e.y, shot.box, partner_->character.x, partner_->character.y, kPartnerJudge);
         const bool thrown = e.trap->thrower >= 0;
         const auto hitHero = [&] { thrown ? shotHitsPlayer(e) : trapHitsPlayer(e); };
         const auto hitPartner = [&] { thrown ? shotHitsPartner(e) : trapHitsPartner(e); };

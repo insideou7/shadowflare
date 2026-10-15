@@ -24,9 +24,14 @@ constexpr double kTau = 2 * std::numbers::pi;
 // The sound most spells' shots make when they land (their struct's words
 // 0x76 and 0x77 set to bank 0, voice 20).
 constexpr int kMagicHitSound = 20;
-// Half the side of the square a hero or monster can be hit in. The
-// original reads each one's judge rect; this is ours.
-constexpr double kTargetHalf = 50.0;
+// A monster's judge rectangle: its placement's rect (+0x20).
+JudgeRect judgeOf(const std::int32_t (&r)[4]) { return {r[0], r[1], r[2], r[3]}; }
+
+// A square judge rectangle, `half` out from the middle each way.
+constexpr JudgeRect square(int half) { return {-half, -half, half, half}; }
+// How far Hell Fire's and Ice Blast's area reaches past the caster's own
+// judge rectangle (0x42a860, 0x42cd70).
+constexpr int kBurstReach = 150;
 // Ours: the original lets a missile fly until it meets something or a
 // wall. This stops one lost in open ground.
 constexpr double kMissileRange = 6000.0;
@@ -499,12 +504,12 @@ void Game::stepCast(SpellCast& c) {
     auto along = [&](double distance, double angle) {
         return std::pair{c.x + std::cos(angle) * distance, c.y + std::sin(angle) * distance};
     };
-    auto hurts = [&](Effect& e, double box, bool area, int hitOption) {
+    auto hurts = [&](Effect& e, const JudgeRect& judge, bool area, int hitOption) {
         e.spell = c.spell;
         e.level = c.level;
         e.power = c.power;
         e.hit = c.hit;
-        e.box = box;
+        e.judge = judge;
         e.area = area;
         e.hitOption = hitOption;
         e.pierces = magic_.pierces(c.spell, c.level);
@@ -516,7 +521,7 @@ void Game::stepCast(SpellCast& c) {
     const int hitOption = c.caster >= 0 ? c.hitOption : hitOptionOf(c.spell);
     // A missile from 180 in front of the caster, flying until it hits
     // something or a wall.
-    auto bolt = [&](int option, double angle, double box) -> Effect& {
+    auto bolt = [&](int option, double angle, int half) -> Effect& {
         const auto [x, y] = along(180, angle);
         Effect& e = spawnEffect(option, x, y);
         e.angle = angle;
@@ -525,7 +530,7 @@ void Game::stepCast(SpellCast& c) {
         e.life = -1;
         e.diesOnWall = !c.targetOnly;
         e.diesOnHit = true;
-        hurts(e, box, false, hitOption);
+        hurts(e, square(half), false, hitOption);
         e.hitSound = kMagicHitSound;
         e.height = c.caster >= 0 ? kMonsterMissileHeight : kHeroMissileHeight;
         return e;
@@ -533,11 +538,17 @@ void Game::stepCast(SpellCast& c) {
     auto blockedAt = [&](double x, double y) { return !map_ || !map_->ground().walkable(x, y); };
     // Plasma's burst: lightning that hurts all around it, a splash and glitter.
     auto plasma = [&](double x, double y, int chart) {
-        hurts(spawnEffect(kLightning, x, y, chart), 100, true, kShock);
+        hurts(spawnEffect(kLightning, x, y, chart), square(100), true, kShock);
         spawnEffect(kLightningSplash, x, y);
         spawnEffect(kLightningGlitter, x, y);
     };
     auto glow = [&](int option) { spawnEffect(option, c.x, c.y); };
+    // The caster's own judge rectangle, which the controller is given
+    // (the hero's + 0x2e8, as 0x439d10 passes it; a monster's its own).
+    auto casterJudge = [&](const SpellCast& cast) {
+        if (cast.caster >= 0 && static_cast<std::size_t>(cast.caster) < actors_.size()) return judgeOf(actors_[static_cast<std::size_t>(cast.caster)].placement.rect);
+        return kHeroJudge;
+    };
 
     switch (c.spell) {
         case kFireBall:
@@ -564,14 +575,23 @@ void Game::stepCast(SpellCast& c) {
             break;
         }
         case kHellFire:
+            // Each tick it looks up where its owner stands now (0x42a860).
+            if (c.caster < 0 && player_) {
+                c.x = player_->x;
+                c.y = player_->y;
+            } else if (c.caster >= 0 && static_cast<std::size_t>(c.caster) < actors_.size()) {
+                c.x = actors_[static_cast<std::size_t>(c.caster)].character.x;
+                c.y = actors_[static_cast<std::size_t>(c.caster)].character.y;
+            }
             if (t == 3) glow(kFireRing);
             if (r == 0) {
                 glow(kFireSpray);
                 spawnEffect(kFireSpray, c.x, c.y, 1);
-                // Everything within 150 of the caster's own square, once.
+                // Everything within 150 of the caster's own judge
+                // rectangle, once.
                 Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
-                hurts(area, kTargetHalf + 150, true, kHellFireBurst);
+                hurts(area, grown(casterJudge(c), kBurstReach), true, kHellFireBurst);
                 area.hitSound = kMagicHitSound;
                 playSound(0x1d, c.x, c.y);
                 playSound(0x17, c.x, c.y);
@@ -586,7 +606,7 @@ void Game::stepCast(SpellCast& c) {
             if (t == l + 4) {
                 Effect& area = spawnEffect(-1, c.x, c.y);
                 area.life = 1;
-                hurts(area, kTargetHalf + 150, true, kFrostHit);
+                hurts(area, grown(casterJudge(c), kBurstReach), true, kFrostHit);
                 area.hitSound = kMagicHitSound;
             }
             // Six times, every 3 ticks from L + 6 to L + 21.
@@ -602,7 +622,7 @@ void Game::stepCast(SpellCast& c) {
                 const auto [x, y] = along(250 + 300 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
                 if (!c.blocked[0]) {
-                    hurts(spawnEffect(kEarthSpear, x, y), 150, true, c.caster >= 0 ? c.hitOption : -1);
+                    hurts(spawnEffect(kEarthSpear, x, y), square(150), true, c.caster >= 0 ? c.hitOption : -1);
                     playSound(0x16, x, y);
                 }
                 if (++c.step >= n) c.done = true;
@@ -691,7 +711,7 @@ void Game::stepCast(SpellCast& c) {
                 e.speed = magic_.speed(c.spell, c.level);
                 e.life = 7;
                 e.diesOnWall = e.diesOnHit = true;
-                hurts(e, 80, true, kAirBurst);
+                hurts(e, square(80), true, kAirBurst);
                 e.hitSound = 155;
                 playSound(0x9a, player_->x, player_->y);  // as the cut is made (0x43e5e0)
                 c.done = true;
@@ -709,7 +729,7 @@ void Game::stepCast(SpellCast& c) {
                     c.trackedAt[0] = {e->x, e->y};
                 } else {
                     Effect& burst = spawnEffect(kMudBurst, c.trackedAt[0].first, c.trackedAt[0].second);
-                    hurts(burst, 240, true, -1);
+                    hurts(burst, square(240), true, -1);
                     burst.hitSound = kMagicHitSound;
                     playSound(0x16, burst.x, burst.y);
                     c.done = true;
@@ -756,7 +776,7 @@ void Game::stepCast(SpellCast& c) {
                             const int stage = c.stage[i];
                             const auto [x, y] = c.trackedAt[i];
                             Effect& burst = spawnEffect(kStageOption[stage], x, y);
-                            hurts(burst, 240, true, kStageHit[stage]);
+                            hurts(burst, square(240), true, kStageHit[stage]);
                             burst.hitSound = kMagicHitSound;
                             if (stage == 4) playSound(0x16, x, y);
                             playSound(0x13, x, y);
@@ -841,15 +861,13 @@ void Game::stepEffect(Effect& e) {
     }
     if (!e.dead && e.spell >= 0 && e.caster >= 0) {
         // A monster's spell: the hero, then an ACTIVE companion, each once.
-        const double reach = e.box + kTargetHalf;
-        auto within = [&](double x, double y) { return std::abs(x - e.x) <= reach && std::abs(y - e.y) <= reach; };
         bool struck = false;
-        if (player_ && !e.struckHero && within(player_->x, player_->y)) {
+        if (player_ && !e.struckHero && judgesOverlap(e.x, e.y, e.judge, player_->x, player_->y, kHeroJudge)) {
             e.struckHero = struck = true;
             monsterSpellHitsPlayer(e);
         }
         if ((!struck || e.area) && !e.targetOnly && !e.struckPartner && partnerAlive() && partnerRecord_.active &&
-            within(partner_->character.x, partner_->character.y)) {
+            judgesOverlap(e.x, e.y, e.judge, partner_->character.x, partner_->character.y, kPartnerJudge)) {
             e.struckPartner = struck = true;
             monsterSpellHitsPartner(e);
         }
@@ -860,8 +878,7 @@ void Game::stepEffect(Effect& e) {
             Actor& actor = actors_[i];
             if (!actor.active || !actor.hostile() || !actor.alive()) continue;
             if (std::ranges::find(e.struck, i) != e.struck.end()) continue;
-            const double reach = e.box + kTargetHalf;
-            if (std::abs(actor.character.x - e.x) > reach || std::abs(actor.character.y - e.y) > reach) continue;
+            if (!judgesOverlap(e.x, e.y, e.judge, actor.character.x, actor.character.y, judgeOf(actor.placement.rect))) continue;
             e.struck.push_back(i);
             if (spellHits(actor, e.spell, e.level, e.power, e.hit, e.hitOption) && !sounded) {
                 playSound(e.hitSound, e.x, e.y);
