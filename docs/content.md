@@ -453,6 +453,8 @@ level: fire, water, earth, thunder, holy, dark, gel or metal),
 `fixed-price=1` (modifiers add nothing to its price, as uniques'),
 `unidentified` (the name shown until then), `durability` (weapons and
 armour: the wear they take before they break; none or 0 never wears out)
+`layer-tint=r,g,b` (the worn layer's colour in thousandths of each, as the
+original tints its uniques; 1000 is unchanged and more than 1000 stays at full),
 `glow` (a second hero layer), `page=page,x,y` (the special items window's
 section a quest item, gem or the like is kept on, and its own cell there,
 as the original's are; 0 quest items, 9 x 2 cells, 1 gems, 9 x 1, 2
