@@ -3,7 +3,7 @@ title=The Wilds of Death and Darkness
 map=3rd_1-1
 entry=0,69538,45031,7
 entry=1,1923,36456,1
-town=13900003
+town=13900003,200
 transport=1
 exit=69650,44590,70135,44775,13210000,1
 enemy=18,19645,41750,0,100000,1450,640,goblin,2,10,300,500,160000,600,250,50,900,5,attacks=1450/0/0,hits=250/0/0,spells=4/11/12,spell_power=1200/1100/1050,spell_level=20/20/20,spell_hit=300/300/300,stun=999/5/0,magic_evasion=20,speed=1500

@@ -2,7 +2,7 @@
 title=Ruins of Exorcism
 map=fort4_06
 entry=0,26568,16641,7
-town=14900002
+town=14900002,200
 transport=1
 exit=26791,15996,27274,16289,14000005,3
 enemy=22,16001,5628,1,100000,1800,640,goblin,2,10,500,600,200000,600,280,50,1000,0,attacks=1800/0/0,hits=280/0/0,stun=20/5/0,magic_evasion=20,speed=1400

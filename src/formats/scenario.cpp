@@ -120,7 +120,7 @@ ScenarioControl ScenarioControl::parse(std::span<const std::uint8_t> data) {
     in.skip(0x104);  // AI data path
     s.mapPath = fixedString(in, 0x104);
     s.town = in.i32();
-    in.skip(4);  // scenario + 0x64, use not traced
+    s.townEntry = in.i32();
     s.areaKind = in.i32();
     s.title = fixedString(in, 0x100);
     // Character types used by the scenario (objects, people, enemies),

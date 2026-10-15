@@ -114,6 +114,7 @@ add_executable(shadowflare
     src/game/pointer.cpp
     src/game/warp_gate.cpp
     src/game/card_game.cpp
+    src/game/game_over.cpp
     src/game/change_color.cpp
     src/game/panel.cpp
     src/game/power.cpp

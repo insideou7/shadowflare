@@ -1131,6 +1131,21 @@ private:
     void requestAction(const ScriptHost::ActionRequest& r);
     void tickScriptedAction(Actor& a);
 
+    // The hero's fall (game_over.cpp). At no health the hero drops
+    // (0x435b60): the death sound, the parting glow (option 11000023,
+    // controller 0x5212) and chart 4 if their model has one. Its last
+    // frame held for 120 of the original's ticks, the original takes half
+    // their gold and wakes them in the area's town (scenario + 0x60, entry
+    // + 0x64) with full health and mana; ours opens the Game Over window
+    // instead (Rules::gameOverWindow).
+    void fall();
+    void tickFall();
+    void wakeInTown();
+    bool gameOverEvent(const SDL_Event& event);
+    void chooseGameOver(bool carryOn);
+    void renderGameOver();
+    bool heroHasSave() const;
+
     // The card game (card_game.cpp): Black Jack over the whole screen,
     // which STARTCARDGAME opens (0x434297) and 0x40da90 plays and draws.
     // The world waits while it is open; its end runs the event 8 triggers.
@@ -1502,6 +1517,12 @@ private:
     bool hoverOn_ = false;        // the pointer is on the uncovered world
     ClickTarget hover_;           // what a click there would go for
     std::optional<std::map<int, open::EnemyName>> enemyNames_;
+
+    // The fall: the original's ticks the last frame has been held, or
+    // nothing while the hero stands. Then the Game Over window, if ours.
+    std::optional<double> fallTicks_;
+    bool gameOverOpen_ = false;
+    int gameOverChoice_ = 0;  // 0 Continue, 1 Exit
 
     CardGame cardGame_{[this](int n) { return random_.next(n); }};
     double cardTickCarry_ = 0;  // the card game runs at the original's 30 ticks a second

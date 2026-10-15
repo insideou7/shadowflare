@@ -2,7 +2,7 @@
 title=Devil's Castle, 4F
 map=ruin4_04
 entry=0,5918,3051,7
-town=14900002
+town=14900002,200
 transport=1
 exit=6252,2407,6412,2567,14060005,1
 enemy=24,7164,11817,3,1000000,3500,640,goblin,2,100,5000,8000,1000000,700,400,50,2200,5,attacks=3500/2800/0,hits=400/400/0,spells=13/16/21,spell_power=2500/2600/2300,spell_level=20/10/30,spell_hit=300/300/300,stun=999/10/1,magic_evasion=20,speed=1800,shot=6/200/110/300/1,word7=100

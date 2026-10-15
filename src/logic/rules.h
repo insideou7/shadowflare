@@ -74,12 +74,18 @@ struct Rules {
     // which can be a little off the monster. Bowgun shots go for the
     // monster under the pointer in both (0x4488c0).
     bool spellsAimAtEnemy = true;
+    // When the hero falls, a Game Over window offers to carry on from the
+    // hero's last save, or to go back to the title. The original takes
+    // half the hero's gold and wakes them in the area's town with full
+    // health and mana (0x435b60, 0x426200); ours does that too when the
+    // hero has no save yet.
+    bool gameOverWindow = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
                !outlineUnderPointer && !rightClickSells && !rightClickEquips &&
-               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy;
+               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy && !gameOverWindow;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -98,6 +104,7 @@ struct Rules {
         r.groundItemNames = false;
         r.absorptionHeals = false;
         r.spellsAimAtEnemy = false;
+        r.gameOverWindow = false;
         return r;
     }
 };

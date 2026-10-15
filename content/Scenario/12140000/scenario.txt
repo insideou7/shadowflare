@@ -2,7 +2,7 @@
 title=Coal Mine
 map=Coalmine_04
 entry=0,2291,14098,1
-town=12100000
+town=12100000,200
 transport=1
 exit=1759,13383,2031,13818,12100005,2
 enemy=5,17184,15228,5,1500,400,320,goblin,2,10,300,350,2500,150,300,50,450,0,attacks=400/0/0,hits=300/0/0,spells=4/1/-1,spell_power=420/400/0,spell_level=10/10/10,spell_hit=210/210/0,magic_evasion=20

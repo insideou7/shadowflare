@@ -2,7 +2,7 @@
 title=Forest of Madness
 map=d04_03_00
 entry=50,25728,27161,4
-town=13900003
+town=13900003,200
 enemy=17,14277,3462,1,70000,2100,640,goblin,2,10,1000,1500,140000,700,280,50,1500,5,attacks=2100/0/0,hits=280/0/0,stun=40/0/0,magic_evasion=20,speed=1300
 glow=1
 enemy=17,25079,12863,1,70000,2100,640,goblin,2,10,1000,1500,140000,700,280,50,1500,5,attacks=2100/0/0,hits=280/0/0,stun=40/0/0,magic_evasion=20,speed=1300

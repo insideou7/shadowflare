@@ -2,7 +2,7 @@
 title=Mining Tunnel of Yugunos, B5F
 map=cave_09
 entry=0,13361,16228,7
-town=12200000
+town=12200000,200
 transport=1
 exit=13725,15662,14116,15957,12210003,1
 enemy=12,10311,3799,1,100000,1100,640,goblin,2,100,2000,4000,100000,350,400,50,500,4,attacks=1100/1000/0,hits=400/400/0,spells=13/12/11,spell_power=750/650/650,spell_level=30/20/30,spell_hit=300/300/300,stun=999/50/1,magic_evasion=80,shot=6/200/100/300/1,word7=100

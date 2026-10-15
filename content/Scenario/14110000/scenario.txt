@@ -2,7 +2,7 @@
 title=The Ruins of Remoteness
 map=d04_01_00
 entry=0,15521,16808,7
-town=13900001
+town=13900001,200
 transport=1
 exit=15750,16315,16233,16608,13000505,6
 enemy=18,13309,7710,0,100000,1350,640,goblin,2,10,300,500,100000,600,250,50,800,2,attacks=1350/0/0,hits=250/0/0,spells=10/14/-1,spell_power=1100/800/0,spell_level=20/1/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1300

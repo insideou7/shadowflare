@@ -2,7 +2,7 @@
 title=The Ruins of The Wise
 map=d04_00_00
 entry=0,13776,13923,7
-town=13900004
+town=13900004,200
 transport=1
 exit=14005,13430,14488,13723,13000304,5
 enemy=16,7606,2358,0,50000,1250,640,goblin,2,10,300,500,50000,550,250,50,750,5,attacks=1250/0/0,hits=250/0/0,stun=40/8/0,magic_evasion=20,speed=1300

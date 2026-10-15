@@ -2,7 +2,7 @@
 title=The Cave of Ruins
 map=cave4_02
 entry=0,32488,18881,7
-town=14900001
+town=14900001,200
 transport=1
 exit=32749,18186,33140,18481,14070000,1
 enemy=18,4901,18768,0,90000,1650,640,goblin,2,10,800,1200,140000,600,280,50,900,0,attacks=1650/0/0,hits=280/0/0,spells=4/11/-1,spell_power=1500/1400/0,spell_level=20/20/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1300

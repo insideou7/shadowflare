@@ -2,7 +2,7 @@
 title=Gore Cave
 map=d03_18_00
 entry=0,11050,5669,7
-town=13900001
+town=13900001,200
 transport=1
 exit=11304,4686,11751,5288,13000405,2
 enemy=18,16222,9556,0,65000,1400,640,goblin,2,10,300,500,100000,600,250,50,800,0,attacks=1400/0/0,hits=250/0/0,spells=4/11/-1,spell_power=1200/1200/0,spell_level=20/20/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1300

@@ -2,7 +2,7 @@
 title=Cave of Vezeley
 map=cave_10
 entry=0,11696,2263,7
-town=12200000
+town=12200000,200
 transport=1
 exit=11937,1608,12420,1901,12200002,1
 enemy=11,3179,5541,0,10000,720,640,goblin,2,10,400,450,15000,300,250,50,350,5,attacks=720/670/0,hits=250/250/0,stun=999/100/1,magic_evasion=20,speed=1200

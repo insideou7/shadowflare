@@ -2,7 +2,7 @@
 title=Tower of Rebellion, 4F
 map=d03_00_00_14090003
 entry=0,4405,2344,7
-town=13900003
+town=13900003,200
 transport=1
 exit=4402,1268,4849,1870,14090002,1
 person=31,7192,8278,4,p0

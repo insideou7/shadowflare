@@ -2,7 +2,7 @@
 title=Goliate's Mansion, B3F
 map=fort4_05
 entry=0,3116,8323,7
-town=14900002
+town=14900002,200
 transport=1
 exit=3286,7669,3769,7962,14050001,1
 enemy=23,11341,18048,7,400000,2500,640,goblin,2,100,5000,8000,600000,800,400,50,1400,5,attacks=2500/0/0,hits=400/0/0,spells=13/16/12,spell_power=1900/2200/2100,spell_level=20/10/20,spell_hit=300/300/300,stun=999/10/1,magic_evasion=20,speed=1600,word7=100

@@ -2,7 +2,7 @@
 title=Forest of Silence
 map=f02_01_02
 entry=0,33846,19313,5
-town=12100000
+town=12100000,200
 transport=1
 exit=34442,18346,34764,19382,12100001,2
 enemy=7,3245,4287,3,4500,400,640,goblin,2,10,300,350,7000,150,250,50,400,5,attacks=400/0/0,hits=250/0/0,spells=10/10/-1,spell_power=420/420/0,spell_level=20/20/10,spell_hit=210/210/0,stun=999/50/1,magic_evasion=20

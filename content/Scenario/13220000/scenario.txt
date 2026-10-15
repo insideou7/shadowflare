@@ -2,7 +2,7 @@
 title=The Ruins of Zeres
 map=d03_13_00_13220000
 entry=0,12903,6156,7
-town=13900003
+town=13900003,200
 transport=1
 exit=13058,5272,13505,5874,13000202,1
 enemy=18,7935,8215,0,65000,1350,640,goblin,2,10,300,500,100000,600,250,50,800,3,attacks=1350/0/0,hits=250/0/0,spells=13/3/-1,spell_power=1100/1100/0,spell_level=20/20/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1600

@@ -2,7 +2,7 @@
 title=Ancient Ruins, B2F
 map=d03_09_00
 entry=0,7245,2444,7
-town=13900003
+town=13900003,200
 exit=7595,2014,7795,2214,13140000,1
 enemy=18,8775,13415,0,130000,1400,640,goblin,2,100,2000,4000,300000,600,250,50,750,5,attacks=1400/0/0,hits=250/0/0,spells=4/13/12,spell_power=1150/1050/1050,spell_level=20/20/10,spell_hit=300/300/300,stun=999/10/1,magic_evasion=20,speed=1400,word7=100
 glow=3

@@ -2,7 +2,7 @@
 title=Dinosaur Cave
 map=cave3_01
 entry=0,20160,19999,7
-town=14900002
+town=14900002,200
 transport=1
 exit=20387,19458,20870,19751,14000008,4
 enemy=22,19970,3735,1,100000,1800,640,goblin,2,10,500,600,200000,600,280,50,1000,0,attacks=1800/0/0,hits=280/0/0,stun=20/5/0,magic_evasion=20,speed=1400

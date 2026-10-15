@@ -3,7 +3,7 @@ title=The Road of The Netherworld
 map=4th_d03
 entry=0,14888,52321,7
 entry=1,36008,31681,3
-town=14900002
+town=14900002,200
 transport=1
 exit=15100,51664,15583,51957,14060001,1
 enemy=17,34761,24948,1,150000,2500,640,goblin,2,10,1000,1500,300000,700,280,50,1600,3,attacks=2500/0/0,hits=280/0/0,stun=50/8/0,magic_evasion=20,speed=1500

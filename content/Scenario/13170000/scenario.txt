@@ -2,7 +2,7 @@
 title=Bidal Ruin
 map=d03_15_00
 entry=0,2878,2011,7
-town=13900003
+town=13900003,200
 transport=1
 exit=3133,1127,3580,1729,13000301,2
 enemy=18,5104,12684,0,65000,1350,640,goblin,2,10,300,500,100000,600,250,50,800,3,attacks=1350/0/0,hits=250/0/0,spells=13/3/-1,spell_power=1100/1100/0,spell_level=20/20/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1600
