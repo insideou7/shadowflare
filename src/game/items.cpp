@@ -261,7 +261,7 @@ void Game::dropLoot(const Actor& enemy) {
 }
 
 void Game::dropFromList(int list, double x, double y) {
-    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll, luck());
+    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll, luck(), playerLevel_);
     for (std::size_t i = 0; i < drops.size(); ++i) {
         // Spread around the spot by how many rolls the list has, as the
         // exe does, whether or not each roll gave something.
@@ -269,7 +269,7 @@ void Game::dropFromList(int list, double x, double y) {
         const int rolls = l && l->rolls > 0 ? l->rolls : 1;
         double dx, dy;
         dropSpot(static_cast<int>(i), rolls, x, y, dx, dy);
-        dropItem(Item::make(drops[i], random_), dx, dy);
+        dropItem(Item::make(drops[i], random_, 1, luck()), dx, dy);
         log::info("Dropped {}", drops[i]->name);
     }
 }

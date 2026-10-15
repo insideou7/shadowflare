@@ -41,11 +41,13 @@ struct Item {
     // ShadowFlare.exe makes them (0x462d30). The second form also rolls
     // its modifiers, as every new item gets.
     static Item make(const ItemDef* def, int count = 1);
-    static Item make(const ItemDef* def, Random& random, int count = 1);
+    // `luck` is the Debug tab's, in percent (see rollModifiers).
+    static Item make(const ItemDef* def, Random& random, int count = 1, int luck = 100);
     // Each modifier: `chance` percent of the time a number from its range,
     // otherwise 0 (0x467310 for weapons, 0x466570 armour, 0x465730
-    // accessories).
-    void rollModifiers(Random& random);
+    // accessories). Ours: with `luck` above 100, each value is the best of
+    // luck / 100 rolls, so it lands nearer the top of its range.
+    void rollModifiers(Random& random, int luck = 100);
 
     // Durability points left, and whether it is broken (0 left). Items
     // with no durability never wear out.

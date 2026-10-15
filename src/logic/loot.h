@@ -14,9 +14,11 @@ class Random;
 // quality allowances are never cleared between rolls, so once one roll
 // may give a magic or unique item every later roll may too. `luck` (the
 // Debug tab's, in percent) multiplies the drop weight of unique items
-// where a pick chooses by weight; 100 is the original's chances.
+// where a pick chooses by weight; 100 is the original's chances. Above
+// 100, uniques up to item level `luckLevel` (the hero's) may come even
+// where the pick's highest item level is lower.
 std::vector<const ItemDef*> rollDrops(const DropTables& tables, const ItemTable& items, int list, Random& random,
-                                      bool qualityPerRoll, int luck = 100);
+                                      bool qualityPerRoll, int luck = 100, int luckLevel = 0);
 
 // Where the i-th of `count` dropped items lands around (x, y): on a circle
 // of 200 world units, spread evenly, as 0x417550 places them.

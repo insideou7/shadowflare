@@ -29,16 +29,21 @@ Item Item::make(const ItemDef* def, int count) {
     return item;
 }
 
-Item Item::make(const ItemDef* def, Random& random, int count) {
+Item Item::make(const ItemDef* def, Random& random, int count, int luck) {
     Item item = make(def, count);
-    if (def) item.rollModifiers(random);
+    if (def) item.rollModifiers(random, luck);
     return item;
 }
 
-void Item::rollModifiers(Random& random) {
+void Item::rollModifiers(Random& random, int luck) {
+    // At 1x one roll, as the original; at 20x the best of twenty.
+    const int tries = std::max(1, luck / 100);
     auto roll = [&](const ItemDef::ModifierRange& r) {
         if (random.next(100) >= r.chance) return 0;
-        return r.max > r.min ? r.min + random.next(r.max - r.min + 1) : r.min;
+        if (r.max <= r.min) return r.min;
+        int best = 0;
+        for (int t = 0; t < tries; ++t) best = std::max(best, random.next(r.max - r.min + 1));
+        return r.min + best;
     };
     for (std::size_t i = 0; i < modifiers.size(); ++i) modifiers[i] = roll(def->modifiers[i]);
     for (std::size_t i = 0; i < elementModifiers.size(); ++i) elementModifiers[i] = roll(def->elementModifiers[i]);
