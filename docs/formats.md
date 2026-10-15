@@ -661,7 +661,9 @@ descriptions. The numeric tables found so far:
 - 13: experience per level, one column, 100 rows. Row `level - 1` is what
   that level takes; the count starts again from 0 on a level up and any
   surplus is lost (0x43430f, and the bar at 0x404643). Closed by 999999999
-  and 0, so the top level is 99.
+  and 0: level 99 takes 999999999, and level 100 is the top (both
+  level-up checks stop at 100, 0x4134a0 and 0x430f80 case 0x44). Playing,
+  only a quest reward at level 99 pays that much, as a share of the need.
 - 900-907: the hero's stats, 13 rows by one column per level in a class
   (level-up function 0x412fb0, which reads table
   `901 + 2 * map[class] - [character+0x28]`). 900/901 hold the starting
@@ -1188,7 +1190,9 @@ at their own position, each row 16 pixels below the last; pattern 0x39
 marks the hero's place on the attribute disc at (80 + x x 48 / 20000,
 330 - y x 48 / 20000), fading in and out over 50 frames. A bowgun's
 attack is shown scaled for anyone but a hunter (see
-[archery.md](archery.md)). Not done yet: Max at level 100.
+[archery.md](archery.md)). At level 100 the level is tan and "Max", in
+the same tan, stands where the experience was (283, 67), with its black
+copy right under it rather than a pixel off.
 
 The open pack draws its own status window in the same layout
 (content/System/Game/Pattern/StatusWindow.sheet, from tools/art/magic.py):

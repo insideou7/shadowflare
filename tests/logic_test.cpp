@@ -270,8 +270,9 @@ void testMovement() {
 void testLevels() {
     const auto curve = sf::LevelCurve::standard();
     check(curve.need(1) == 25 && curve.need(2) == 80 && curve.need(3) == 150, "the original's first levels");
-    check(curve.maxLevel() == 99 && curve.need(98) == 700000000, "the curve tops out at level 99");
-    check(curve.need(99) == 0 && curve.need(0) == 0, "no need outside the curve");
+    check(curve.maxLevel() == 100 && curve.need(98) == 700000000, "the curve tops out at level 100");
+    check(curve.need(99) == 999999999, "level 99 takes the table's closing 999999999");
+    check(curve.need(100) == 0 && curve.need(0) == 0, "no need outside the curve");
 
     // A Table.Tbd table 13 like the original's: amounts per level (which
     // can repeat), then 999999999 and 0.
@@ -282,7 +283,8 @@ void testLevels() {
     t.values = {25, 80, 11000000, 11000000, 999999999, 0};
     t.strings.resize(6);
     const auto original = sf::LevelCurve::fromTables(tables);
-    check(original.needs.size() == 4, "the table ends at 999999999, not where amounts repeat");
+    check(original.needs.size() == 5 && original.need(5) == 999999999,
+          "the table ends with 999999999, not where amounts repeat");
     check(original.need(4) == 11000000, "repeated amounts are kept");
     check(sf::LevelCurve::fromTables(sf::GameTables{}).needs.empty(), "no table 13, no curve");
 

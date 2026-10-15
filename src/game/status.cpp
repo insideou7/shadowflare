@@ -22,6 +22,8 @@ constexpr SDL_Rect kChangeButton{17, 64, 96, 16};
 constexpr SDL_Color kWhite{235, 230, 215, 255};
 constexpr SDL_Color kGold{255, 210, 80, 255};
 constexpr SDL_Color kPlainText{224, 224, 224, 255};
+constexpr SDL_Color kMaxText{224, 192, 128, 255};
+constexpr int kTopLevel = 100;  // the original's own number (0x405750)
 
 bool inside(const SDL_Rect& r, int x, int y) { return x >= r.x && y >= r.y && x < r.x + r.w && y < r.y + r.h; }
 
@@ -128,8 +130,11 @@ void Game::renderStatus() {
     const int bowPercent = bowInHand() ? bowAttackPercent(career_.current, career_.history) : 100;
     Number attack = stat(HeroStats::kAttack, 198, 113);
     if (bowPercent != 100) attack = {198, 113, stats[HeroStats::kAttack] * bowPercent / 100, -1};
+    // At level 100 the level is tan and "Max" takes the place of the
+    // experience, its black copy right under it (0x405750).
+    const bool maxed = playerLevel_ >= kTopLevel;
     const Number numbers[] = {
-        {303, 41, playerLevel_, playerLevel_}, {303, 65, static_cast<int>(playerExperience_), static_cast<int>(playerExperience_)},
+        {303, 41, playerLevel_, maxed ? -1 : playerLevel_},
         stat(HeroStats::kHp, 124, 89),          {81, 89, playerHp_, playerHp_ - stats[HeroStats::kHp] + own[HeroStats::kHp]},
         stat(HeroStats::kStrength, 95, 113),    attack,
         stat(HeroStats::kDefense, 303, 113),    stat(HeroStats::kHit, 150, 137),
@@ -146,6 +151,11 @@ void Game::renderStatus() {
         }
     }
     for (const auto& n : numbers) windowNumber(n.x, n.y, n.value, n.base < 0 ? kRaised : toneOf(n.value, n.base));
+    if (maxed) {
+        windowText(283, 67, "Max", kMaxText, 0);
+    } else {
+        windowNumber(303, 65, static_cast<int>(playerExperience_), kPlain);
+    }
     // The slashes of HP and MP; the current HP and MP take the tone of the most.
     windowText(83, 91, "/", kPlainText);
     windowText(83, 194, "/", kPlainText);

@@ -582,7 +582,7 @@ private:
     // plain, lowered by what is worn (red) and raised by it (tan).
     enum Tone { kPlain, kLowered, kRaised };
     static Tone toneOf(int value, int base) { return value < base ? kLowered : value > base ? kRaised : kPlain; }
-    void windowText(int x, int y, std::string_view text, SDL_Color color);
+    void windowText(int x, int y, std::string_view text, SDL_Color color, int shadow = 1);
     void windowNumber(int x, int y, int value, int tone);
     // The status window and its Change Career button (status.cpp).
     bool statusClick(int x, int y);

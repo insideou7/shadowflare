@@ -970,16 +970,16 @@ constexpr SDL_Color kGaugeColours[] = {{214, 182, 134, 255}, {176, 144, 90, 255}
 
 // Text as the item and status windows write it: in the original's second
 // font (Font01, with lowercase; the open pack's Font00 stands in when it
-// has none) over a black copy one pixel down and to the right.
-void Game::windowText(int x, int y, std::string_view text, SDL_Color color) {
+// has none) over a black copy `shadow` pixels down and to the right.
+void Game::windowText(int x, int y, std::string_view text, SDL_Color color, int shadow) {
     const SpriteBank* bank = itemBank("System/Common/Pattern/Font01");
     const SpriteTexture* font = bank && !bank->patterns.empty() ? sprites_.get(*bank, 0, false) : nullptr;
     if (!font || font->width < 96 || font->height < 192) {
-        uiText(x + 1, y + 1, text, kShadow);
+        uiText(x + shadow, y + shadow, text, kShadow);
         uiText(x, y, text, color);
         return;
     }
-    for (const auto& [dx, colour] : {std::pair{1, kShadow}, std::pair{0, color}}) {
+    for (const auto& [dx, colour] : {std::pair{shadow, kShadow}, std::pair{0, color}}) {
         SDL_SetTextureColorMod(font->texture, colour.r, colour.g, colour.b);
         int cx = x + dx;
         for (const char ch : text) {
