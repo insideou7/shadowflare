@@ -67,12 +67,19 @@ struct Rules {
     // orbs from the monster to the hero (0x459690); we found no code that
     // gives the hero anything for them.
     bool absorptionHeals = true;
+    // A spell cast (or a companion's Explosion ordered) with a monster
+    // under the pointer, the Click Range square red, goes for that
+    // monster where it stands as the spell leaves the hand. The original
+    // aims at the point clicked (0x441c00 keeps no target, 0x1264 = -1),
+    // which can be a little off the monster. Bowgun shots go for the
+    // monster under the pointer in both (0x4488c0).
+    bool spellsAimAtEnemy = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
                !outlineUnderPointer && !rightClickSells && !rightClickEquips &&
-               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals;
+               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -90,6 +97,7 @@ struct Rules {
         r.noEmptyGoldInWarehouse = false;
         r.groundItemNames = false;
         r.absorptionHeals = false;
+        r.spellsAimAtEnemy = false;
         return r;
     }
 };

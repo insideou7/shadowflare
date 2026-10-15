@@ -692,7 +692,9 @@ private:
     void castMonsterSpell(Actor& enemy, int slot);
     void monsterSpellHitsPlayer(const Effect& e);
     void monsterSpellHitsPartner(const Effect& e);
-    void startCast(double worldX, double worldY);
+    // At a monster (an index in actors_), the spell follows it until it
+    // leaves the hand (Rules::spellsAimAtEnemy).
+    void startCast(double worldX, double worldY, std::optional<std::size_t> enemy = std::nullopt);
     void releaseSpell();
     void tickSpells();
     void regenerateHero();
@@ -1345,6 +1347,7 @@ private:
     std::optional<int> casting_;               // the spell being cast
     std::pair<double, double> castTarget_;     // where, in world units
     bool castReleased_ = false;
+    std::optional<std::size_t> castEnemy_;     // the monster cast at, if any
     std::vector<SpellCast> casts_;
     std::vector<Effect> effects_;
     std::vector<Effect> pendingEffects_;  // spawned this tick

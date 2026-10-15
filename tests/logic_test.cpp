@@ -968,6 +968,8 @@ void testMagic() {
           "original mode leaves empty gold in the warehouse");
     check(sf::Rules::ours().absorptionHeals && !sf::Rules::original().absorptionHeals,
           "absorption heals the hero only outside original mode");
+    check(sf::Rules::ours().spellsAimAtEnemy && !sf::Rules::original().spellsAimAtEnemy,
+          "original mode casts at the point clicked, not the monster under it");
 }
 
 void testPowerMode() {

@@ -162,7 +162,7 @@ void Game::trainSpell(int spell) {
     showMessage(std::format("{} is now level {}", magic_.spell(spell).name, spells_.castLevel(spell)));
 }
 
-void Game::startCast(double worldX, double worldY) {
+void Game::startCast(double worldX, double worldY, std::optional<std::size_t> enemy) {
     if (casting_ || dialogue_ || openShop_) return;
     const int spell = spells_.selected;
     if (!spells_.knows(spell)) {
@@ -192,6 +192,7 @@ void Game::startCast(double worldX, double worldY) {
     playerMp_ -= cost;
     casting_ = spell;
     castTarget_ = {worldX, worldY};
+    castEnemy_ = enemy;
     castReleased_ = false;
     walkTarget_.reset();
     attackTarget_.reset();
@@ -222,6 +223,15 @@ void Game::startCast(double worldX, double worldY) {
 void Game::releaseSpell() {
     castReleased_ = true;
     const int spell = *casting_;
+    // Cast at a monster, it goes for where the monster is now.
+    if (castEnemy_ && *castEnemy_ < actors_.size() && actors_[*castEnemy_].alive() && actors_[*castEnemy_].active) {
+        const Character& t = actors_[*castEnemy_].character;
+        castTarget_ = {t.x, t.y};
+        for (auto& cast : casts_) {
+            if (cast.spell == spell && cast.caster < 0 && cast.release < 0) cast.aim = std::atan2(t.y - cast.y, t.x - cast.x);
+        }
+    }
+    castEnemy_.reset();
     const int level = castLevel(spell);
     log::info("Cast {} at level {}", magic_.spell(spell).name, level);
     switch (kindOf(spell)) {
