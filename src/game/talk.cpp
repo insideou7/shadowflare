@@ -1012,6 +1012,17 @@ bool Game::giantPageOpen(int page) const {
     return flag != flags_.end() && flag->second == 1;
 }
 
+int Game::unlockAllGiantPages() {
+    int unlocked = 0;
+    for (int page = 2; page < kGiantStoragePages; ++page) {
+        auto& flag = flags_[{ScenarioScript::kExtraStorage, page}];
+        if (flag != 1) ++unlocked;
+        flag = 1;
+    }
+    log::info("Unlocked {} Giant Warehouse pages", unlocked);
+    return unlocked;
+}
+
 namespace {
 
 // The Giant Warehouse's header (clicks 0x447ca0, drawn by 0x404760):
