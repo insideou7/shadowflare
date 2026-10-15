@@ -293,6 +293,10 @@ public:
     // The Debug tab's UNLOCK ALL STORAGE: opens every page of the Giant
     // Warehouse (its EXSTRG flags). Returns how many were not open before.
     int unlockAllGiantPages();
+    // The Debug tab's UNLOCK ALL MAGIC: teaches, at level 1, every spell the
+    // hero's classes so far learn at level-ups (SpellBook::learnAll).
+    // Returns how many were new.
+    int unlockAllSpells();
     // The GATE window, as WARPGATE `gate` opens it, on one of its pages;
     // and picking the n-th gate listed on the page showing (for testing).
     void openWarpGate(int gate, int page = 0);
@@ -1234,7 +1238,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, ShowFps
+        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;

@@ -312,6 +312,37 @@ std::vector<int> SpellBook::learn(const MagicTables& t, const std::vector<HeroCl
     return learned;
 }
 
+std::vector<int> SpellBook::unlearned(const MagicTables& t, const std::vector<HeroClass>& history,
+                                     HeroClass current) const {
+    std::array<bool, 4> been{};
+    been[0] = true;  // the new hero's first level
+    been[static_cast<std::size_t>(tableClassIndex(current))] = true;
+    for (const HeroClass cls : history) been[static_cast<std::size_t>(tableClassIndex(cls))] = true;
+    std::vector<int> spells;
+    for (int s = 0; s < kSpellCount; ++s) {
+        const auto i = static_cast<std::size_t>(s);
+        if (level[i] > 0) continue;
+        for (std::size_t c = 0; c < 4; ++c) {
+            if (been[c] && t.spells[i].learnAt[c] < kNever) {
+                spells.push_back(s);
+                break;
+            }
+        }
+    }
+    return spells;
+}
+
+std::vector<int> SpellBook::learnAll(const MagicTables& t, const std::vector<HeroClass>& history, HeroClass current) {
+    const std::vector<int> spells = unlearned(t, history, current);
+    for (const int s : spells) {
+        const auto i = static_cast<std::size_t>(s);
+        level[i] = 1;
+        uses[i] = 0;
+        if (const auto free = std::ranges::find(bar, -1); free != bar.end()) *free = s;
+    }
+    return spells;
+}
+
 SpellBook SpellBook::replay(const MagicTables& t, const std::vector<HeroClass>& history) {
     SpellBook book;
     std::vector<HeroClass> sofar;
