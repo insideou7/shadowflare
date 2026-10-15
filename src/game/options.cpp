@@ -3,6 +3,7 @@
 // with its choices to the right, the chosen one bright. Rows the engine
 // cannot do yet (no sound) are shown dimmed. A second tab, ours, holds
 // debug options and cheats; original mode turns the cheats off.
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -50,7 +51,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     // A new debug option or cheat is a row here, with its label, its
     // choices or stepper text, what setOption or stepOption does with it,
     // and a field in Settings. A cheat must do nothing in original mode.
-    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::ShowFps};
+    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::UnlockGates, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode};
@@ -79,6 +80,13 @@ bool Game::optionEnabled(OptionRow row) const {
         // Cheats are ours, so original mode turns them off.
         case OptionRow::XpRate:
         case OptionRow::Luck: return !originalMode();
+        // Only in a game, and dimmed once every gate is found.
+        case OptionRow::UnlockGates: {
+            if (originalMode() || !map_ || !player_) return false;
+            const auto named = std::count_if(warpGates_.list.begin(), warpGates_.list.end(),
+                                             [](const WarpGates::Gate& g) { return !g.name.empty(); });
+            return static_cast<std::size_t>(named) > warpGatesFound().size();
+        }
         default: return true;
     }
 }
@@ -106,6 +114,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::Back: return "BACK";
         case OptionRow::XpRate: return "EXPERIENCE RATE";
         case OptionRow::Luck: return "LUCK";
+        case OptionRow::UnlockGates: return "UNLOCK ALL GATES";
         case OptionRow::ShowFps: return "SHOW FPS";
     }
     return "";
@@ -317,7 +326,8 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::Map:
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit:
-        case OptionRow::Exit: playSound(0x38); break;
+        case OptionRow::Exit:
+        case OptionRow::UnlockGates: playSound(0x38); break;
         case OptionRow::Back: playSound(0x39); break;
         default: break;
     }
@@ -338,6 +348,7 @@ void Game::chooseOption(OptionRow row) {
         case OptionRow::SaveAndExit: saveQuestion_ = row; break;
         case OptionRow::Exit: quit_ = true; break;
         case OptionRow::Back: closeOptions(); break;
+        case OptionRow::UnlockGates: unlockAllWarpGates(); break;
         case OptionRow::ClickPriority:
             // Enter brings the next one to the front.
             setOption(row, 1);

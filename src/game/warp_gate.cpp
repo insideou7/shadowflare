@@ -82,6 +82,18 @@ std::vector<int> Game::warpGatesFound() const {
     return found;
 }
 
+int Game::unlockAllWarpGates() {
+    int unlocked = 0;
+    for (int g = 0; g < warpGates_.count(); ++g) {
+        if (warpGates_.list[static_cast<std::size_t>(g)].name.empty()) continue;
+        auto& flag = flags_[{ScenarioScript::kWarp, g}];
+        if (flag == 0) ++unlocked;
+        flag = 1;
+    }
+    log::info("Unlocked {} warp gates: {} found", unlocked, warpGatesFound().size());
+    return unlocked;
+}
+
 // WARPGATE: not while the window is open already or a shop has the
 // screen. Opening it closes every other window (0x4170f0).
 void Game::openWarpGate(int gate, int page) {

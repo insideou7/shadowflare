@@ -269,6 +269,9 @@ public:
     // Marks warp gate `gate` found (its WARP flag), for testing.
     void setWarpFlag(std::int32_t gate, std::int32_t value) { flags_[{ScenarioScript::kWarp, gate}] = value; }
     int warpGateCount() const { return warpGates_.count(); }
+    // The Debug tab's UNLOCK ALL GATES: marks every named gate found.
+    // Returns how many were not found before.
+    int unlockAllWarpGates();
     // The GATE window, as WARPGATE `gate` opens it, on one of its pages;
     // and picking the n-th gate listed on the page showing (for testing).
     void openWarpGate(int gate, int page = 0);
@@ -1173,7 +1176,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, ShowFps
+        XpRate, Luck, UnlockGates, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
