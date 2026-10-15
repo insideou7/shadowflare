@@ -103,6 +103,14 @@ fill hit words 0x29, 0x2b, 0x28 and 0x48.
 Some scenarios point a trap's switch at a constant instead of a temp flag, so
 those traps never fire. The original does the same, and it is kept.
 
+Some scripts also aim a trap at a vent the scenario does not have. Vaporous
+Forest (01000002) fires vent 10057004, but its map has only 10057000-03,
+and a few other scenarios do the same. The exe
+reads `x:` and `y:` of a missing character as -1 (0x4346b0), so such a
+shot goes off at (-1, -1), off the map, and hurts no one. The engine does
+the same. It used to put the shot on the hero, so a steam jet followed
+them through the forest.
+
 ## `CREATEEFFECT` and `CREATEEFFECTCHAR`
 
 - **`CREATEEFFECT effect x y height dir`** plays an effect at a spot. A
