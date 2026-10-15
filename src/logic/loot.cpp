@@ -15,14 +15,24 @@ struct Allowed {
     bool normal = false, magic = false, unique = false;
 };
 
+// The Debug tab's luck: `percent` multiplies unique items' drop weight,
+// and above 100 uniques up to item level `level` (the hero's) pass a
+// pick's highest level too.
+struct Luck {
+    int percent = 100;
+    int level = 0;
+};
+
 // Whether an item may be picked (0x465500 and 0x4653a0): its quality is
 // allowed (quest items always are), it shares a pool bit, and its item
 // level lies in the entry's range.
-bool matches(const ItemDef& def, const DropTables::Entry& e, const Allowed& q) {
+bool matches(const ItemDef& def, const DropTables::Entry& e, const Allowed& q, const Luck& luck) {
     const bool quality = (def.quality == 0 && q.normal) || (def.quality == 1 && q.magic) ||
                          (def.quality == 2 && q.unique) || def.quality == 3;
     if (!quality || (def.poolMask & e.pool) == 0) return false;
-    if (e.maxLevel != -1 && def.itemLevel > e.maxLevel) return false;
+    int maxLevel = e.maxLevel;
+    if (maxLevel != -1 && def.quality == 2 && luck.percent > 100) maxLevel = std::max(maxLevel, luck.level);
+    if (maxLevel != -1 && def.itemLevel > maxLevel) return false;
     if (e.minLevel != -1 && def.itemLevel < e.minLevel) return false;
     return true;
 }
@@ -30,21 +40,21 @@ bool matches(const ItemDef& def, const DropTables::Entry& e, const Allowed& q) {
 // An item's drop weight, with the Debug tab's luck multiplying unique
 // items' (`luck` percent; 100 is the original's weights). Magic items are
 // the usual drop already, about nine in ten, so only uniques are rare.
-int weight(const ItemDef& def, int luck) { return def.quality == 2 ? def.dropWeight * luck / 100 : def.dropWeight; }
+int weight(const ItemDef& def, const Luck& luck) { return def.quality == 2 ? def.dropWeight * luck.percent / 100 : def.dropWeight; }
 
-int weightOf(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, int luck) {
+int weightOf(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, const Luck& luck) {
     int total = 0;
     for (const auto& def : items.items) {
-        if (def.cls == cls && matches(def, e, q)) total += weight(def, luck);
+        if (def.cls == cls && matches(def, e, q, luck)) total += weight(def, luck);
     }
     return total;
 }
 
-const ItemDef* pickWeighted(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, int luck,
+const ItemDef* pickWeighted(const ItemTable& items, Class cls, const DropTables::Entry& e, const Allowed& q, const Luck& luck,
                             int pick) {
     int sum = 0;
     for (const auto& def : items.items) {
-        if (def.cls != cls || !matches(def, e, q)) continue;
+        if (def.cls != cls || !matches(def, e, q, luck)) continue;
         sum += weight(def, luck);
         if (pick < sum) return &def;
     }
@@ -62,7 +72,7 @@ int nineDigits(Random& random) {
 // level case for them and so counts none.
 bool pickable(Class cls) { return cls != Class::Special; }
 
-const ItemDef* pickEntry(const ItemTable& items, const DropTables::Entry& e, const Allowed& q, int luck, Random& random) {
+const ItemDef* pickEntry(const ItemTable& items, const DropTables::Entry& e, const Allowed& q, const Luck& luck, Random& random) {
     if (e.code != -1) return e.cls >= 0 && e.cls <= 4 ? items.find(static_cast<Class>(e.cls), e.code) : nullptr;
     if (e.cls == -1) {
         // Any of weapons, armour and accessories, weighted together.
@@ -86,7 +96,8 @@ const ItemDef* pickEntry(const ItemTable& items, const DropTables::Entry& e, con
 }  // namespace
 
 std::vector<const ItemDef*> rollDrops(const DropTables& tables, const ItemTable& items, int number, Random& random,
-                                      bool qualityPerRoll, int luck) {
+                                      bool qualityPerRoll, int luckPercent, int luckLevel) {
+    const Luck luck{luckPercent, luckLevel};
     std::vector<const ItemDef*> drops;
     const DropTables::List* list = tables.list(number);
     if (!list || list->picks.empty()) return drops;

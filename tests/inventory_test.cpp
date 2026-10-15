@@ -256,6 +256,26 @@ void testLoot() {
     }
     check(magicAt10 > 850 && magicAt10 < 1150, "luck leaves magic items' weight alone");
 
+    // Above 1x, uniques up to the hero's level pass a pick's level cap.
+    sf::ItemTable capped = magic;
+    capped.items[0].itemLevel = 1;
+    capped.items[1].quality = 2;
+    capped.items[1].itemLevel = 5;
+    sf::DropTables low;
+    low.entries = {{0, 2, -1, -1, 1}};
+    low.lists[0] = {1, 100, {{0, 111}}, std::nullopt};
+    auto uniquesAt = [&](int luck, int level) {
+        sf::Random r(9);
+        int n = 0;
+        for (int i = 0; i < 500; ++i) {
+            for (const sf::ItemDef* d : sf::rollDrops(low, capped, 0, r, true, luck, level)) n += d->quality == 2;
+        }
+        return n;
+    };
+    check(uniquesAt(100, 10) == 0, "at 1x the pick's level cap holds");
+    check(uniquesAt(200, 4) == 0, "uniques above the hero's level stay out");
+    check(uniquesAt(200, 5) > 0, "with luck on, a unique at the hero's level may come");
+
     double x, y;
     sf::dropSpot(0, 2, 1000, 1000, x, y);
     check(std::abs(x - 1200) < 1e-6 && std::abs(y - 1000) < 1e-6, "the first item lands 200 to the side");
