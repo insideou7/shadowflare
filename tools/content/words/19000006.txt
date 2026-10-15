@@ -1,0 +1,28 @@
+# Tower of Ordeal, 5F: what its people say, in our own words, by the original's
+# message numbers (tools/content/scripts.py). Each keeps the original's
+# purpose and its options (~...~) and numbers (%d) in order.
+# Our cast in the Tower of Ordeal: Warden Brann, who keeps the road;
+# Sister Ilse and her fellow menders, who heal on the rest floors;
+# Corwin, Tamsin and Odo, the tower's traders; Master Quill, the
+# warehouse keeper on 12F; Lark and Vesper, the card players on 17F and
+# the top floor. Plain game terms and place titles kept: Tower of Ordeal,
+# Giant Warehouse, Black Jack, magic cards.
+
+[message 1000000]
+Tower of Ordeal, 5F
+
+[message 1000001]
+So you reached this floor.
+That was well fought.
+
+[message 1000002]
+Still, many more beasts wait above,
+far worse than any you met below.
+
+[message 1000003]
+Gain more experience out in the world, then
+return. More of this tower will open to you then.
+
+[message 1000004]
+If you need to grow stronger,
+the warp gates will carry you far and wide.

@@ -1,0 +1,93 @@
+# Tower of Ordeal, Top Floor: what its people say, in our own words, by the original's
+# message numbers (tools/content/scripts.py). Each keeps the original's
+# purpose and its options (~...~) and numbers (%d) in order.
+# Our cast in the Tower of Ordeal: Warden Brann, who keeps the road;
+# Sister Ilse and her fellow menders, who heal on the rest floors;
+# Corwin, Tamsin and Odo, the tower's traders; Master Quill, the
+# warehouse keeper on 12F; Lark and Vesper, the card players on 17F and
+# the top floor. Plain game terms and place titles kept: Tower of Ordeal,
+# Giant Warehouse, Black Jack, magic cards.
+
+[message 1000000]
+Tower of Ordeal, Top Floor
+
+[message 1000001]
+Tower of Ordeal, Top Floor
+
+[message 1000002]
+Look at that!
+You reached the very top
+of the tower.
+
+[message 1000003]
+With skill like yours, you may well
+hold every magic card already.
+
+[message 1000004]
+Oh, the magic cards!
+
+[message 1000005]
+There's no game I love more
+than Black Jack with those cards.
+
+[message 1000006]
+Care for a hand? Win four in a row
+and I'll pay you three times your stake.
+
+  ~10,000 GOLD~
+  ~20,000 GOLD~
+  ~30,000 GOLD~
+  ~40,000 GOLD~
+
+[message 1000007]
+Don't be shy! Sit down and play!
+
+[message 1000008]
+That isn't enough gold.
+Running a little short, are we?
+
+[message 1000009]
+The hand is mine.
+Better luck next time.
+
+[message 1000010]
+Not bad. That one was a tie.
+Next hand!
+
+[message 1000011]
+Not bad at all.
+Next hand!
+
+[message 1000012]
+Well, I never!
+I've never met a player like you.
+
+Take this as your prize.
+Come back for a hand whenever you can.
+
+[message 1000013]
+Well, I never!
+You're a fine player!
+
+As your prize, the Giant Warehouse IX is yours to use.
+
+[message 1000014]
+You've beaten me fair and square!
+Which prize will you take?
+  ~Items~
+  ~150,000GOLD~
+
+[message 1000015]
+Well played.
+Here is your prize.
+
+[message 1000016]
+I have some very fine things for sale.
+
+[message 1000017]
+(A deep growl)
+
+[message 1000018]
+Beyond lies the road to the tower's Annex,
+the hardest trial of all. Once you set out,
+there is no turning back. Prepare yourself.

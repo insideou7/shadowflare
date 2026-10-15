@@ -1,0 +1,131 @@
+# Tower of Ordeal, 17F: what its people say, in our own words, by the original's
+# message numbers (tools/content/scripts.py). Each keeps the original's
+# purpose and its options (~...~) and numbers (%d) in order.
+# Our cast in the Tower of Ordeal: Warden Brann, who keeps the road;
+# Sister Ilse and her fellow menders, who heal on the rest floors;
+# Corwin, Tamsin and Odo, the tower's traders; Master Quill, the
+# warehouse keeper on 12F; Lark and Vesper, the card players on 17F and
+# the top floor. Plain game terms and place titles kept: Tower of Ordeal,
+# Giant Warehouse, Black Jack, magic cards.
+
+[message 1000000]
+Tower of Ordeal, 17F
+
+[message 1000001]
+Tower of Ordeal, 17F
+
+[message 1000002]
+Oho... Fancy you climbing all the way up here.
+
+[message 1000003]
+Someone as able as you might just
+gather every one of the magic cards.
+
+[message 1000004]
+Ah, the magic cards!
+
+[message 1000005]
+Nothing pleases me more than a hand
+of Black Jack with those cards!
+
+[message 1000006]
+It's 10,000 Gold a hand.
+Shall we?
+
+    ~Yes~  ~No~
+
+[message 1000007]
+Don't be shy! Sit down and play!
+
+[message 1000008]
+That isn't enough gold.
+Your purse is looking thin, friend.
+
+[message 1000009]
+The hand is mine.
+Better luck next time.
+
+[message 1000010]
+Not bad. A tie this time.
+Another hand?
+
+        ~Yes~  ~No~
+
+[message 1000011]
+Not bad at all.
+The stake rises to 20,000 Gold.
+Another hand?
+
+          ~Yes~  ~No~
+
+[message 1000012]
+Not bad at all.
+The stake rises to 40,000 Gold.
+Another hand?
+
+          ~Yes~  ~No~
+
+[message 1000013]
+Not bad at all.
+The stake rises to 60,000 Gold.
+Another hand?
+
+          ~Yes~  ~No~
+
+[message 1000014]
+Well, I never!
+Nobody has ever played me like that.
+
+Take this as your prize.
+Come back for a hand whenever you like.
+
+[message 1000015]
+Well, I never!
+Nobody has ever beaten me so soundly.
+
+As your reward, the Giant Warehouse VI is yours to use.
+
+[message 1000016]
+Here is your prize. It's yours.
+
+[message 1000017]
+Light of the living,
+close these wounds!
+
+[message 1000018]
+Come, let me tend to your hurts.
+
+[message 1000019]
+Keep your strength up.
+
+[message 1000020]
+Need anything for the climb? Look here.
+
+  ~Buy and sell          ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000021]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000022]
+You can't afford that.
+
+[message 1000023]
+Nothing here needs mending.
+
+[message 1000024]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000025]
+You've got nothing that needs identifying.

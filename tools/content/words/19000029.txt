@@ -1,0 +1,6 @@
+# Tower of Ordeal, Annex 6F: what its people say, in our own words, by the original's
+# message numbers (tools/content/scripts.py). Each keeps the original's
+# purpose and its options (~...~) and numbers (%d) in order.
+
+[message 1000000]
+Tower of Ordeal, Annex 6F

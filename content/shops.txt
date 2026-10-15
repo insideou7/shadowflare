@@ -262,3 +262,24 @@ sell=accessory,1000101
 sell=weapon,2000101
 sell=armour,3000100
 sell=accessory,1000101
+
+# The Tower of Ordeal, the same way. Its 1F trader stocks list 5 (Remote
+# Town's tools and a few magic goods of levels 1-19), 6F and 12F the
+# Caravan's list 8, 17F Ento's list 29; the top floor's list 38 is magic
+# goods of levels 46-58 and one Phoenix Elixir.
+
+[shop 5]                 # the Tower of Ordeal's 1F trader
+sell=consumable,0,9
+sell=consumable,10000000,9
+sell=special,1,4
+sell=weapon,1000100
+sell=armour,1000100
+sell=accessory,1000100
+
+[shop 38]                # the Tower of Ordeal's top floor trader
+sell=weapon,1000110
+sell=weapon,2000101
+sell=armour,3000100
+sell=armour,4000100
+sell=accessory,1000101
+sell=special,98000000,1

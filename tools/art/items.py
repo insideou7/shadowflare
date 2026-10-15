@@ -80,6 +80,7 @@ ITEMS = [
     ("warding_cross", ("pendant", "warding_cross"), 1, 1, 2.0, 20),
     ("scarlet_dirk", ("blade", "scarlet_dirk"), 1, 3, 1.3, 30),
     ("old_knight_sword", ("blade", "old_knight_sword"), 1, 4, 1.0, 40),
+    ("elixir", ("thing", "elixir"), 1, 1, 2.0, 0),
 ]
 
 # A laid mine is drawn larger than the mine item, as the original's is, so
@@ -155,6 +156,15 @@ def thing(kind):
         made[-1].location = (0, 0, 0.34)
         add(shape("cylinder", (0.045, 0.045, 0.04), mat("cork", (0.62, 0.44, 0.26), scale=40)))
         made[-1].location = (0, 0, 0.44)
+    elif kind == "elixir":
+        # A tall golden flask with a stopper of brass: it brings the hero
+        # back when they fall (special 98000000).
+        add(shape("ball", (0.12, 0.12, 0.17), glass("elixir", (0.95, 0.70, 0.12), 0.8)))
+        made[-1].location = (0, 0, 0.17)
+        add(shape("cylinder", (0.04, 0.04, 0.10), glass("elixir neck", (0.85, 0.85, 0.75), 0.1)))
+        made[-1].location = (0, 0, 0.40)
+        add(shape("ball", (0.06, 0.06, 0.05), brass))
+        made[-1].location = (0, 0, 0.52)
     elif kind in ("mine", "mine_armed"):
         # A squat iron pot on the ground with a brass band, a plunger on
         # top and a little red lamp; armed, three prongs fold out and the

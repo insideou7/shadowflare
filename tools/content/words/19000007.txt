@@ -1,0 +1,57 @@
+# Tower of Ordeal, 6F: what its people say, in our own words, by the original's
+# message numbers (tools/content/scripts.py). Each keeps the original's
+# purpose and its options (~...~) and numbers (%d) in order.
+# Our cast in the Tower of Ordeal: Warden Brann, who keeps the road;
+# Sister Ilse and her fellow menders, who heal on the rest floors;
+# Corwin, Tamsin and Odo, the tower's traders; Master Quill, the
+# warehouse keeper on 12F; Lark and Vesper, the card players on 17F and
+# the top floor. Plain game terms and place titles kept: Tower of Ordeal,
+# Giant Warehouse, Black Jack, magic cards.
+
+[message 1000000]
+Light of the living,
+close these wounds!
+
+[message 1000001]
+Come, let me tend to your hurts.
+
+[message 1000002]
+Keep your strength up.
+
+[message 1000003]
+Climbing high, are we? I've the gear for it.
+
+  ~Buy and sell          ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000004]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000005]
+You can't afford that.
+
+[message 1000006]
+Nothing here needs mending.
+
+[message 1000007]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000008]
+You've got nothing that needs identifying.
+
+[message 1000009]
+Tower of Ordeal, 6F
+
+[message 1000010]
+Tower of Ordeal, 6F

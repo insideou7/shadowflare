@@ -890,11 +890,16 @@ void testSaveToOtherData() {
               fourth.y == 1000 + 4160,
           "the fourth area moves too");
 
+    // The Tower of Ordeal's 99xxxxxx are the open pack's 19xxxxxx.
     sf::SaveGame ordeal;
     ordeal.scenario = "Scenario/99000018";
-    ordeal.x = 5;
-    check(!sf::moveSaveToOtherData(ordeal) && ordeal.scenario == "Scenario/99000018" && ordeal.x == 5,
-          "the Tower of Ordeal stays as it was");
+    ordeal.x = 12000;
+    ordeal.y = -1000;
+    check(sf::moveSaveToOtherData(ordeal) && ordeal.scenario == "Scenario/19000018" && ordeal.x == 12000 - 10560 &&
+              ordeal.y == -1000 + 4800,
+          "the Tower of Ordeal moves too");
+    check(sf::moveSaveToOtherData(ordeal) && ordeal.scenario == "Scenario/99000018" && ordeal.x == 12000,
+          "and back to the original's tower");
 }
 
 void testRightClickEquip() {

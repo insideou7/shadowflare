@@ -43,8 +43,8 @@ struct Move {
 std::optional<Move> moveOf(std::string_view dir) {
     const auto n = scenarioNumber(dir);
     if (!n) return std::nullopt;
-    const bool open = *n >= kOpenScenarioOffset;
-    const OpenArea* area = openAreaOf(open ? *n - kOpenScenarioOffset : *n);
+    const bool open = isOpenScenario(*n);
+    const OpenArea* area = openAreaOf(open ? originalScenarioOf(*n) : *n);
     if (!area) return std::nullopt;
     return Move{area, !open};
 }
@@ -88,7 +88,7 @@ bool moveSaveToOtherData(SaveGame& save) {
     if (!hero) return false;
     const OpenArea& a = *hero->area;
     const int sign = hero->toOpen ? -1 : 1;
-    save.scenario = scenarioDir(hero->toOpen ? a.original + kOpenScenarioOffset : a.original);
+    save.scenario = scenarioDir(hero->toOpen ? openScenarioOf(a.original) : a.original);
     save.x += sign * a.x0;
     save.y += sign * a.y0;
     // The map names are the same in both (first_area.py names ours after
@@ -98,7 +98,7 @@ bool moveSaveToOtherData(SaveGame& save) {
     for (auto& [dir, mask] : save.explored) {
         const auto m = moveOf(dir);
         if (m && m->toOpen == hero->toOpen) {
-            explored[scenarioDir(m->toOpen ? m->area->original + kOpenScenarioOffset : m->area->original)] = movedMask(mask, *m);
+            explored[scenarioDir(m->toOpen ? openScenarioOf(m->area->original) : m->area->original)] = movedMask(mask, *m);
         } else {
             explored.emplace(dir, std::move(mask));
         }

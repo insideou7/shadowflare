@@ -1,0 +1,86 @@
+# Written by tools/content/scripts.py after the original's scenario 99000034
+# (Tower of Ordeal, Annex), in our own words (tools/content/words/19000034.txt).
+
+object=2880,9440,3039,9919,o11000,states=1/1/1,at=2880/9683
+object=2880,9440,3039,9599,o11001,states=0/0/0,at=2880/9683
+object=2880,9920,3039,10079,o11002,states=0/0/0,at=2880/9683
+temp=1000010,81
+temp=1000011,82
+temp=1000012,83
+temp=1000013,31
+temp=1000014,32
+temp=1000015,33
+temp=1000016,27
+temp=1000017,28
+temp=1000018,38
+temp=1000019,39
+temp=1000020,3
+temp=1000021,25
+temp=1000022,26
+temp=1000023,30
+temp=1000024,37
+temp=1000025,10
+temp=1000026,40
+temp=1000027,41
+temp=1000028,42
+temp=1000029,43
+temp=1000030,53
+temp=1000031,80
+temp=1000032,51
+
+[message 1000000]
+Tower of Ordeal, Annex 11F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 19000035 0
+
+[sentence s2]
+on=tick
+IF temp:1000009 = 0 @s3
+IF temp:1000009 ! 0 @s4
+
+[sentence s3]
+CREATEEFFECTCHAR 20018 10000000
+PLAYSOUND temp:1000032 0 x:10000000 y:10000000
+GETRANDAM 20 40 temp:1000009
+
+[sentence s4]
+SUB temp:1000009 1
+
+[sentence s5]
+on=tick
+IF playmode:0 ! 2 @s6
+
+[sentence s6]
+IF shown:o11000 = 1 @s7
+
+[sentence s7]
+CHECKENEMYLIVE 14000000 14000099 temp:1000002
+IF temp:1000002 = -1 @s8
+
+[sentence s8]
+SETINACTIVE o11000
+SETACTIVE o11001
+SETACTIVE o11002
+PLAYSOUND temp:1000010 0 x:o11000 y:o11000
+
+[sentence s9]
+on=talk o11000
+IF shown:o11000 = 1 @s10
+
+[sentence s10]
+PLAYSOUND temp:1000012 0 x:o11000 y:o11000
+
+[sentence s11]
+IF shown:o11000 = 0 @s12
+IF shown:o11000 = 1 @s13
+
+[sentence s12]
+PLAYSOUND temp:1000010 0 x:o11000 y:o11000
+
+[sentence s13]
+PLAYSOUND temp:1000011 0 x:o11000 y:o11000
