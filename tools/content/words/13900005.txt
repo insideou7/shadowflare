@@ -3,7 +3,7 @@
 # original's purpose and its options (~...~) and numbers (%d) in order.
 # Our cast: Saint Seren keeps the shrine and carries the spirit of Valmere,
 # the White Angel; Morvane is the fallen scientist sealed in Aurion; Aldo
-# the trader; Talon the partner. Coined here: the Fiend's Tooth (the key to
+# the trader; Kestrel the partner. Coined here: the Fiend's Tooth (the key to
 # the burrow from Ento Village into the Fort of Demons), the Fellowship Stone (her reward), rare curios.
 
 [message 1000000]
@@ -379,7 +379,7 @@ Identifying that comes to %d Gold. All right?
 There's nothing unknown here.
 
 [message 1000093]
-Talon
+Kestrel
 
   ~Check status~
   ~About me~

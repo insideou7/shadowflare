@@ -167,9 +167,9 @@ IF save:85 > 9 @s7
 CHANGESCENARIO 13150000 0
 
 [sentence s8]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF quest:32 ! 0 @s9
 IF quest:32 = 0 @s10
@@ -184,7 +184,7 @@ SETFLAG temp:1000002 msg:1000003
 SETFLAG temp:1000001 0
 
 [sentence s11]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 0 @s12
 IF temp:1000001 = 100 @s13
 IF temp:1000001 = -1 @s14
@@ -197,7 +197,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s14]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s15]
 ADD temp:1000001 1

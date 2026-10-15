@@ -82,9 +82,9 @@ ABSOLUTEOBJECTFLAG o11001 0 0 0
 ABSOLUTEOBJECTFLAG o11002 0 0 0
 
 [sentence s6]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000002 -1
 IF save:79 = 2 @s7
 IF save:79 = 1 @s10
@@ -130,7 +130,7 @@ SETFLAG temp:1000002 400
 SETFLAG save:79 1
 
 [sentence s16]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000002 = 0 @s17
 IF temp:1000002 = 102 @s18
 IF temp:1000002 = 200 @s19
@@ -155,7 +155,7 @@ SETFLAG temp:1000002 -1
 SETFLAG temp:1000002 -1
 
 [sentence s22]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s23]
 ADD temp:1000002 1

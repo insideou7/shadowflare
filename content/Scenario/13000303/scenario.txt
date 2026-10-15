@@ -455,3 +455,4 @@ enemy=7,37440,16187,3,7000,900,640,goblin,2,10,100,300,15000,200,250,50,700,1,at
 enemy=7,8556,44618,3,7000,900,640,goblin,2,10,100,300,15000,200,250,50,700,1,attacks=900/0/0,hits=250/0/0,spells=12/12/-1,spell_power=900/900/0,spell_level=20/20/10,spell_hit=210/210/0,magic_evasion=20,speed=1200
 enemy=7,39264,18516,3,7000,900,640,goblin,2,10,100,300,15000,200,250,50,700,1,attacks=900/0/0,hits=250/0/0,spells=12/12/-1,spell_power=900/900/0,spell_level=20/20/10,spell_hit=210/210/0,magic_evasion=20,speed=1200
 enemy=7,26078,29733,3,7000,900,640,goblin,2,10,100,300,15000,200,250,50,700,1,attacks=900/0/0,hits=250/0/0,spells=12/12/-1,spell_power=900/900/0,spell_level=20/20/10,spell_hit=210/210/0,magic_evasion=20,speed=1200
+person=37,29364,3445,7,p0

@@ -725,9 +725,9 @@ HEALMENTAL
 PLAYSOUND temp:1000044 0 x:p2 y:p2
 
 [sentence s99]
-on=talk 12000003
-C_STOP 12000003
-C_SETANGLETO 12000003 0
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
 SETFLAG temp:1000001 -1
 IF save:77 = 3 @s100
 IF save:77 = 2 @s103
@@ -779,7 +779,7 @@ SETFLAG temp:1000001 0
 SETFLAG save:77 1
 
 [sentence s110]
-on=talk-end 12000003
+on=talk-end p3
 IF temp:1000001 = 0 @s111
 IF temp:1000001 = 105 @s112
 IF temp:1000001 = 200 @s113
@@ -809,7 +809,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s117]
-C_MOVABLE 12000003
+C_MOVABLE p3
 
 [sentence s118]
 ADD temp:1000001 1

@@ -351,9 +351,9 @@ GETRANDAM 20 40 temp:1000031
 SUB temp:1000031 1
 
 [sentence s9]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF save:93 = 2 @s10
 IF save:93 = 1 @s15
@@ -412,7 +412,7 @@ SETFLAG temp:1000002 msg:1000002
 SETFLAG temp:1000001 0
 
 [sentence s21]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 0 @s22
 IF temp:1000001 = 106 @s23
 IF temp:1000001 = 200 @s24
@@ -443,7 +443,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s28]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s29]
 ADD temp:1000001 1
@@ -863,9 +863,9 @@ HEALMENTAL
 PLAYSOUND temp:1000071 0 x:p2 y:p2
 
 [sentence s107]
-on=talk 12000003
-C_STOP 12000003
-C_SETANGLETO 12000003 0
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
 SETFLAG temp:1000001 -1
 IF save:100 = 2 @s108
 IF save:100 = 1 @s109
@@ -905,7 +905,7 @@ SETFLAG temp:1000001 0
 SETFLAG save:100 1
 
 [sentence s113]
-on=talk-end 12000003
+on=talk-end p3
 IF temp:1000001 = 1 @s114
 IF temp:1000001 = 100 @s115
 IF temp:1000001 = 202 @s116
@@ -927,7 +927,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s118]
-C_MOVABLE 12000003
+C_MOVABLE p3
 
 [sentence s119]
 ADD temp:1000001 1
@@ -1015,9 +1015,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s137]
-on=talk 12000006
-C_STOP 12000006
-C_SETANGLETO 12000006 0
+on=talk p6
+C_STOP p6
+C_SETANGLETO p6 0
 SETFLAG temp:1000001 -1
 IF quest:32 = 2 @s138
 IF quest:32 ! 2 @s139
@@ -1032,7 +1032,7 @@ SETFLAG temp:1000002 msg:1000045
 SETFLAG temp:1000001 0
 
 [sentence s140]
-on=talk-end 12000006
+on=talk-end p6
 IF temp:1000001 = 0 @s141
 IF temp:1000001 = 101 @s142
 IF temp:1000001 = -1 @s143
@@ -1045,7 +1045,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s143]
-C_MOVABLE 12000006
+C_MOVABLE p6
 
 [sentence s144]
 ADD temp:1000001 1
@@ -1159,9 +1159,9 @@ ADD temp:1000003 200
 CREATEITEM temp:1000027 temp:1000028 temp:1000003 temp:1000004 -1 -1
 
 [sentence s167]
-on=talk 12000009
-C_STOP 12000009
-C_SETANGLETO 12000009 0
+on=talk p9
+C_STOP p9
+C_SETANGLETO p9 0
 SETFLAG temp:1000001 -1
 IF quest:44 ! 0 @s168
 IF quest:44 = 0 @s169
@@ -1178,7 +1178,7 @@ SETQUESTFLAG 44 1 0
 DRAWQUESTNAME 44
 
 [sentence s170]
-on=talk-end 12000009
+on=talk-end p9
 IF temp:1000001 = 0 @s171
 IF temp:1000001 = 101 @s172
 IF temp:1000001 = -1 @s173
@@ -1191,7 +1191,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s173]
-C_MOVABLE 12000009
+C_MOVABLE p9
 
 [sentence s174]
 ADD temp:1000001 1

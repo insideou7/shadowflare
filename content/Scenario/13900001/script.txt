@@ -611,9 +611,9 @@ GETRANDAM 20 40 temp:1000031
 SUB temp:1000031 1
 
 [sentence s12]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF save:80 = 6 @s13
 IF save:80 = 5 @s14
@@ -691,7 +691,7 @@ SETFLAG temp:1000001 0
 SETFLAG save:80 1
 
 [sentence s26]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 6 @s27
 IF temp:1000001 = 100 @s28
 IF temp:1000001 = 206 @s29
@@ -737,7 +737,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s36]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s37]
 IF temp:1000001 < 600 @s38
@@ -1266,9 +1266,9 @@ HEALMENTAL
 PLAYSOUND temp:1000071 0 x:p2 y:p2
 
 [sentence s138]
-on=talk 12000003
-C_STOP 12000003
-C_SETANGLETO 12000003 0
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
 SETFLAG temp:1000001 -1
 IF save:84 = 3 @s139
 IF save:84 = 2 @s140
@@ -1287,7 +1287,7 @@ IF quest:25 ! 2 @s142
 [sentence s141]
 SETFLAG temp:1000002 msg:1000087
 SETFLAG temp:1000001 500
-CREATEITEM 4 0 x:12000003 y:12000003 temp:1000026 temp:1000026
+CREATEITEM 4 0 x:p3 y:p3 temp:1000026 temp:1000026
 SETFLAG save:84 3
 
 [sentence s142]
@@ -1321,7 +1321,7 @@ SETFLAG temp:1000002 msg:1000070
 SETFLAG temp:1000001 0
 
 [sentence s149]
-on=talk-end 12000003
+on=talk-end p3
 IF temp:1000001 = 0 @s150
 IF temp:1000001 = 105 @s151
 IF temp:1000001 = 200 @s152
@@ -1357,7 +1357,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s157]
-C_MOVABLE 12000003
+C_MOVABLE p3
 
 [sentence s158]
 ADD temp:1000001 1
