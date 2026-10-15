@@ -2,7 +2,7 @@
 title=Wog Cave
 map=d03_14_00_13200000
 entry=0,2990,2009,7
-town=13900003
+town=13900003,200
 transport=1
 exit=3135,1115,3582,1717,13000201,2
 enemy=18,6484,8045,0,100000,1350,640,goblin,2,10,300,500,100000,600,250,50,800,2,attacks=1350/0/0,hits=250/0/0,spells=10/14/-1,spell_power=1100/800/0,spell_level=20/1/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1300

@@ -2,7 +2,7 @@
 title=Coal Mine
 map=Coalmine_02
 entry=0,8823,19136,1
-town=12100000
+town=12100000,200
 transport=1
 exit=8300,18492,8572,18927,12100001,4
 enemy=3,11635,17946,5,4000,600,960,mage-three-burst-last,5,10,300,350,3000,200,250,50,300,5,attacks=600/0/0,hits=250/0/0,stun=999/0/0,magic_evasion=20,speed=1200

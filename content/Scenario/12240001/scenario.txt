@@ -2,7 +2,7 @@
 title=Cave, B2F
 map=cave_08
 entry=0,11158,5691,7
-town=12200000
+town=12200000,200
 transport=1
 exit=11268,4978,11751,5271,12240000,1
 enemy=6,13667,8433,3,2000,350,640,goblin,2,10,350,400,3000,150,250,50,350,5,attacks=350/0/0,hits=250/0/0,spells=4/1/-1,spell_power=450/450/0,spell_level=1/1/10,spell_hit=210/210/0,magic_evasion=20

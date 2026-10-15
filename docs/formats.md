@@ -201,7 +201,8 @@ char aidPath[0x104]     AI data, usually System\Game\Parameter\Control.aid
 char mapPath[0x104]     e.g. Map\c02_00.map
 i32  town               the area's town (scenario + 0x60): 0 for Remote Town's
                         areas, 1000000 for Cold Svalt's, ...; where Transport leads
-i32  unknown            scenario + 0x64
+i32  townEntry          scenario + 0x64: the entry point in that town where a
+                        hero who falls here wakes up (0x435b60): 0 or 200
 i32  areaKind          0 town, 1 field, 2 caravan, 3 boss room, 4 ruins/tower/fort,
                         5 cave, 6 shrine (scenario + 0x6c)
 char title[0x100]       area name, e.g. "Kanfore, Mining Town"

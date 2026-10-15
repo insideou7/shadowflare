@@ -131,6 +131,21 @@ right click in the window, Esc or opening another window closes it. A
 new game knows Remote Town's gate from the start. See
 [formats.md](formats.md#the-gate-window).
 
+## When the hero falls
+
+At no health the hero drops where they stand, as in the original
+(0x435b60): the death sound, the parting glow (option 11000023) and the
+death chart (4, facing nowhere) when their figure has one. An Elixir in the
+bag brings them straight back instead. A fallen hero takes no more blows.
+
+Once the last frame has been held for 120 of the original's ticks, the
+original takes half the hero's gold and wakes them in the area's town
+(scenario + 0x60, at its entry point + 0x64; 0x426200) with full health and
+mana. Ours opens a Game Over window there instead (`gameOverWindow`):
+CONTINUE loads the hero's last save, and EXIT goes back to the title
+screen. A hero with no save yet wakes in town as in the original. Original
+mode does what the original does. The code is in `src/game/game_over.cpp`.
+
 ## Settings Menu
 
 Esc during play opens it; Options on the title menu opens the same rows

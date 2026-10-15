@@ -3,7 +3,7 @@ title=Ancient Ruins, B1F
 map=d03_08_00
 entry=0,20220,20019,7
 entry=1,33741,19268,7
-town=13900003
+town=13900003,200
 exit=20418,19072,20865,19674,13000302,3
 enemy=15,29275,23655,4,8000,1000,640,goblin,2,10,100,300,20000,200,200,50,800,0,attacks=1000/0/0,hits=200/0/0,spells=11/-1/-1,spell_power=1000/0/0,spell_level=10/10/10,spell_hit=210/0/0,magic_evasion=20
 glow=1

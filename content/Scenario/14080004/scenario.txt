@@ -2,7 +2,7 @@
 title=Sena's Tower, 5F
 map=d03_00_00_14080004
 entry=0,4405,2344,7
-town=14900001
+town=14900001,200
 exit=4402,1268,4849,1870,14080003,1
 enemy=18,4700,5980,0,90000,1650,640,goblin,2,10,800,1200,140000,600,280,50,900,0,attacks=1650/0/0,hits=280/0/0,spells=4/11/-1,spell_power=1500/1400/0,spell_level=20/20/10,spell_hit=300/300/0,stun=40/8/0,magic_evasion=20,speed=1300
 glow=3

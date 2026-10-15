@@ -2,7 +2,7 @@
 title=Dragon Cave
 map=d03_05_00
 entry=0,7505,2404,7
-town=13900003
+town=13900003,200
 exit=7743,1437,8190,2039,13000402,2
 enemy=12,3887,7993,3,80000,1100,640,goblin,2,100,1000,2000,60000,400,400,50,700,4,attacks=1100/900/0,hits=400/400/0,spells=13/12/11,spell_power=800/850/850,spell_level=30/20/30,spell_hit=300/300/300,stun=999/10/1,magic_evasion=60,speed=800,shot=6/200/100/300/1
 glow=5

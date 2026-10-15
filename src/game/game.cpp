@@ -616,6 +616,7 @@ void Game::handleEvent(const SDL_Event& event) {
         menuEvent(event);
         return;
     }
+    if (gameOverEvent(event)) return;
     if (visual_ && visualEvent(event)) return;
     if (dialogue_ && event.type != SDL_QUIT) {
         dialogueEvent(event);
@@ -897,7 +898,7 @@ void Game::tick() {
     if (newCharacter_) tickNewCharacter();
     if (loadData_) tickLoadData();
     if (menuOpen_) tickTitleSmoke();
-    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_) return;  // the world waits while a menu is open
+    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_ || gameOverOpen_) return;  // the world waits while a menu is open
     tickMissions();
     if (startScripts_) {
         startScripts_ = false;
@@ -956,8 +957,12 @@ void Game::tick() {
         monsterCries(actor);
     }
     if (!player_) return;
-    tickPlayer();
-    player_->tick();
+    if (fallTicks_) {
+        tickFall();
+    } else {
+        tickPlayer();
+        player_->tick();
+    }
     if (power_.active()) {
         // A hum at the hero every 15 of the original's ticks, the first as
         // it starts: 60 in all (0x443490).
@@ -1512,6 +1517,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
 
 // What happens to a blow or spell that got through (0x443cb0).
 void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
+    if (fallTicks_) return;  // a fallen hero takes no more blows
     // Shields charge MP each time they work. The original charges the
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
@@ -1538,19 +1544,8 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     // The Elixir in the bag brings the hero straight back (0x443cb0).
     if (playerHp_ <= 0 && reviveWithElixir()) return;
     if (playerHp_ <= 0) {
-        // No death animation or game over yet: start the map again.
-        log::info("The player was defeated");
-        playSound(heroSex_ == HeroSex::Female ? 14 : 13, player_->x, player_->y);  // 0x435b60
-        for (auto& actor : actors_) {
-            if (actor.alive()) {
-                actor.state = Actor::State::Idle;
-                actor.action = -1;
-                actor.event = AiControl::kDecide;
-                actor.character.x = actor.placement.x;
-                actor.character.y = actor.placement.y;
-            }
-        }
-        placePlayer();
+        playerHp_ = 0;
+        fall();
         return;
     }
     // Blows that get through wear out the armour (0x443fa8).
@@ -1607,11 +1602,13 @@ void Game::render(double interpolation) {
         renderLoadData();
     } else if (menuOpen_) {
         renderMenu();
+    } else if (gameOverOpen_) {
+        renderGameOver();
     }
     // The name under the pointer is over the windows (layer 17) and in a
     // screenshot; the frame (0x41e4f0) saves that before it draws the
     // pointer's square and the pointer (0x416bb0, 0x4087b0).
-    const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !loadData_ && !menuOpen_;
+    const bool hovering = hoverOn_ && !optionsOpen_ && !newCharacter_ && !loadData_ && !menuOpen_ && !gameOverOpen_;
     if (hovering) renderHoverName();
     renderFps();
     if (screenshotPending_) takeScreenshot();

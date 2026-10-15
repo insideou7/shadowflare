@@ -3,7 +3,7 @@ title=Tower of Licarn, 4F
 map=d03_04_02_13110003
 entry=0,4031,2238,7
 entry=1,4183,5076,7
-town=13900003
+town=13900003,200
 enemy=1,4724,5273,3,15000,1050,640,goblin,2,10,100,300,15000,200,200,50,600,5,attacks=1050/0/0,hits=200/0/0,stun=20/5/0,magic_evasion=20,speed=1500
 glow=1
 enemy=1,3917,4460,3,3000,1050,640,goblin,2,10,100,300,5000,200,200,50,550,5,attacks=1050/0/0,hits=200/0/0,magic_evasion=20,speed=1500

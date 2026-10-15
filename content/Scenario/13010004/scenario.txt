@@ -2,7 +2,7 @@
 title=The Remains of The Dead, Central Room
 map=3rdLast04
 entry=0,7740,5679,7
-town=13900005
+town=13900005,200
 transport=1
 exit=7921,4964,8186,5243,13010003,1
 enemy=17,2291,8756,2,300000,1500,640,goblin,2,100,3000,10000,500000,600,250,50,750,5,attacks=1500/0/0,hits=250/0/0,spells=13/4/12,spell_power=1100/1100/1100,spell_level=20/20/20,spell_hit=300/300/300,stun=999/10/1,magic_evasion=60,speed=1400,word7=100

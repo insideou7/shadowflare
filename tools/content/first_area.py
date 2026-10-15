@@ -170,7 +170,8 @@ def find(folder, stem, ext):
 
 def read_mct(data):
     """Map path, title, placements (objects, people, enemies), entry
-    points, light, town and whether Transport may be cast, of a
+    points, light, town, whether Transport may be cast and the town entry
+    point a hero who falls there wakes at, of a
     Scenario.Mct, as in src/formats/scenario.cpp."""
     o = 16
 
@@ -189,7 +190,8 @@ def read_mct(data):
     cstr(0x104)
     path = cstr(0x104)
     town = i32()  # the area's town (scenario + 0x60), where Transport leads
-    i32(), i32()
+    town_entry = i32()  # where in that town a hero who falls here wakes (scenario + 0x64)
+    i32()
     title = cstr(0x100)
     for _ in range(3):
         n = i32()
@@ -223,7 +225,7 @@ def read_mct(data):
         i32()
         transport = i32() != 0  # scenario + 0x70
         light = i32()
-    return path, title, groups, entries, light, town, transport
+    return path, title, groups, entries, light, town, transport, town_entry
 
 
 def read_scs(data):
@@ -296,7 +298,7 @@ class Original:
 
     def __init__(self, game, number):
         sc = game / "Scenario" / f"{number:08d}"
-        self.path, self.title, self.groups, self.entries, self.light, self.town, self.transport = read_mct(find(sc, "Scenario", ".mct").read_bytes())
+        self.path, self.title, self.groups, self.entries, self.light, self.town, self.transport, self.town_entry = read_mct(find(sc, "Scenario", ".mct").read_bytes())
         self.name = self.path.replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
         scs = find(sc, "Scenario", ".scs")
         self.exits = exits_of(read_scs(scs.read_bytes()), self.groups[0]) if scs else []
@@ -793,7 +795,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     for eid, x, y, d in o.entries:
         if eid % 4 == 0:
             lines.append(f"entry={eid // 4},{','.join(map(str, spot(x, y)))},{d % 8}")
-    lines.append(f"town={our_number(o.town)}")
+    lines.append(f"town={our_number(o.town)}" + (f",{o.town_entry}" if o.town_entry else ""))
     if o.transport:
         lines.append("transport=1")
     for left, top, right, bottom, target, entry in written_exits(o, number):

@@ -227,7 +227,9 @@ void testScenario() {
           "a lamp");
     check(sf::open::parseScenario(bytes("map=a\n")).control.light == sf::ScenarioControl::kLit, "scenarios are lit by default");
     const auto field = sf::open::parseScenario(bytes("town=10000000\ntransport=1\n")).control;
-    check(field.town == 10000000 && field.transport, "an area's town and Transport");
+    check(field.town == 10000000 && field.transport && field.townEntry == 0, "an area's town and Transport");
+    const auto later = sf::open::parseScenario(bytes("town=12100000,200\n")).control;
+    check(later.town == 12100000 && later.townEntry == 200, "the town entry a fallen hero wakes at");
     check(!sf::open::parseScenario(bytes("map=a\n")).control.transport, "no Transport unless the area says so");
     expectRejected("lamp size", "lamp=1,2,6\n", [](auto& data) { sf::open::parseScenario(data); });
     expectRejected("glow alone", "glow=1\n", [](auto& data) { sf::open::parseScenario(data); });

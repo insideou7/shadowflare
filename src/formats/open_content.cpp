@@ -563,9 +563,13 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
             s.script.triggers.push_back({0, ScenarioScript::kOnJudge, ScenarioControl::idBase(Group::Object) + area.id, sentence});
             c.placements.push_back(std::move(area));
         } else if (key == "town") {
-            // town=scenario: the town this area belongs to, where a Transport
-            // gate cast here leads.
-            c.town = lines.ints(value, 1)[0];
+            // town=scenario[,entry]: the town this area belongs to, where a
+            // Transport gate cast here leads, and the entry point there where
+            // a hero who falls here wakes up (0 when left out).
+            const auto v = lines.ints(value);
+            if (v.empty() || v.size() > 2) lines.fail("expected 1 or 2 numbers");
+            c.town = v[0];
+            c.townEntry = v.size() > 1 ? v[1] : 0;
         } else if (key == "transport") {
             // transport=1: Transport can be cast here (fields and dungeons).
             c.transport = lines.ints(value, 1)[0] != 0;

@@ -2,7 +2,7 @@
 title=Fort of Demon, B2F
 map=d04_02_01
 entry=0,6331,1638,7
-town=14900002
+town=14900002,200
 transport=1
 exit=6364,1255,6794,1405,14120000,1
 enemy=17,4002,18276,1,150000,2500,640,goblin,2,10,1000,1500,300000,800,280,50,1600,1,attacks=2500/0/0,hits=280/0/0,stun=50/8/0,magic_evasion=20,speed=1300

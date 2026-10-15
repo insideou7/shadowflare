@@ -2,7 +2,7 @@
 title=The Ancient Institute
 map=fort4_01
 entry=0,18495,34195,7
-town=14900000
+town=14900000,200
 transport=1
 exit=18635,33599,19118,33892,14000003,3
 enemy=16,12278,26092,0,60000,1450,640,goblin,2,10,600,1000,100000,600,280,50,850,5,attacks=1450/1350/0,hits=280/250/0,stun=50/8/0,magic_evasion=20,speed=1300

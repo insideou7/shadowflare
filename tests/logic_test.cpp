@@ -972,6 +972,8 @@ void testMagic() {
           "absorption heals the hero only outside original mode");
     check(sf::Rules::ours().spellsAimAtEnemy && !sf::Rules::original().spellsAimAtEnemy,
           "original mode casts at the point clicked, not the monster under it");
+    check(sf::Rules::ours().gameOverWindow && !sf::Rules::original().gameOverWindow,
+          "a fallen hero gets the Game Over window only outside original mode");
 }
 
 void testPowerMode() {

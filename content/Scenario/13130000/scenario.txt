@@ -2,7 +2,7 @@
 title=Ponero Cave
 map=d03_10_00
 entry=0,11723,2236,7
-town=13900003
+town=13900003,200
 transport=1
 exit=11906,1374,12353,1976,13000503,2
 light=1000

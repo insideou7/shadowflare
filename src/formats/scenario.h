@@ -170,6 +170,10 @@ struct ScenarioControl {
     // The header's first word (scenario + 0x60): the scenario number of the
     // area's town, where the hero's Transport gate leads (0x420020).
     std::int32_t town = 0;
+    // The header's second word (scenario + 0x64): the town's entry point
+    // where a hero who falls here wakes up (0x435b60): 0 for the first two
+    // areas' towns, 200 later on.
+    std::int32_t townEntry = 0;
     // The second of the three closing words (scenario + 0x70): 1 where
     // Transport may be cast (fields and dungeons), 0 in towns and the
     // Caravan (0x441c00).

@@ -2,7 +2,7 @@
 title=Underground Cave of a Church
 map=d03_01_00
 entry=0,26690,15649,7
-town=13900001
+town=13900001,200
 transport=1
 exit=26813,14727,27260,15329,13900001,2
 enemy=4,18106,4233,3,30000,1250,640,goblin,2,10,200,300,10000,500,250,50,300,0,attacks=1250/1100/0,hits=250/180/0,magic_evasion=20,speed=2500
