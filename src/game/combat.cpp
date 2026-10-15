@@ -192,7 +192,10 @@ void Game::comboBlow(const Combo& c) {
         if (std::hypot(dx, dy) > kBlowReach) continue;
         if (!inSwing(c.facing, facingOf(dx, dy), spin ? kAllRound : kComboSpread)) continue;
         const auto& s = enemy.placement.stats;
-        if (random_.next(100) >= hitChance(playerHit(), s.evasion)) continue;
+        if (random_.next(100) >= hitChance(playerHit(), s.evasion)) {
+            showMiss(enemy.character.x, enemy.character.y);
+            continue;
+        }
         const int roll = random_.next(3) + (!spin && c.blow == 3 ? 1 : 0);
         const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, roll);
         absorbFrom(enemy, damage);

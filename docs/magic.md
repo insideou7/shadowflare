@@ -186,6 +186,8 @@ columns it uses and what it adds to the spell's hit
   straight away. Power is the monster's own (no magic attack is added),
   hit is table 18 at the monster's level plus its bonus, and table 21
   says whether the missile flies through.
+- Its missiles fly at height 250, the hero's at 200 (the controller's
+  height word, +0x24).
 - Its effects hurt the hero and an ACTIVE companion (the effect's target
   mask 0x13: players, companions and walls; the hero's spells use 0x14,
   monsters and walls). Dread Deathscythe's blades go for the one aimed at
@@ -319,12 +321,10 @@ Ours rather than the original's, until they are read from the exe:
   original asks its collision map for the whole rectangle, and the hero
   steps into a gate with a ±30 square (the original uses their judge
   rect).
-- A monster's spell, or blow, with no frame marked 0x40 in its chart (the
-  open content's monsters) happens once, halfway through.
-- Monster spells and missiles are not lifted off the ground (the original
-  flies the hero's at height 200 and monsters' at 250), and a monster's
-  spell that misses shows nothing (the original plays 11000011 on the
-  one it missed).
+- A monster's spell, or blow, with no frame marked 0x40 in its chart
+  happens once, halfway through. The open content's casters have a
+  casting chart (7) of their own, the spell leaving on frame 8; their
+  blows still land halfway through the attack.
 
 ## Original mode
 

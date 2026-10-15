@@ -66,6 +66,8 @@ def main():
         alpha[trns] = 0
     pictures, new_lines = [], {}
     for chart, name in PLAYER_CHARTS:
+        if name not in anims:
+            continue  # rendered without this animation
         frames = anims[name][0]
         for d in range(8):
             cells = []

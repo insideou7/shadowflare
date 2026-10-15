@@ -134,9 +134,37 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
 
 
 # The player's attack is ten frames like the original's, with the blow landing
-# on frame 7 (HERO_STRIKE): see HERO_ATTACK.
-HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False))
-HERO_STRIKE = {"attack": 7}
+# on frame 7 (HERO_STRIKE): see HERO_ATTACK. Shooting a bowgun (chart 10),
+# casting (chart 13) and Heal's own casting (chart 11) have the original's
+# lengths too, the shot or spell leaving on the frame HERO_STRIKE names.
+HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False), shoot=(17, False), cast=(14, False), heal=(10, False))
+HERO_STRIKE = {"attack": 7, "shoot": 3, "cast": 9, "heal": 8}
+
+# Monsters that cast spells in the open pack get a casting animation too
+# (the original's chart 7): twelve frames, the spell leaving on frame 8.
+CASTERS = {"fly", "demon", "shaman", "spider", "bigspider", "dragon", "fire", "bonebeast", "lizard", "vampire",
+           "raptor", "bonewarrior", "angel"}
+CAST = (12, False)
+CAST_STRIKE = 8
+
+
+def add_casting(rig, kind):
+    """Gives a spell-casting monster its casting animation."""
+    if kind in CASTERS:
+        rig.animations = dict(getattr(rig, "animations", ANIMATIONS), cast=CAST)
+        rig.strikes = dict(getattr(rig, "strikes", {}), cast=CAST_STRIKE)
+
+
+def cast_curve(k):
+    """How far a casting monster has drawn itself up (up) and thrown the
+    spell out (out) at k in [0, 1]: it gathers over the first half, holds,
+    then throws on the release frame and eases back."""
+    def ease(u):
+        u = max(0.0, min(1.0, u))
+        return u * u * (3 - 2 * u)
+    up = ease(k / 0.5) * (1 - ease((k - 0.6) / 0.12))
+    out = ease((k - 0.58) / 0.12) * (1 - 0.6 * ease((k - 0.85) / 0.15))
+    return up, out
 
 # The original's player stands about 15% taller on screen than our first
 # hero did (measured over the eight directions of its stance and walk).
@@ -757,6 +785,11 @@ def fly_pose(rig, animation, t, frames):
         lunge = math.sin(math.pi * k)
         offset = (0.6 * lunge, 0, -0.3 * lunge)
         r["body"] = (0, 0.4 * lunge, 0)
+    elif animation == "cast":
+        # Rears up and back, then throws itself forward as the spell leaves.
+        up, out = cast_curve(k)
+        offset = (-0.2 * up + 0.4 * out, 0, 0.35 * up - 0.1 * out)
+        r["body"] = (0, -0.5 * up + 0.35 * out, 0)
     elif animation == "hit":
         offset = (-0.25 * math.sin(math.pi * k), 0, 0.1)
     elif animation == "death":
@@ -838,6 +871,9 @@ def spider_pose(rig, animation, t, frames):
         elif animation == "attack":
             if n == 0:
                 lift = -0.9 * math.sin(math.pi * k)
+        elif animation == "cast":
+            up, out = cast_curve(k)
+            lift = (-1.1 * up - 0.5 * out) if n == 0 else (-0.45 * up if n == 1 else 0.0)
         elif animation == "death":
             lift = -1.1 * k
         # A small lift about the axis across the leg raises its foot.
@@ -850,6 +886,11 @@ def spider_pose(rig, animation, t, frames):
         rear = math.sin(math.pi * k)
         body = (0, -0.45 * rear if k < 0.6 else -0.45 * rear + 0.3, 0)
         offset = (0.35 * rear, 0, 0.15 * rear)
+    elif animation == "cast":
+        # Rears up high on its back legs, then spits the spell forward.
+        up, out = cast_curve(k)
+        body = (0, -0.6 * up + 0.25 * out, 0)
+        offset = (-0.1 * up + 0.3 * out, 0, 0.25 * up)
     elif animation == "hit":
         jolt = math.sin(math.pi * k)
         body = (0, -0.2 * jolt, 0)
@@ -859,7 +900,8 @@ def spider_pose(rig, animation, t, frames):
         body = (0, 0.15 * k, 0)
     r["body"] = body
     if "tail" in rig.joints:  # a scorpion lashes its sting forward to strike
-        lash = math.sin(math.pi * k) if animation == "attack" else 0.04 * s
+        lash = math.sin(math.pi * k) if animation == "attack" else (
+            sum(cast_curve(k)) * 0.8 if animation == "cast" else 0.04 * s)
         r["tail"] = (0, 0.6 * lash, 0)
     rig.pose(r, offset)
 
@@ -1206,6 +1248,12 @@ def dragon_pose(rig, animation, t, frames):
         r["neck"] = (0, 0.45 * bite, 0)
         r["head"] = (0, -0.25 * bite, 0)
         r["body"] = (0, 0.08 * bite, 0)
+    elif animation == "cast":
+        # Draws its neck up and back, then thrusts it forward to breathe.
+        up, out = cast_curve(k)
+        r["neck"] = (0, -0.8 * up + 0.7 * out, 0)
+        r["head"] = (0, 0.4 * up - 0.45 * out, 0)
+        r["body"] = (0, -0.15 * up + 0.08 * out, 0)
     elif animation == "hit":
         jolt = math.sin(math.pi * k)
         r["neck"] = (0, -0.25 * jolt, 0)
@@ -3608,6 +3656,11 @@ def fire_pose(rig, animation, t, frames):
     if animation == "attack":
         grow = 1 + 0.4 * math.sin(math.pi * k)
         offset = (0.5 * math.sin(math.pi * k), 0, 0.1)
+    elif animation == "cast":
+        # Swells and rises, then lunges as the spell leaves it.
+        up, out = cast_curve(k)
+        grow = 1 + 0.5 * up + 0.2 * out
+        offset = (0.4 * out, 0, 0.25 * up)
     elif animation == "hit":
         grow = 1 - 0.25 * math.sin(math.pi * k)
     elif animation == "death":
@@ -4240,7 +4293,7 @@ def pose(rig, animation, t, frames):
         return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
-    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit"):
+    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit", "shoot", "cast", "heal"):
         k = min(1.0, t * frames / max(1, frames - 1))
         if animation == "attack":
             heroine = getattr(rig, "heroine", False)
@@ -4252,6 +4305,8 @@ def pose(rig, animation, t, frames):
             r["arm_l"], r["elbow_l"] = shields[round(k * (len(shields) - 1))]
         elif animation == "hit":
             r = keyframes(HERO_HIT, k)
+        elif animation in ("shoot", "cast", "heal"):
+            r = keyframes({"shoot": HERO_SHOOT, "cast": HERO_CAST, "heal": HERO_HEAL}[animation], k)
         elif animation == "idle" and getattr(rig, "heroine", False):
             r = heroine_stand(s)
         else:
@@ -4301,6 +4356,15 @@ def pose(rig, animation, t, frames):
         r["spine"] = (0, lean + (0.25 if k >= 0.5 else -0.1), -0.25 if k < 0.5 else 0.2)
         r["leg_l"] = (0, -0.3, 0)
         r["leg_r"] = (0, 0.25, 0)
+    elif animation == "cast":
+        # Both arms raised overhead as it leans back, then thrust out in
+        # front as the spell leaves.
+        up, out = cast_curve(min(1.0, t * frames / max(1, frames - 1)))
+        r["arm_l"] = (0.3 - 0.15 * out, -2.7 * up - 1.5 * out, 0)
+        r["arm_r"] = (-0.3 + 0.15 * out, -2.7 * up - 1.5 * out, 0)
+        r["spine"] = (0, lean - 0.25 * up + 0.25 * out, 0)
+        r["head"] = (0, -lean + 0.1 * up - 0.1 * out, 0)
+        offset = (0, 0, 0.05 * up)
     elif animation == "hit":
         k = math.sin(math.pi * min(1.0, t * frames / max(1, frames - 1)))
         r["spine"] = (0, lean - 0.45 * k, 0)
@@ -4545,6 +4609,43 @@ HERO_HIT = [
 ]
 
 
+# Shooting a bowgun: aimed from the first frame, the crossbow held up at the
+# shoulder in the right hand with the left under the tiller, feet wide and
+# the front knee bent. It kicks back as the bolt leaves on frame 3 and
+# settles back into the aim for the rest of the seventeen frames.
+SHOOT_AIM = hero_key(GUARD, spine=(0, 0.12, -0.35), head=(0, -0.10, 0.35), arm_r=(0.50, -1.50, 0),
+                     elbow_r=(0, -0.50, 0), weapon=(0, 2.10, 0), arm_l=(-0.30, -1.35, 0),
+                     elbow_l=(0, -0.30, 0), leg_l=(0.32, -0.85, 0.2), knee_l=(0, 0.9, 0),
+                     leg_r=(-0.32, 0.45, -0.2), knee_r=(0, 0.35, 0))
+SHOOT_KICK = hero_key(SHOOT_AIM, spine=(0, -0.02, -0.35), head=(0, 0.0, 0.35), arm_r=(0.50, -1.75, 0),
+                      weapon=(0, 2.00, 0), arm_l=(-0.30, -1.60, 0))
+HERO_SHOOT = [(0.0, SHOOT_AIM), (0.1875, SHOOT_AIM), (0.25, SHOOT_KICK), (0.40, SHOOT_AIM), (1.0, SHOOT_AIM)]
+
+# Casting, as the original's fourteen frames: crouched with the hands
+# gathered at the chest, then the front knee lifted and the right hand
+# drawn up behind the head, then a long lunge with the right arm thrust
+# out at the target as the spell leaves on frame 9, the left flung back.
+CAST_GATHER = hero_key(GUARD, spine=(0, 0.30, -0.20), head=(0, -0.20, 0.20), arm_r=(-0.20, -0.60, 0),
+                       elbow_r=(0, -1.80, 0), arm_l=(0.20, -0.60, 0), elbow_l=(0, -1.80, 0),
+                       leg_l=(0.30, -0.95, 0.2), knee_l=(0, 1.25, 0), leg_r=(-0.30, 0.20, -0.2), knee_r=(0, 1.10, 0))
+CAST_WIND = hero_key(GUARD, spine=(0, -0.15, 0.30), head=(0, 0.05, -0.20), arm_r=(-0.60, -2.60, 0),
+                     elbow_r=(0, -1.20, 0), arm_l=(0.30, -0.90, 0), elbow_l=(0, -0.60, 0),
+                     leg_l=(0.20, -1.40, 0.2), knee_l=(0, 1.60, 0), leg_r=(-0.20, 0.20, -0.2), knee_r=(0, 0.35, 0))
+CAST_THRUST = hero_key(GUARD, spine=(0, 0.20, -0.30), head=(0, -0.15, 0.25), arm_r=(0.55, -1.60, 0),
+                       elbow_r=(0, -0.05, 0), arm_l=(0.30, 1.00, 0), elbow_l=(0, -0.60, 0),
+                       leg_l=(0.15, -1.20, 0.1), knee_l=(0, 1.20, 0), leg_r=(-0.15, 0.90, -0.1), knee_r=(0, 0.20, 0))
+HERO_CAST = [(0.0, CAST_GATHER), (0.15, CAST_GATHER), (0.35, CAST_WIND), (0.55, CAST_WIND), (0.69, CAST_THRUST),
+             (1.0, CAST_THRUST)]
+
+# Heal's own casting, ten frames: from the crouch with the hands at the
+# chest the hero stands up straight, both arms held out in front, and the
+# spell takes hold on frame 8.
+HEAL_REACH = hero_key(GUARD, spine=(0, 0.0, -0.10), head=(0, 0.0, 0.10), arm_r=(0.15, -1.50, 0),
+                      elbow_r=(0, -0.05, 0), arm_l=(-0.05, -1.50, 0), elbow_l=(0, -0.05, 0),
+                      leg_l=(0.10, -0.30, 0.1), knee_l=(0, 0.30, 0), leg_r=(-0.10, 0.25, -0.1), knee_r=(0, 0.20, 0))
+HERO_HEAL = [(0.0, CAST_GATHER), (0.3, CAST_GATHER), (0.65, HEAL_REACH), (1.0, HEAL_REACH)]
+
+
 def plant(rig):
     """Moves the rig down (or up) until its lowest foot stands on the ground."""
     bpy.context.view_layer.update()
@@ -4657,7 +4758,7 @@ def render_hero(scene, rig, out, preview, layers, only=None):
         catcher.hide_render = layer != 0 and GEAR[layer][2]
         priorities = []
         lines = []
-        skip = [name for name in ANIMATIONS if (only and name not in only) or (layer and name == "death")]
+        skip = [name for name in rig.animations if (only and name not in only) or (layer and name == "death")]
         for lines, name, d, f in render_frames(scene, rig, "hero", folder, preview, skip):
             if layer:
                 delta = depth(scene, gear[layer]) - depth(scene, chest)
@@ -4685,6 +4786,7 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     scene = studio.reset(samples=24)
     rig = BUILDERS[kind]()
+    add_casting(rig, kind)
     height = HEIGHT[kind]
     size = SIZE.get(kind, 160)
     studio.camera(scene, size, size, target=(0, 0, height * 0.42))

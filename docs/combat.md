@@ -74,3 +74,23 @@ When the hero's health falls below 1 and special item 98000000 (Elixir)
 is in the bag, it is used up instead: health and mental power fill, voice
 0x11 plays and controller 0x521c (effect 21020, OPTION 11000060) shows
 on the hero.
+
+## MISS!! (0x417a60, controller 20012 at 0x42c750)
+
+Whenever a blow, a shot or a spell fails its hit roll, "MISS!!" (the one
+picture in Character/OPTION/11000011's Pattern bank) pops up where the one
+it missed stands. The exe calls 0x417a60 from the hero's swings, combo
+blows, spin and plain attack (0x435e60, 0x4364e0, 0x436c20, 0x4372b0,
+0x437910, 0x439140), from a monster's blow (0x45aaae) and from the code
+where shots, spells and traps' effects reach whoever they hit (0x45e44c).
+The engine shows it on the hero, on monsters, and on the companion when
+a monster's blow, shot or spell or a trap misses it (the companion's
+part is inferred: those calls pass a character, as they do for monsters).
+The companion's own bites and the mines' blasts show none here; the
+exe's last call, at 0x460330 in the companion's code, is not placed yet.
+
+It starts 400 high and hops: up by a tenth of its speed each tick, the
+speed starting at 500 and falling by 100 a tick. Each time it comes back
+down to 400 it bounces, at 300 and then 200; from its third landing it
+dims by a tenth a tick and is gone after ten.
+

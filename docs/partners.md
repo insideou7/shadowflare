@@ -152,8 +152,9 @@ add to the partner's stats (see formats.md).
 
 An open pack's `partners.txt` stands in for the tables (see content.md).
 The pack's Remote Town has the kennel's dogs and the small dog, and Cold
-Svalt Town its dog, with the original's menus in our own words; the
-sixth kind has no pictures yet and is offered nowhere.
+Svalt Town its dog, with the original's menus in our own words. The
+sixth kind, the hawk Kestrel (Character/PARTNER/00000002), is offered in
+scenario 13900005, as the original offers its Hawk in 03900005.
 
 ## Code
 

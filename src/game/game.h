@@ -673,6 +673,15 @@ private:
         // frost, which the original turns off unless the bowgun is a fire or
         // ice one; 0x42a300).
         unsigned hiddenLayers = 0;
+        // The "MISS!!" over whoever an attack missed (showMiss): it hops,
+        // landing three times, then fades out (controller 20012, 0x42c750).
+        struct Hop {
+            int speed = 500;  // tenths of a world unit a tick, up
+            int landings = 0;
+            int fade = 1000;
+            double floor = 0;  // the height it lands on
+        };
+        std::optional<Hop> hop;
         bool dead = false;
     };
     // A spell on its way: spawns its effects tick by tick, as the
@@ -696,6 +705,9 @@ private:
         int hitOption = -1;
         bool targetOnly = false;
     };
+    // "MISS!!" over whoever an attack or a spell just missed (0x417a60).
+    void showMiss(double x, double y);
+    void stepHop(Effect& e);
     // A monster's spell leaving its hand (0x45b043).
     void castMonsterSpell(Actor& enemy, int slot);
     void monsterSpellHitsPlayer(const Effect& e);
