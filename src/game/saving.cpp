@@ -118,7 +118,7 @@ void Game::saveThumbnail(const std::string& path) {
     SDL_DestroyTexture(target);
 }
 
-bool Game::saveGame() {
+bool Game::saveGame(bool autosave) {
     if (!map_ || !player_ || mapNames_.empty()) return false;
     if (saveFile_.empty()) {
         const auto slot = freeSlot();
@@ -172,8 +172,20 @@ bool Game::saveGame() {
     out.close();
     log::info("Saved the game to {}", saveFile_);
     saveThumbnail(pictureOf(saveFile_).string());
-    showMessage("Game saved");
+    showMessage(autosave ? "Autosaved" : "Game saved");
     return true;
+}
+
+bool Game::inTown() const {
+    const int here = scenarioNumber();
+    return here >= 0 && here == control_.town;
+}
+
+void Game::autosaveIfInTown() {
+    if (!rules_.autosaveInTown || !settings_.autosave || !autosaveAllowed_ || !inTown()) return;
+    if (fallTicks_ || !player_) return;
+    log::info("Autosave on coming into {} \"{}\"", scenarioDir_, control_.title);
+    saveGame(true);
 }
 
 bool Game::loadGame() {

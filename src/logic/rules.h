@@ -87,12 +87,19 @@ struct Rules {
     // health and mana (0x435b60, 0x426200); ours does that too when the
     // hero has no save yet.
     bool gameOverWindow = true;
+    // Coming into a town (the area's own, where Transport leads: scenario
+    // + 0x60 is the scenario itself) from outside it, by foot, warp gate or
+    // Transport, saves the game into the hero's slot, when the Settings
+    // Menu's AUTOSAVE IN TOWN is on. The original only saves from its menu
+    // (0x4103c0).
+    bool autosaveInTown = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
                !outlineUnderPointer && !rightClickSells && !rightClickEquips && !rightClickStores &&
-               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy && !gameOverWindow;
+               !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy && !gameOverWindow &&
+               !autosaveInTown;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -113,6 +120,7 @@ struct Rules {
         r.absorptionHeals = false;
         r.spellsAimAtEnemy = false;
         r.gameOverWindow = false;
+        r.autosaveInTown = false;
         return r;
     }
 };

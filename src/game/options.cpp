@@ -18,7 +18,7 @@ namespace sf {
 
 namespace {
 
-constexpr SDL_Rect kOptionsPanel{100, 46, 440, 388};
+constexpr SDL_Rect kOptionsPanel{100, 30, 440, 420};
 constexpr int kRowHeight = 18;
 constexpr int kFirstRowY = kOptionsPanel.y + 40;
 constexpr int kChoicesX = kOptionsPanel.x + 210;
@@ -54,7 +54,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::GoldRate, R::UnlockGates, R::UnlockStorage, R::UnlockMagic, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
-                        R::EffectVolume, R::MusicVolume,      R::OriginalMode};
+                        R::EffectVolume, R::MusicVolume,      R::OriginalMode,      R::Autosave};
     // Only with the original files and our art to draw them with.
     if (canSwapArt()) rows.push_back(R::Art);
     if (optionsInGame_) {
@@ -77,6 +77,8 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::SaveAndTitle:
         case OptionRow::SaveAndExit: return map_ && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
+        // Ours, so original mode turns it off.
+        case OptionRow::Autosave: return !originalMode();
         // Cheats are ours, so original mode turns them off.
         case OptionRow::XpRate:
         case OptionRow::Luck:
@@ -115,6 +117,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::EffectVolume: return "EFF. VOLUME";
         case OptionRow::MusicVolume: return "BGM VOLUME";
         case OptionRow::OriginalMode: return "ORIGINAL MODE";
+        case OptionRow::Autosave: return "AUTOSAVE IN TOWN";
         case OptionRow::Art: return "ART";
         case OptionRow::MissionList: return "MISSION LIST";
         case OptionRow::Map: return "MAP";
@@ -152,6 +155,7 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
         case OptionRow::ClickRange: return onOff(settings_.clickRange);
         case OptionRow::OriginalMode: return onOff(originalMode());
         case OptionRow::ShowFps: return onOff(settings_.showFps);
+        case OptionRow::Autosave: return onOff(settings_.autosave && !originalMode());
         case OptionRow::Art:
             chosen = ourArt() ? 1 : 0;
             return {"ORIGINAL", "OURS"};
@@ -339,6 +343,7 @@ void Game::setOption(OptionRow row, int index) {
             log::info("Original mode {}", originalMode() ? "on" : "off");
             break;
         case OptionRow::ShowFps: settings_.showFps = index == 0; break;
+        case OptionRow::Autosave: settings_.autosave = index == 0; break;
         case OptionRow::Art:
             settings_.ourArt = index == 1;
             setOurArt(settings_.ourArt);

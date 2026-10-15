@@ -670,6 +670,9 @@ int main(int argc, char** argv) {
                           options.at || options.walk || !options.map.empty() || !options.gifts.empty() ||
                           options.level > 0 || options.hpPercent >= 0 || options.experiencePercent >= 0 || options.autoFight || options.partner >= 0 || options.talk >= 0 || options.cast ||
                           options.companion || options.mine || options.hero.has_value();
+    // Scripted runs save on coming into a town only when told where saves
+    // go, so tests never write into the player's own save folder.
+    app.game->setAutosaveAllowed(!scripted || !options.saveFile.empty() || !options.saveFolder.empty());
     // The player's options (Esc in the game); scripted runs keep the
     // defaults so they come out the same on every machine.
     if (!options.optionsFile.empty()) {

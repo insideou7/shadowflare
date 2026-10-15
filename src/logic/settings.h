@@ -66,6 +66,9 @@ struct Settings {
     // Ours: the names of the items on the ground always show (L), not only
     // while Alt is held.
     bool itemNames = false;
+    // Ours: save on coming into a town (Rules::autosaveInTown). Original
+    // mode never does.
+    bool autosave = true;
 
     // Half the side of the square a click reaches, in screen pixels.
     int clickReach() const;
