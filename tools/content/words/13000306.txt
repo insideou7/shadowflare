@@ -1,0 +1,12 @@
+# The Plain of Dialose: signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+The Plain of Dialose
+
+[message 1000001]
+The Plain of Dialose
+
+[message 1000002]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.

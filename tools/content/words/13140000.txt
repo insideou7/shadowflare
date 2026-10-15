@@ -1,0 +1,10 @@
+# Ancient Ruins, B1F: a warning sign, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Ancient Ruins, B1F
+
+[message 1000001]
+Go no farther.
+A test subject is kept in a cage here.
+His name is Gorr.

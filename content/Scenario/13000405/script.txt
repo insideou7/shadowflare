@@ -1,0 +1,78 @@
+# Written by tools/content/scripts.py after the original's scenario 3000405
+# (Gungstonwald), in our own words (tools/content/words/13000405.txt).
+
+object=53422,15365,53581,15524,o1000,states=1/0/1,at=53228/15428
+object=29196,70692,29355,70851,o1001,states=1/0/1,at=29317/70770
+object=41446,17762,41605,17921,o1100,states=1/1/1,at=41539/17838
+object=42144,17644,42982,17896,o2,states=0/0/0,at=42312/18105
+temp=1000016,34
+temp=1000017,35
+temp=1000018,36
+temp=1000019,77
+temp=1000020,78
+temp=1000021,33
+temp=1000022,27
+temp=1000023,28
+temp=1000024,38
+temp=1000025,39
+temp=1000026,3
+temp=1000027,25
+temp=1000028,26
+temp=1000029,30
+temp=1000030,37
+temp=1000031,10
+temp=1000032,40
+temp=1000033,41
+temp=1000034,42
+temp=1000035,43
+temp=1000036,53
+temp=1000037,80
+temp=1000038,51
+
+[message 1000000]
+Gungstonwald
+
+[message 1000001]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+[sentence s2]
+CHANGESCENARIO 13000406 3
+
+[sentence s3]
+CHANGESCENARIO 13000404 0
+
+[sentence s4]
+on=judge o2
+IF save:85 > 9 @s5
+
+[sentence s5]
+CHANGESCENARIO 13100000 0
+
+[sentence s6]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000015 < 30 @s7
+IF temp:1000015 ! 0 @s8
+
+[sentence s7]
+SETFLAG temp:1000005 temp:1000015
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s8]
+MESSAGEBOX o1100 0 -64 msg:1000001 160 160 192 temp:1000005
+SUB temp:1000015 1
+
+[sentence s9]
+on=talk o1100
+SETFLAG temp:1000015 150

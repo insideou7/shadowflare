@@ -1,0 +1,15 @@
+# Hill of Heaven: signs and a greeting, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Hill of Heaven
+
+[message 1000001]
+Hill of Heaven
+
+[message 1000002]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[message 1000003]
+Come in, please.

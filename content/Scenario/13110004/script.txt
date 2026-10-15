@@ -1,0 +1,275 @@
+# Written by tools/content/scripts.py after the original's scenario 3110004
+# (Tower of Licarn, 5F), in our own words (tools/content/words/13110004.txt).
+
+object=1819,2961,2053,3195,o300,states=1/1/0,at=1910/3079
+object=4711,1789,4911,1989,o0,states=0/1/0,at=4811/1889
+object=7117,3313,7317,3513,o1,states=0/1/0,at=7217/3413
+temp=1000017,50
+temp=1000018,81
+temp=1000019,82
+temp=1000020,83
+temp=1000021,31
+temp=1000022,32
+temp=1000023,33
+temp=1000024,27
+temp=1000025,28
+temp=1000026,38
+temp=1000027,39
+temp=1000028,3
+temp=1000029,25
+temp=1000030,26
+temp=1000031,30
+temp=1000032,37
+temp=1000033,10
+temp=1000034,40
+temp=1000035,41
+temp=1000036,42
+temp=1000037,43
+temp=1000038,53
+temp=1000039,80
+temp=1000040,51
+temp=1000041,64
+
+[message 1000000]
+Tower of Licarn, 5F
+
+[message 1000001]
+I am Licarn, a holy knight.
+You'd be the sellsword Lissa told me about, yes?
+
+[message 1000002]
+You've come to hear how the elven rangers
+were wiped out. Am I right?
+
+[message 1000003]
+In truth, it was Lord Valdric who set off the chain
+of events that ended in that disaster.
+
+[message 1000004]
+He asked the elven rangers to look into the thefts
+of holy relics that have been going on of late.
+
+[message 1000005]
+They were the finest rangers there were, yet they
+were ambushed and slain while they searched.
+Lord Valdric is half human and half elf, and now
+the elves lay the blame at his feet.
+
+[message 1000006]
+And the timing of it all tells me someone inside
+the church is working hand in hand with the enemy.
+
+[message 1000007]
+Wait... What's this?
+
+[message 1000008]
+......
+
+[message 1000009]
+Odd...
+The tower has stopped working.
+
+[message 1000010]
+Give me a moment.
+
+[message 1000011]
+.......
+
+[message 1000012]
+I thought so.
+Someone outside is working the tower...
+
+[message 1000013]
+With the transport down, nobody can move between
+the floors. Someone has to go down to the first floor.
+
+[message 1000014]
+I haven't the gear to fight my way down there.
+Would you go in my place?
+
+[message 1000015]
+Reaching the first floor may be enough to set
+the tower running again. If it does, come back
+and see me.
+
+[message 1000016]
+You can't transport straight up to a higher floor.
+And the warp runes between the floors only go
+one way. Mind yourself.
+
+[message 1000017]
+Take care.
+
+[message 1000018]
+My thanks.
+Who would do such a thing, I wonder...
+
+[message 1000019]
+......
+
+[message 1000020]
+Ah, yes... the rangers and the stolen relics.
+
+[message 1000021]
+Does the name Gorr mean anything to you?
+
+[message 1000022]
+No, I didn't think so.
+Long ago there was a holy knight called Gorr.
+
+[message 1000023]
+A fine knight, until the day he dared to question
+the ways of the grimling faith. That was forbidden...
+
+[message 1000024]
+I'll spare you the whole tale for now, but
+the grimlings put him to death as a traitor.
+
+[message 1000025]
+You're wondering what that has to do with the thefts?
+
+[message 1000026]
+Just before the relics began to vanish, a grave
+keeper found Gorr's tomb empty. His body was gone.
+
+[message 1000027]
+So the holy knights whisper among themselves that
+Gorr has risen to take his revenge on the grimlings.
+
+[message 1000028]
+That's all I know.
+I hope it's of some use to you.
+
+[message 1000029]
+Why would I help you, you ask?
+
+[message 1000030]
+Ha ha ha.
+An old friend of mine in the mining town
+told me all about you.
+
+[message 1000031]
+I can feel a power in you that might change the world.
+See that you use it for the good of us all.
+Now, go on with your journey.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+on=judge o1
+IF quest:28 ! 0 @s2
+
+[sentence s2]
+CHANGESCENARIO 13110003 0
+
+[sentence s3]
+on=tick
+IF quest:28 ! 0 @s4
+
+[sentence s4]
+IF temp:1000015 = 0 @s5
+IF temp:1000015 ! 0 @s6
+
+[sentence s5]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000040 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000015
+
+[sentence s6]
+SUB temp:1000015 1
+
+[sentence s7]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF save:92 = 3 @s8
+IF save:92 = 2 @s9
+IF save:92 = 1 @s10
+IF save:92 = 0 @s13
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s8]
+SETFLAG temp:1000002 msg:1000031
+SETFLAG temp:1000001 400
+
+[sentence s9]
+SETFLAG temp:1000002 msg:1000029
+SETFLAG temp:1000001 300
+SETFLAG save:92 3
+
+[sentence s10]
+IF quest:28 = 2 @s11
+IF quest:28 ! 2 @s12
+
+[sentence s11]
+SETFLAG temp:1000002 msg:1000018
+SETFLAG temp:1000001 200
+SETFLAG save:92 2
+GETEXPERIENCE temp:1000017
+PLAYSOUND temp:1000041 1 0 0
+
+[sentence s12]
+SETFLAG temp:1000002 msg:1000017
+SETFLAG temp:1000001 100
+
+[sentence s13]
+SETFLAG temp:1000002 msg:1000001
+SETFLAG temp:1000001 0
+SETFLAG save:92 1
+
+[sentence s14]
+on=talk-end p0
+IF temp:1000001 = 15 @s15
+IF temp:1000001 = 100 @s16
+IF temp:1000001 = 210 @s17
+IF temp:1000001 = 301 @s18
+IF temp:1000001 = 400 @s19
+IF temp:1000001 = -1 @s20
+IF temp:1000001 ! -1 @s21
+IF temp:1000001 = 6 @s22
+IF temp:1000001 = 10 @s23
+IF temp:1000001 = 14 @s24
+IF temp:1000001 = 210 @s25
+
+[sentence s15]
+SETFLAG temp:1000001 -1
+
+[sentence s16]
+SETFLAG temp:1000001 -1
+
+[sentence s17]
+SETFLAG temp:1000001 -1
+
+[sentence s18]
+SETFLAG temp:1000001 -1
+
+[sentence s19]
+SETFLAG temp:1000001 -1
+
+[sentence s20]
+C_MOVABLE p0
+
+[sentence s21]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 temp:1000000 0 -1 -1 -1
+
+[sentence s22]
+PLAYSOUND temp:1000040 0 x:p0 y:p0
+
+[sentence s23]
+PLAYSOUND temp:1000040 0 x:p0 y:p0
+
+[sentence s24]
+SETQUESTFLAG 28 1 0
+DRAWQUESTNAME 28
+
+[sentence s25]
+SETQUESTFLAG 27 2 0
+
+[sentence s26]
+on=talk o300
+STORAGE 0

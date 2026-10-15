@@ -125,3 +125,100 @@ sell=weapon,2000101
 sell=armour,4000100
 sell=armour,3000100
 sell=accessory,1000101
+
+# The third area, the same way: the pack's nearest items in the original's
+# kinds and order.
+
+[shop 9]                 # South Camp of Yugunos' smith
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=armour,0
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 10]                # South Camp of Yugunos' merchant
+sell=consumable,0,18
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 11]                # Antalusia's smith
+sell=weapon,5000000
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 12]                # Antalusia's merchant
+sell=consumable,0,9
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 13]                # Calado's smith
+sell=weapon,5000000
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 14]                # Calado's merchant
+sell=consumable,0,9
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 15]                # Losmans' smith
+sell=weapon,5000000
+sell=weapon,1000000
+sell=weapon,2000000
+sell=weapon,1000010
+sell=armour,0
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 16]                # Losmans' merchant
+sell=consumable,0,9
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 17]                # Ponse's smith
+sell=weapon,5000000
+sell=armour,4000000
+sell=armour,1000000
+sell=armour,2000000
+sell=armour,3000000
+
+[shop 18]                # Ponse's merchant
+sell=consumable,0,9
+sell=consumable,10000000,18
+sell=special,1,8
+
+[shop 19]                # Gore Cave's trader: potions only
+sell=consumable,0,27
+
+[shop 20]                # Wog Cave's trader
+sell=consumable,0,27
+
+[shop 21]                # Mour Cave's trader
+sell=consumable,10000000,27
+
+[shop 34]                # Antalusia's magic goods
+sell=weapon,1000101
+sell=weapon,5000100
+sell=armour,4000100
+sell=armour,1000100
+sell=accessory,1000100
+sell=accessory,1000101
+
+[shop 35]                # Ponse's magic goods
+sell=weapon,5000100
+sell=weapon,2000101
+sell=weapon,1000110
+sell=armour,4000100
+sell=armour,3000100
+sell=accessory,1000101

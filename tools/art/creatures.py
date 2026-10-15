@@ -1733,6 +1733,625 @@ HEIGHT.update({"person4": 3.6, "person0": 3.0, "person12": 3.8})
 SIZE.update({"person0": 200})
 
 
+# The third area's people, on MakeHuman bodies like Cold Svalt's: kind 3
+# the gate guards, 31-33 the churchmen, 34 and 35 the dwarves, 36 and 37
+# the two knights and 38 the shrine keeper. Heights on screen follow the
+# original's (about 16 pixels a unit).
+CAUCASIAN = dict(caucasian=1.0, african=0.0, asian=0.0)
+# A dwarf: short legs and arms, a broad body and a big head (MPFB targets;
+# the body is then scaled to its height, so the head comes out larger).
+DWARF = ([(f"legs/{s}-{p}-scale-vert-decr.target.gz", 1.0) for s in "lr" for p in ("upperleg", "lowerleg")]
+         + [(f"arms/{s}-{p}-scale-vert-decr.target.gz", 0.5) for s in "lr" for p in ("upperarm", "lowerarm")]
+         + [(f"head/head-scale-{a}-incr.target.gz", 0.7) for a in ("horiz", "vert", "depth")]
+         + [("torso/torso-scale-horiz-incr.target.gz", 1.0), ("torso/torso-scale-depth-incr.target.gz", 0.7)])
+
+
+def sharp(kind, size, mat, rotation=(0, 0, 0)):
+    """shape() without the rounding at render time, which would shrink a
+    long cone or flare (a cope, a hat) into an egg."""
+    obj = shape(kind, size, mat, rotation)
+    obj.modifiers["soft"].render_levels = 0
+    return obj
+
+
+def npc(height, macros, pick, targets=(), scale=None, arm_out=0.14):
+    """townsperson() with the root scale following the height (Carls's at
+    3.85 units) and a few heights in rig units noted on the rig: hip and
+    neck above the ground, shoulder above the spine joint and top of the
+    head above the head joint."""
+    scale = scale or 1.22 * SCALE_MH * height / 3.85
+    rig = townsperson(height, dict(CAUCASIAN, **macros), pick, scale, targets, arm_out)
+    J = rig.joints
+    rig.scale = scale
+    rig.hip = J["hips"].matrix_world.translation.z / scale
+    rig.shoulder = rig.rest["arm_l"].z
+    rig.top = (height - J["head"].matrix_world.translation.z) / scale
+    return rig
+
+
+def hem(rig, joint, mat, rx, ry, z, count=16, size=0.035, x=0.0, back_only=False):
+    """A ring of beads or studs round a hem or an edge."""
+    for k in range(count):
+        a = 2 * math.pi * (k + 0.5) / count
+        if back_only and math.cos(a) > 0.2:
+            continue
+        rig.attach(shape("ball", (size, size, size), mat), joint, (x + rx * math.cos(a), ry * math.sin(a), z))
+
+
+def build_gate_guard():
+    """A gate guard (people kind 3): a mail hood over his head with the
+    face open, a dark grey quilted tunic and a short mail cape edged in
+    pale cloth, a grey skirt to the knees over dark hose, a brown belt and
+    brown boots. He stands with his hands near his belt."""
+    import mpfb_body
+    skin = studio.material("skin", (0.84, 0.64, 0.50), (0.66, 0.46, 0.34), scale=30, bump=0.05)
+    mail = studio.material("mail", (0.36, 0.36, 0.38), (0.12, 0.12, 0.14), scale=70, rough=0.4, bump=0.9)
+    tunic = plaid("quilted tunic", (0.30, 0.30, 0.32), (0.18, 0.18, 0.20), scale=7.0)
+    hose = studio.material("hose", (0.20, 0.20, 0.22), (0.08, 0.08, 0.09), scale=18)
+    boots = studio.material("boots", (0.48, 0.32, 0.16), (0.20, 0.12, 0.05), scale=25, rough=0.55)
+    pale = studio.material("pale trim", (0.82, 0.82, 0.74), (0.52, 0.52, 0.46), scale=30)
+    belt = studio.material("belt", (0.36, 0.22, 0.10), (0.14, 0.08, 0.03), scale=30, rough=0.5)
+    height = 3.75
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if z < 0.28:
+            return boots
+        if z < 0.55:
+            return hose
+        return tunic
+
+    rig = npc(height, dict(gender=1.0, age=0.45, muscle=0.6, weight=0.5, height=0.6, proportions=0.6), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        face = normal.y < -0.45 and 0.855 < z < 0.95 and abs(centre.x) < 0.16
+        if part in ("head", "neck") and not face:
+            return mail, 0.05
+        if part == "torso" and z > 0.52:
+            return tunic, 0.05
+        if part in ("upperarm", "forearm"):
+            return tunic, 0.035
+        if part in ("shin", "foot") and z < 0.28:
+            return boots, 0.03
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # The skirt from the waist to the knees, the belt over it, the short
+    # mail cape over the shoulders and its pale edge.
+    length = rig.hip * 0.62
+    rig.attach(sharp("flare", (0.34, 0.36, length / 2), tunic), "hips", (0.0, 0, 0.14 - length / 2))
+    rig.attach(shape("cylinder", (0.25, 0.29, 0.04), belt), "hips", (0.0, 0, 0.17))
+    rig.attach(sharp("flare", (0.34, 0.46, 0.16), mail), "spine", (-0.03, 0, rig.shoulder - 0.04))
+    hem(rig, "spine", pale, 0.34, 0.46, rig.shoulder - 0.19, count=18, size=0.035, x=-0.03)
+    hem(rig, "hips", pale, 0.34, 0.36, 0.14 - length, count=18, size=0.03)
+    for dy in (-0.12, 0.12):  # pale straps down the chest
+        rig.attach(shape("box", (0.03, 0.035, 0.22), pale, rotation=(math.radians(-60 * dy), 0, 0)), "spine",
+                   (0.27, dy, rig.shoulder - 0.30))
+    rig.kind = "gate guard"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.40, -0.02 * s, 0), elbow_l=(-0.9, -0.2, 0),
+                                      arm_r=(-0.40, -0.02 * s, 0), elbow_r=(0.9, -0.2, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.5),
+    }
+    return rig
+
+
+def build_blue_bishop():
+    """The bishop in blue (people kind 31): a stout old man in a wide royal
+    blue cope that falls from his shoulders to his shins, edged in gold
+    with a gold band across the chest, a blue skull cap, blue hose and gold
+    slippers."""
+    import mpfb_body
+    skin = studio.material("pale skin", (0.94, 0.80, 0.70), (0.74, 0.58, 0.50), scale=30, bump=0.05)
+    blue = studio.material("blue cope", (0.14, 0.24, 0.62), (0.04, 0.08, 0.26), scale=9, bump=0.45,
+                           spot=0.12, spot_colour=(0.28, 0.40, 0.80))
+    hose = studio.material("blue hose", (0.20, 0.34, 0.66), (0.06, 0.12, 0.30), scale=16)
+    gold = studio.material("gold trim", (0.92, 0.70, 0.24), (0.50, 0.32, 0.08), scale=30, rough=0.4)
+    height = 3.95
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if part == "foot":
+            return gold
+        if z < 0.55:
+            return hose
+        return blue
+
+    rig = npc(height, dict(gender=1.0, age=0.75, muscle=0.3, weight=0.85, height=0.5, proportions=0.5), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and z > 0.935:
+            return blue, 0.03  # the skull cap
+        if part in ("torso", "upperarm", "forearm"):
+            return blue, 0.06
+        if part == "thigh":
+            return hose, 0.05
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # The cope: from the shoulders to the shins, wide over the arms, with a
+    # gold hem and a gold band across the chest; a gold rim on the cap.
+    length = rig.shoulder + rig.hip - 0.55
+    rig.attach(sharp("flare", (0.56, 0.68, length / 2), blue), "spine", (-0.02, 0, rig.shoulder + 0.06 - length / 2))
+    rig.attach(shape("ball", (0.36, 0.44, 0.16), blue), "spine", (-0.02, 0, rig.shoulder + 0.02))
+    hem(rig, "spine", gold, 0.56, 0.68, rig.shoulder + 0.06 - length, count=28, size=0.04, x=-0.02)
+    rig.attach(shape("box", (0.03, 0.05, 0.40), gold, rotation=(math.radians(40), 0, 0)), "spine",
+               (0.37, 0.0, rig.shoulder - 0.25))
+    for dy in (-0.16, 0.16):  # the cope's gold edges down the front
+        rig.attach(shape("box", (0.03, 0.04, length * 0.42), gold), "spine",
+                   (0.50, dy, rig.shoulder + 0.06 - length * 0.55))
+    rig.attach(shape("cylinder", (0.19, 0.18, 0.025), gold), "head", (0.0, 0, rig.top * 0.62))
+    rig.kind = "blue bishop"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.30, -0.02 * s, 0), elbow_l=(-0.3, -0.6, 0),
+                                      arm_r=(-0.30, -0.02 * s, 0), elbow_r=(0.3, -0.6, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.32, arms=False, arm_l=(0.30, 0, 0), arm_r=(-0.30, 0, 0)),
+    }
+    return rig
+
+
+def build_red_priest():
+    """The priest in red and gold (people kind 32): a broad red cape over
+    his shoulders worked in gold with a deep gold scalloped border, a long
+    dark red robe, a grey underrobe at the hem, a white beard and a tall
+    red pointed hat with a gold brim."""
+    import mpfb_body
+    skin = studio.material("skin", (0.88, 0.70, 0.58), (0.68, 0.50, 0.40), scale=30, bump=0.05)
+    red = studio.material("red cape", (0.66, 0.12, 0.08), (0.30, 0.04, 0.02), scale=10, bump=0.45,
+                          spot=0.16, spot_colour=(0.86, 0.60, 0.20))
+    robe = studio.material("dark red robe", (0.44, 0.10, 0.06), (0.18, 0.03, 0.02), scale=12, bump=0.4,
+                           stretch=(1, 1, 3))
+    under = studio.material("grey underrobe", (0.62, 0.60, 0.58), (0.34, 0.32, 0.30), scale=14, stretch=(1, 1, 3))
+    gold = studio.material("gold border", (0.94, 0.72, 0.22), (0.52, 0.32, 0.06), scale=26, rough=0.4, bump=0.4)
+    beard = studio.material("white beard", (0.92, 0.90, 0.86), (0.62, 0.60, 0.58), scale=50, bump=0.6,
+                            stretch=(1, 1, 4))
+    height = 3.55
+
+    def pick(centre, bones, normal):
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        return robe
+
+    rig = npc(height, dict(gender=1.0, age=0.85, muscle=0.3, weight=0.7, height=0.5, proportions=0.5), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.93 or (z > 0.86 and normal.y > 0.1)):
+            return beard, 0.03  # white hair under the hat
+        if part in ("torso", "upperarm", "forearm"):
+            return robe, 0.06
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # Long robe to the ground with the grey underrobe showing at the hem.
+    length = rig.hip + 0.04
+    rig.attach(sharp("flare", (0.40, 0.44, length * 0.18), under), "hips", (0, 0, 0.02 - length * 0.82))
+    rig.attach(sharp("flare", (0.36, 0.40, length * 0.36), robe), "hips", (0, 0, 0.04 - length * 0.36))
+    # The cape: wide over the shoulders and down to the hips, the gold border
+    # in points along its hem.
+    cape = rig.shoulder + 0.30
+    rig.attach(sharp("flare", (0.58, 0.72, cape / 2), red), "spine", (-0.04, 0, rig.shoulder + 0.08 - cape / 2))
+    rig.attach(shape("ball", (0.38, 0.46, 0.16), red), "spine", (-0.03, 0, rig.shoulder + 0.04))
+    bottom = rig.shoulder + 0.08 - cape
+    for k in range(18):
+        a = 2 * math.pi * (k + 0.5) / 18
+        rig.attach(sharp("cone", (0.09, 0.05, 0.10), gold, rotation=(0, math.pi, a)), "spine",
+                   (-0.04 + 0.57 * math.cos(a), 0.71 * math.sin(a), bottom - 0.05))
+    hem(rig, "spine", gold, 0.58, 0.72, bottom + 0.02, count=26, size=0.045, x=-0.04)
+    hem(rig, "spine", gold, 0.38, 0.46, rig.shoulder + 0.08, count=18, size=0.04, x=-0.03)
+    # A full white beard, and the hat.
+    rig.attach(sharp("cone", (0.13, 0.15, 0.17), beard, rotation=(0, math.pi, 0)), "head", (0.15, 0, rig.top * 0.18))
+    rig.attach(shape("cylinder", (0.27, 0.27, 0.03), gold), "head", (-0.02, 0, rig.top * 0.72))
+    rig.attach(sharp("cone", (0.19, 0.19, 0.30), red, rotation=(0, math.radians(-6), 0)), "head",
+               (-0.04, 0, rig.top * 0.72 + 0.28))
+    rig.attach(shape("ball", (0.045, 0.045, 0.045), gold), "head", (-0.08, 0, rig.top * 0.72 + 0.58))
+    rig.kind = "red priest"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.25, -0.02 * s, 0), elbow_l=(-0.2, -0.9, 0),
+                                      arm_r=(-0.25, -0.02 * s, 0), elbow_r=(0.2, -0.9, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.30, arms=False, arm_l=(0.25, 0, 0), arm_r=(-0.25, 0, 0),
+                                       elbow_l=(-0.2, -0.9, 0), elbow_r=(0.2, -0.9, 0)),
+    }
+    return rig
+
+
+def build_padded_priest():
+    """The priest in a padded robe (people kind 33): a heavy man in a
+    long quilted robe of undyed cloth to his shins, deep red sleeves and
+    a red cap, sandals on bare feet."""
+    import mpfb_body
+    skin = studio.material("skin", (0.86, 0.66, 0.52), (0.66, 0.46, 0.36), scale=30, bump=0.05)
+    padded = plaid("quilted robe", (0.80, 0.66, 0.54), (0.58, 0.44, 0.34), scale=6.0)
+    red = studio.material("red sleeves", (0.56, 0.12, 0.10), (0.24, 0.04, 0.03), scale=16, bump=0.35)
+    sandal = studio.material("sandals", (0.40, 0.26, 0.14), (0.16, 0.10, 0.05), scale=25, rough=0.6)
+    height = 3.72
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if part == "foot":
+            return sandal
+        if part in ("upperarm", "forearm"):
+            return red
+        if z < 0.2:
+            return skin
+        return padded
+
+    rig = npc(height, dict(gender=1.0, age=0.6, muscle=0.4, weight=0.95, height=0.5, proportions=0.4), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and z > 0.935:
+            return red, 0.035  # the cap
+        if part == "torso":
+            return padded, 0.08
+        if part == "upperarm":
+            return padded, 0.07  # short padded sleeves over the red ones
+        if part == "forearm":
+            return red, 0.04
+        if part == "thigh":
+            return padded, 0.07
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    length = rig.hip * 0.80
+    rig.attach(sharp("flare", (0.42, 0.44, length / 2), padded), "hips", (0.02, 0, 0.10 - length / 2))
+    rig.attach(shape("ball", (0.16, 0.15, 0.10), red), "head", (-0.03, 0, rig.top * 0.80))
+    rig.kind = "padded priest"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.22, -0.02 * s, 0), elbow_l=(0, -0.25, 0),
+                                      arm_r=(-0.22, -0.02 * s, 0), elbow_r=(0, -0.25, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.38, arm_l=(0.22, 0, 0)),
+    }
+    return rig
+
+
+def build_green_dwarf():
+    """The dwarf in green (people kind 34): short and broad, a grey-green
+    tunic and breeches, a pointed cap that flops back, a long sandy beard,
+    a brown belt and red-brown boots, standing wide with his hands on his
+    hips."""
+    import mpfb_body
+    skin = studio.material("skin", (0.86, 0.64, 0.50), (0.66, 0.44, 0.32), scale=30, bump=0.05)
+    green = studio.material("grey green", (0.40, 0.50, 0.44), (0.16, 0.22, 0.18), scale=14, bump=0.4)
+    breeches = studio.material("dark green", (0.28, 0.36, 0.32), (0.10, 0.14, 0.12), scale=16)
+    boots = studio.material("red boots", (0.50, 0.18, 0.12), (0.22, 0.06, 0.04), scale=25, rough=0.55)
+    beard = studio.material("ginger beard", (0.82, 0.52, 0.28), (0.46, 0.26, 0.12), scale=50, bump=0.6,
+                            stretch=(1, 1, 4))
+    belt = studio.material("belt", (0.40, 0.26, 0.12), (0.16, 0.10, 0.04), scale=30, rough=0.5)
+    height = 2.95
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if z < 0.22:
+            return boots
+        if z < 0.46:
+            return breeches
+        return green
+
+    rig = npc(height, dict(gender=1.0, age=0.7, muscle=0.8, weight=0.9, height=0.2, proportions=0.3), pick,
+              targets=DWARF)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.90 or (z > 0.80 and normal.y > 0.2)):
+            return green, 0.03  # the cap's band and hair under it
+        if part == "torso" and z > 0.42:
+            return green, 0.06
+        if part in ("upperarm", "forearm"):
+            return green, 0.04
+        if part == "thigh":
+            return breeches, 0.05
+        if part in ("shin", "foot") and z < 0.22:
+            return boots, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    length = rig.hip * 0.55
+    rig.attach(sharp("flare", (0.36, 0.40, length / 2), green), "hips", (0.02, 0, 0.14 - length / 2))
+    rig.attach(shape("cylinder", (0.30, 0.34, 0.045), belt), "hips", (0.02, 0, 0.16))
+    # A long beard and the pointed cap, its tip bent back.
+    rig.attach(sharp("cone", (0.20, 0.22, 0.30), beard, rotation=(0, math.pi + 0.35, 0)), "head",
+               (0.24, 0, rig.top * 0.02))
+    rig.attach(sharp("cone", (0.25, 0.24, 0.22), green, rotation=(0, math.radians(-35), 0)), "head",
+               (-0.06, 0, rig.top * 0.80 + 0.12))
+    rig.kind = "green dwarf"
+    hips = dict(arm_l=(0.75, -0.02, 0), elbow_l=(-1.4, 0, 0), arm_r=(-0.75, -0.02, 0), elbow_r=(1.4, 0, 0))
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, leg_l=(0.30, 0, 0), leg_r=(-0.30, 0, 0), knee_l=(0, 0.15, 0),
+                                      knee_r=(0, 0.15, 0), **hips),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.55, leg_l=(0.12, -0.55 * s, 0), leg_r=(-0.12, 0.55 * s, 0)),
+    }
+    return rig
+
+
+def build_brown_dwarf():
+    """The old dwarf in brown (people kind 35): very short and broad, bald
+    with white hair round the back of his head and a great white beard, a
+    pale fleece over his shoulders, a rust brown tunic, dark breeches and
+    deep red boots."""
+    import mpfb_body
+    skin = studio.material("skin", (0.88, 0.68, 0.54), (0.68, 0.48, 0.36), scale=30, bump=0.05)
+    rust = studio.material("rust tunic", (0.54, 0.24, 0.12), (0.24, 0.08, 0.03), scale=14, bump=0.4)
+    breeches = studio.material("brown breeches", (0.30, 0.16, 0.10), (0.12, 0.06, 0.03), scale=16)
+    boots = studio.material("deep red boots", (0.40, 0.10, 0.08), (0.16, 0.03, 0.02), scale=25, rough=0.55)
+    fleece = studio.material("fleece", (0.86, 0.80, 0.66), (0.56, 0.50, 0.38), scale=24, bump=0.9)
+    white = studio.material("white hair", (0.94, 0.92, 0.86), (0.64, 0.62, 0.58), scale=50, bump=0.6,
+                            stretch=(1, 1, 4))
+    belt = studio.material("belt", (0.24, 0.16, 0.10), (0.08, 0.05, 0.03), scale=30, rough=0.5)
+    height = 2.65
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck"):
+            return skin
+        if z < 0.20:
+            return boots
+        if z < 0.42:
+            return breeches
+        return rust
+
+    rig = npc(height, dict(gender=1.0, age=0.9, muscle=0.7, weight=1.0, height=0.0, proportions=0.2), pick,
+              targets=DWARF + [("torso/torso-scale-horiz-incr.target.gz", 0.6)])
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and 0.80 < z < 0.92 and normal.y > 0.0:
+            return white, 0.04
+        if part == "torso" and z > 0.38:
+            return rust, 0.07
+        if part in ("upperarm", "forearm"):
+            return rust, 0.05
+        if part == "thigh":
+            return breeches, 0.06
+        if part in ("shin", "foot") and z < 0.20:
+            return boots, 0.045
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    length = rig.hip * 0.6
+    rig.attach(sharp("flare", (0.40, 0.44, length / 2), rust), "hips", (0.02, 0, 0.14 - length / 2))
+    rig.attach(shape("cylinder", (0.34, 0.38, 0.045), belt), "hips", (0.02, 0, 0.17))
+    # The fleece round his shoulders, and the beard down to his belt.
+    rig.attach(shape("ball", (0.44, 0.54, 0.28), fleece), "spine", (0.0, 0, rig.shoulder + 0.02))
+    rig.attach(sharp("cone", (0.19, 0.25, 0.34), white, rotation=(0, math.pi + 0.35, 0)), "head",
+               (0.25, 0, -rig.top * 0.30))
+    rig.attach(shape("ball", (0.10, 0.20, 0.07), white), "head", (0.20, 0, rig.top * 0.35))  # moustache
+    rig.kind = "brown dwarf"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, leg_l=(0.16, 0, 0), leg_r=(-0.16, 0, 0),
+                                      arm_l=(0.45, -0.1, 0), elbow_l=(-0.7, -0.5, 0),
+                                      arm_r=(-0.45, -0.1, 0), elbow_r=(0.7, -0.5, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.55, leg_l=(0.12, -0.55 * s, 0), leg_r=(-0.12, 0.55 * s, 0),
+                                       arm_l=(0.40, 0.3 * s, 0), arm_r=(-0.40, -0.3 * s, 0)),
+    }
+    return rig
+
+
+def spiked_pauldron(rig, side, mat, spike, size=0.24):
+    """A great rounded shoulder plate with a fan of spikes along its top."""
+    s = 1 if side == "l" else -1
+    rig.attach(shape("ball", (size, size * 1.05, size * 0.75), mat), f"arm_{side}", (0, s * 0.06, 0.04))
+    for k in range(5):
+        a = math.radians(-60 + 30 * k)
+        rig.attach(sharp("cone", (0.05, 0.05, 0.20), spike, rotation=(s * math.radians(-55), 0, a * 0.6)),
+                   f"arm_{side}", (size * 0.85 * math.sin(a), s * (size * 0.9), 0.14 + 0.03 * math.cos(a)))
+
+
+def build_bronze_knight():
+    """The knight in bronze (people kind 36): a big man in full bronze plate
+    traced in dark lines, great spiked shoulder plates, a long deep red
+    cloak hanging behind him to the ground and short red-brown hair."""
+    import mpfb_body
+    skin = studio.material("skin", (0.80, 0.58, 0.44), (0.60, 0.40, 0.30), scale=30, bump=0.05)
+    bronze = plaid("bronze plate", (0.76, 0.58, 0.32), (0.20, 0.12, 0.06), scale=5.0)
+    dark = studio.material("dark plate", (0.36, 0.26, 0.18), (0.14, 0.09, 0.05), scale=24, rough=0.4)
+    spike = studio.material("pale spikes", (0.88, 0.80, 0.62), (0.54, 0.46, 0.32), scale=30, rough=0.35)
+    cloak = studio.material("red cloak", (0.52, 0.06, 0.06), (0.22, 0.02, 0.02), scale=12, bump=0.4,
+                            stretch=(1, 1, 3))
+    hair = studio.material("red brown hair", (0.48, 0.20, 0.10), (0.20, 0.07, 0.03), scale=50, bump=0.6)
+    height = 4.05
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("head", "neck"):
+            return skin
+        if part in ("hand", "foot") or z < 0.30:
+            return dark
+        return bronze
+
+    rig = npc(height, dict(gender=1.0, age=0.5, muscle=0.95, weight=0.6, height=0.8, proportions=0.8), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.93 or (z > 0.87 and normal.y > 0.1)):
+            return hair, 0.04
+        if part == "torso":
+            return bronze, 0.07 if z > 0.55 else 0.06
+        if part in ("upperarm", "forearm", "hand"):
+            return bronze, 0.05
+        if part in ("thigh", "shin"):
+            return bronze if 0.24 < z < 0.33 or z > 0.36 else dark, 0.05
+        if part == "foot":
+            return dark, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "armour")
+    # Plate skirt over the hips, the cloak from the shoulders to the ground
+    # behind, and the pauldrons.
+    rig.attach(sharp("flare", (0.34, 0.38, 0.20), bronze), "hips", (0.0, 0, -0.08))
+    rig.attach(shape("cylinder", (0.27, 0.32, 0.04), dark), "hips", (0.0, 0, 0.14))
+    length = rig.hip + rig.shoulder - 0.02
+    rig.attach(sharp("box", (0.04, 0.46, length / 2), cloak, rotation=(0, math.radians(6), 0)), "spine",
+               (-0.32, 0, rig.shoulder - length / 2))
+    rig.attach(sharp("flare", (0.36, 0.48, 0.10), cloak), "spine", (-0.06, 0, rig.shoulder + 0.02))
+    for side in ("l", "r"):
+        spiked_pauldron(rig, side, bronze, spike)
+    rig.kind = "bronze knight"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.30, -0.02 * s, 0), elbow_l=(0, -0.15, 0),
+                                      arm_r=(-0.30, -0.02 * s, 0), elbow_r=(0, -0.15, 0),
+                                      leg_l=(0.08, 0, 0), leg_r=(-0.08, 0, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.5, arms=False, arm_l=(0.30, 0.3 * s, 0),
+                                       arm_r=(-0.30, -0.3 * s, 0)),
+    }
+    return rig
+
+
+def build_steel_knight():
+    """The knight in lilac steel (people kind 37): full plate with a blue-
+    violet sheen, broad layered shoulder plates, a gilded helm with a dark
+    slit, and a long cloak of the same steel-blue cloth behind him."""
+    import mpfb_body
+    steel = plaid("lilac steel", (0.56, 0.56, 0.80), (0.20, 0.20, 0.36), scale=5.0)
+    dark = studio.material("dark steel", (0.30, 0.30, 0.44), (0.12, 0.12, 0.20), scale=24, rough=0.35)
+    gold = studio.material("gilded helm", (0.90, 0.74, 0.34), (0.48, 0.34, 0.10), scale=26, rough=0.3)
+    slit = studio.material("visor slit", (0.08, 0.06, 0.06), (0.02, 0.02, 0.02), scale=30)
+    cloak = studio.material("blue grey cloak", (0.50, 0.50, 0.72), (0.22, 0.22, 0.38), scale=12, bump=0.45,
+                            stretch=(1, 1, 3))
+    height = 3.85
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("head", "neck"):
+            return gold
+        if part in ("hand", "foot") or z < 0.28:
+            return dark
+        return steel
+
+    rig = npc(height, dict(gender=1.0, age=0.45, muscle=0.85, weight=0.6, height=0.8, proportions=0.8), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head":
+            return gold, 0.06
+        if part == "neck":
+            return dark, 0.06
+        if part == "torso":
+            return steel, 0.07
+        if part in ("upperarm", "forearm"):
+            return steel, 0.05
+        if part == "hand":
+            return dark, 0.03
+        if part in ("thigh", "shin"):
+            return steel, 0.05
+        if part == "foot":
+            return dark, 0.04
+        return None
+
+    mpfb_body.shell(body, gear, "armour")
+    # The helm's crest and visor, layered shoulder plates, a plate skirt and
+    # the cloak behind.
+    rig.attach(shape("box", (0.03, 0.12, 0.018), slit), "head", (0.19, 0, rig.top * 0.50))
+    rig.attach(shape("box", (0.18, 0.025, 0.06), gold), "head", (-0.02, 0, rig.top * 0.98))
+    for side, s in (("l", 1), ("r", -1)):
+        for k, (r, dz) in enumerate(((0.24, 0.06), (0.20, -0.08), (0.17, -0.20))):
+            rig.attach(shape("ball", (r, r * 1.05, r * 0.6), steel if k != 1 else dark), f"arm_{side}",
+                       (0, s * (0.05 + 0.02 * k), dz))
+    rig.attach(sharp("flare", (0.34, 0.38, 0.22), steel), "hips", (0.0, 0, -0.10))
+    rig.attach(shape("cylinder", (0.27, 0.32, 0.04), dark), "hips", (0.0, 0, 0.14))
+    length = rig.hip + rig.shoulder - 0.04
+    rig.attach(sharp("flare", (0.30, 0.46, length / 2), cloak), "spine", (-0.14, 0, rig.shoulder - length / 2))
+    rig.kind = "steel knight"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.28, -0.02 * s, 0), elbow_l=(0, -0.2, 0),
+                                      arm_r=(-0.28, -0.02 * s, 0), elbow_r=(0, -0.2, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.45, arms=False, arm_l=(0.28, 0.3 * s, 0),
+                                       arm_r=(-0.28, -0.3 * s, 0)),
+    }
+    return rig
+
+
+def build_shrine_keeper():
+    """The shrine keeper (people kind 38): a slight young woman with long
+    straight fair hair, a short honey-coloured dress with a fitted bodice,
+    pale stockings and brown shoes, her arms held a little out from her
+    sides."""
+    import mpfb_body
+    skin = studio.material("skin", (0.94, 0.78, 0.64), (0.76, 0.58, 0.46), scale=30, bump=0.05)
+    hair = studio.material("fair hair", (0.92, 0.78, 0.46), (0.58, 0.44, 0.20), scale=50, bump=0.5,
+                           stretch=(1, 1, 5))
+    dress = studio.material("honey dress", (0.80, 0.62, 0.34), (0.44, 0.30, 0.12), scale=12, bump=0.35,
+                            stretch=(1, 1, 3))
+    bodice = studio.material("bodice", (0.62, 0.44, 0.22), (0.30, 0.18, 0.06), scale=18, bump=0.3)
+    stockings = studio.material("stockings", (0.90, 0.90, 0.92), (0.66, 0.66, 0.72), scale=20)
+    shoes = studio.material("shoes", (0.40, 0.24, 0.12), (0.16, 0.09, 0.04), scale=25, rough=0.55)
+    height = 3.42
+
+    def pick(centre, bones, normal):
+        z = centre.z / height
+        part = mpfb_body.part(bones)
+        if part in ("hand", "head", "neck", "upperarm", "forearm"):
+            return skin
+        if part == "foot":
+            return shoes
+        if z < 0.50:
+            return stockings
+        return bodice
+
+    rig = npc(height, dict(gender=0.0, age=0.3, muscle=0.4, weight=0.35, height=0.4, proportions=0.8), pick)
+    body = rig.body
+
+    def gear(centre, part, normal):
+        z = centre.z / height
+        if part == "head" and (z > 0.925 or (z > 0.84 and normal.y > -0.1)
+                               or (z > 0.86 and abs(normal.x) > 0.6)):
+            return hair, 0.035
+        if part == "neck" and normal.y > -0.1:
+            return hair, 0.04
+        if part == "torso" and z > 0.50:
+            return bodice, 0.03
+        if part == "upperarm" and z > 0.74:
+            return dress, 0.04  # little puffed sleeves
+        return None
+
+    mpfb_body.shell(body, gear, "clothes")
+    # Long hair down her back, and the short skirt.
+    rig.attach(shape("box", (0.05, 0.17, 0.30), hair, rotation=(0, math.radians(8), 0)), "spine",
+               (-0.20, 0, rig.shoulder + 0.05))
+    length = rig.hip * 0.50
+    rig.attach(sharp("flare", (0.36, 0.36, length / 2), dress), "hips", (0.02, 0, 0.14 - length / 2))
+    rig.kind = "shrine keeper"
+    rig.poses = {
+        "idle": lambda s, c, k: stand(s, arm_l=(0.36, -0.02 * s, 0), elbow_l=(0, -0.10, 0),
+                                      arm_r=(-0.36, -0.02 * s, 0), elbow_r=(0, -0.10, 0)),
+        "walk": lambda s, c, k: stroll(s, c, swing=0.45),
+    }
+    return rig
+
+
+BUILDERS.update({"person3": build_gate_guard, "person31": build_blue_bishop, "person32": build_red_priest,
+                 "person33": build_padded_priest, "person34": build_green_dwarf, "person35": build_brown_dwarf,
+                 "person36": build_bronze_knight, "person37": build_steel_knight, "person38": build_shrine_keeper})
+HEIGHT.update({"person3": 3.75, "person31": 3.95, "person32": 4.1, "person33": 3.7, "person34": 3.0,
+               "person35": 2.6, "person36": 4.0, "person37": 3.85, "person38": 3.4})
+
+
 BANDITS = {
     "swordsman": dict(width=1.05, skin="dark", hairstyle="hood", hood=(0.26, 0.22, 0.66), top=(0.22, 0.06, 0.36),
                       legs=(0.36, 0.38, 0.46), coat=(0.22, 0.06, 0.36)),
@@ -3050,11 +3669,97 @@ HEIGHT.update({"dog": 2.0, "smalldog": 1.4})
 SIZE.update({"dog": 360, "smalldog": 300})
 
 
+# The hawk companion (Character/PARTNER/00000002, partners.txt kind 5).
+# Like the original's, it is always on the wing: it hovers beside the hero,
+# flies, flies flat out, flinches and stoops on its prey, and has no death
+# or jump charts (the game plays its idle for those).
+HAWK_ANIMATIONS = {"idle": (10, True), "walk": (10, True), "run": (10, True), "hit": (4, False), "bite": (8, False)}
+HAWK_HOVER = 2.8  # height of the body above the ground
+
+
+def build_hawk():
+    """A dark brown hawk with barred wings and tail, a paler grey-brown
+    head, a hooked horn-coloured beak and yellow feet tucked under it."""
+    feathers = plaid("barred feathers", (0.28, 0.24, 0.21), (0.10, 0.08, 0.07), scale=9.0)
+    dark = studio.material("dark feathers", (0.18, 0.16, 0.14), (0.06, 0.05, 0.04), scale=30, bump=0.6,
+                           stretch=(4, 1, 1))
+    head = studio.material("head feathers", (0.46, 0.42, 0.36), (0.20, 0.18, 0.15), scale=40, bump=0.5)
+    pale = studio.material("breast", (0.44, 0.38, 0.32), (0.20, 0.16, 0.12), scale=40, bump=0.5, spot=0.3,
+                           spot_colour=(0.22, 0.16, 0.12))
+    beak = studio.material("beak", (0.66, 0.60, 0.44), (0.30, 0.26, 0.18), scale=40, rough=0.4)
+    feet = studio.material("feet", (0.86, 0.70, 0.22), (0.50, 0.38, 0.08), scale=40, rough=0.5)
+    eye = studio.material("hawk eye", (0.90, 0.62, 0.10), (0.40, 0.24, 0.02), scale=60, rough=0.2)
+    rig = Rig()
+    rig.joint("body", "root", (0, 0, HAWK_HOVER))
+    rig.joint("head", "body", (0.30, 0, 0.06))
+    rig.joint("tail", "body", (-0.30, 0, 0.0))
+    rig.attach(shape("ball", (0.34, 0.14, 0.13), dark), "body", (0, 0, 0.01))
+    rig.attach(shape("ball", (0.26, 0.12, 0.10), pale), "body", (0.04, 0, -0.04))
+    rig.attach(shape("ball", (0.12, 0.10, 0.10), head), "head", (0.04, 0, 0.02))
+    rig.attach(sharp("cone", (0.04, 0.035, 0.07), beak, rotation=(0, math.radians(110), 0)), "head", (0.17, 0, 0.0))
+    for side in (1, -1):
+        rig.attach(shape("ball", (0.022, 0.022, 0.022), eye), "head", (0.12, 0.06 * side, 0.05))
+        rig.attach(shape("ball", (0.05, 0.03, 0.03), feet), "body", (-0.10, 0.05 * side, -0.12))
+    # The tail: a fan of five long feathers.
+    for k in range(5):
+        a = math.radians(-24 + 12 * k)
+        rig.attach(sharp("box", (0.22, 0.045, 0.012), feathers, rotation=(0, 0, a)), "tail",
+                   (-0.20 * math.cos(a), -0.20 * math.sin(a), 0))
+    # The wings: a broad inner wing and long fingered primaries at the tip.
+    for side in (1, -1):
+        name = "wing_l" if side > 0 else "wing_r"
+        rig.joint(name, "body", (0.04, 0.10 * side, 0.06))
+        rig.attach(shape("ball", (0.24, 0.62, 0.025), feathers), name, (-0.06, 0.58 * side, 0))
+        rig.attach(shape("ball", (0.10, 0.60, 0.03), dark), name, (0.05, 0.56 * side, 0.01))  # leading edge
+        for k in range(5):
+            a = math.radians(side * (-6 - 9 * k))
+            rig.attach(sharp("box", (0.04, 0.24, 0.01), dark, rotation=(0, 0, a)), name,
+                       (-0.02 - 0.06 * k, (1.20 + 0.14 * math.cos(math.radians(9 * k))) * side, 0))
+    rig.kind = "hawk"
+    rig.animations = HAWK_ANIMATIONS
+    return rig
+
+
+def hawk_pose(rig, animation, t, frames):
+    """Wings beat (twice a loop hovering, faster flying flat out, held up in
+    a glide between); it bobs, flinches back when hit and stoops to the
+    ground and back up to bite."""
+    k = min(1.0, t * frames / max(1, frames - 1))
+    beats = {"idle": 2, "walk": 2, "run": 3, "hit": 1, "bite": 1}[animation]
+    phase = 2 * math.pi * t * beats
+    beat = math.sin(phase)
+    rest, depth = 0.55, {"idle": 0.65, "walk": 0.55, "run": 0.7}.get(animation, 0.6)
+    r = {"wing_l": (rest + depth * beat, 0, 0), "wing_r": (-rest - depth * beat, 0, 0),
+         "head": (0, -0.1, 0), "tail": (0, 0.05 * math.cos(phase), 0)}
+    offset = (0, 0, -0.10 * beat)
+    body = {"idle": 0.10, "walk": 0.0, "run": -0.12}.get(animation, 0.0)
+    if animation == "hit":
+        offset = (-0.35 * math.sin(math.pi * k), 0, 0.15 * math.sin(math.pi * k))
+        body = -0.3 * math.sin(math.pi * k)
+        r["wing_l"], r["wing_r"] = (1.0, 0, 0), (-1.0, 0, 0)
+    elif animation == "bite":
+        dive = math.sin(math.pi * k)
+        offset = (0.7 * dive, 0, -(HAWK_HOVER - 0.6) * dive)
+        body = 0.5 * dive
+        r["wing_l"], r["wing_r"] = (1.1 * dive + 0.2, 0, 0), (-1.1 * dive - 0.2, 0, 0)
+        r["head"] = (0, -0.1 - 0.4 * dive, 0)
+    r["body"] = (0, body, 0)
+    rig.pose(r, offset)
+
+
+BUILDERS["hawk"] = build_hawk
+HEIGHT["hawk"] = 5.0
+SIZE["hawk"] = 200
+
+
 def pose(rig, animation, t, frames):
     """Rotations (radians, about X, Y, Z) per joint at time t in [0, 1)."""
     s = math.sin(2 * math.pi * t)
     c = math.cos(2 * math.pi * t)
     lean = rig.lean
+    if getattr(rig, "kind", None) == "hawk":
+        hawk_pose(rig, animation, t, frames)
+        return
     if "wing_l" in rig.joints and getattr(rig, "kind", None) != "dragon":
         fly_pose(rig, animation, t, frames)
         return

@@ -69,8 +69,19 @@ FIELDS2 = [2000000, 2000001, 2100000, 2100001, 2100002, 2100003, 2100004, 210000
 DUNGEONS2 = [2010000, 2110000, 2120000, 2120001, 2130000, 2140000, 2210000, 2210001, 2210002,
              2210003, 2210004, 2220000, 2220001, 2230000, 2240000, 2240001, 2250000]
 
+# The third area (episode 3): the wide lands round Losmans, Antalusia,
+# Calado, Ponse and Sena's shrine, and the towers, ruins and caves in them.
+FIELDS3 = [3000101, 3000201, 3000202, 3000203, 3000301, 3000302, 3000303, 3000304, 3000305, 3000306,
+           3000307, 3000402, 3000403, 3000404, 3000405, 3000406, 3000407, 3000503, 3000505, 3000506,
+           3000507, 3240000, 3900000, 3900001, 3900002, 3900003, 3900004]
+DUNGEONS3 = [3010000, 3010001, 3010002, 3010003, 3010004, 3020000, 3020001, 3020002, 3020003, 3020004,
+             3030000, 3040000, 3050000, 3060000, 3070000, 3080000, 3090000, 3100000, 3110000, 3110001,
+             3110002, 3110003, 3110004, 3120000, 3130000, 3140000, 3140001, 3150000, 3160000, 3170000,
+             3180000, 3190000, 3200000, 3210000, 3220000, 3230000, 3900005]
+
 # Each area's maps, in the order they are laid out.
-AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2}
+AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2, 3: FIELDS3 + DUNGEONS3}
+DUNGEON = set(DUNGEONS + DUNGEONS2 + DUNGEONS3)
 ALL = [n for area in AREAS.values() for n in area]
 
 # Dungeon walls by the original's wall bank: our wall pieces (plain, then
@@ -83,6 +94,8 @@ WALLS = {
     "deep01.njp": ("earth", ["2"], "earth_post", "Map/deepfloor.sheet", 0),
 }
 WALLS["deep02.njp"] = WALLS["deep03.njp"] = WALLS["deep04.njp"] = WALLS["deep01.njp"]
+# The third area's towers, of dark castle stone on paving.
+WALLS["yd.njp"] = ("fwall_black", [""], "fpillar_black", "Map/fortfloor.sheet", 240)
 
 # Original banks whose pieces are landmarks, drawn where the original has
 # them, with the props skin.txt gives them (None = every piece of the bank).
@@ -105,10 +118,18 @@ LANDMARKS = {
 }
 for _deep in ("deep02.njp", "deep03.njp", "deep04.njp"):
     LANDMARKS[_deep] = LANDMARKS["deep01.njp"]
+# The third area's castle stone: in the towers, where our walls stand in
+# for its walls, only its statues, keeps, stairs and magic circles; in
+# Losmans and outdoors every piece, the town's walls and gates among them.
+LANDMARKS["yd.njp"] = {0, 1, 2, 3, 4, 5, 6, 29, 30, 31, 32, 33}
+LANDMARKS["tower2.njp"] = None
+OUTDOOR_LANDMARKS = {"yd.njp": None}
 
 FOREST = ["tree1", "tree2", "tree3", "tree1", "tree2", "oak"]
 FROZEN = ["conifer_blue", "tree_dead", "conifer_green"]   # Frozen Forest
 BARE = ["tree_dead", "tree_dead", "oak"]                  # the wastelands
+BARE_PLACES = ("Wasteland", "Pillars", "Wilds", "Desert", "Valley", "Plain", "Atonement", "Burial", "Peninsula",
+               "Beach", "Gulf", "Hiding Place")
 
 # Banks whose pieces stand on ground that cannot be walked on.
 SOLID = {"00f_city00.njp", "00f_city01.njp", "00f_city02.njp"}
@@ -247,6 +268,12 @@ def exits_of(scs, objects):
 
 class Original:
     """One original map and scenario: walkability, ground colour, objects."""
+
+    @staticmethod
+    def map_of(game, number):
+        """The original map a scenario is laid on."""
+        path = read_mct(find(game / "Scenario" / f"{number:08d}", "Scenario", ".mct").read_bytes())[0]
+        return path.replace("\\", "/").split("/")[-1].rsplit(".", 1)[0]
 
     def __init__(self, game, number):
         sc = game / "Scenario" / f"{number:08d}"
@@ -424,7 +451,9 @@ PEOPLE_NAMES = {(0, 0): "commander", (0, 1): "smith", (0, 2): "healer",
 # opens the GATE window, which stands on a warp circle.
 GATES = {0: [200], 1000000: [200],
          2100000: [200], 2100002: [200], 2100004: [200], 2100005: [200], 2100006: [200],
-         2200000: [200], 2200003: [200, 210], 2200005: [200], 2210002: [200]}
+         2200000: [200], 2200003: [200, 210], 2200005: [200], 2210002: [200],
+         **{n: [200] for n in (3000201, 3000302, 3000303, 3000306, 3000307, 3000402, 3000505, 3240000,
+                               3900000, 3900001, 3900002, 3900003, 3900004, 3900005)}}
 
 
 def exit_targets(number):
@@ -441,6 +470,22 @@ def written_exits(o, number):
     scenario, entry). Past the first area, an exit the original opens only
     later in the story is left to the scenario's script (scripts.py)."""
     return [e[:6] for e in o.exits if e[4] in exit_targets(number) and not (e[6] and number not in AREAS[1])]
+
+
+_MAP_NAMES = {}
+
+
+def map_name(game, number):
+    """Our map file for a scenario: the original's map name, or, where an
+    earlier scenario of the pack already has a map of that name (several
+    of the original's share one), the name and the scenario's number."""
+    if not _MAP_NAMES:
+        seen = set()
+        for n in ALL:
+            name = Original.map_of(game, n)
+            _MAP_NAMES[n] = name if name.lower() not in seen else f"{name}_{our_number(n)}"
+            seen.add(name.lower())
+    return _MAP_NAMES[number]
 
 
 def our_number(number):
@@ -503,7 +548,8 @@ def wall_kit(o):
 
 def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rng):
     o = Original(game, number)
-    dungeon = number in DUNGEONS + DUNGEONS2
+    dungeon = number in DUNGEON
+    marks = LANDMARKS if dungeon else {**LANDMARKS, **OUTDOOR_LANDMARKS}
     reach = walkable(o)
     kit = wall_kit(o) if dungeon else None
 
@@ -535,7 +581,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     for ob in o.objects:
         bank_name = o.banks[ob["file"]].lower() if 0 <= ob["file"] < len(o.banks) else "?"
         pieces = []
-        if bank_name in LANDMARKS and (LANDMARKS[bank_name] is None or ob["pattern"] in LANDMARKS[bank_name]):
+        if bank_name in marks and (marks[bank_name] is None or ob["pattern"] in marks[bank_name]):
             pieces = rules.get(bank_name, {}).get(ob["pattern"], [])
         if not pieces:
             continue
@@ -654,11 +700,17 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         # Trees on the ground that cannot be walked on, thick at its edge
         # and thinning out away from it; a rock or a bush where only a little
         # ground is shut off in the open.
-        trees = FROZEN if "Frozen" in o.title else BARE if "Wasteland" in o.title or "Pillars" in o.title else FOREST
+        trees = FROZEN if "Frozen" in o.title else BARE if any(w in o.title for w in BARE_PLACES) else FOREST
         near = distance(walk, 2 * margin + 1)
         inside_cells = np.kron(inside, np.ones((PER, PER), bool))
         mass = flood(blocked, [(0, 0)])            # the rock and forest round the map
         free = blocked & inside_cells & ~taken
+        if o.town == number and landmarks and number not in AREAS[1] + AREAS[2]:
+            # Past the second area, a town's own ground (inside its walls and
+            # buildings) stays open: no forest grows in its streets.
+            cs = [cell_of(wx, wy) for _, wx, wy in landmarks]
+            xs, ys = [c[0] for c in cs], [c[1] for c in cs]
+            free[max(0, min(ys)):max(ys) + 1, max(0, min(xs)):max(xs) + 1] = False
         # Ground shut off by a landmark is the landmark's.
         free &= ~flood(blocked & ~mass, list(zip(*np.nonzero(grow(taken, 2) & blocked & ~mass))))
         spot_free = np.ones(walk.shape, bool)
@@ -689,7 +741,8 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     objects.sort()
     judge = ["".join("." if v else "x" for v in line) for line in walk]
     sheet = kit[3] if dungeon else "Map/ground.sheet"
-    with open(out / "Map" / f"{o.name}.txt", "w", newline="\n") as f:
+    map_file = map_name(game, number)
+    with open(out / "Map" / f"{map_file}.txt", "w", newline="\n") as f:
         f.write(f"# {o.title}: walked on like the original's {o.name}, with our own ground, walls and trees, "
                 "generated by tools/content/first_area.py\n")
         f.write(f"size={tw},{th}\ntiles={TILE}\ncell={CELL},{CELL}\njudge=0,0,{tw * PER},{th * PER}\n")
@@ -705,7 +758,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
         return int(cx * CELL + CELL // 2), int(cy * CELL + CELL // 2)
 
     lines = [f"# generated by tools/content/first_area.py after the original's scenario {number}",
-             f"title={o.title}", f"map={o.name}"]
+             f"title={o.title.strip()}", f"map={map_file}"]
     # The original numbers entry points four to an entry (the party's
     # places); scenario.txt numbers entries, and puts the party round the
     # first place.
@@ -744,7 +797,7 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
     folder = out / "Scenario" / f"{our_number(number):08d}"
     folder.mkdir(parents=True, exist_ok=True)
     (folder / "scenario.txt").write_text("\n".join(lines) + "\n")
-    print(f"{our_number(number)} {o.name} {o.title}: {tw}x{th} tiles, {len(objects)} objects, {len(o.exits)} exits")
+    print(f"{our_number(number)} {map_file} {o.title}: {tw}x{th} tiles, {len(objects)} objects, {len(o.exits)} exits")
 
 
 def our_stats(out, kinds):

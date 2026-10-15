@@ -1,0 +1,60 @@
+# Written by tools/content/scripts.py after the original's scenario 3110002
+# (Tower of Licarn, 3F), in our own words (tools/content/words/13110002.txt).
+
+object=4350,1780,4550,1980,o0,states=0/1/0,at=4450/1880
+object=4355,4575,4555,4775,o1,states=0/1/0,at=4455/4675
+temp=1000011,81
+temp=1000012,82
+temp=1000013,83
+temp=1000014,31
+temp=1000015,32
+temp=1000016,33
+temp=1000017,27
+temp=1000018,28
+temp=1000019,38
+temp=1000020,39
+temp=1000021,3
+temp=1000022,25
+temp=1000023,26
+temp=1000024,30
+temp=1000025,37
+temp=1000026,10
+temp=1000027,40
+temp=1000028,41
+temp=1000029,42
+temp=1000030,43
+temp=1000031,53
+temp=1000032,80
+temp=1000033,51
+
+[message 1000000]
+Tower of Licarn, 3F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+on=judge o1
+CHECKENEMYLIVE 14000000 14000015 temp:1000002
+IF temp:1000002 = -1 @s2
+
+[sentence s2]
+CHANGESCENARIO 13110001 0
+
+[sentence s3]
+on=tick
+CHECKENEMYLIVE 14000000 14000015 temp:1000002
+IF temp:1000002 = -1 @s4
+
+[sentence s4]
+IF temp:1000009 = 0 @s5
+IF temp:1000009 ! 0 @s6
+
+[sentence s5]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000033 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000009
+
+[sentence s6]
+SUB temp:1000009 1

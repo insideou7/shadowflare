@@ -1,0 +1,1137 @@
+# Written by tools/content/scripts.py after the original's scenario 3900005
+# (Sena's Small Shrine), in our own words (tools/content/words/13900005.txt).
+
+object=4475,1751,4772,2002,o200,states=1/1/1,at=4613/1864
+object=4445,1721,4793,2041,o201,states=1/0/0,at=4613/1864
+object=3364,732,5872,3034,o202,states=0/0/0,at=4217/1359
+object=4813,2063,4863,2111,o203,states=1/0/0,at=4613/1864
+object=4813,2063,4863,2111,o204,states=1/0/0,at=4613/1864
+object=7040,6880,7679,7519,o300,states=1/1/1,at=7351/7152
+temp=1000015,-1
+temp=1000017,300
+temp=1000021,4
+temp=1000022,99000010
+temp=1000023,4
+temp=1000024,99000011
+temp=1000025,4
+temp=1000026,99000012
+temp=1000027,4
+temp=1000028,98000003
+temp=1000029,4
+temp=1000030,98000002
+temp=1000033,34
+temp=1000034,35
+temp=1000035,36
+temp=1000036,77
+temp=1000037,78
+temp=1000038,33
+temp=1000039,27
+temp=1000040,28
+temp=1000041,38
+temp=1000042,39
+temp=1000043,3
+temp=1000044,25
+temp=1000045,26
+temp=1000046,30
+temp=1000047,37
+temp=1000048,10
+temp=1000049,40
+temp=1000050,41
+temp=1000051,42
+temp=1000052,43
+temp=1000053,53
+temp=1000054,80
+temp=1000055,51
+temp=1000056,24
+temp=1000057,64
+
+[message 1000000]
+Sena's Small Shrine
+
+[message 1000001]
+Sena's Small Shrine
+
+[message 1000002]
+Oh, a visitor! We hardly ever have guests here.
+
+[message 1000003]
+Who might you be?
+And what can I do for you?
+
+[message 1000004]
+Lord Valdric means to hand the holy relics
+over to me, now?
+
+[message 1000005]
+...
+
+[message 1000006]
+...
+
+[message 1000007]
+...
+
+[message 1000008]
+Well, you're welcome at my shrine whenever you like.
+
+[message 1000009]
+I am Seren, and in a sense I am Valmere too.
+Some call me the White Angel herself, but it is
+her spirit I share, more than her face.
+
+[message 1000010]
+You might say she dwells in my body. The holy relics,
+and the coming of Morvane, the fiend, have woken
+Valmere's spirit inside me.
+
+[message 1000011]
+...
+
+[message 1000012]
+I see.
+You mean to go to Aurion and learn the truth.
+
+[message 1000013]
+A wise choice. But you are mortal, so to bear
+Morvane's power you'll need all five orbs.
+
+[message 1000014]
+I can tell you already hold two of them.
+
+[message 1000015]
+First, go to an old research hall, a ruin close
+to Berini Village. The blue and green orbs
+are kept there.
+
+[message 1000016]
+Once you have them,
+please come back to me.
+
+[message 1000017]
+Oh, it's you. You've been coming by quite often.
+
+[message 1000018]
+Oh, it's you. You've been coming by quite often.
+
+[message 1000019]
+...
+
+[message 1000020]
+...
+
+[message 1000021]
+...
+
+[message 1000022]
+So you've found the blue and green orbs?
+
+[message 1000023]
+With them, you may be able to stand up
+to Morvane's power now.
+
+[message 1000024]
+The last one, the Red Orb, is kept
+in a tower in Berini Village.
+
+[message 1000025]
+Come back to me once it's yours.
+
+[message 1000026]
+Hello. That must have been a long, hard road.
+Can I offer you some coffee?
+
+[message 1000027]
+Hello.
+
+[message 1000028]
+...
+
+[message 1000029]
+...
+
+[message 1000030]
+So you have every one of the orbs now.
+
+[message 1000031]
+I can feel their magic moving inside you.
+
+[message 1000032]
+...
+
+[message 1000033]
+Then I'll tell you all of it, even what
+the grimling faith itself does not know.
+
+[message 1000034]
+...
+
+[message 1000035]
+Long ago, humankind stood at its height.
+Science, the thing you call the craft of the
+ancient world, let people work wonders,
+and everyone lived in comfort.
+
+[message 1000036]
+Their power was so great they could even rule
+the weather. They turned deserts into meadows
+and made frozen wastes fit to live in.
+
+[message 1000037]
+In that world, Morvane and I
+were both scientists.
+
+[message 1000038]
+All was peaceful, until one day it wasn't...
+
+[message 1000039]
+Morvane was a brilliant scientist. Together we
+studied the hidden potential of human beings.
+
+[message 1000040]
+Put simply, we searched for ways to make people
+stronger and help them live longer.
+
+[message 1000041]
+And our work led us to a remarkable discovery.
+
+[message 1000042]
+Yet that same discovery
+was where the end began...
+
+[message 1000043]
+At first people cheered what we had done
+and hailed it as a great achievement.
+It didn't last. They soon turned on us
+and called our work evil.
+
+[message 1000044]
+Morvane's work on strengthening people drew
+the worst of it. In the end he was branded
+an enemy of all humankind.
+
+[message 1000045]
+It wounded him deeply. He was sure his work
+was meant for the good of everyone.
+
+[message 1000046]
+So he kept at it, hoping that one day people
+would understand and welcome what he had made.
+
+[message 1000047]
+And then it happened...
+
+[message 1000048]
+The army was ordered to seize him. And it was not
+only Morvane they came for. His family was judged
+guilty alongside him, and they...
+
+[message 1000049]
+...
+
+[message 1000050]
+He was never the same again.
+
+[message 1000051]
+The army forced Morvane to work for them,
+and he turned to experiments of a darker kind.
+
+[message 1000052]
+What he made frightened the army; they feared his
+power was beyond holding. They moved to lock him up
+and end his work, but Morvane had seen it coming
+and was ready for them.
+
+[message 1000053]
+He made himself into a mighty, demonlike creature
+and raised an army of others like him. With a
+living plague he turned anyone it touched into one
+of them. Truly, it was a dark and evil magic.
+
+[message 1000054]
+He was eaten up with hatred
+for all humankind...
+No one could stop him.
+The plague spread beyond counting.
+
+[message 1000055]
+The few who lived were those who could shield
+themselves from the plague, scientists and soldiers.
+But even for them, it was only a matter of time
+before nearly all were changed or killed.
+
+[message 1000056]
+I had been his partner and shared his research.
+It seemed only right that I, with what I knew,
+should be the one to stop him.
+
+[message 1000057]
+I followed his path and made myself one of his
+demons, then hunted him down and sealed him away.
+It cost me dearly. My body was broken by it.
+
+[message 1000058]
+That is how this world came to be cursed.
+I believe Morvane has now risen again from Aurion,
+where I sealed him.
+
+[message 1000059]
+The five orbs hold the power to stand against his
+magic. With my holy crest, you can call on it.
+
+[message 1000060]
+The spirit crest, too,
+can restore your strength.
+
+[message 1000061]
+I tell you all this because I sense
+a rare power in you.
+
+[message 1000062]
+I hope what I've told you helps you become all
+you can be. This world's fate rests with you now.
+
+[message 1000063]
+Go to Aurion,
+and do what you believe is right for this world.
+
+[message 1000064]
+Hello. How have you been?
+
+[message 1000065]
+I see...
+
+[message 1000066]
+As you know, Morvane all but destroyed the world.
+What he did can never be forgiven.
+
+[message 1000067]
+But please remember, at least, that had things gone
+another way, he might have been humankind's savior.
+
+[message 1000068]
+And as for you...
+
+[message 1000069]
+...
+
+[message 1000070]
+The whole world is grateful for what you've done.
+I'll go on living in this body, keeping Valmere's
+spirit with me until the end of my days.
+
+[message 1000071]
+If you're ever passing this way, please visit me.
+
+[message 1000072]
+Oh, hello there!
+
+[message 1000073]
+This may be asking too much of you,
+but I know you're the only one
+who can help me.
+
+[message 1000074]
+After Morvane was sealed away, the strongest of
+the demons that served him gathered at the Fort of
+Demons.
+
+[message 1000075]
+They are weaker than Morvane himself,
+but strong all the same, and they could wreak
+havoc if no one deals with them.
+
+[message 1000076]
+The burrow in Ento Village leads to the Fort of
+Demons, but it was made for demons alone. Without
+the Fiend's Tooth, no human can pass through it.
+
+[message 1000077]
+The demons of the Forest of Poison once had the
+Fiend's Tooth, but I don't know where it is now.
+
+[message 1000078]
+Will you go and defeat the demons
+at the Fort of Demons for me?
+
+[message 1000079]
+Be sure you come back alive.
+I'll be waiting to hear how it went.
+
+[message 1000080]
+Thank you, truly.
+Please take this Fellowship Stone as thanks.
+With it, your companions take less time
+to recover.
+
+[message 1000081]
+Oh, the demons at the Fort of Demons were people
+once. The plague robbed them of their reason.
+
+[message 1000082]
+Also, the demons at the Fort of Demons and the Ruins
+of Remoteness seem fond of rare curios,
+and hoard as many as they can.
+
+[message 1000083]
+And it might help to know that the Fiend's Tooth
+is said to restore spiritual power.
+
+[message 1000084]
+Is that of any help to you?
+
+[message 1000085]
+Hello.
+
+[message 1000086]
+Thank you so much.
+
+[message 1000087]
+I've got fine wares here.
+
+  ~Buy items             ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000088]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000089]
+You can't afford that.
+
+[message 1000090]
+Nothing here needs mending.
+
+[message 1000091]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000092]
+There's nothing unknown here.
+
+[message 1000093]
+Kestrel
+
+  ~Check status~
+  ~About me~
+  ~Swap~
+
+          ~Leave~
+
+[message 1000094]
+Count on me, above all when it comes to attacking.
+
+[message 1000095]
+I'd be glad of any items
+that build up my stamina.
+
+[sentence s0]
+on=start
+INITTRADE 0 8
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000053 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 13000303 2
+
+[sentence s3]
+CHANGESCENARIO 13000203 0
+
+[sentence s4]
+on=talk o300
+STORAGE 0
+
+[sentence s5]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+SETFLAG temp:1000019 0
+IF save:110 = 6 @s6
+IF save:110 = 5 @s9
+IF save:110 = 4 @s12
+IF save:110 = 3 @s15
+IF save:110 = 2 @s18
+IF save:110 = 1 @s21
+IF save:110 = 0 @s25
+IF temp:1000019 = 0 @s28
+IF temp:1000019 = 1 @s29
+
+[sentence s6]
+SETFLAG temp:1000005 save:116
+IF temp:1000005 ! 0 @s7
+IF temp:1000005 = 0 @s8
+
+[sentence s7]
+SETFLAG temp:1000002 msg:1000086
+SETFLAG temp:1000001 1300
+SETFLAG save:116 0
+SETFLAG temp:1000019 1
+
+[sentence s8]
+SETFLAG temp:1000002 msg:1000085
+SETFLAG temp:1000001 1200
+SETFLAG save:116 1
+
+[sentence s9]
+IF quest:46 = 2 @s10
+IF quest:46 ! 2 @s11
+
+[sentence s10]
+SETFLAG temp:1000002 msg:1000080
+SETFLAG temp:1000001 1100
+SETFLAG save:110 6
+SETITEMDIRECT temp:1000029 temp:1000030
+GETEXPERIENCE 50
+PLAYSOUND temp:1000057 1 0 0
+SETFLAG temp:1000019 1
+
+[sentence s11]
+SETFLAG temp:1000002 msg:1000079
+SETFLAG temp:1000001 1000
+
+[sentence s12]
+IF quest:45 = 2 @s13
+IF quest:45 ! 2 @s14
+
+[sentence s13]
+SETFLAG temp:1000002 msg:1000073
+SETFLAG temp:1000001 900
+SETFLAG save:110 5
+SETFLAG temp:1000019 1
+
+[sentence s14]
+SETFLAG temp:1000002 msg:1000072
+SETFLAG temp:1000001 800
+
+[sentence s15]
+IF quest:43 = 2 @s16
+IF quest:43 ! 2 @s17
+
+[sentence s16]
+SETFLAG temp:1000002 msg:1000065
+SETFLAG temp:1000001 700
+SETFLAG save:110 4
+SETFLAG temp:1000019 1
+
+[sentence s17]
+SETFLAG temp:1000002 msg:1000064
+SETFLAG temp:1000001 600
+
+[sentence s18]
+CHECKITEMEXIST temp:1000021 temp:1000022 temp:1000005
+IF temp:1000005 = 1 @s19
+IF temp:1000005 ! 1 @s20
+
+[sentence s19]
+SETFLAG temp:1000002 msg:1000027
+SETFLAG temp:1000001 500
+SETFLAG save:110 3
+
+[sentence s20]
+SETFLAG temp:1000002 msg:1000026
+SETFLAG temp:1000001 400
+
+[sentence s21]
+SETFLAG temp:1000014 0
+CHECKITEMEXIST temp:1000025 temp:1000026 temp:1000005
+IF temp:1000005 = 1 @s22
+IF temp:1000014 = 0 @s24
+
+[sentence s22]
+CHECKITEMEXIST temp:1000023 temp:1000024 temp:1000005
+IF temp:1000005 = 1 @s23
+
+[sentence s23]
+SETFLAG temp:1000002 msg:1000018
+SETFLAG temp:1000001 300
+SETFLAG temp:1000014 1
+SETFLAG save:110 2
+
+[sentence s24]
+SETFLAG temp:1000002 msg:1000017
+SETFLAG temp:1000001 200
+
+[sentence s25]
+IF quest:37 ! 0 @s26
+IF quest:37 = 0 @s27
+
+[sentence s26]
+SETFLAG temp:1000002 msg:1000003
+SETFLAG temp:1000001 100
+SETFLAG save:110 1
+SETQUESTFLAG 37 2 0
+GETEXPERIENCE 50
+PLAYSOUND temp:1000057 1 0 0
+
+[sentence s27]
+SETFLAG temp:1000002 msg:1000002
+SETFLAG temp:1000001 0
+
+[sentence s28]
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s29]
+TALK temp:1000002 -1 0 0 -1 -120
+C_ACTIONREQ p0 4 1 46 -1 -1
+SETFLAG temp:1000020 2
+
+[sentence s30]
+on=talk-end p0
+IF temp:1000001 = 0 @s31
+IF temp:1000001 = 113 @s32
+IF temp:1000001 = 200 @s33
+IF temp:1000001 = 307 @s34
+IF temp:1000001 = 400 @s35
+IF temp:1000001 = 536 @s36
+IF temp:1000001 = 600 @s37
+IF temp:1000001 = 706 @s38
+IF temp:1000001 = 800 @s39
+IF temp:1000001 = 906 @s40
+IF temp:1000001 = 1000 @s41
+IF temp:1000001 = 1104 @s42
+IF temp:1000001 = 1200 @s43
+IF temp:1000001 = 1300 @s44
+IF temp:1000001 = 103 @s45
+IF temp:1000001 = 302 @s46
+IF temp:1000001 = 501 @s47
+IF temp:1000001 = -1 @s48
+IF temp:1000001 ! -1 @s50
+IF temp:1000020 = 2 @s51
+IF temp:1000020 = 1 @s53
+IF temp:1000020 = 0 @s55
+IF temp:1000001 = 113 @s57
+IF temp:1000001 = 304 @s58
+IF temp:1000001 = 306 @s59
+IF temp:1000001 = 503 @s60
+IF temp:1000001 = 906 @s61
+
+[sentence s31]
+SETFLAG temp:1000001 -1
+
+[sentence s32]
+SETFLAG temp:1000001 -1
+
+[sentence s33]
+SETFLAG temp:1000001 -1
+
+[sentence s34]
+SETFLAG temp:1000001 -1
+
+[sentence s35]
+SETFLAG temp:1000001 -1
+
+[sentence s36]
+SETFLAG temp:1000001 -1
+
+[sentence s37]
+SETFLAG temp:1000001 -1
+
+[sentence s38]
+SETFLAG temp:1000001 -1
+STARTVISUAL 6
+
+[sentence s39]
+SETFLAG temp:1000001 -1
+
+[sentence s40]
+SETFLAG temp:1000001 -1
+
+[sentence s41]
+SETFLAG temp:1000001 -1
+
+[sentence s42]
+SETFLAG temp:1000001 -1
+
+[sentence s43]
+SETFLAG temp:1000001 -1
+
+[sentence s44]
+SETFLAG temp:1000001 -1
+
+[sentence s45]
+SETFLAG temp:1000020 1
+
+[sentence s46]
+SETFLAG temp:1000020 1
+
+[sentence s47]
+SETFLAG temp:1000020 1
+
+[sentence s48]
+C_MOVABLE p0
+IF temp:1000019 = 1 @s49
+
+[sentence s49]
+SETFLAG temp:1000019 0
+C_ACTIONREQ p0 5 -1 -1 -1 -1
+
+[sentence s50]
+ADD temp:1000001 1
+ADD temp:1000002 1
+
+[sentence s51]
+IF temp:1000001 ! -1 @s52
+
+[sentence s52]
+TALK temp:1000002 -1 0 0 -1 -120
+
+[sentence s53]
+IF temp:1000001 ! -1 @s54
+
+[sentence s54]
+TALK temp:1000002 -1 0 0 -1 -120
+C_ACTIONREQ p0 4 1 46 -1 -1
+SETFLAG temp:1000019 1
+SETFLAG temp:1000020 2
+
+[sentence s55]
+IF temp:1000001 ! -1 @s56
+
+[sentence s56]
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s57]
+SETQUESTFLAG 38 1 0
+DRAWQUESTNAME 38
+
+[sentence s58]
+SETQUESTFLAG 38 2 0
+GETEXPERIENCE 50
+PLAYSOUND temp:1000057 1 0 0
+
+[sentence s59]
+SETQUESTFLAG 40 1 0
+DRAWQUESTNAME 40
+
+[sentence s60]
+SETQUESTFLAG 40 2 0
+GETEXPERIENCE 50
+PLAYSOUND temp:1000057 1 0 0
+SETITEMDIRECT temp:1000027 temp:1000028
+
+[sentence s61]
+SETQUESTFLAG 46 1 0
+DRAWQUESTNAME 46
+
+[sentence s62]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s63
+IF temp:1000005 > 0 @s67
+IF temp:1000005 > -1 @s69
+
+[sentence s63]
+IF warp:37 = 0 @s64
+IF temp:1000031 ! 1000 @s65
+IF temp:1000032 = 0 @s66
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s64]
+SETFLAG warp:37 1
+
+[sentence s65]
+ADD temp:1000031 50
+
+[sentence s66]
+PLAYSOUND temp:1000054 0 x:o200 y:o200
+SETFLAG temp:1000032 1
+
+[sentence s67]
+IF temp:1000031 ! 0 @s68
+SETFLAG temp:1000032 0
+DELETEWARPGATE 0
+
+[sentence s68]
+SUB temp:1000031 50
+
+[sentence s69]
+SETCHARTRANS o203 temp:1000031
+SETCHARTRANS o204 temp:1000031
+
+[sentence s70]
+on=talk o200
+WARPGATE 0
+
+[sentence s71]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+TALK msg:1000087 temp:1000000 0 3 -1 -1
+
+[sentence s72]
+on=talk-end p1
+IF temp:1000016 = 6 @s73
+IF temp:1000016 = 5 @s74
+IF temp:1000016 = 4 @s75
+IF temp:1000016 = 3 @s80
+IF temp:1000016 = 2 @s81
+IF temp:1000016 = 1 @s82
+IF temp:1000016 = 0 @s119
+SETFLAG temp:1000000 -1
+
+[sentence s73]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s74]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s75]
+IF temp:1000000 ! 0 @s76
+IF temp:1000000 = 0 @s77
+
+[sentence s76]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s77]
+GETTOTALGOLD temp:1000005
+SETFLAG temp:1000006 0
+IF temp:1000005 < temp:1000017 @s78
+IF temp:1000006 = 0 @s79
+
+[sentence s78]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 5
+SETFLAG temp:1000006 1
+
+[sentence s79]
+PAYGOLD temp:1000017
+IDENTIFY
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s80]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s81]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s82]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+GETTOTALGOLD temp:1000014
+SETFLAG temp:1000013 temp:1000000
+IF temp:1000013 = 0 @s83
+IF temp:1000013 = 1 @s88
+IF temp:1000013 = 2 @s93
+IF temp:1000013 = 3 @s98
+IF temp:1000013 = 4 @s103
+IF temp:1000013 = 5 @s108
+IF temp:1000013 = 6 @s113
+IF temp:1000013 = 7 @s118
+
+[sentence s83]
+IF temp:1000005 ! 0 @s84
+IF temp:1000005 = 0 @s87
+
+[sentence s84]
+SETFLAG temp:1000012 0
+IF temp:1000005 > temp:1000014 @s85
+IF temp:1000012 = 0 @s86
+
+[sentence s85]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s86]
+REPAIR 0
+PAYGOLD temp:1000005
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s87]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s88]
+IF temp:1000006 ! 0 @s89
+IF temp:1000006 = 0 @s92
+
+[sentence s89]
+SETFLAG temp:1000012 0
+IF temp:1000006 > temp:1000014 @s90
+IF temp:1000012 = 0 @s91
+
+[sentence s90]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s91]
+REPAIR 1
+PAYGOLD temp:1000006
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s92]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s93]
+IF temp:1000007 ! 0 @s94
+IF temp:1000007 = 0 @s97
+
+[sentence s94]
+SETFLAG temp:1000012 0
+IF temp:1000007 > temp:1000014 @s95
+IF temp:1000012 = 0 @s96
+
+[sentence s95]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s96]
+REPAIR 2
+PAYGOLD temp:1000007
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s97]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s98]
+IF temp:1000008 ! 0 @s99
+IF temp:1000008 = 0 @s102
+
+[sentence s99]
+SETFLAG temp:1000012 0
+IF temp:1000008 > temp:1000014 @s100
+IF temp:1000012 = 0 @s101
+
+[sentence s100]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s101]
+REPAIR 3
+PAYGOLD temp:1000008
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s102]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s103]
+IF temp:1000009 ! 0 @s104
+IF temp:1000009 = 0 @s107
+
+[sentence s104]
+SETFLAG temp:1000012 0
+IF temp:1000009 > temp:1000014 @s105
+IF temp:1000012 = 0 @s106
+
+[sentence s105]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s106]
+REPAIR 4
+PAYGOLD temp:1000009
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s107]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s108]
+IF temp:1000010 ! 0 @s109
+IF temp:1000010 = 0 @s112
+
+[sentence s109]
+SETFLAG temp:1000012 0
+IF temp:1000010 > temp:1000014 @s110
+IF temp:1000012 = 0 @s111
+
+[sentence s110]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s111]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:1000010
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s112]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s113]
+IF temp:1000011 ! 0 @s114
+IF temp:1000011 = 0 @s117
+
+[sentence s114]
+SETFLAG temp:1000012 0
+IF temp:1000011 > temp:1000014 @s115
+IF temp:1000012 = 0 @s116
+
+[sentence s115]
+TALK msg:1000089 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s116]
+REPAIR -1
+PAYGOLD temp:1000011
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 2
+
+[sentence s117]
+TALK msg:1000090 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s118]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s119]
+IF temp:1000000 = 0 @s120
+IF temp:1000000 = 1 @s121
+IF temp:1000000 = 2 @s124
+IF temp:1000000 = 3 @s125
+
+[sentence s120]
+TRADE 0
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s121]
+CHECKUNOPINIONITEM temp:1000005
+IF temp:1000005 = 1 @s122
+IF temp:1000005 = 0 @s123
+
+[sentence s122]
+SETMSGDEFINE temp:1000017 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000091 temp:1000000 0 1 -1 -1
+SETFLAG temp:1000016 4
+
+[sentence s123]
+TALK msg:1000092 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 6
+
+[sentence s124]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+SETMSGDEFINE temp:1000005 temp:1000006 temp:1000007 temp:1000008 temp:1000009 temp:1000010 temp:1000011 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000088 temp:1000000 0 7 -1 -1
+SETFLAG temp:1000016 1
+
+[sentence s125]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s126]
+on=tick
+IF playmode:0 = 0 @s127
+
+[sentence s127]
+GETPARTNERKIND temp:1000005
+IF shown:p10000 = 1 @s128
+IF shown:p10000 = 0 @s130
+
+[sentence s128]
+IF temp:1000005 = 5 @s129
+
+[sentence s129]
+SETINACTIVE p10000
+
+[sentence s130]
+IF temp:1000005 ! 5 @s131
+
+[sentence s131]
+SETACTIVE p10000
+
+[sentence s132]
+on=talk p10000
+C_STOP p10000
+C_SETANGLETO p10000 0
+SETFLAG temp:1000018 0
+TALK msg:1000093 temp:1000000 1 3 -1 -1
+
+[sentence s133]
+on=talk-end p10000
+IF temp:1000018 = 2 @s134
+IF temp:1000018 = 1 @s135
+IF temp:1000018 = 0 @s136
+
+[sentence s134]
+C_MOVABLE p10000
+
+[sentence s135]
+SETFLAG temp:1000018 2
+TALK msg:1000095 temp:1000000 1 -1 -1 -1
+
+[sentence s136]
+IF temp:1000000 = 0 @s137
+IF temp:1000000 = 1 @s138
+IF temp:1000000 = 2 @s139
+IF temp:1000000 = 3 @s140
+
+[sentence s137]
+SETFLAG temp:1000018 2
+TALKPARTNERSTATUS 5 temp:1000000
+
+[sentence s138]
+SETFLAG temp:1000018 1
+TALK msg:1000094 temp:1000000 1 -1 -1 -1
+
+[sentence s139]
+CHANGEPARTNER 5
+C_MOVABLE p10000
+
+[sentence s140]
+C_MOVABLE p10000

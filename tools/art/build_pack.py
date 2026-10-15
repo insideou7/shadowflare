@@ -38,7 +38,7 @@ PEOPLE_CHARTS = [(0, "idle"), (1, "walk")]
 # drawn once, as direction 8.
 PARTNER_CHARTS = [(0, "idle"), (1, "walk"), (2, "run"), (3, "hit"), (4, "death"), (5, "bite"), (6, "jumpup"),
                   (7, "jumpdown")]
-PARTNERS = {"dog": 0, "smalldog": 1}
+PARTNERS = {"dog": 0, "smalldog": 1, "hawk": 2}  # the hawk has no death or jump charts, as in the original
 # Monster art and the Character/ENEMY folder each one fills.
 ENEMIES = {"fly": 0, "goblin": 1, "ghoul": 2, "demon": 3, "golem": 4, "shaman": 5, "spider": 6, "bigspider": 7,
            "archer": 10, "swordsman": 11, "dragon": 12, "ogre": 13, "boarrider": 8, "boar": 9, "skeleton": 14,
@@ -82,6 +82,8 @@ def character(src, dst, charts):
     atlas = Atlas(width=8192)  # big characters (the golem, the winged bosses) overflow a narrower sheet
     out = ["# Rendered by tools/art/creatures.py.", "sheet=Animation.sheet"]
     for chart, name in charts:
+        if name not in anims:
+            continue  # a chart this character does without (the game falls back to its idle)
         frames, loop = anims[name]
         out.append(f"\n[chart {chart} {'loop' if loop else 'once'}]")
         for d in ([8] if (src / f"{name}_8_0.png").exists() else range(8)):

@@ -1,0 +1,177 @@
+# South Camp of Yugunos: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Garron commands the surprise attack; Fitch the army's
+# supplier; Pim the spirit healer; Rowan, a grimling cleric who lost the
+# relic in his keeping. Bishop Aurel waits in Antalusia.
+# Shared names: the grimling faith and its grimlings, Valmere the White
+# Angel, the Sacred Feather (her relic, which the grimlings revere).
+
+[message 1000000]
+South Camp of Yugunos
+
+[message 1000001]
+South Camp of Yugunos
+
+[message 1000002]
+Good, you made it.
+I'm Garron. I lead the surprise attack.
+
+[message 1000003]
+Your name got here before you did. You're the
+ones who put down the dragon that slept
+under the mining tunnel, aren't you?
+
+[message 1000004]
+A word of advice, though: try not to wake
+any more dragons. One mess like that is plenty.
+
+[message 1000005]
+Now, to business. Some of the demons got away,
+and I want them hunted down.
+
+[message 1000006]
+Word is they're digging in at the foot of
+Mt. Tedoron, north of East Antalusia.
+
+[message 1000007]
+Get out there and see for yourselves.
+
+[message 1000008]
+Fine work, all of it. Every fight like that
+makes you sharper.
+
+[message 1000009]
+Your next task has to do with Rowan...
+
+[message 1000010]
+Somehow the demons got their hands on
+something precious of his. Don't ask me how.
+
+[message 1000011]
+Go and find out what happened. It's yours
+to handle now.
+
+[message 1000012]
+Go and find out what happened. It's yours
+to handle now.
+
+[message 1000013]
+Rowan has another job for you, too.
+Do as he asks.
+
+[message 1000014]
+Trading, then? Or shall I mend your gear,
+or tell you what something is?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000015]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000016]
+You're short on gold.
+
+[message 1000017]
+Hm. Not a scratch on any of it.
+
+[message 1000018]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000019]
+You've got nothing that needs identifying.
+
+[message 1000020]
+Name's Fitch. The army posted me out here
+to keep this camp supplied.
+
+[message 1000021]
+That surprise attack went off without a hitch.
+Good news for all of us.
+
+[message 1000022]
+I'm Pim. I heal by the spirits' grace.
+
+[message 1000023]
+If you come back hurt or worn out,
+look for me.
+
+[message 1000024]
+And if it's bad, come all the sooner.
+Believe me, I'm not short of free time.
+
+[message 1000025]
+Spirits, hear me!
+Close their wounds!
+
+[message 1000026]
+Drop by whenever you like.
+
+[message 1000027]
+Oh dear... oh dear, oh dear...
+
+[message 1000028]
+Why, you're the hero who slew the
+ancient dragon!
+
+[message 1000029]
+Everyone's been talking about you.
+
+[message 1000030]
+Please, I'm desperate. A demon carried off
+the Sacred Feather, holy relic of Valmere,
+the White Angel. We grimlings revere it.
+
+[message 1000031]
+It was in my care, and if it isn't found,
+the blame falls on me...
+Would you bring the Sacred Feather back?
+
+[message 1000032]
+The demon fled with it to the south side
+of the forest.
+
+[message 1000033]
+I can't thank you enough.
+
+[message 1000034]
+I can't thank you enough.
+
+[message 1000035]
+The Tower of Nazzle? How odd.
+I had no idea any of our faith were
+training in that tower.
+
+[message 1000036]
+Would you take this letter to Bishop Aurel
+in Antalusia, west of the forest?
+See what he can tell you.
+
+[message 1000037]
+Show them this letter and they'll
+let you into the town.
+
+[message 1000038]
+Thank you.
+
+[message 1000039]
+Losing the Sacred Feather was my fault, and
+the faith has cast me out for it. I'm going
+home. Bishop Aurel will give you your tasks
+from now on.
+
+[message 1000040]
+Valmere watch over you!

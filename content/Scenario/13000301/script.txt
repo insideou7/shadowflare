@@ -1,0 +1,150 @@
+# Written by tools/content/scripts.py after the original's scenario 3000301
+# (Golas Desert), in our own words (tools/content/words/13000301.txt).
+
+object=49184,7944,49343,8103,o1000,states=1/0/1,at=49027/8051
+object=16460,15468,16619,15627,o1001,states=1/0/1,at=16470/15548
+object=73784,39527,73943,39686,o1100,states=1/1/1,at=73877/39603
+object=57464,50416,57623,50575,o1101,states=1/1/1,at=57551/50498
+object=3231,34100,3390,34259,o1102,states=1/1/1,at=3319/34171
+object=72552,38818,73190,38990,o2,states=0/0/0,at=72652/38918
+object=56236,49743,56899,49959,o3,states=0/0/0,at=56336/49843
+object=1984,33516,2666,33804,o4,states=0/0/0,at=2084/33616
+object=36385,58045,36992,58199,o6,states=0/0/0,at=36465/58125
+temp=1000018,34
+temp=1000019,35
+temp=1000020,36
+temp=1000021,77
+temp=1000022,78
+temp=1000023,33
+temp=1000024,27
+temp=1000025,28
+temp=1000026,38
+temp=1000027,39
+temp=1000028,3
+temp=1000029,25
+temp=1000030,26
+temp=1000031,30
+temp=1000032,37
+temp=1000033,10
+temp=1000034,40
+temp=1000035,41
+temp=1000036,42
+temp=1000037,43
+temp=1000038,53
+temp=1000039,80
+temp=1000040,51
+
+[message 1000000]
+Golas Desert
+
+[message 1000001]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[message 1000002]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[message 1000003]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000302 2
+
+[sentence s2]
+CHANGESCENARIO 13000201 0
+
+[sentence s3]
+on=judge o2
+IF save:85 > 9 @s4
+
+[sentence s4]
+CHANGESCENARIO 13170000 0
+
+[sentence s5]
+on=judge o3
+IF save:85 > 9 @s6
+
+[sentence s6]
+CHANGESCENARIO 13180000 0
+
+[sentence s7]
+on=judge o4
+IF save:85 > 9 @s8
+
+[sentence s8]
+CHANGESCENARIO 13190000 0
+
+[sentence s9]
+CHANGESCENARIO 13900003 2
+
+[sentence s10]
+on=judge o6
+CHANGESCENARIO 14090000 0
+
+[sentence s11]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+[sentence s12]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000015 < 30 @s13
+IF temp:1000015 ! 0 @s14
+
+[sentence s13]
+SETFLAG temp:1000005 temp:1000015
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s14]
+MESSAGEBOX o1100 0 -64 msg:1000001 160 160 192 temp:1000005
+SUB temp:1000015 1
+
+[sentence s15]
+on=talk o1100
+SETFLAG temp:1000015 150
+
+[sentence s16]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000016 < 30 @s17
+IF temp:1000016 ! 0 @s18
+
+[sentence s17]
+SETFLAG temp:1000005 temp:1000016
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s18]
+MESSAGEBOX o1101 0 -64 msg:1000002 160 160 192 temp:1000005
+SUB temp:1000016 1
+
+[sentence s19]
+on=talk o1101
+SETFLAG temp:1000016 150
+
+[sentence s20]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000017 < 30 @s21
+IF temp:1000017 ! 0 @s22
+
+[sentence s21]
+SETFLAG temp:1000005 temp:1000017
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s22]
+MESSAGEBOX o1102 0 -64 msg:1000003 160 160 192 temp:1000005
+SUB temp:1000017 1
+
+[sentence s23]
+on=talk o1102
+SETFLAG temp:1000017 150

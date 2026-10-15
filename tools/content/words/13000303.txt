@@ -1,0 +1,20 @@
+# The Road of Atonement: signs and the shrine's guard, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+The Road of Atonement
+
+[message 1000001]
+The Road of Atonement
+
+[message 1000002]
+These ruins belong to the grimling faith.
+Keep out unless the faith has sent you.
+
+[message 1000003]
+Beyond here is Saint Seren's shrine, a holy place.
+No one enters without leave.
+
+[message 1000004]
+So you're the warrior Lord Valdric sent word of.
+Go on through.

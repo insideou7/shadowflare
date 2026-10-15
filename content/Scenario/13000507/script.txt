@@ -1,0 +1,72 @@
+# Written by tools/content/scripts.py after the original's scenario 3000507
+# (East Antalusia), in our own words (tools/content/words/13000507.txt).
+
+object=78787,42551,78946,42710,o1000,states=1/0/1,at=78679/42660
+object=1066,35942,1225,36101,o1020,states=0/0/1,at=1177/36031
+object=1066,35942,1225,36101,o1021,states=0/0/1,at=1177/36031
+object=1081,34767,1240,34926,o1022,states=1/0/1,at=1276/35002
+object=1089,37009,1248,37168,o1023,states=1/0/1,at=1474/37514
+object=1081,34127,1240,34286,o1024,states=1/0/1,at=1256/34102
+object=1087,37641,1246,37800,o1025,states=1/0/1,at=1277/37711
+object=35634,1053,35793,1212,o1030,states=1/0/1,at=35526/1162
+object=1128,35363,1382,36750,o2,states=0/0/0,at=1295/35076
+temp=1000015,34
+temp=1000016,35
+temp=1000017,36
+temp=1000018,77
+temp=1000019,78
+temp=1000020,33
+temp=1000021,27
+temp=1000022,28
+temp=1000023,38
+temp=1000024,39
+temp=1000025,3
+temp=1000026,25
+temp=1000027,26
+temp=1000028,30
+temp=1000029,37
+temp=1000030,10
+temp=1000031,40
+temp=1000032,41
+temp=1000033,42
+temp=1000034,43
+temp=1000035,53
+temp=1000036,80
+temp=1000037,51
+
+[message 1000000]
+East Antalusia
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13900000 0
+
+[sentence s2]
+CHANGESCENARIO 13000407 0
+
+[sentence s3]
+on=judge o2
+IF save:77 = 3 @s4
+
+[sentence s4]
+CHANGESCENARIO 13900001 0
+
+[sentence s5]
+CHANGESCENARIO 13020000 0
+
+[sentence s6]
+on=tick
+IF save:77 = 3 @s7
+IF save:77 ! 3 @s8
+
+[sentence s7]
+ABSOLUTEOBJECTFLAG o1020 0 0 0
+ABSOLUTEOBJECTFLAG o1021 1 0 0
+
+[sentence s8]
+ABSOLUTEOBJECTFLAG o1020 1 0 0
+ABSOLUTEOBJECTFLAG o1021 0 0 0

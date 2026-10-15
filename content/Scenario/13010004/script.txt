@@ -1,0 +1,65 @@
+# Written by tools/content/scripts.py after the original's scenario 3010004
+# (The Remains of The Dead, Central Room), in our own words (tools/content/words/13010004.txt).
+
+temp=1000015,34
+temp=1000016,35
+temp=1000017,36
+temp=1000018,77
+temp=1000019,78
+temp=1000020,33
+temp=1000021,27
+temp=1000022,28
+temp=1000023,38
+temp=1000024,39
+temp=1000025,3
+temp=1000026,25
+temp=1000027,26
+temp=1000028,30
+temp=1000029,37
+temp=1000030,10
+temp=1000031,40
+temp=1000032,41
+temp=1000033,42
+temp=1000034,43
+temp=1000035,53
+temp=1000036,80
+temp=1000037,51
+
+[message 1000000]
+The Remains of The Dead, Central Room
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13010003 1
+
+[sentence s2]
+on=tick
+IF temp:1000012 = 0 @s3
+IF temp:1000012 ! 0 @s4
+
+[sentence s3]
+CREATEEFFECTCHAR 20018 10000000
+PLAYSOUND temp:1000037 0 x:10000000 y:10000000
+GETRANDAM 20 40 temp:1000012
+
+[sentence s4]
+SUB temp:1000012 1
+
+[sentence s5]
+on=tick
+SETTINGRAIN 224 64 64 5
+
+[sentence s6]
+on=tick
+IF playmode:0 ! 2 @s7
+
+[sentence s7]
+CHECKENEMYLIVE 14000000 14000000 temp:1000005
+IF temp:1000005 = -1 @s8
+
+[sentence s8]
+SETQUESTFLAG 32 2 1

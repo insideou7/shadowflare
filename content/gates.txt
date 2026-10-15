@@ -63,3 +63,73 @@ entry=50
 name=Power Supply Facility
 scenario=12200005
 entry=50
+
+[gate 25]
+name=South Camp of Yugunos
+scenario=13900000
+entry=50
+
+[gate 26]
+name=Town of Antalusia
+scenario=13900001
+entry=50
+
+[gate 27]
+name=Mesrald Burial Grounds
+scenario=13000505
+entry=50
+
+[gate 28]
+name=Plain of Dialose
+scenario=13000306
+entry=50
+
+[gate 29]
+name=The Wilds of Ryumyaku
+scenario=13000307
+entry=50
+
+[gate 30]
+name=Town of Calado
+scenario=13900002
+entry=50
+
+[gate 31]
+name=Town of Losmans
+scenario=13900003
+entry=50
+
+[gate 32]
+name=Forest of Ilbarna
+scenario=13000402
+entry=50
+
+[gate 33]
+name=Ponse, Village of Dwarves
+scenario=13900004
+entry=50
+
+[gate 34]
+name=Hill of Heaven
+scenario=13000302
+entry=50
+
+[gate 35]
+name=The Road of Atonement
+scenario=13000303
+entry=50
+
+[gate 36]
+name=Valley of Dying People
+scenario=13000201
+entry=50
+
+[gate 37]
+name=Sena's Small Shrine
+scenario=13900005
+entry=50
+
+[gate 38]
+name=Dark Elves Hiding Place
+scenario=13240000
+entry=50

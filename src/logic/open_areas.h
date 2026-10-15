@@ -4,7 +4,7 @@ namespace sf {
 
 struct SaveGame;
 
-// The open content pack's first and second areas (62 maps) is laid on the original's
+// The open content pack's first three areas (126 maps) are laid on the original's
 // (tools/content/first_area.py): the same scenario numbers plus
 // kOpenScenarioOffset, each map a crop of the original's, walked on cell for
 // cell. A point in the original's world is (x0, y0) further on than in ours.

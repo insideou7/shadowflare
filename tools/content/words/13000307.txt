@@ -1,0 +1,8 @@
+# The Wilds of Ryumyaku: its name, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+The Wilds of Ryumyaku
+
+[message 1000001]
+The Wilds of Ryumyaku

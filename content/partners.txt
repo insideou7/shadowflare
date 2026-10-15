@@ -129,8 +129,8 @@ stun_uncapped=0
 jump_area=520
 experience=90
 
-# A hawk: fast and fierce but frail. Not met in this pack's areas, and
-# Character/PARTNER/00000002 has no pictures yet.
+# A hawk: fast and fierce but frail. It hovers over the ground (pictures
+# in Character/PARTNER/00000002, tools/art/creatures.py).
 [partner 5]
 name=Kestrel
 folder=2

@@ -182,3 +182,187 @@ text=spirits, has been stolen.
 text=
 text=Get it back and hand it to the elder of
 text=Fanann.
+
+# The third area.
+
+[mission 20]
+title=Clear the demons near the South Camp.
+text=What is left of a demon company, broken in
+text=an ambush, is regrouping at the foot of
+text=Mt. Tedoron, north of East Antalusia.
+text=
+text=Finish them off.
+
+[mission 21]
+title=Recover the Sacred Feather.
+text=The Sacred Feather, a relic of Valmere the
+text=White Angel, has been stolen.
+text=
+text=The thieves seem to have fled south-west of
+text=the South Camp of Yugunos. Get it back.
+
+[mission 22]
+title=Recover the Angel's Tress.
+text=No sooner was the Angel's Tress, a relic of
+text=Valmere the White Angel, found than the cave
+text=under Antalusia's church was overrun.
+text=
+text=Take the relic back.
+
+[mission 23]
+title=Carry Bishop Aurel's report.
+text=Bishop Aurel of Antalusia gave me a report
+text=for Lord Valdric in the Town of Losmans.
+text=
+text=Losmans lies west: go through West Antalusia
+text=and Gungstonwald, then keep heading west.
+
+[mission 24]
+title=Explore the Remains of Heartbeat.
+text=Losmans needs power to mend its castle wall.
+text=Look into the Remains of Heartbeat for it.
+text=
+text=They lie in the Wilds of Ryumyaku, north of
+text=West Antalusia, east of the Plain of Dialose.
+
+[mission 25]
+title=Take back the pipe works.
+text=Demons hold the pipe works that carry power
+text=to Losmans for its wall.
+text=
+text=Drive them out. The works stand by the Gulf
+text=of Lucentia, west of the Plain of Dialose
+text=through West Antalusia, south of Calado.
+
+[mission 26]
+title=Learn how the elf rangers died.
+text=A picked company of elf rangers has been
+text=wiped out.
+text=
+text=Find out what happened to them.
+
+[mission 27]
+title=Seek out Licarn, the holy knight.
+text=Licarn, the holy knight in the Tower of
+text=Licarn south of Losmans, may know something.
+text=
+text=Go and hear what he has to say.
+
+[mission 28]
+title=Win back the Tower of Licarn.
+text=Something has taken the Tower of Licarn.
+text=Sweep it from the top floor to the bottom
+text=to take it back.
+
+[mission 29]
+title=Recover the Silver Spike.
+text=The Silver Spike, a relic of Valmere the
+text=White Angel, seems to lie in the Dragon Cave.
+text=The dragon sleeps; take the relic quietly.
+text=
+text=The cave is in the Forest of Ilbarna, west
+text=of South Losmans.
+
+[mission 30]
+title=Look into the Ancient Ruins.
+text=Archbishop Krator seems to be digging into
+text=something at the Ancient Ruins.
+text=
+text=Find them on the Hill of Heaven, north
+text=through the Forest of Ilbarna.
+
+[mission 31]
+title=Find a cure for the poison.
+text=Someone has poisoned Lord Valdric!
+text=
+text=Get a cure in Ponse, the dwarves' village,
+text=east of the Moldona Peninsula, south across
+text=South Losmans.
+
+[mission 32]
+title=Bring Archbishop Krator down.
+text=Archbishop Krator was behind it all. He has
+text=shut himself in the Remains of the Dead in
+text=Alteria.
+text=
+text=Alteria is reached from Sena's Small Shrine,
+text=north of the Road of Atonement on the east of
+text=the Hill of Heaven. Stop him.
+
+[mission 33]
+title=Run errands for Mrs. Rowan.
+text=Mrs. Rowan, a lady of Losmans, wants white
+text=cloth, red thread and silver needles.
+text=
+text=Bring them to her when there is time.
+
+[mission 35]
+title=Find the old short sword.
+text=Hargrim, the smith of Ponse, wants an old
+text=short sword of the ancients.
+text=
+text=Bring it to him if you come across one.
+
+[mission 36]
+title=Recover the White Locket.
+text=The White Locket, a relic of Valmere the
+text=White Angel, seems to be in an old research
+text=hall in the Wyrmwood, past the Ruins of the
+text=Lake west of Calado.
+text=
+text=Bring it to Lord Valdric in Losmans.
+
+[mission 37]
+title=Take the relics to Saint Seren.
+text=Valmere the White Angel and Saint Seren are
+text=bound together somehow.
+text=
+text=Bring the White Angel's relics to Seren.
+
+[mission 38]
+title=Find the Blue and Green Orbs.
+text=Five orbs open the way to Aurion.
+text=
+text=Find the Blue and Green Orbs first, near
+text=Berini Village, as Valmere said.
+
+[mission 40]
+title=Find the Red Orb.
+text=Valmere has set the last trial before
+text=Aurion.
+text=
+text=Fetch the Red Orb from the tower of Berini
+text=Village.
+
+[mission 44]
+title=Visit the sage in the Ruins of the Wise.
+text=A wise man is said to study the ruins of
+text=this world. I would very much like to meet
+text=him.
+
+[mission 45]
+title=Talk Krator's bishops into yielding.
+text=Bishops of the fallen Archbishop Krator's
+text=party have rebelled and holed up in a tower
+text=in the Golas Desert.
+text=
+text=Talk them round. The Warp Gate in Losmans
+text=reaches the Golas Desert.
+
+[mission 46]
+title=Take the Fort of Demons.
+text=A band of demons is gathering at the Fort of
+text=Demons. Their strength will grow unless we
+text=stop them.
+text=
+text=The burrow in Ento Village warps there; the
+text=demons of the Forest of Poison carry the
+text=fang that the warp needs.
+
+[mission 47]
+title=Go to the Forest of Madness.
+text=The grimling faith is said to have set its
+text=captured demons loose in a forest.
+text=
+text=The Warp Gate leads to the Forest of
+text=Madness.

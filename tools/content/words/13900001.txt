@@ -1,0 +1,509 @@
+# A Town of Antalusia: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Bishop Aurel of the grimling faith; General Brannoc, who
+# keeps the roads around Antalusia safe; Tamsin the trader; Ilse the
+# spirit healer and one-time dancer; Varro, Hobb, Jory, Moss, Nell, Rook,
+# Cass and Brenna, townsfolk; Dunstan the traveling merchant. Rector
+# Rowan of the Yugunos camp wrote the letter; Lord Valdric holds the fort
+# at Losmans.
+# Shared names: the grimling faith and its grimlings, Valmere the White
+# Angel, the Sacred Feather and the Angel's Tress (her relics), Aurion,
+# the Moonwell Tear and the king of the spirits. Invented here: the
+# Proving Tower (at Cold Svalt), the affinity tonics and the clearing
+# tonic (Tamsin's wares), pepperfire sauce, plumvine fruit. Kept as
+# plain game terms: Big Warehouse III, the dragon seal, Warp Gate,
+# spell names.
+
+[message 1000000]
+A Town of Antalusia
+
+[message 1000001]
+A Town of Antalusia
+
+[message 1000002]
+I am Aurel, a bishop of the grimling faith.
+Yours is a face I don't know.
+
+[message 1000003]
+Hm? A letter for me,
+from Rector Rowan?
+
+[message 1000004]
+Give it here...
+
+[message 1000005]
+...
+
+[message 1000006]
+I see how things stand.
+Nobody has any business training in that tower.
+
+[message 1000007]
+Carry a note with my seal on it,
+and no one there will stand in your way.
+
+[message 1000008]
+I trust you to see this through.
+
+[message 1000009]
+I trust you to see this through.
+
+[message 1000010]
+The Sacred Feather! A holy relic
+of Valmere, back in our hands!
+
+[message 1000011]
+You have our thanks for bringing it home.
+You shall have a reward.
+
+[message 1000012]
+A fighter for hire would rather have something
+useful than a fine title, I imagine.
+
+[message 1000013]
+...
+
+[message 1000014]
+Let me think...
+
+[message 1000015]
+Would the use of Big Warehouse III, in the Proving
+Tower at Cold Svalt, suit you?
+
+[message 1000016]
+Valmere watch over you!
+
+[message 1000017]
+The demon army keeps reaching for Valmere's holy
+relics. It is madness, and it is happening everywhere.
+
+[message 1000018]
+There have always been thieves, but lately the
+strange happenings come thicker and faster...
+
+[message 1000019]
+We had only just learned that a relic lies in a cave
+beneath one of our churches, and at once demons moved
+in and took the cave.
+
+[message 1000020]
+That is far too neat to be chance.
+
+[message 1000021]
+By bringing back the Sacred Feather you have earned
+our trust. So I would ask one more thing of you...
+
+[message 1000022]
+Clear every demon out of that cave beneath the church,
+and bring back the relic called the Angel's Tress.
+
+[message 1000023]
+The way down into the cave
+is at the back of this church.
+
+[message 1000024]
+You have courage to spare,
+slayer of the dragon.
+
+[message 1000025]
+I leave it in your hands.
+
+[message 1000026]
+I leave it in your hands.
+
+[message 1000027]
+There it is! The holy relic of Valmere.
+We are deeply in your debt!
+
+[message 1000028]
+In thanks, I will teach you one of the old
+spells our faith has kept secret all these years.
+
+[message 1000029]
+  ~Hell Fire        ~  A blast of fire all around you.
+  ~Ice Blast        ~  Pillars of ice rise around you.
+  ~Heal             ~  Brings your strength back.
+  ~Earth Spears     ~  Spears of earth strike the foe.
+  ~Sonic Blade      ~  Sends out cutting shock waves.
+
+  ~Experience instead~  50%
+
+[message 1000030]
+That spell is one you already know, it seems.
+
+[message 1000031]
+Use this power from now on to keep the world safe.
+
+[message 1000032]
+Use this power from now on to keep the world safe.
+
+[message 1000033]
+You brought back two holy relics.
+I could not ask for better proof of your worth.
+
+[message 1000034]
+Whenever there is work, we will call on you first.
+Have no fear, the army has agreed to it.
+
+[message 1000035]
+There is something only a few grimlings know.
+I will share it with you, but keep it to yourself.
+
+[message 1000036]
+Our faith honors Valmere, the White Angel. We hold
+that her holy relics are the key to the magic and
+might of the Ancient World.
+
+[message 1000037]
+Long ago, people misused that ancient power,
+and it poisoned the world.
+
+[message 1000038]
+The east suffered worst of all. The land was ruined,
+and no one could live there without machines
+to clean the air.
+
+[message 1000039]
+If that power ever reached the wrong hands, our world
+would be lost. It is frail now, and what strength we
+have today could never hold such a threat back.
+
+[message 1000040]
+So the grimlings of old hid Valmere's relics and
+scattered them to every corner of the world.
+Now it falls to us to seal them away once more.
+
+[message 1000041]
+Some of our sealing works, the dragon seal in the
+Yugunos mining tunnel and the Proving Tower among
+them, were built to hold ancient beings. Some of us
+would put them to use, some would not. But enough.
+
+[message 1000042]
+Now, about these recent thefts of the relics...
+
+[message 1000043]
+The latest was in the cave beneath our church, just
+as we learned the relic was there. That cannot be luck.
+We believe one of our own grimlings has
+very likely betrayed us.
+
+[message 1000044]
+So we wanted someone the grimlings don't know
+to look into it. That is why we turned to you.
+
+[message 1000045]
+Will you go to our fort at Losmans and
+give this report to Lord Valdric?
+
+[message 1000046]
+Losmans lies far to the west. Go through this town
+and on through Gungstonwald, then keep heading west.
+The road is long, but you will get there.
+
+[message 1000047]
+The fate of the world may rest with you.
+Don't lose heart.
+
+[message 1000048]
+What's this?
+They won't let you into Losmans while the castle
+wall is under repair?
+
+[message 1000049]
+The wall at Losmans draws its strength from the
+light of the Ancient World. I hear that strength
+has been failing since the last great attack.
+
+[message 1000050]
+General Brannoc lives here in town. He may
+know more about what is happening at Losmans.
+
+[message 1000051]
+Would you go and speak with him?
+
+[message 1000052]
+Thank you.
+
+[message 1000053]
+Well? Are you buying or not?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000054]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000055]
+You can't afford that.
+
+[message 1000056]
+Nothing here needs mending.
+
+[message 1000057]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000058]
+There's nothing unknown here.
+
+[message 1000059]
+I'm Tamsin.
+I carry goods you won't see
+anywhere in the east.
+
+[message 1000060]
+Care for an affinity tonic?
+Drink one and you can change your attributes
+however you like.
+
+[message 1000061]
+Want your old attributes back? Then drink the
+clearing tonic. It isn't cheap, mind.
+
+[message 1000062]
+You can only drink one of each affinity tonic.
+And you can't hand them to anyone else; in the
+wrong hands they'd be dangerous.
+
+[message 1000063]
+Once you've bought one, pick SPECIAL ITEMS
+on your item screen, or press X to open
+the special items window.
+
+[message 1000064]
+Well, what's keeping you?
+
+[message 1000065]
+I'm Ilse.
+A spirit healer now, and a dancer once.
+
+[message 1000066]
+Did you know a spirit healer
+has to be able to dance well?
+
+[message 1000067]
+There! Not bad, am I?
+
+[message 1000068]
+My dance can mend your wounds.
+Watch!
+
+[message 1000069]
+My dance is only for
+those who are hurt.
+
+[message 1000070]
+...
+
+[message 1000071]
+So you're the fighter Bishop Aurel spoke of.
+I am General Brannoc. Keeping Antalusia
+and its roads safe is my charge.
+
+[message 1000072]
+This is about the castle wall at Losmans, then.
+
+[message 1000073]
+The last attack drained most of the wall's power.
+The works are unsteady while they mend it, so no one
+is being let into the town.
+
+[message 1000074]
+The army means to feed the wall from another
+power works and bring it back to strength,
+but...
+
+[message 1000075]
+the demons have taken that works,
+and there's the trouble.
+
+[message 1000076]
+It sits in the Remains of Heartbeat, in the Wilds of
+Ryumyaku, north of West Antalusia and east of the
+Plain of Dialose. Will you go there and
+win the works back from them?
+
+[message 1000077]
+I'm grateful for your help.
+Give it all you have.
+
+[message 1000078]
+So you've won back the Remains of Heartbeat.
+
+[message 1000079]
+Fine work, and my thanks.
+You know your trade well.
+
+[message 1000080]
+I'd like to tell you the wall is safe now,
+but the reports say things have only grown
+more tangled.
+
+[message 1000081]
+The Remains of Heartbeat had been idle as a power
+works. Someone appears to have taken over the pipe
+works that carry its power on to Losmans.
+
+[message 1000082]
+From what I hear, the demons treat
+those pipe works like a shrine.
+
+[message 1000083]
+Doesn't it strike you as odd how the demons
+keep turning up in just the right places?
+
+[message 1000084]
+Look into those pipe works for me. They stand
+by the Gulf of Lucentia, west of the Plain of
+Dialose and north of West Antalusia,
+south of the town of Calado.
+
+[message 1000085]
+You're better than
+most swords for hire.
+Keep it up.
+
+[message 1000086]
+Keep it up.
+
+[message 1000087]
+My thanks.
+Take this for your trouble.
+
+[message 1000088]
+Word is the castle wall at Losmans is mended.
+Another attack as big as the last shouldn't
+come soon. For now, we're safe.
+
+[message 1000089]
+You'll be making for Losmans.
+The lands west of it are dangerous,
+so keep your guard up.
+
+[message 1000090]
+With Aurion close by, the demons of the west are
+fiercer than those of the east. Don't think too much
+of yourself, and be ready for what lives there.
+
+[message 1000091]
+Will peace ever come?
+
+[message 1000092]
+Have you heard?
+They say the Moonwell Tear, the gem of
+the king of the spirits, was stolen!
+
+[message 1000093]
+Have you heard?
+There's a sword for hire out there getting
+back the Moonwell Tear, the gem of
+the elves' king of the spirits!
+
+[message 1000094]
+Hm? Can I help you?
+
+[message 1000095]
+I hear there's an apple tree
+down in South Antalusia.
+
+[message 1000096]
+Apples aren't for me.
+
+[message 1000097]
+Curse it! With demons all around here
+I can't go out and gather fruit.
+
+[message 1000098]
+Here's a tip for you.
+
+[message 1000099]
+Green apples grow
+on the Plain of Dialose.
+
+[message 1000100]
+The demons keep me
+from leaving town.
+
+[message 1000101]
+Oh, I heard something...
+
+[message 1000102]
+There's a merchant selling meat
+in Gore Cave, out in Gungstonwald.
+
+[message 1000103]
+Hm? What is it?
+
+[message 1000104]
+Grandpa once brought a fruit
+back from Gungstonwald.
+It was so good.
+
+[message 1000105]
+Plumvine fruit, wasn't it?
+
+[message 1000106]
+Mmm...
+
+[message 1000107]
+A bit of pepperfire sauce
+right now... mmm...
+
+[message 1000108]
+Hey, wait!?
+
+[message 1000109]
+That... that's pepperfire sauce!?
+Where did you find it?
+
+[message 1000110]
+Say, would you let me have it?
+I'll trade you something rare for it.
+
+[message 1000111]
+Calado lies northwest of this town, Losmans
+to the west, and Ponse, Village of Dwarves,
+to the southwest.
+
+[message 1000112]
+And who might you be?
+
+[message 1000113]
+Heh heh heh...
+
+[message 1000114]
+Pay me 80,000 Gold and I'll let you in on something.
+Well?
+                    ~Yes~  ~No~
+
+[message 1000115]
+Suit yourself. You're a fighter after all.
+
+[message 1000116]
+Heh heh... You're quite something.
+
+[message 1000117]
+Step onto the Warp Gate to travel.
+
+[message 1000118]
+Keep at it.
+
+[message 1000119]
+You haven't got the gold.
+
+[message 1000120]
+Step right up!
+I've some mighty fine goods.

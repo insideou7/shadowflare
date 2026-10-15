@@ -1,0 +1,9 @@
+# Mour Cave: the trader, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Mour Cave
+
+[message 1000001]
+Heh heh...
+Plenty of good medicine right here.

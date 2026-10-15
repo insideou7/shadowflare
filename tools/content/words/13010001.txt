@@ -1,0 +1,14 @@
+# West of The Remains of The Dead: a crest, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+West of The Remains of The Dead
+
+[message 1000001]
+          N
+       ( ) (*)
+     W         E
+       (*)
+          S
+
+This crest is the key that opens the sealed way.

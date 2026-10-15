@@ -1,0 +1,14 @@
+# Tower of Licarn, 1F: signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Tower of Licarn, 1F
+
+[message 1000001]
+Warning.
+No transport from this place.
+Every warp rune here goes one way only.
+
+[message 1000002]
+Expect to be attacked.
+You may get few chances to restock, too.

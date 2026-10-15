@@ -1,0 +1,82 @@
+# Written by tools/content/scripts.py after the original's scenario 3000407
+# (The Foot of Mt. Tedoron), in our own words (tools/content/words/13000407.txt).
+
+object=73582,36907,73741,37066,o1000,states=1/0/1,at=73489/36791
+object=42431,22518,42590,23157,o700,states=1/0/1,at=42511/22838
+object=42431,22518,42590,23157,o701,states=0/0/0,at=42511/22838
+object=38135,22694,38294,23333,o702,states=1/0/1,at=38215/23014
+object=38135,22694,38294,23333,o703,states=0/0/0,at=38215/23014
+temp=1000015,34
+temp=1000016,35
+temp=1000017,36
+temp=1000018,77
+temp=1000019,78
+temp=1000020,33
+temp=1000021,27
+temp=1000022,28
+temp=1000023,38
+temp=1000024,39
+temp=1000025,3
+temp=1000026,25
+temp=1000027,26
+temp=1000028,30
+temp=1000029,37
+temp=1000030,10
+temp=1000031,40
+temp=1000032,41
+temp=1000033,42
+temp=1000034,43
+temp=1000035,53
+temp=1000036,80
+temp=1000037,51
+
+[message 1000000]
+The Foot of Mt. Tedoron
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000507 1
+
+[sentence s2]
+on=tick
+IF playmode:0 ! 2 @s3
+
+[sentence s3]
+IF shown:o700 = 1 @s4
+
+[sentence s4]
+CHECKENEMYLIVE 14000002 14000004 temp:1000005
+IF temp:1000005 = -1 @s5
+
+[sentence s5]
+SETINACTIVE o700
+SETFLAG shown:o701 1
+PLAYSOUND temp:1000015 0 x:o700 y:o700
+SETINACTIVE o702
+SETFLAG shown:o703 1
+PLAYSOUND temp:1000015 0 x:o702 y:o702
+
+[sentence s6]
+PLAYSOUND temp:1000015 0 x:o700 y:o700
+
+[sentence s7]
+PLAYSOUND temp:1000015 0 x:o702 y:o702
+
+[sentence s8]
+on=tick
+SETTINGRAIN 224 224 224 5
+
+[sentence s9]
+on=tick
+IF playmode:0 ! 2 @s10
+
+[sentence s10]
+CHECKENEMYLIVE 14000000 14000001 temp:1000005
+IF temp:1000005 = -1 @s11
+
+[sentence s11]
+SETQUESTFLAG 20 2 1
