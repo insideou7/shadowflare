@@ -167,9 +167,9 @@ void Skin::setMap(const Map* map) {
                     const MaterialTexture* texture = material(m.material);
                     if (texture && (m.colour.r || m.colour.g || m.colour.b)) {
                         const std::tuple key{m.material, int{m.colour.r}, int{m.colour.g}, int{m.colour.b}};
-                        auto [at, made] = tinted_.try_emplace(key);
-                        if (made) at->second = tinted(*texture, m.colour);
-                        texture = &at->second;
+                        auto [tint, made] = tinted_.try_emplace(key);
+                        if (made) tint->second = tinted(*texture, m.colour);
+                        texture = &tint->second;
                     }
                     rule.entries.push_back({texture, m.colour, texture ? averageColour(*texture) : Rgb{}});
                 }
@@ -319,9 +319,9 @@ std::vector<std::uint32_t> Skin::groundOverview(int left, int top, int scale, in
             }
             float rgb[3] = {0, 0, 0};
             for (const Part& p : parts) {
-                const float r = p.r / p.count, g = p.g / p.count, b = p.b / p.count;
-                Rgb c{static_cast<std::uint8_t>(r), static_cast<std::uint8_t>(g), static_cast<std::uint8_t>(b)};
-                if (p.rule != none && !rules_[p.rule].entries.empty()) c = averagePainted(rules_[p.rule], r, g, b, weights);
+                const float pr = p.r / p.count, pg = p.g / p.count, pb = p.b / p.count;
+                Rgb c{static_cast<std::uint8_t>(pr), static_cast<std::uint8_t>(pg), static_cast<std::uint8_t>(pb)};
+                if (p.rule != none && !rules_[p.rule].entries.empty()) c = averagePainted(rules_[p.rule], pr, pg, pb, weights);
                 rgb[0] += c.r * p.count / n;
                 rgb[1] += c.g * p.count / n;
                 rgb[2] += c.b * p.count / n;

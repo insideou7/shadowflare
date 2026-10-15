@@ -22,7 +22,6 @@ constexpr SDL_Color kName{224, 192, 128, 255};
 constexpr SDL_Color kLabel{160, 160, 64, 255};
 constexpr SDL_Color kValue{224, 224, 224, 255};
 constexpr SDL_Color kLow{224, 64, 64, 255};
-constexpr SDL_Color kShadow{0, 0, 0, 255};
 
 // The pictures: the original's Status.njp patterns, or the open pack's
 // Magic.sheet. Icons come from MagicIcon in both (spell + 2).

@@ -66,7 +66,7 @@ namespace {
 // One sample of a voice, -1 to 1.
 float sampleAt(const VoiceBank::Voice& v, std::size_t frame, int channel) {
     const std::size_t index = frame * static_cast<std::size_t>(v.channels) + static_cast<std::size_t>(std::min(channel, v.channels - 1));
-    if (v.bits == 8) return (static_cast<int>(v.pcm[index]) - 128) / 128.0f;
+    if (v.bits == 8) return static_cast<float>(static_cast<int>(v.pcm[index]) - 128) / 128.0f;
     const auto lo = v.pcm[index * 2], hi = v.pcm[index * 2 + 1];
     return static_cast<std::int16_t>(lo | (hi << 8)) / 32768.0f;
 }

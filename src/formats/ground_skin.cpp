@@ -122,12 +122,12 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
         for (int ch = 0; ch < 3; ++ch) {
             const int shift = 16 - 8 * ch;
             float sum = 0;
-            for (int x = 0; x < std::min(fw, 2 * r + 1); ++x) sum += (original[static_cast<std::size_t>(y) * fw + x] >> shift) & 255;
+            for (int x = 0; x < std::min(fw, 2 * r + 1); ++x) sum += static_cast<float>((original[static_cast<std::size_t>(y) * fw + x] >> shift) & 255);
             for (int x = r; x < fw - r; ++x) {
-                rows[(static_cast<std::size_t>(y) * fw + x) * 3 + ch] = sum / (2 * r + 1);
+                rows[(static_cast<std::size_t>(y) * fw + x) * 3 + ch] = sum / static_cast<float>(2 * r + 1);
                 if (x + r + 1 < fw) {
-                    sum += (original[static_cast<std::size_t>(y) * fw + x + r + 1] >> shift) & 255;
-                    sum -= (original[static_cast<std::size_t>(y) * fw + x - r] >> shift) & 255;
+                    sum += static_cast<float>((original[static_cast<std::size_t>(y) * fw + x + r + 1] >> shift) & 255);
+                    sum -= static_cast<float>((original[static_cast<std::size_t>(y) * fw + x - r] >> shift) & 255);
                 }
             }
         }
@@ -138,7 +138,7 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
             auto at = [&](int y) { return rows[(static_cast<std::size_t>(y) * fw + x + r) * 3 + ch]; };
             for (int y = 0; y < 2 * r + 1; ++y) sum += at(y);
             for (int y = 0; y < h; ++y) {
-                smooth[(static_cast<std::size_t>(y) * w + x) * 3 + ch] = sum / (2 * r + 1);
+                smooth[(static_cast<std::size_t>(y) * w + x) * 3 + ch] = sum / static_cast<float>(2 * r + 1);
                 if (y + 2 * r + 1 < fh) sum += at(y + 2 * r + 1) - at(y);
             }
         }
@@ -166,7 +166,7 @@ std::vector<std::uint32_t> paintGround(int x0, int y0, int w, int h, int margin,
             for (std::size_t i = 0; i < entries.size(); ++i) {
                 if (weights[i] == 0) continue;
                 const std::uint32_t t = entries[i].texture ? entries[i].texture->at(mx, my) : 0xff000000u;
-                for (int ch = 0; ch < 3; ++ch) rgb[ch] += weights[i] / total * ((t >> (16 - 8 * ch)) & 255);
+                for (int ch = 0; ch < 3; ++ch) rgb[ch] += weights[i] / total * static_cast<float>((t >> (16 - 8 * ch)) & 255);
             }
             dst = 0xff000000u | (static_cast<std::uint32_t>(std::min(255.0f, rgb[0])) << 16) |
                   (static_cast<std::uint32_t>(std::min(255.0f, rgb[1])) << 8) | static_cast<std::uint32_t>(std::min(255.0f, rgb[2]));

@@ -74,8 +74,8 @@ void testTruncated() {
 }
 
 void put16(std::vector<std::uint8_t>& v, int x) {
-    v.push_back(x & 0xff);
-    v.push_back((x >> 8) & 0xff);
+    v.push_back(static_cast<std::uint8_t>(x & 0xff));
+    v.push_back(static_cast<std::uint8_t>((x >> 8) & 0xff));
 }
 void put32(std::vector<std::uint8_t>& v, int x) {
     put16(v, x & 0xffff);

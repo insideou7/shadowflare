@@ -98,7 +98,7 @@ public:
     // part of a chart, 0x45d850).
     void setFrame(int frame);
     // The frames of `chart` in `direction` (0-8), 0 when it has none.
-    int frameCountOf(int chart, int direction) const;
+    int frameCountOf(int chart, int facing) const;
     bool finished() const;  // a non-looping chart reached its last frame
     bool hasChart(int chart) const;
     const CharacterModel* model() const { return model_; }

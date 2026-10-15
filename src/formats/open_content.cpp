@@ -105,7 +105,7 @@ std::string_view sectionName(std::string_view line) { return trim(line.substr(1,
 
 }  // namespace
 
-void Image::Free::operator()(std::uint32_t* pixels) const { stbi_image_free(pixels); }
+void Image::Free::operator()(std::uint32_t* data) const { stbi_image_free(data); }
 
 Image decodeImage(std::span<const std::uint8_t> data) {
     int w = 0, h = 0, channels = 0;
@@ -486,31 +486,31 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                 for (const auto field : named) {
                     const auto at = field.find('=');
                     if (at == std::string_view::npos) lines.fail("expected key=value after an enemy's 18 fields");
-                    const auto key = trim(field.substr(0, at)), v = trim(field.substr(at + 1));
+                    const auto name = trim(field.substr(0, at)), v = trim(field.substr(at + 1));
                     const auto three = [&](std::array<std::int32_t, 3>& out) {
                         const auto parts = Lines::split(v, '/');
-                        if (parts.size() != 3) lines.fail(std::format("{} needs three values a/b/c", key));
+                        if (parts.size() != 3) lines.fail(std::format("{} needs three values a/b/c", name));
                         for (int k = 0; k < 3; ++k) out[static_cast<std::size_t>(k)] = lines.toInt(parts[static_cast<std::size_t>(k)]);
                     };
-                    if (key == "attacks") {
+                    if (name == "attacks") {
                         three(p.stats.attacks);
-                    } else if (key == "hits") {
+                    } else if (name == "hits") {
                         three(p.stats.hits);
-                    } else if (key == "spells") {
+                    } else if (name == "spells") {
                         three(p.stats.spells);
-                    } else if (key == "spell_power") {
+                    } else if (name == "spell_power") {
                         three(p.stats.spellPower);
-                    } else if (key == "spell_level") {
+                    } else if (name == "spell_level") {
                         three(p.stats.spellLevel);
-                    } else if (key == "spell_hit") {
+                    } else if (name == "spell_hit") {
                         three(p.stats.spellHit);
-                    } else if (key == "magic_evasion") {
+                    } else if (name == "magic_evasion") {
                         p.stats.magicEvasion = lines.toInt(v);
-                    } else if (key == "speed") {
+                    } else if (name == "speed") {
                         p.stats.speed = lines.toInt(v);
-                    } else if (key == "word7") {
+                    } else if (name == "word7") {
                         p.stats.word7 = lines.toInt(v);
-                    } else if (key == "shot") {
+                    } else if (name == "shot") {
                         // kind/height/speed/start/attack, as words 44-48
                         const auto parts = Lines::split(v, '/');
                         if (parts.size() != 5) lines.fail("shot needs five values kind/height/speed/start/attack");
@@ -519,14 +519,14 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                         p.stats.shotSpeed = lines.toInt(parts[2]);
                         p.stats.shotStart = lines.toInt(parts[3]);
                         p.stats.shotSlot = lines.toInt(parts[4]);
-                    } else if (key == "stun") {
+                    } else if (name == "stun") {
                         std::array<std::int32_t, 3> stun{};
                         three(stun);
                         p.stats.stunChanceResist = stun[0];
                         p.stats.stunLengthResist = stun[1];
                         p.stats.stunUncapped = stun[2] == 1;
                     } else {
-                        lines.fail(std::format("unknown enemy field '{}'", key));
+                        lines.fail(std::format("unknown enemy field '{}'", name));
                     }
                 }
             }

@@ -470,7 +470,7 @@ void frame(void* userData) {
     while (SDL_PollEvent(&event)) app.game->handleEvent(event);
 
     const Uint64 now = SDL_GetPerformanceCounter();
-    const double elapsed = static_cast<double>(now - app.lastCounter) / SDL_GetPerformanceFrequency();
+    const double elapsed = static_cast<double>(now - app.lastCounter) / static_cast<double>(SDL_GetPerformanceFrequency());
     app.lastCounter = now;
 
     constexpr double kTickSeconds = 1.0 / sf::kTicksPerSecond;
@@ -507,12 +507,12 @@ void frame(void* userData) {
     if (app.frameLogMs >= 0) {
         // Frames that took longer than asked, split into ticks and drawing,
         // for finding stutters.
-        const double ms = 1000.0 / SDL_GetPerformanceFrequency();
+        const double ms = 1000.0 / static_cast<double>(SDL_GetPerformanceFrequency());
         const Uint64 end = SDL_GetPerformanceCounter();
-        const double total = (end - workStart) * ms;
+        const double total = static_cast<double>(end - workStart) * ms;
         if (total >= app.frameLogMs) {
             sf::log::info("Frame {}: {:.1f} ms (ticks {:.1f}, render {:.1f})", app.frames, total,
-                          (renderStart - workStart) * ms, (end - renderStart) * ms);
+                          static_cast<double>(renderStart - workStart) * ms, static_cast<double>(end - renderStart) * ms);
         }
     }
 
