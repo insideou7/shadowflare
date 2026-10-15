@@ -109,13 +109,17 @@ public:
         }
     }
     void createItemTable(int list, int x, int y) override { g_.dropFromList(list, x, y); }
+    // x: and y: of a character the scenario does not have are -1, as in
+    // the exe (0x4346b0). Some scripts name trap vents their map lacks,
+    // such as 10057004 in Vaporous Forest; those shots go off at (-1, -1)
+    // and hurt no one.
     std::int32_t characterX(std::int32_t id) const override {
-        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->first);
-        return g_.player_ ? static_cast<std::int32_t>(g_.player_->x) : 0;
+        if (const auto at = g_.characterAt(id)) return static_cast<std::int32_t>(at->first);
+        return -1;
     }
     std::int32_t characterY(std::int32_t id) const override {
-        if (const auto at = g_.positionOf(id)) return static_cast<std::int32_t>(at->second);
-        return g_.player_ ? static_cast<std::int32_t>(g_.player_->y) : 0;
+        if (const auto at = g_.characterAt(id)) return static_cast<std::int32_t>(at->second);
+        return -1;
     }
     void stopCharacter(std::int32_t id, bool stop) override {
         auto* a = g_.actorById(id);
