@@ -43,8 +43,6 @@ constexpr SDL_Color kEdge{0, 0, 0, 72};
 constexpr SDL_Color kRimLight{255, 255, 255, 28};
 constexpr SDL_Color kRimDark{0, 0, 0, 40};
 constexpr SDL_Color kShadow{0, 0, 0, 255};
-// Items by quality (the item's + 0x18): normal, magic, unique, quest.
-constexpr SDL_Color kQualityColors[] = {{0xe0, 0xe0, 0xe0, 255}, {0x80, 0x80, 0xc0, 255}, {0xe0, 0xc0, 0x80, 255}, {0xe0, 0x80, 0x5c, 255}};
 // Element orbs when the data has no StatusIcon bank: fire, water, earth,
 // thunder, holy, dark, gel, metal.
 constexpr SDL_Color kElementColors[] = {{200, 40, 30, 255},  {50, 110, 210, 255}, {150, 100, 60, 255},  {220, 200, 40, 255},
@@ -236,7 +234,7 @@ void Game::renderHoverName() {
             const GroundItem& g = groundItems_[hover_.index];
             const ItemDef& def = *g.item.def;
             name = def.isGold() ? std::format("{} Gold", g.item.count) : toAscii(g.item.shownName());
-            color = kQualityColors[std::clamp(def.quality, 0, 3)];
+            color = qualityColor(def.quality);
             wx = g.x;
             wy = g.y;
             break;
@@ -330,7 +328,7 @@ std::vector<Game::ItemLabel> Game::itemLabels() const {
         const int x = static_cast<int>(a.x) + 2, y = static_cast<int>(a.y) - kLabelLift;
         const int half = static_cast<int>(name.size()) * kCharWidth / 2;
         const int left = x - half - 4, right = x + half + 1;
-        labels.push_back({a.item, {left - 1, y - 3, right - left + 3, 18}, std::move(name), kQualityColors[std::clamp(def.quality, 0, 3)]});
+        labels.push_back({a.item, {left - 1, y - 3, right - left + 3, 18}, std::move(name), qualityColor(def.quality)});
         boxes.push_back(labels.back().box);
     }
     stackLabels(boxes);

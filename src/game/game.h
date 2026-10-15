@@ -82,6 +82,11 @@ inline constexpr int kHoverGlow = 300;
 // The light outline around a chest, lever, door or item under the pointer
 // (ours; Rules::outlineUnderPointer).
 inline constexpr SDL_Color kHoverOutline{255, 224, 140, 210};
+// An item's name by its quality (the item's + 0x18): normal, magic, unique,
+// quest. The ground name (0x40ee70) and the item window's box (0x409160)
+// both use it, identified or not.
+inline constexpr SDL_Color kQualityColors[] = {{0xe0, 0xe0, 0xe0, 255}, {0x80, 0x80, 0xc0, 255}, {0xe0, 0xc0, 0x80, 255}, {0xe0, 0x80, 0x5c, 255}};
+inline constexpr SDL_Color qualityColor(int quality) { return kQualityColors[quality < 0 || quality > 3 ? 0 : quality]; }
 inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBeltCell = 32;
 
 // For now the game is a map viewer with a walking player: it loads a level
