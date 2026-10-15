@@ -1,0 +1,34 @@
+# The Ancient Institute: notices inside the old research hall, in our own
+# words, by the original's message numbers (tools/content/scripts.py).
+# Our terms as in cast4.md: Valmere (the White Angel) and Seren, made
+# here as her copy.
+
+[message 1000000]
+The Ancient Institute
+
+[message 1000001]
+Laboratory for growing human copies.
+Authorized staff only.
+
+[message 1000002]
+This hall answers to Valmere.
+Authorized staff only.
+
+[message 1000003]
+Past this door, researchers alone.
+Authorized staff only.
+
+[message 1000004]
+No one may go beyond this point
+unless Valmere herself allows it.
+
+[message 1000005]
+Specimen storage.
+
+[message 1000006]
+Specimen name: Seren.
+
+[message 1000007]
+This apparatus keeps Seren, the copy
+grown from Valmere, preserved.
+Hands off unless you have leave.

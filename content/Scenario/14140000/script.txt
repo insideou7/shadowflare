@@ -1,0 +1,234 @@
+# Written by tools/content/scripts.py after the original's scenario 4140000
+# (Dinosaur Cave), in our own words (tools/content/words/14140000.txt).
+
+object=31545,18435,31775,18533,o21000,obj_silver_x,states=1/1/1,at=31610/18439
+object=31545,18435,31775,18533,o21001,obj_silver_open_x,states=0/0/0,at=31610/18439
+object=31551,18909,31781,19007,o21002,obj_silver_x,states=1/1/1,at=31616/18913
+object=31551,18909,31781,19007,o21003,obj_silver_open_x,states=0/0/0,at=31616/18913
+object=31547,19383,31777,19481,o21004,obj_silver_x,states=1/1/1,at=31612/19387
+object=31547,19383,31777,19481,o21005,obj_silver_open_x,states=0/0/0,at=31612/19387
+object=36837,18433,37067,18531,o21006,obj_silver_x,states=1/1/1,at=36902/18437
+object=36837,18433,37067,18531,o21007,obj_silver_open_x,states=0/0/0,at=36902/18437
+object=36827,18923,37057,19021,o21008,obj_silver_x,states=1/1/1,at=36892/18927
+object=36827,18923,37057,19021,o21009,obj_silver_open_x,states=0/0/0,at=36892/18927
+object=36822,19418,37052,19516,o21010,obj_silver_x,states=1/1/1,at=36887/19422
+object=36822,19418,37052,19516,o21011,obj_silver_open_x,states=0/0/0,at=36887/19422
+temp=1000009,284
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,5000
+temp=1000018,8000
+temp=1000019,284
+temp=1000020,-1
+temp=1000021,-1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,284
+temp=1000025,-1
+temp=1000026,-1
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,284
+temp=1000030,-1
+temp=1000031,-1
+temp=1000032,-1
+temp=1000033,-1
+temp=1000034,284
+temp=1000035,-1
+temp=1000036,-1
+temp=1000037,-1
+temp=1000038,-1
+temp=1000039,34
+temp=1000040,35
+temp=1000041,36
+temp=1000042,77
+temp=1000043,78
+temp=1000044,33
+temp=1000045,27
+temp=1000046,28
+temp=1000047,38
+temp=1000048,39
+temp=1000049,3
+temp=1000050,25
+temp=1000051,26
+temp=1000052,30
+temp=1000053,37
+temp=1000054,10
+temp=1000055,40
+temp=1000056,41
+temp=1000057,42
+temp=1000058,43
+temp=1000059,53
+temp=1000060,80
+
+[message 1000000]
+Dinosaur Cave
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14000008 4
+
+[sentence s2]
+on=tick
+IF playmode:0 ! 2 @s3
+
+[sentence s3]
+IF shown:o21000 = 1 @s4
+
+[sentence s4]
+CHECKENEMYLIVE 14000000 14000004 temp:1000002
+IF temp:1000002 = -1 @s5
+
+[sentence s5]
+SETINACTIVE o21000
+SETACTIVE o21001
+PLAYSOUND temp:1000042 0 x:o21000 y:o21000
+IF net:1000001 = 0 @s6
+SETINACTIVE o21002
+SETACTIVE o21003
+PLAYSOUND temp:1000042 0 x:o21002 y:o21002
+IF net:1000001 = 0 @s11
+SETINACTIVE o21004
+SETACTIVE o21005
+PLAYSOUND temp:1000042 0 x:o21004 y:o21004
+IF net:1000002 = 0 @s16
+SETINACTIVE o21006
+SETACTIVE o21007
+PLAYSOUND temp:1000042 0 x:o21006 y:o21006
+IF net:1000003 = 0 @s21
+SETINACTIVE o21008
+SETACTIVE o21009
+PLAYSOUND temp:1000042 0 x:o21008 y:o21008
+IF net:1000004 = 0 @s26
+SETINACTIVE o21010
+SETACTIVE o21011
+PLAYSOUND temp:1000042 0 x:o21010 y:o21010
+IF net:1000005 = 0 @s31
+
+[sentence s6]
+SETFLAG temp:1000000 x:o21000
+SETFLAG temp:1000001 y:o21000
+IF temp:1000012 = -1 @s7
+IF temp:1000012 ! -1 @s10
+SETFLAG net:1000000 1
+
+[sentence s7]
+IF temp:1000009 = -1 @s8
+IF temp:1000009 ! -1 @s9
+
+[sentence s8]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s9]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s10]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s11]
+SETFLAG temp:1000000 x:o21002
+SETFLAG temp:1000001 y:o21002
+IF temp:1000017 = -1 @s12
+IF temp:1000017 ! -1 @s15
+SETFLAG net:1000001 1
+
+[sentence s12]
+IF temp:1000014 = -1 @s13
+IF temp:1000014 ! -1 @s14
+
+[sentence s13]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s14]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s15]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s16]
+SETFLAG temp:1000000 x:o21004
+SETFLAG temp:1000001 y:o21004
+IF temp:1000022 = -1 @s17
+IF temp:1000022 ! -1 @s20
+SETFLAG net:1000002 1
+
+[sentence s17]
+IF temp:1000019 = -1 @s18
+IF temp:1000019 ! -1 @s19
+
+[sentence s18]
+CREATEITEM temp:1000020 temp:1000021 temp:1000000 temp:1000001 -1 -1
+
+[sentence s19]
+CREATEITEMTABLE temp:1000019 temp:1000000 temp:1000001
+
+[sentence s20]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000022 temp:1000023
+
+[sentence s21]
+SETFLAG temp:1000000 x:o21006
+SETFLAG temp:1000001 y:o21006
+IF temp:1000027 = -1 @s22
+IF temp:1000027 ! -1 @s25
+SETFLAG net:1000003 1
+
+[sentence s22]
+IF temp:1000024 = -1 @s23
+IF temp:1000024 ! -1 @s24
+
+[sentence s23]
+CREATEITEM temp:1000025 temp:1000026 temp:1000000 temp:1000001 -1 -1
+
+[sentence s24]
+CREATEITEMTABLE temp:1000024 temp:1000000 temp:1000001
+
+[sentence s25]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000027 temp:1000028
+
+[sentence s26]
+SETFLAG temp:1000000 x:o21008
+SETFLAG temp:1000001 y:o21008
+IF temp:1000032 = -1 @s27
+IF temp:1000032 ! -1 @s30
+SETFLAG net:1000004 1
+
+[sentence s27]
+IF temp:1000029 = -1 @s28
+IF temp:1000029 ! -1 @s29
+
+[sentence s28]
+CREATEITEM temp:1000030 temp:1000031 temp:1000000 temp:1000001 -1 -1
+
+[sentence s29]
+CREATEITEMTABLE temp:1000029 temp:1000000 temp:1000001
+
+[sentence s30]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000032 temp:1000033
+
+[sentence s31]
+SETFLAG temp:1000000 x:o21010
+SETFLAG temp:1000001 y:o21010
+IF temp:1000037 = -1 @s32
+IF temp:1000037 ! -1 @s35
+SETFLAG net:1000005 1
+
+[sentence s32]
+IF temp:1000034 = -1 @s33
+IF temp:1000034 ! -1 @s34
+
+[sentence s33]
+CREATEITEM temp:1000035 temp:1000036 temp:1000000 temp:1000001 -1 -1
+
+[sentence s34]
+CREATEITEMTABLE temp:1000034 temp:1000000 temp:1000001
+
+[sentence s35]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000037 temp:1000038

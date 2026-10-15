@@ -1,0 +1,150 @@
+# Written by tools/content/scripts.py after the original's scenario 4120001
+# (Fort of Demon, B2F), in our own words (tools/content/words/14120001.txt).
+
+object=5664,5312,5856,5418,o20000,obj_chest_x,states=1/1/1,at=5703/5323
+object=5664,5312,5856,5418,o20001,obj_chest_open_x,states=0/0/0,at=5703/5323
+object=8218,5290,8408,5407,o20002,obj_chest_x,states=1/1/1,at=8258/5309
+object=8218,5290,8408,5407,o20003,obj_chest_open_x,states=0/0/0,at=8258/5309
+temp=1000009,289
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,289
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,-1
+temp=1000018,-1
+temp=1000020,34
+temp=1000021,35
+temp=1000022,36
+temp=1000023,77
+temp=1000024,78
+temp=1000025,33
+temp=1000026,27
+temp=1000027,28
+temp=1000028,38
+temp=1000029,39
+temp=1000030,3
+temp=1000031,25
+temp=1000032,26
+temp=1000033,30
+temp=1000034,37
+temp=1000035,10
+temp=1000036,40
+temp=1000037,41
+temp=1000038,42
+temp=1000039,43
+temp=1000040,53
+temp=1000041,80
+
+[message 1000000]
+Fort of Demon, B2F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14120000 1
+
+[sentence s2]
+on=tick
+IF playmode:0 ! 2 @s3
+
+[sentence s3]
+CHECKENEMYLIVE 14000001 14000001 temp:1000002
+IF temp:1000002 = -1 @s4
+
+[sentence s4]
+SETQUESTFLAG 46 2 1
+
+[sentence s5]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s6
+
+[sentence s6]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s7
+IF temp:1000012 ! -1 @s10
+SETFLAG net:1000000 1
+
+[sentence s7]
+IF temp:1000009 = -1 @s8
+IF temp:1000009 ! -1 @s9
+
+[sentence s8]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s9]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s10]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s11]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s12]
+IF shown:o20000 = 0 @s13
+IF shown:o20000 = 1 @s14
+
+[sentence s13]
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s14]
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+
+[sentence s15]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s16
+
+[sentence s16]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s17
+IF temp:1000017 ! -1 @s20
+SETFLAG net:1000001 1
+
+[sentence s17]
+IF temp:1000014 = -1 @s18
+IF temp:1000014 ! -1 @s19
+
+[sentence s18]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s19]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s20]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s21]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s22]
+IF shown:o20002 = 0 @s23
+IF shown:o20002 = 1 @s24
+
+[sentence s23]
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s24]
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002

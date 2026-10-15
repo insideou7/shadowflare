@@ -1,0 +1,270 @@
+# Written by tools/content/scripts.py after the original's scenario 4090003
+# (Tower of Rebellion, 4F), in our own words (tools/content/words/14090003.txt).
+
+temp=1000015,81
+temp=1000016,82
+temp=1000017,83
+temp=1000018,31
+temp=1000019,32
+temp=1000020,33
+temp=1000021,27
+temp=1000022,28
+temp=1000023,38
+temp=1000024,39
+temp=1000025,3
+temp=1000026,25
+temp=1000027,26
+temp=1000028,30
+temp=1000029,37
+temp=1000030,10
+temp=1000031,40
+temp=1000032,41
+temp=1000033,42
+temp=1000034,43
+temp=1000035,64
+
+[message 1000000]
+Tower of Rebellion, 4F
+
+[message 1000001]
+And who might you be?
+You've no business up here.
+
+[message 1000002]
+So... Lord Valdric sent you, did he?
+
+[message 1000003]
+You'd slander Archbishop Krator!?
+Who could think he turned into a demon?
+I won't hear it!
+
+[message 1000004]
+Hm? Mrs. Krator, you say?
+
+[message 1000005]
+Impossible!
+How would someone like you know her?
+
+[message 1000006]
+What did you say?
+
+[message 1000007]
+.....
+
+[message 1000008]
+She asked this of you...
+It was her wish that sent you up here?
+
+[message 1000009]
+.....
+
+[message 1000010]
+Very well. We'll give up the tower.
+The archbishop would grieve to know
+our stand had brought his wife harm.
+
+[message 1000011]
+Our revolt is over. Please let her know.
+
+[message 1000012]
+Wh-who goes there?
+
+[message 1000013]
+So it's finished...
+
+[message 1000014]
+How did you get up here?
+
+[message 1000015]
+Mercy... please, don't kill me!
+
+[message 1000016]
+Get back!
+
+[message 1000017]
+I haven't done anything!
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14090002 1
+
+[sentence s2]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+SETFLAG temp:1000001 -1
+IF quest:45 = 2 @s3
+IF quest:45 = 1 @s4
+IF quest:45 = 0 @s7
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s3]
+SETFLAG temp:1000002 msg:1000011
+SETFLAG temp:1000001 300
+
+[sentence s4]
+IF quest:39 = 2 @s5
+IF quest:39 ! 2 @s6
+
+[sentence s5]
+SETFLAG temp:1000002 msg:1000004
+SETFLAG temp:1000001 200
+
+[sentence s6]
+SETFLAG temp:1000002 msg:1000002
+SETFLAG temp:1000001 100
+
+[sentence s7]
+SETFLAG temp:1000002 msg:1000001
+SETFLAG temp:1000001 0
+
+[sentence s8]
+on=talk-end p0
+IF temp:1000001 = 0 @s9
+IF temp:1000001 = 101 @s10
+IF temp:1000001 = 206 @s11
+IF temp:1000001 = 300 @s12
+IF temp:1000001 = -1 @s13
+IF temp:1000001 ! -1 @s14
+IF temp:1000001 = 206 @s15
+
+[sentence s9]
+SETFLAG temp:1000001 -1
+
+[sentence s10]
+SETFLAG temp:1000001 -1
+
+[sentence s11]
+SETFLAG temp:1000001 -1
+
+[sentence s12]
+SETFLAG temp:1000001 -1
+
+[sentence s13]
+C_MOVABLE p0
+
+[sentence s14]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s15]
+SETQUESTFLAG 45 2 0
+PLAYSOUND temp:1000035 1 0 0
+
+[sentence s16]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+SETFLAG temp:1000001 -1
+IF quest:45 ! 0 @s17
+IF quest:45 = 0 @s18
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s17]
+SETFLAG temp:1000002 msg:1000013
+SETFLAG temp:1000001 100
+
+[sentence s18]
+SETFLAG temp:1000002 msg:1000012
+SETFLAG temp:1000001 0
+
+[sentence s19]
+on=talk-end p1
+IF temp:1000001 = 0 @s20
+IF temp:1000001 = 100 @s21
+IF temp:1000001 = -1 @s22
+IF temp:1000001 ! -1 @s23
+
+[sentence s20]
+SETFLAG temp:1000001 -1
+
+[sentence s21]
+SETFLAG temp:1000001 -1
+
+[sentence s22]
+C_MOVABLE p1
+
+[sentence s23]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s24]
+on=talk p2
+C_STOP p2
+C_SETANGLETO p2 0
+SETFLAG temp:1000001 -1
+IF quest:45 ! 0 @s25
+IF quest:45 = 0 @s26
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s25]
+SETFLAG temp:1000002 msg:1000015
+SETFLAG temp:1000001 100
+
+[sentence s26]
+SETFLAG temp:1000002 msg:1000014
+SETFLAG temp:1000001 0
+
+[sentence s27]
+on=talk-end p2
+IF temp:1000001 = 0 @s28
+IF temp:1000001 = 100 @s29
+IF temp:1000001 = -1 @s30
+IF temp:1000001 ! -1 @s31
+
+[sentence s28]
+SETFLAG temp:1000001 -1
+
+[sentence s29]
+SETFLAG temp:1000001 -1
+
+[sentence s30]
+C_MOVABLE p2
+
+[sentence s31]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s32]
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
+SETFLAG temp:1000001 -1
+IF quest:45 ! 0 @s33
+IF quest:45 = 0 @s34
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s33]
+SETFLAG temp:1000002 msg:1000017
+SETFLAG temp:1000001 100
+
+[sentence s34]
+SETFLAG temp:1000002 msg:1000016
+SETFLAG temp:1000001 0
+
+[sentence s35]
+on=talk-end p3
+IF temp:1000001 = 0 @s36
+IF temp:1000001 = 100 @s37
+IF temp:1000001 = -1 @s38
+IF temp:1000001 ! -1 @s39
+
+[sentence s36]
+SETFLAG temp:1000001 -1
+
+[sentence s37]
+SETFLAG temp:1000001 -1
+
+[sentence s38]
+C_MOVABLE p3
+
+[sentence s39]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1

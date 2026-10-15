@@ -1,0 +1,195 @@
+# Written by tools/content/scripts.py after the original's scenario 4130000
+# (Forest of Madness), in our own words (tools/content/words/14130000.txt).
+
+object=25295,25955,25592,26206,o200,states=1/1/1,at=25433/26068
+object=25265,25925,25613,26245,o201,states=1/0/0,at=25433/26068
+object=24184,24936,26692,27238,o202,states=0/0/0,at=25037/25563
+object=25633,26267,25683,26315,o203,states=1/0/0,at=25433/26068
+object=25633,26267,25683,26315,o204,states=1/0/0,at=25433/26068
+temp=1000011,289
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000016,289
+temp=1000017,-1
+temp=1000018,-1
+temp=1000019,-1
+temp=1000020,-1
+temp=1000022,34
+temp=1000023,35
+temp=1000024,36
+temp=1000025,77
+temp=1000026,78
+temp=1000027,33
+temp=1000028,27
+temp=1000029,28
+temp=1000030,38
+temp=1000031,39
+temp=1000032,3
+temp=1000033,25
+temp=1000034,26
+temp=1000035,30
+temp=1000036,37
+temp=1000037,10
+temp=1000038,40
+temp=1000039,41
+temp=1000040,42
+temp=1000041,43
+temp=1000042,53
+temp=1000043,80
+
+[message 1000000]
+Forest of Madness
+
+[message 1000001]
+Forest of Madness
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000002
+IF temp:1000002 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000042 0 x:o200 y:o200
+
+[sentence s2]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000002
+IF temp:1000002 = 0 @s3
+IF temp:1000002 > 0 @s7
+IF temp:1000002 > -1 @s9
+
+[sentence s3]
+IF warp:49 = 0 @s4
+IF temp:1000009 ! 1000 @s5
+IF temp:1000010 = 0 @s6
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s4]
+SETFLAG warp:49 1
+
+[sentence s5]
+ADD temp:1000009 50
+
+[sentence s6]
+PLAYSOUND temp:1000043 0 x:o200 y:o200
+SETFLAG temp:1000010 1
+
+[sentence s7]
+IF temp:1000009 ! 0 @s8
+SETFLAG temp:1000010 0
+DELETEWARPGATE 0
+
+[sentence s8]
+SUB temp:1000009 50
+
+[sentence s9]
+SETCHARTRANS o203 temp:1000009
+SETCHARTRANS o204 temp:1000009
+
+[sentence s10]
+on=talk o200
+WARPGATE 0
+
+[sentence s11]
+on=tick
+IF playmode:0 ! 2 @s12
+
+[sentence s12]
+CHECKENEMYLIVE 14000000 14000249 temp:1000002
+IF temp:1000002 = -1 @s13
+
+[sentence s13]
+SETQUESTFLAG 47 2 1
+
+[sentence s14]
+on=talk 10020000
+SETINACTIVE 10020000
+SETACTIVE 10020001
+PLAYSOUND temp:1000025 0 x:10020000 y:10020000
+IF net:1000000 = 0 @s15
+
+[sentence s15]
+SETFLAG temp:1000000 x:10020000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:10020000
+ADD temp:1000001 200
+IF temp:1000014 = -1 @s16
+IF temp:1000014 ! -1 @s19
+SETFLAG net:1000000 1
+
+[sentence s16]
+IF temp:1000011 = -1 @s17
+IF temp:1000011 ! -1 @s18
+
+[sentence s17]
+CREATEITEM temp:1000012 temp:1000013 temp:1000000 temp:1000001 -1 -1
+
+[sentence s18]
+CREATEITEMTABLE temp:1000011 temp:1000000 temp:1000001
+
+[sentence s19]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000014 temp:1000015
+
+[sentence s20]
+on=talk 10020001
+SETACTIVE 10020000
+SETINACTIVE 10020001
+PLAYSOUND temp:1000026 0 x:10020000 y:10020000
+
+[sentence s21]
+IF net:110020000 = 0 @s22
+IF net:110020000 = 1 @s23
+
+[sentence s22]
+PLAYSOUND temp:1000026 0 x:10020000 y:10020000
+
+[sentence s23]
+PLAYSOUND temp:1000025 0 x:10020000 y:10020000
+
+[sentence s24]
+on=talk 10020002
+SETINACTIVE 10020002
+SETACTIVE 10020003
+PLAYSOUND temp:1000025 0 x:10020002 y:10020002
+IF net:1000001 = 0 @s25
+
+[sentence s25]
+SETFLAG temp:1000000 x:10020002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:10020002
+ADD temp:1000001 200
+IF temp:1000019 = -1 @s26
+IF temp:1000019 ! -1 @s29
+SETFLAG net:1000001 1
+
+[sentence s26]
+IF temp:1000016 = -1 @s27
+IF temp:1000016 ! -1 @s28
+
+[sentence s27]
+CREATEITEM temp:1000017 temp:1000018 temp:1000000 temp:1000001 -1 -1
+
+[sentence s28]
+CREATEITEMTABLE temp:1000016 temp:1000000 temp:1000001
+
+[sentence s29]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000019 temp:1000020
+
+[sentence s30]
+on=talk 10020003
+SETACTIVE 10020002
+SETINACTIVE 10020003
+PLAYSOUND temp:1000026 0 x:10020002 y:10020002
+
+[sentence s31]
+IF net:110020002 = 0 @s32
+IF net:110020002 = 1 @s33
+
+[sentence s32]
+PLAYSOUND temp:1000026 0 x:10020002 y:10020002
+
+[sentence s33]
+PLAYSOUND temp:1000025 0 x:10020002 y:10020002

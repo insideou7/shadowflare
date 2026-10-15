@@ -1,0 +1,35 @@
+# The Ruins of The Wise: the hidden scholar, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+# Our cast: Ezra, who studies illusion in secret; Eskil sent the hero
+# (cast4.md). Coined here (original -> ours): Ruin->Ezra,
+# Tower of Ordeal->the Tower of Trials. Identify is the spell's game name.
+
+[message 1000000]
+The Ruins of The Wise
+
+[message 1000001]
+Well, well! A visitor, of all things.
+
+[message 1000002]
+So Eskil has sent someone my way at last.
+Hm? Oh, it's nothing. Pay me no mind.
+
+[message 1000003]
+My name is Ezra. I study illusion magic,
+the craft behind the Tower of Trials
+here in these ruins.
+
+[message 1000004]
+The grimling faith forbids such study,
+so I carry on with it in secret.
+
+[message 1000005]
+I'll teach you a spell called Identify.
+Just keep it from the grimlings. Our secret.
+
+[message 1000006]
+Is there something else you need?
+
+[message 1000007]
+Hm? Who are you,
+and what are you doing here?

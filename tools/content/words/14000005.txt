@@ -1,0 +1,8 @@
+# Orphe Beach: place signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Orphe Beach
+
+[message 1000001]
+Close by The Ruins of Exorcism

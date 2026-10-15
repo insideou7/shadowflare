@@ -78,10 +78,15 @@ DUNGEONS3 = [3010000, 3010001, 3010002, 3010003, 3010004, 3020000, 3020001, 3020
              3030000, 3040000, 3050000, 3060000, 3070000, 3080000, 3090000, 3100000, 3110000, 3110001,
              3110002, 3110003, 3110004, 3120000, 3130000, 3140000, 3140001, 3150000, 3160000, 3170000,
              3180000, 3190000, 3200000, 3210000, 3220000, 3230000, 3900005]
+FIELDS4 = [4000000, 4000001, 4000002, 4000003, 4000004, 4000005, 4000006, 4000007, 4000008, 4000009,
+           4130000, 4900000, 4900001, 4900002, 4900003]
+DUNGEONS4 = [4010000, 4020000, 4030000, 4040000, 4050000, 4050001, 4050002, 4060000, 4060001, 4060002,
+             4060003, 4060004, 4060005, 4060006, 4070000, 4070001, 4080000, 4080001, 4080002, 4080003,
+             4080004, 4090000, 4090001, 4090002, 4090003, 4100000, 4110000, 4120000, 4120001, 4140000]
 
 # Each area's maps, in the order they are laid out.
-AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2, 3: FIELDS3 + DUNGEONS3}
-DUNGEON = set(DUNGEONS + DUNGEONS2 + DUNGEONS3)
+AREAS = {1: FIELDS + DUNGEONS, 2: FIELDS2 + DUNGEONS2, 3: FIELDS3 + DUNGEONS3, 4: FIELDS4 + DUNGEONS4}
+DUNGEON = set(DUNGEONS + DUNGEONS2 + DUNGEONS3 + DUNGEONS4)
 ALL = [n for area in AREAS.values() for n in area]
 
 # Dungeon walls by the original's wall bank: our wall pieces (plain, then
@@ -95,7 +100,7 @@ WALLS = {
 }
 WALLS["deep02.njp"] = WALLS["deep03.njp"] = WALLS["deep04.njp"] = WALLS["deep01.njp"]
 # The third area's towers, of dark castle stone on paving.
-WALLS["yd.njp"] = ("fwall_black", [""], "fpillar_black", "Map/fortfloor.sheet", 240)
+WALLS["yd.njp"] = ("fwall_black", [""], "fpillar_black", "Map/castlefloor.sheet", 0)
 
 # Original banks whose pieces are landmarks, drawn where the original has
 # them, with the props skin.txt gives them (None = every piece of the bank).
@@ -129,7 +134,7 @@ FOREST = ["tree1", "tree2", "tree3", "tree1", "tree2", "oak"]
 FROZEN = ["conifer_blue", "tree_dead", "conifer_green"]   # Frozen Forest
 BARE = ["tree_dead", "tree_dead", "oak"]                  # the wastelands
 BARE_PLACES = ("Wasteland", "Pillars", "Wilds", "Desert", "Valley", "Plain", "Atonement", "Burial", "Peninsula",
-               "Beach", "Gulf", "Hiding Place")
+               "Beach", "Gulf", "Hiding Place", "Ento")
 
 # Banks whose pieces stand on ground that cannot be walked on.
 SOLID = {"00f_city00.njp", "00f_city01.njp", "00f_city02.njp"}
@@ -453,7 +458,9 @@ GATES = {0: [200], 1000000: [200],
          2100000: [200], 2100002: [200], 2100004: [200], 2100005: [200], 2100006: [200],
          2200000: [200], 2200003: [200, 210], 2200005: [200], 2210002: [200],
          **{n: [200] for n in (3000201, 3000302, 3000303, 3000306, 3000307, 3000402, 3000505, 3240000,
-                               3900000, 3900001, 3900002, 3900003, 3900004, 3900005)}}
+                               3900000, 3900001, 3900002, 3900003, 3900004, 3900005,
+                               4900001, 4900002, 4000001, 4000002, 4000003, 4000005, 4000007, 4000009,
+                               4060000, 4130000)}}
 
 
 def exit_targets(number):
@@ -784,7 +791,9 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             name = PEOPLE_NAMES.get((number, c["id"]))
             if not name and number not in AREAS[1]:
                 name = f"p{c['id']}"   # what scripts.py calls them
-            lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}" + (f",{name}" if name else ""))
+            # Direction 8 (none) is kept: the people drawn only that way.
+            facing = c["direction"] if c["direction"] == 8 else c["direction"] % 8
+            lines.append(f"person={c['kind']},{x},{y},{facing}" + (f",{name}" if name else ""))
             if o.light != 2000 and c["light"] >= 0:
                 lines.append(f"glow={c['light']}")
     # In the dark, the original's lit objects (torches and braziers) become

@@ -1,0 +1,12 @@
+# Forest of Goliate: place signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Forest of Goliate
+
+[message 1000001]
+Outside Goliate's Mansion
+
+[message 1000002]
+The gate is shut tight.
+There's no way in.

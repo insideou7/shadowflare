@@ -1,0 +1,17 @@
+# Forest of Poison: a beast that trades, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+# Coined here (original -> ours): Eri Kusa -> marsh mint (the herb the
+# beast wants); Magic Image -> a spell picture (what it gives back).
+
+[message 1000000]
+Forest of Poison
+
+[message 1000001]
+...Grrrr...
+
+[message 1000002]
+Marsh... mint...
+
+[message 1000003]
+Bring... marsh mint...
+Then... spell picture... for you...

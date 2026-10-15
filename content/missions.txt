@@ -326,6 +326,14 @@ text=
 text=Find the Blue and Green Orbs first, near
 text=Berini Village, as Valmere said.
 
+[mission 39]
+title=Find a keepsake of Krator.
+text=Mrs. Krator asked me to look in a ruin for
+text=something that belonged to her husband.
+text=
+text=I have no idea what it might be, so for now
+text=I'll take whatever I find.
+
 [mission 40]
 title=Find the Red Orb.
 text=Valmere has set the last trial before
@@ -333,6 +341,29 @@ text=Aurion.
 text=
 text=Fetch the Red Orb from the tower of Berini
 text=Village.
+
+[mission 41]
+title=Win back the Ruins of Exorcism.
+text=The magic in the air has grown stronger, and
+text=the demons of Ento Village suffer for it.
+text=
+text=Take the Ruins of Exorcism. They lie on
+text=Orphe Beach, north through the Demon's
+text=Forest.
+
+[mission 42]
+title=Make for Goliate's Mansion.
+text=Goliate serves the demons and may know
+text=something about the gate of the Devil's
+text=Castle.
+text=
+text=Find Goliate's Mansion somewhere in Aurion.
+
+[mission 43]
+title=Defeat Morvane.
+text=The road to the Devil's Castle lies open.
+text=
+text=What comes next is up to you.
 
 [mission 44]
 title=Visit the sage in the Ruins of the Wise.

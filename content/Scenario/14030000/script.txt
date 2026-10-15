@@ -1,0 +1,36 @@
+# Written by tools/content/scripts.py after the original's scenario 4030000
+# (Tunnel Under The Lake), in our own words (tools/content/words/14030000.txt).
+
+temp=1000009,81
+temp=1000010,82
+temp=1000011,83
+temp=1000012,31
+temp=1000013,32
+temp=1000014,33
+temp=1000015,27
+temp=1000016,28
+temp=1000017,38
+temp=1000018,39
+temp=1000019,3
+temp=1000020,25
+temp=1000021,26
+temp=1000022,30
+temp=1000023,37
+temp=1000024,10
+temp=1000025,40
+temp=1000026,41
+temp=1000027,42
+temp=1000028,43
+
+[message 1000000]
+Tunnel Under The Lake
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14000002 3
+
+[sentence s2]
+CHANGESCENARIO 14000002 4

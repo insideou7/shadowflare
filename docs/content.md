@@ -336,7 +336,8 @@ it; a click on it opens the window. The window's picture is
 pack's gates are the original's first-, second- and third-area ones (gate 0
 Remote Town, 4 Cold Svalt Town, 13 to 22 Kanfore, Fanann and the second
 area's forests and mines, 25 to 38 the South Camp of Yugunos, the third
-area's towns and its fields), at the original's places, with the props sheet's warp circle under them.
+area's towns and its fields, 40 to 49 Berini and Ento Villages and the
+fourth area's forests, ruins and roads), at the original's places, with the props sheet's warp circle under them.
 
 ### enemies.txt
 
@@ -594,9 +595,9 @@ Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the holes in the ground (blood00,
 deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
-## The first three areas
+## The first four areas
 
-The pack's maps are the original's first three areas, laid out with our art.
+The pack's maps are the original's first four areas, laid out with our art.
 The first area is the opening fields, Remote Town, the Dusty Ruins, Cold
 Svalt Town and the forests and four dungeons round it, 29 maps
 (`Map/f00_*.txt`, `f01_*`, `d01_*` to `d05_*`). The second is the
@@ -607,7 +608,9 @@ Losmans, Ponse and Sena's shrine and the wilds, towers, ruins and caves
 round them, 64 maps (`Map/y00_*`, `y01_*`, `d03_*` and others). Where the
 original uses one map for two scenarios, the later scenario's copy is
 named after its number (`Map/y01_01_13020002.txt`), since each scenario
-crops and keys it its own way. Their scenarios are numbered 10000000 plus the original's
+crops and keys it its own way. The fourth is West Calado, Berini and Ento
+Villages and the swamps, forests, mansion, castle and roads past them, 45
+maps (`Map/4th_*`, `c04_*`, `fort4_*`, `ruin4_*` and others). Their scenarios are numbered 10000000 plus the original's
 number (Remote Town is `Scenario/10000000`, Kanfore `Scenario/12100000`),
 and their exits lead to each other as the original's do. A new game
 starts in Remote Town, as the original's does. The road from the first
@@ -632,7 +635,8 @@ dungeon floors (one down the middle of rock a cell thick); in the third
 area's towns the ground round the landmarks is kept clear of trees: stone blocks
 with pipes in the first area's dungeons, grey fort walls in the forts,
 timbered galleries in the coal mines, crumbling earth in the caves and
-black fort walls in the third area's ruins and towers,
+black fort walls on castle stone in the third and fourth areas' ruins,
+towers and castle,
 after the walls the original's map is mostly built of. The monsters
 have the original's numbers (`enemy_stats.py`, above). The dungeons are as dark as the original's, with
 lamps where its torches stand and glows on the monsters that carry one.
@@ -643,11 +647,11 @@ original game sees (see above).
 
     python3 tools/content/first_area.py <game folder> content [area ...]
 
-(all areas, or only the ones named: `3` lays out the third area again
+(all areas, or only the ones named: `4` lays out the fourth area again
 and leaves the others as they are). Run `enemy_stats.py` after it.
 
-The second and third areas' scripts (`Scenario/12*/script.txt` and
-`Scenario/13*/script.txt`) are the original's,
+The later areas' scripts (`Scenario/12*/script.txt` to
+`Scenario/14*/script.txt`) are the original's,
 translated by `tools/content/scripts.py`: the same sentences, triggers,
 flags, quests, shops and exits the story opens later, with each id
 renumbered to the pack's and each message in our own words. It never
@@ -655,7 +659,7 @@ reads the original's text; the words are ours, in
 `tools/content/words/<scenario>.txt` by the original's message numbers,
 each keeping its message's purpose and its options and numbers in order:
 
-    python3 tools/content/scripts.py <game folder> content 2|3 [scenario ...]
+    python3 tools/content/scripts.py <game folder> content 2|3|4 [scenario ...]
 
 It names messages it has no words for. The shops the scripts open are in
 `shops.txt` and their missions in `missions.txt`.
@@ -683,9 +687,14 @@ its monsters back one at a time, every 200 ticks, glowing as one climbs out,
 until the hero breaks it. `tools/content/enemy_holes.py` writes them (the
 `enemy=-1` lines in the original's order among the monsters, the burrow's
 objects and the script that runs it, after the original's script) from the
-player's own copy; run it after `first_area.py` and `enemy_stats.py`:
+player's own copy; run it after `first_area.py` and before `enemy_stats.py`:
 
-    python3 tools/content/enemy_holes.py <game folder> content
+    python3 tools/content/enemy_holes.py <game folder> content [area ...]
+
+The fourth area's fields have burrows too (ten of them); there it writes
+only their `enemy=-1` lines, since `scripts.py` translates the original's
+own burrow steps and pieces with the rest of the script, so run it before
+`scripts.py`.
 
 A game saved in any of these areas goes on with the other data: a hero
 saved in the original's Remote Town loads in ours at the same spot, and
@@ -698,7 +707,7 @@ it also checks the maps against the crop):
     python3 tools/content/open_areas.py <game folder> content
 
 A game saved in an area the open pack does not have (anywhere past the
-third area) shows as Other Data on the Load Data screen there. Items the
+fourth area) shows as Other Data on the Load Data screen there. Items the
 pack has no stand-in for are left out when it loads.
 
 ## Rebuilding content/

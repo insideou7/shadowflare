@@ -1,0 +1,62 @@
+# Written by tools/content/scripts.py after the original's scenario 4060002
+# (The Road of The Netherworld), in our own words (tools/content/words/14060002.txt).
+
+object=36511,32258,36671,32418,o1,states=0/0/0,at=36591/32338
+temp=1000010,34
+temp=1000011,35
+temp=1000012,36
+temp=1000013,77
+temp=1000014,78
+temp=1000015,33
+temp=1000016,27
+temp=1000017,28
+temp=1000018,38
+temp=1000019,39
+temp=1000020,3
+temp=1000021,25
+temp=1000022,26
+temp=1000023,30
+temp=1000024,37
+temp=1000025,10
+temp=1000026,40
+temp=1000027,41
+temp=1000028,42
+temp=1000029,43
+temp=1000030,53
+temp=1000031,80
+temp=1000032,51
+
+[message 1000000]
+The Road of The Netherworld
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14060001 1
+
+[sentence s2]
+on=judge o1
+CHECKENEMYLIVE 14000000 14010999 temp:1000002
+IF temp:1000002 = -1 @s3
+
+[sentence s3]
+CHANGESCENARIO 14060003 0
+
+[sentence s4]
+on=tick
+CHECKENEMYLIVE 14000000 14010999 temp:1000002
+IF temp:1000002 = -1 @s5
+
+[sentence s5]
+IF temp:1000009 = 0 @s6
+IF temp:1000009 ! 0 @s7
+
+[sentence s6]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000032 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000009
+
+[sentence s7]
+SUB temp:1000009 1

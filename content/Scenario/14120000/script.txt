@@ -1,0 +1,213 @@
+# Written by tools/content/scripts.py after the original's scenario 4120000
+# (Fort of Demon, B1F), in our own words (tools/content/words/14120000.txt).
+
+object=9120,15520,9759,15679,o700,states=1/0/1,at=8811/15219
+object=9440,4480,10079,4639,o701,states=1/0/1,at=9113/4167
+object=12716,29122,12791,29196,o30000,states=1/0/0,at=12373/29086
+object=11921,29008,12124,29243,o30001,states=1/0/1,at=12373/29086
+object=12017,28903,12088,28980,o30002,states=1/0/1,at=12373/29086
+object=12293,29006,12452,29165,o30003,hole,states=1/0/0,at=12373/29086
+object=12671,29037,12855,29261,o30004,states=1/0/1,at=12373/29086
+object=12463,29177,12501,29208,o30099,states=0/0/0,at=12373/29086
+object=5218,17951,5293,18025,o30100,states=1/0/0,at=4875/17915
+object=4423,17837,4626,18072,o30101,states=1/0/1,at=4875/17915
+object=4519,17732,4590,17809,o30102,states=1/0/1,at=4875/17915
+object=4795,17835,4954,17994,o30103,hole,states=1/0/0,at=4875/17915
+object=5173,17866,5357,18090,o30104,states=1/0/1,at=4875/17915
+object=4965,18006,5003,18037,o30199,states=0/0/0,at=4875/17915
+object=16706,18632,16781,18706,o30200,states=1/0/0,at=16363/18596
+object=15911,18518,16114,18753,o30201,states=1/0/1,at=16363/18596
+object=16007,18413,16078,18490,o30202,states=1/0/1,at=16363/18596
+object=16283,18516,16442,18675,o30203,hole,states=1/0/0,at=16363/18596
+object=16661,18547,16845,18771,o30204,states=1/0/1,at=16363/18596
+object=16453,18687,16491,18718,o30299,states=0/0/0,at=16363/18596
+object=2415,10793,2490,10867,o30300,states=1/0/0,at=2072/10757
+object=1620,10679,1823,10914,o30301,states=1/0/1,at=2072/10757
+object=1716,10574,1787,10651,o30302,states=1/0/1,at=2072/10757
+object=1992,10677,2151,10836,o30303,hole,states=1/0/0,at=2072/10757
+object=2370,10708,2554,10932,o30304,states=1/0/1,at=2072/10757
+object=2162,10848,2200,10879,o30399,states=0/0/0,at=2072/10757
+object=13617,22920,13809,23026,o20000,obj_chest_x,states=1/1/1,at=13656/22931
+object=13617,22920,13809,23026,o20001,obj_chest_open_x,states=0/0/0,at=13656/22931
+object=13621,22108,13811,22225,o20002,obj_chest_x,states=1/1/1,at=13661/22127
+object=13621,22108,13811,22225,o20003,obj_chest_open_x,states=0/0/0,at=13661/22127
+temp=1000009,289
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,289
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,-1
+temp=1000018,-1
+temp=1000020,34
+temp=1000021,35
+temp=1000022,36
+temp=1000023,77
+temp=1000024,78
+temp=1000025,33
+temp=1000026,27
+temp=1000027,28
+temp=1000028,38
+temp=1000029,39
+temp=1000030,3
+temp=1000031,25
+temp=1000032,26
+temp=1000033,30
+temp=1000034,37
+temp=1000035,10
+temp=1000036,40
+temp=1000037,41
+temp=1000038,42
+temp=1000039,43
+temp=1000040,53
+temp=1000041,80
+
+[message 1000000]
+Fort of Demon, B1F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 14900002 2
+
+[sentence s2]
+CHANGESCENARIO 14120001 0
+
+[sentence s3]
+CHANGESCENARIO 14900002 3
+
+[sentence s4]
+CHANGESCENARIO 14900002 4
+
+[sentence s5]
+CHANGESCENARIO 14900002 5
+
+[sentence s6]
+on=tick
+IF playmode:0 ! 2 @s7
+
+[sentence s7]
+IF shown:o700 = 1 @s8
+
+[sentence s8]
+CHECKENEMYLIVE 14000001 14000002 temp:1000002
+IF temp:1000002 = -1 @s9
+
+[sentence s9]
+SETINACTIVE o700
+PLAYSOUND temp:1000020 0 x:o700 y:o700
+
+[sentence s10]
+PLAYSOUND temp:1000020 0 x:o700 y:o700
+
+[sentence s11]
+on=tick
+IF playmode:0 ! 2 @s12
+
+[sentence s12]
+IF shown:o701 = 1 @s13
+
+[sentence s13]
+CHECKENEMYLIVE 14000003 14000004 temp:1000002
+IF temp:1000002 = -1 @s14
+
+[sentence s14]
+SETINACTIVE o701
+PLAYSOUND temp:1000020 0 x:o701 y:o701
+
+[sentence s15]
+PLAYSOUND temp:1000020 0 x:o701 y:o701
+
+[sentence s16]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s17
+
+[sentence s17]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s18
+IF temp:1000012 ! -1 @s21
+SETFLAG net:1000000 1
+
+[sentence s18]
+IF temp:1000009 = -1 @s19
+IF temp:1000009 ! -1 @s20
+
+[sentence s19]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s20]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s21]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s22]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s23]
+IF shown:o20000 = 0 @s24
+IF shown:o20000 = 1 @s25
+
+[sentence s24]
+PLAYSOUND temp:1000024 0 x:o20000 y:o20000
+
+[sentence s25]
+PLAYSOUND temp:1000023 0 x:o20000 y:o20000
+
+[sentence s26]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s27
+
+[sentence s27]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s28
+IF temp:1000017 ! -1 @s31
+SETFLAG net:1000001 1
+
+[sentence s28]
+IF temp:1000014 = -1 @s29
+IF temp:1000014 ! -1 @s30
+
+[sentence s29]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s30]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s31]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s32]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s33]
+IF shown:o20002 = 0 @s34
+IF shown:o20002 = 1 @s35
+
+[sentence s34]
+PLAYSOUND temp:1000024 0 x:o20002 y:o20002
+
+[sentence s35]
+PLAYSOUND temp:1000023 0 x:o20002 y:o20002

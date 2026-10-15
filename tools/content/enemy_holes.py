@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Put the original's Enemy Holes into the open pack's first area. Needs the
-player's own copy of the game, as first_area.py does.
+"""Put the original's Enemy Holes into the open pack. Needs the player's own
+copy of the game, as first_area.py does.
 
-    python3 tools/content/enemy_holes.py <game folder> <content pack>
+    python3 tools/content/enemy_holes.py <game folder> <content pack> [area ...]
 
 An Enemy Hole is a monster of kind -1 with no picture of its own: a burrow
 in the floor, drawn by the objects round it, that brings its monsters back
@@ -25,6 +25,10 @@ this writes:
 The script goes between the "# Burrows" marker and the end of script.txt,
 replacing what an earlier run wrote there; anything above is kept. Our own
 words; only the numbers and the order of steps are the original's.
+
+In the later areas (2 on) only the enemy=-1 lines are written: their
+scripts, burrows and all, are the original's, translated by
+tools/content/scripts.py, run after this.
 """
 
 import re
@@ -174,7 +178,8 @@ def main():
     if not (game / "Scenario").is_dir():
         game = next(p.parent for p in game.rglob("Scenario") if (p.parent / "Map").is_dir())
     corner = offsets()
-    for number in fa.FIELDS + fa.DUNGEONS:
+    areas = [int(a) for a in sys.argv[3:]] or list(fa.AREAS)
+    for number in (n for a in areas for n in fa.AREAS[a]):
         sc = game / "Scenario" / f"{number:08d}"
         enemies = fa.read_mct(fa.find(sc, "Scenario", ".mct").read_bytes())[2][2]
         if not any(c["kind"] == -1 for c in enemies):
@@ -212,6 +217,11 @@ def main():
             holes.append((n, x, y, steps))
         lines[at[0]:at[-1] + 1] = merged
         (folder / "scenario.txt").write_text("\n".join(lines))
+        if number not in fa.AREAS[1]:
+            # scripts.py translates the later areas' whole scripts, their
+            # burrows' steps and pieces among them.
+            print(f"{folder.name}: {len(holes)} burrows")
+            continue
 
         path = folder / "script.txt"
         text = path.read_text() if path.exists() else ""
