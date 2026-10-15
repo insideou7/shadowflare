@@ -1,0 +1,132 @@
+# Written by tools/content/scripts.py after the original's scenario 3010003
+# (North of The Remains of The Dead), in our own words (tools/content/words/13010003.txt).
+
+object=7022,2086,7338,2344,o1,states=0/0/0,at=7247/2244
+object=6400,1440,6559,1599,o1100,states=1/1/1,at=6492/1515
+temp=1000016,34
+temp=1000017,35
+temp=1000018,36
+temp=1000019,77
+temp=1000020,78
+temp=1000021,33
+temp=1000022,27
+temp=1000023,28
+temp=1000024,38
+temp=1000025,39
+temp=1000026,3
+temp=1000027,25
+temp=1000028,26
+temp=1000029,30
+temp=1000030,37
+temp=1000031,10
+temp=1000032,40
+temp=1000033,41
+temp=1000034,42
+temp=1000035,43
+temp=1000036,53
+temp=1000037,80
+temp=1000038,51
+
+[message 1000000]
+North of The Remains of The Dead
+
+[message 1000001]
+Bold travelers,
+this is the last chance you'll have to turn back.
+
+[message 1000002]
+Demons...
+I'm so afraid...
+
+[message 1000003]
+The craft of the ancient world...
+Archbishop Krator...
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13010002 1
+
+[sentence s2]
+on=tick
+IF temp:1000012 = 0 @s3
+IF temp:1000012 ! 0 @s4
+
+[sentence s3]
+CREATEEFFECTCHAR 20018 10000000
+PLAYSOUND temp:1000038 0 x:10000000 y:10000000
+GETRANDAM 20 40 temp:1000012
+
+[sentence s4]
+SUB temp:1000012 1
+
+[sentence s5]
+on=judge o1
+CHECKENEMYLIVE 14000000 14000033 temp:1000005
+IF temp:1000005 = -1 @s6
+
+[sentence s6]
+CHANGESCENARIO 13010004 0
+
+[sentence s7]
+on=tick
+CHECKENEMYLIVE 14000000 14000033 temp:1000005
+IF temp:1000005 = -1 @s8
+
+[sentence s8]
+IF temp:1000013 = 0 @s9
+IF temp:1000013 ! 0 @s10
+
+[sentence s9]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000038 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000013
+
+[sentence s10]
+SUB temp:1000013 1
+
+[sentence s11]
+on=tick
+SETTINGRAIN 224 64 64 5
+
+[sentence s12]
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
+TALK msg:1000002 -1 0 -1 -1 -1
+
+[sentence s13]
+on=talk-end p0
+C_MOVABLE p0
+
+[sentence s14]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+TALK msg:1000003 -1 0 -1 -1 -1
+
+[sentence s15]
+on=talk-end p1
+C_MOVABLE p1
+
+[sentence s16]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000015 < 30 @s17
+IF temp:1000015 ! 0 @s18
+
+[sentence s17]
+SETFLAG temp:1000005 temp:1000015
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s18]
+MESSAGEBOX o1100 0 -64 msg:1000001 160 160 192 temp:1000005
+SUB temp:1000015 1
+
+[sentence s19]
+on=talk o1100
+SETFLAG temp:1000015 150

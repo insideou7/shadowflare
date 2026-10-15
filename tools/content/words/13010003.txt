@@ -1,0 +1,17 @@
+# North of The Remains of The Dead: a warning and voices, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+North of The Remains of The Dead
+
+[message 1000001]
+Bold travelers,
+this is the last chance you'll have to turn back.
+
+[message 1000002]
+Demons...
+I'm so afraid...
+
+[message 1000003]
+The craft of the ancient world...
+Archbishop Krator...

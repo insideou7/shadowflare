@@ -1,0 +1,33 @@
+# Tower of Nazzle, 1F: the clergy in training, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Tower of Nazzle, 1F
+
+[message 1000001]
+This tower is for the training of clergy.
+Please leave.
+
+[message 1000002]
+We come here to train of our own free will,
+so nobody has to give us leave.
+
+[message 1000003]
+If you carry a letter from Bishop Aurel,
+you may go in.
+
+[message 1000004]
+The tower's warding devices are broken, so some
+foes inside may be beyond your power to defeat.
+Take care.
+
+[message 1000005]
+Don't push yourself too hard.
+
+[message 1000006]
+Run into any demons?
+We've never been up the stairs,
+so we can't say what's waiting up there.
+
+[message 1000007]
+This tower is for the training of clergy.

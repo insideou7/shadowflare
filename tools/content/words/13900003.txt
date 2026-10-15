@@ -1,0 +1,1096 @@
+# Town of Losmans: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# This file holds messages 1000000-1000139 (Lord Valdric's long talk);
+# the rest of the town is in a separate file.
+# Our cast: Lord Valdric, the cardinal of the grimling faith, half elf;
+# Petrus his sworn guard; Archbishop Krator, his rival, and Krator's late
+# son; Bishop Aurel of Antalusia, who sent the report; Gorr the traitor;
+# Seren, the girl found asleep in the ruins (Saint Seren). Terms: the
+# grimlings (the faith), Valmere the White Angel, Morvane the devil,
+# Aurion the sealed land.
+# Invented here: the Silver Spike (Valmere's relic in the Dragon Cave),
+# the White Locket (Valmere's relic in the far west), the Wyrmwood (the
+# forest where the old research hall stands).
+# Kept as plain game terms: elf rangers, the Ancient Dragon, Big
+# Warehouse IV, and the pack's place titles (Forest of Ilbarna, Hill of
+# Heaven, Moldona Peninsula, Ponse, Alteria, Remains of the Dead, Road of
+# Atonement, Sena's Small Shrine, Ruins of the Lake, Calado).
+
+[message 1000000]
+Town of Losmans
+
+[message 1000001]
+Town of Losmans
+
+[message 1000002]
+What a mess this all is...
+
+[message 1000003]
+...
+
+[message 1000004]
+Yes? What brings you here?
+
+[message 1000005]
+My lord, you mean to hear out
+some stranger off the road?
+
+[message 1000006]
+And why not? Road dust aside,
+this one looks honest enough.
+
+[message 1000007]
+Wait... you carry a report
+from Bishop Aurel of Antalusia?
+
+[message 1000008]
+Hand it here.
+
+[message 1000009]
+Now then...
+So, this concerns the sacred relics.
+
+[message 1000010]
+If I read it right, you are the one
+who brought two of them back to us.
+
+[message 1000011]
+Hm...
+
+[message 1000012]
+It bears his seal; it is genuine.
+You have my thanks. Take this as a sign of it.
+
+[message 1000013]
+We are still looking into who stole them.
+
+[message 1000014]
+Tell me, would you serve at my side,
+as my own sword?
+
+[message 1000015]
+My lord, call me the moment
+anything seems amiss.
+
+[message 1000016]
+Well... what I need from you
+is that you keep me safe.
+
+[message 1000017]
+As you command.
+
+[message 1000018]
+So, what do you say?
+
+[message 1000019]
+Bishop Aurel writes that you
+know how to handle yourself.
+
+[message 1000020]
+Is that so?
+
+[message 1000021]
+You answer to no one, it seems. And anyone
+who hands stolen relics back instead of
+selling them must be someone I can trust.
+
+[message 1000022]
+Someone like you is exactly what we need.
+Things have been tense around the grimling
+faith of late.
+
+[message 1000023]
+Which is why I never leave Lord Valdric's side.
+
+[message 1000024]
+There is one more thing, but it stays
+between the two of us. Understood?
+
+[message 1000025]
+Breathe a word of it to anyone,
+and you won't live to regret it.
+
+[message 1000026]
+Petrus, enough!
+
+[message 1000027]
+Forgive me, my lord.
+
+[message 1000028]
+Where was I... Not long ago I sent our
+elf rangers out to track down the relics.
+
+[message 1000029]
+Then they vanished without a word,
+and soon after we found every one dead.
+
+[message 1000030]
+They could have brought down the Ancient Dragon
+had they tried. I doubt men or a pack of
+demons did this; something else was at work.
+
+[message 1000031]
+I want you to find out what it was.
+
+[message 1000032]
+I will let the town's leading folk know
+who you are, so no one wonders about you.
+
+[message 1000033]
+I am relying on you.
+
+[message 1000034]
+I am relying on you.
+
+[message 1000035]
+Ah, you've come at just the right moment.
+A report from Archbishop Krator
+arrived only a little while ago.
+
+[message 1000036]
+He has found a relic, the Silver Spike.
+It lies in a Dragon Cave in the Forest of
+Ilbarna, to the west of South Losmans.
+
+[message 1000037]
+The dragons there are asleep, so taking it
+should be simple. Go and bring it back. You
+slew the Ancient Dragon; if they wake, so be it.
+
+[message 1000038]
+I would go myself, were I not
+already sworn to my post.
+
+[message 1000039]
+I look for great things from you.
+
+[message 1000040]
+I look for great things from you.
+
+[message 1000041]
+Well, look at that!
+The Silver Spike itself.
+You've done it!
+
+[message 1000042]
+...
+
+[message 1000043]
+The dragons woke?
+
+[message 1000044]
+Archbishop Krator's report said
+they were sound asleep...
+
+[message 1000045]
+Still, you put them down, did you not?
+Beating those on top of the Ancient Dragon...
+you are a fighter to be reckoned with.
+
+[message 1000046]
+And I missed all of it...
+
+[message 1000047]
+Here is your reward,
+with my thanks for a job well done.
+
+[message 1000048]
+I expect only the best from you.
+
+[message 1000049]
+Archbishop Krator is studying the ruins
+on the Hill of Heaven, you say?
+
+[message 1000050]
+No one told me of that.
+
+[message 1000051]
+This smells wrong. Would you go
+and find out what he is up to there?
+
+[message 1000052]
+Show my letter and they will let you in.
+The ruins sit on the Hill of Heaven,
+north of the Forest of Ilbarna.
+
+[message 1000053]
+My lord, about those ruins...
+aren't they the ones where...
+
+[message 1000054]
+Yes, those. Some old power down there stops
+any warp from working; you can't travel out
+by magic once inside.
+Take care.
+
+[message 1000055]
+Stay strong.
+
+[message 1000056]
+Someone is digging up the old world's
+knowledge in the Ancient Ruins?
+
+[message 1000057]
+And Gorr the traitor was with them?
+
+[message 1000058]
+Then Archbishop Krator may well be...
+
+[message 1000059]
+Ah... I...
+
+[message 1000060]
+My lord, what is it?
+
+[message 1000061]
+Can't... get... my breath...
+
+[message 1000062]
+Poison?!
+Did Archbishop Krator put
+something in that wine?!
+
+[message 1000063]
+...
+
+[message 1000064]
+You there!
+Get him an antidote, quickly!
+I'll do what I can to hold it back.
+
+[message 1000065]
+The dwarves of Ponse make a cure for any
+poison. Their village lies to the southeast!
+
+[message 1000066]
+Ponse is east across the Moldona Peninsula,
+which runs out from South Losmans.
+Go, and hurry!
+
+[message 1000067]
+(Gasp)
+
+[message 1000068]
+(Swallows)...
+
+[message 1000069]
+...
+
+[message 1000070]
+...
+
+[message 1000071]
+...(Breathes hard)
+
+[message 1000072]
+My lord!
+How do you feel?
+
+[message 1000073]
+I think...
+I will... pull through.
+
+[message 1000074]
+Thank the gods...
+I owe you more than I can say this time.
+
+[message 1000075]
+Could Archbishop Krator truly
+be behind this...?
+
+[message 1000076]
+Take this for your trouble.
+I am more grateful than words allow.
+
+[message 1000077]
+Hm...
+
+[message 1000078]
+What?
+Archbishop Krator's own servant told you so?
+
+[message 1000079]
+Hm...
+
+[message 1000080]
+This has gone too far already.
+We must weigh our next step with great care.
+
+[message 1000081]
+...
+
+[message 1000082]
+My lord, should you tell them?
+
+[message 1000083]
+I will...
+But this must stay a secret.
+
+[message 1000084]
+Krator once had a son, and a gifted one.
+
+[message 1000085]
+Some years back, he and I were both
+put forward to become cardinal.
+
+[message 1000086]
+The choice fell on me, because my mixed blood
+let me win the trust of elves and men alike.
+
+[message 1000087]
+Krator took it hard back then,
+but in the end he bowed to it.
+
+[message 1000088]
+And then... came the trouble...
+
+[message 1000089]
+Let me tell it, my lord.
+
+[message 1000090]
+Not long after Lord Valdric took office,
+the demons grew bold, and the army was sent
+out to meet them.
+
+[message 1000091]
+Battle followed battle, and the men
+were soon worn to the bone.
+
+[message 1000092]
+That was when disaster came...
+
+[message 1000093]
+Krator's son took a company out to strike
+the enemy, but word went astray and the elf
+rangers never came to back them up.
+
+[message 1000094]
+The demons cut them down to the last man,
+the archbishop's son among them.
+
+[message 1000095]
+When Krator heard the news, someone
+overheard what he said...
+
+[message 1000096]
+He claimed the elf rangers had left his son
+to die on purpose, on Lord Valdric's orders.
+
+[message 1000097]
+There is no truth in it at all. Orders got
+lost, and the soldiers were simply spent.
+
+[message 1000098]
+Since that day Krator has buried himself
+in the study of the relics, and he is not
+the man he once was.
+
+[message 1000099]
+I fear he means to strike back at me and the
+grimling faith with some power of the old world.
+
+[message 1000100]
+In any case, take this for all you've done.
+
+[message 1000101]
+Word has reached us that Archbishop Krator
+has shut himself away in the Remains of the
+Dead, in Alteria, far off to the west.
+
+[message 1000102]
+We are rooting out his helpers among our own
+people, but that will be slow work.
+
+[message 1000103]
+So I ask you to make for
+the Remains of the Dead.
+
+[message 1000104]
+Head east over the Hill of Heaven, follow the
+Road of Atonement and pass by Sena's Small Shrine
+to reach Alteria. I'll send word to the shrine.
+
+[message 1000105]
+They say Krator now commands a dark power from
+the old world. Stop him; we are counting on you.
+
+[message 1000106]
+...
+
+[message 1000107]
+I am relying on you.
+
+[message 1000108]
+I am relying on you.
+
+[message 1000109]
+Splendid work.
+Though it is a sad end for Archbishop Krator...
+
+[message 1000110]
+Take 100,000 gold, and with it
+the use of Big Warehouse IV, as my thanks.
+
+[message 1000111]
+You have saved the grimling faith. From now
+on, every ruin we hold is open to you.
+
+[message 1000112]
+My lord, is that wise?
+
+[message 1000113]
+It is.
+There may yet be things down there
+that can help.
+
+[message 1000114]
+Go where you will.
+
+[message 1000115]
+I am deeply grateful.
+
+[message 1000116]
+I've heard tell of gold and silver orbs
+hidden in some of those ruins.
+
+[message 1000117]
+You are always welcome here.
+
+[message 1000118]
+I have a favor to ask.
+
+[message 1000119]
+Do you know of the wild lands northwest of
+Calado? No one may go in there any longer.
+
+[message 1000120]
+We sealed them off, for the demons there keep
+growing stronger. But a party that searched
+the place brought us word of Valmere's relics.
+
+[message 1000121]
+We believe the White Locket, a relic of Valmere,
+lies in an old research hall in the Wyrmwood.
+Go by the Ruins of the Lake, west of Calado.
+Would you bring the relic back to me?
+
+[message 1000122]
+Those wild lands west of Calado
+lie under the magic of Aurion.
+
+[message 1000123]
+Watch yourself. The demons
+out there are far stronger.
+
+[message 1000124]
+We are counting on you.
+
+[message 1000125]
+Valmere's relic!
+You have my thanks. And here is the reward
+I am sure you have been waiting for.
+
+[message 1000126]
+Hm?
+
+[message 1000127]
+Saint Seren...?
+
+[message 1000128]
+Very well...
+I will tell you something of her.
+
+[message 1000129]
+As you surely know, we grimlings
+hold Valmere, the White Angel, sacred.
+
+[message 1000130]
+Our teaching says Valmere is the angel
+who locked the devil Morvane away in Aurion.
+
+[message 1000131]
+When she founded our faith, she left us two
+lessons: how to live on in this tainted
+world, and how to bring Morvane down
+should he ever return.
+
+[message 1000132]
+We held to them. To keep the world from
+further harm we turned to the old world's
+craft, and so we began digging in the ruins.
+
+[message 1000133]
+In one of them we found a girl asleep inside
+a glass tube full of liquid.
+We gave her the name Seren.
+
+[message 1000134]
+You want to know what she has
+to do with Valmere, I expect.
+
+[message 1000135]
+Her tube bore an inscription,
+carved into its side.
+
+[message 1000136]
+"Within sleeps Valmere born again.
+She shall wake when the world draws to its end."
+
+[message 1000137]
+And then, to our amazement, she woke. She
+remembered nothing, and spoke and acted
+like any other girl.
+
+[message 1000138]
+The demons have grown steadily for two years;
+surely that is what woke her. And if she has
+risen, Morvane is likely back as well.
+
+[message 1000139]
+That is why we dig for Valmere's relics.
+We are making ready to fight him.
+
+[message 1000140]
+There is one more thing I would ask of you.
+
+[message 1000141]
+Take the sacred relics we have gathered
+and bring them to Saint Seren.
+
+[message 1000142]
+She may strike you as an ordinary girl.
+Never forget what binds her to Valmere.
+
+[message 1000143]
+You have my thanks.
+
+[message 1000144]
+You have my thanks.
+
+[message 1000145]
+So you have met her. Hard to believe
+that Saint Seren is Valmere reborn, isn't it?
+
+[message 1000146]
+From this day on, I ask that you serve
+Saint Seren, which is to say, Valmere's own will.
+
+[message 1000147]
+Go west past West Calado and through the
+Labyrinth of the Lake. Berini Village lies beyond.
+
+[message 1000148]
+The world's fate rests with you now.
+All of us are counting on you.
+
+[message 1000149]
+Well now!
+Are those collector's gems you're carrying!?
+
+[message 1000150]
+Garnet,
+diopside,
+lapis lazuli...
+
+[message 1000151]
+Morganite,
+kyanite,
+chiastolite...
+
+[message 1000152]
+Hessonite,
+amethyst,
+and rose quartz...
+
+[message 1000153]
+Every last one of them...
+
+[message 1000154]
+What a treat to see. In return,
+let me tell you something few people know.
+
+[message 1000155]
+Over the years we have put down
+a great many demons.
+
+[message 1000156]
+Some, though, were far too strong for us.
+The most we could manage was to seal them away.
+
+[message 1000157]
+If you want to test yourself against
+something truly fearsome, go where they are held.
+
+[message 1000158]
+The Warp Point will take you to that
+hidden place.
+
+[message 1000159]
+Such a fine collection. I'm jealous.
+
+[message 1000160]
+Good heavens! You destroyed the demons
+we never dared to face?
+
+[message 1000161]
+Is there anything left in this world
+that could stand against you?
+
+[message 1000162]
+At this rate there won't be a demon left
+anywhere. Splendid work!
+
+[message 1000163]
+A hired sword likes a solid reward, I expect.
+Giant Warehouse X is yours to use from now on.
+
+[message 1000164]
+May your strength always be spent
+for the good of all people.
+
+[message 1000165]
+Buying, or do you need something
+repaired or identified?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000166]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000167]
+You don't have the money for that.
+
+[message 1000168]
+Nothing here needs any work.
+
+[message 1000169]
+Identifying that will cost %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000170]
+You've got nothing that needs identifying.
+
+[message 1000171]
+Name's Ewart.
+A town with a castle, I figured there'd be
+folk like me in Losmans.
+
+[message 1000172]
+Turns out I figured wrong.
+It's all fine lords and ladies around here...
+
+[message 1000173]
+I'm Clara, a witch who serves
+the holy spirits.
+
+[message 1000174]
+They told me Losmans was always bustling,
+but it's so quiet... Maybe the last attack
+scared folk off. I miss the crowds.
+
+[message 1000175]
+Drop by whenever you like.
+
+[message 1000176]
+Spirits of light,
+mend what evil has torn!
+
+[message 1000177]
+You're in good shape.
+
+[message 1000178]
+...
+
+[message 1000179]
+I am here to keep
+Lord Valdric safe.
+
+[message 1000180]
+Don't stand around. Get going!
+
+[message 1000181]
+You've done fine work.
+
+[message 1000182]
+I have something you should hear.
+
+[message 1000183]
+A few bishops have shut themselves up in a tower
+in the Golas Desert. It ties back to Krator's plot.
+
+[message 1000184]
+They may be harmless, but
+we can't simply leave them there.
+
+[message 1000185]
+Destroy the phantoms that guard the tower,
+and they will likely scatter.
+
+[message 1000186]
+What happened to Krator's son was a mistake.
+No one means to punish them. Could you
+talk them out of their thirst for revenge?
+
+[message 1000187]
+The Warp Rune will take you to the tower.
+I'm relying on you.
+
+[message 1000188]
+Well done. This is your reward.
+
+[message 1000189]
+At last we can all rest a little easier.
+
+[message 1000190]
+Here, let me pass along
+something worth knowing.
+
+[message 1000191]
+There are nine kinds of collector's gems.
+Gathering all of them is no small task:
+they cost a fortune, and when a monster
+drops one it can be lost for good.
+
+[message 1000192]
+Lord Valdric has long had a keen eye
+for collector's gems.
+
+[message 1000193]
+And who might you be?
+I am Ambrose the Mighty.
+Were you speaking to me?
+
+[message 1000194]
+A hired sword?
+Your kind has no business here.
+
+[message 1000195]
+Slack off, and folk around here will
+call you a coin-grabber.
+
+[message 1000196]
+Me? Oh, I'm quite safe.
+I am mighty, and my presence is precious.
+They cannot do without me.
+
+[message 1000197]
+Run along back to your
+little errands.
+
+[message 1000198]
+Archbishop Krator!? What are you saying?
+That cannot be true!
+
+[message 1000199]
+It's all over... I'm ruined...
+
+[message 1000200]
+Good day.
+I am Sir Linus.
+And you are?
+
+[message 1000201]
+Ah, the hired sword. That last attack
+was a hard one, wasn't it?
+Thank you for all you did.
+
+[message 1000202]
+I may be a noble, but I try to live
+like anyone else.
+
+[message 1000203]
+Nobles are little better than thieves. We are
+paid for doing nothing. Some thieves at least work.
+
+[message 1000204]
+Why so many nobles think themselves
+above others, I'll never understand.
+
+[message 1000205]
+Ambrose over there is the worst of them.
+Pay him no mind.
+
+[message 1000206]
+Thank you.
+Keep up the good work.
+
+[message 1000207]
+So you're the hired sword
+Lord Valdric spoke of.
+
+[message 1000208]
+You've heard what became of the elf rangers?
+I can't say what happened, but I have
+a friend who is a holy knight.
+
+[message 1000209]
+He might know things about it that
+no one else does.
+
+[message 1000210]
+His name is Licarn.
+He keeps a tower in
+South Losmans.
+
+[message 1000211]
+I'll send word to him.
+Pay him a visit when you can.
+
+[message 1000212]
+Thank you.
+Good luck to you.
+
+[message 1000213]
+Archbishop Krator did all that?
+I can scarcely believe it!
+
+[message 1000214]
+Ambrose must be crushed.
+
+[message 1000215]
+Archbishop Krator was the one
+who backed him.
+
+[message 1000216]
+Pride always comes down a peg in the end.
+
+[message 1000217]
+I am Warrick, servant and steward
+to Archbishop Krator.
+
+[message 1000218]
+My master is away.
+
+[message 1000219]
+My master is away.
+
+[message 1000220]
+You... came back alive?
+
+[message 1000221]
+Oh, it's nothing.
+
+[message 1000222]
+I hardly think my master's whereabouts
+are any concern of yours.
+
+[message 1000223]
+Very well, very well. My master is at the
+Hill of Heaven, studying the sacred relics.
+
+[message 1000224]
+Kindly leave him in peace.
+
+[message 1000225]
+Kindly leave him in peace.
+
+[message 1000226]
+What?! ... The truth, is it?
+You truly want to hear it? Then listen...
+
+[message 1000227]
+It was all our doing! The raid on Losmans,
+the slaughter of the elf rangers,
+the stolen sacred relics...
+
+[message 1000228]
+And why?
+
+[message 1000229]
+Because of the grimlings
+and Lord Valdric, that's why!
+
+[message 1000230]
+And now you know everything,
+and still there's nothing you can do.
+
+[message 1000231]
+Our one mistake was that you didn't
+die in the Dragon Cave.
+
+[message 1000232]
+Archbishop Krator holds every advantage.
+Victory is ours!
+
+[message 1000233]
+I have only to see Lord Valdric poisoned and
+my task is finished. Let them catch me and
+hang me, for all I care.
+
+[message 1000234]
+Hahahaha.
+
+[message 1000235]
+Ha ha ha ha.
+
+[message 1000236]
+Dead?! No, it can't be! No!
+I won't believe it...
+
+[message 1000237]
+Pardon me, and who are you?
+
+[message 1000238]
+A hired sword, is it? I am the lady
+of this house. You may call me Mrs. Rowan.
+
+[message 1000239]
+You hire out your services, yes?
+Might I ask a favor of you?
+
+[message 1000240]
+I love to sew my own dresses, but there's
+no decent material to be had in this town.
+
+[message 1000241]
+Would you be so kind as to find me some
+white cloth, red thread and a silver needle?
+
+[message 1000242]
+Any of the other towns should have them
+for sale, I'd think.
+
+[message 1000243]
+You'll be well paid for your trouble.
+
+[message 1000244]
+Oh, you found them for me!
+
+[message 1000245]
+Thank you so much.
+Please take this for your trouble.
+
+[message 1000246]
+At last I can start on a new dress.
+
+[message 1000247]
+Who are you?
+
+[message 1000248]
+Oh, the hired sword.
+Here's something you might like to know.
+
+[message 1000249]
+They say a very rare medicine is hidden in
+the Wham ruins, in the Mesrald Burial Grounds.
+
+[message 1000250]
+Goodness, who are you?
+
+[message 1000251]
+There's a story going around that the Silver Orb,
+one of the keys to Aurion's gate, lies in
+the Ruins of Lukuna out in the Golas Desert.
+
+[message 1000252]
+Though who would ever want
+to go to Aurion?
+
+[message 1000253]
+Who are you?
+
+[message 1000254]
+Ah, it's you. I've heard
+the tales about you. Quite something.
+
+[message 1000255]
+Here's something for you... I heard
+the Gold Orb is in the Ruins of Zeres,
+down on Lunafuld Beach.
+
+[message 1000256]
+?
+
+[message 1000257]
+I really want some brightfruit...
+
+[message 1000258]
+It grows along the Road of Atonement.
+
+[message 1000259]
+Hmm...
+
+[message 1000260]
+If only I had a mandrake...
+Hmm...
+
+[message 1000261]
+Well, well!
+
+[message 1000262]
+A mandrake! Where did you find that?
+Never mind, it doesn't matter.
+
+[message 1000263]
+Let me have it, and I'll give you
+something hard to come by.
+
+[message 1000264]
+Welcome to my class. I train those
+who wish to take up a new calling.
+
+[message 1000265]
+You aren't ready for my training
+just yet.
+
+[message 1000266]
+Come back when you have more
+experience behind you.
+
+[message 1000267]
+Very good.
+You seem well seasoned.
+
+[message 1000268]
+You're ready to change your calling.
+
+[message 1000269]
+Everyone who trains here gives 100,000 Gold
+to the grimlings' cause first.
+
+[message 1000270]
+Which calling would you take up?
+      ~Warrior~
+      ~Hunter~
+      ~Wizard~
+
+      ~Leave~
+
+[message 1000271]
+Having second thoughts?
+
+[message 1000272]
+You already follow that calling.
+
+[message 1000273]
+You don't have enough for the gift.
+
+[message 1000274]
+Very well.
+We'll begin your training.
+
+[message 1000275]
+...
+
+[message 1000276]
+...
+
+[message 1000277]
+There.
+
+[message 1000278]
+Your new calling is open to you. Use the
+Change Job button on your Status screen.

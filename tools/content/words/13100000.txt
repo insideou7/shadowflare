@@ -1,0 +1,9 @@
+# Gore Cave: the trader, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Gore Cave
+
+[message 1000001]
+Heh heh...
+Got some fine meat for you.

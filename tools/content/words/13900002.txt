@@ -1,0 +1,170 @@
+# Town of Calado: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Krell, who sells what he knows; Oren the trader; Tibbs the
+# spirit healer; Vasco the smith who dyes armor; Imra, Maren, Galt and
+# Kit, townsfolk; Bella, who trades a rare thing for a tonic.
+# Shared names: the Moonwell Tear. Invented here: Clearmind Tonic (a
+# secret medicine), sugarnuts. Kept as plain game terms: Warp Gate,
+# mandragora, walnuts.
+
+[message 1000000]
+Town of Calado
+
+[message 1000001]
+Town of Calado
+
+[message 1000002]
+Hm? And who might you be?
+
+[message 1000003]
+Heh. I know you. The sellsword out hunting
+for the Moonwell Tear, right?
+
+[message 1000004]
+Hand me 20,000 Gold and I'll tell you
+something worth hearing. Deal?
+
+                         ~Yes~  ~No~
+
+[message 1000005]
+Fool!
+
+[message 1000006]
+Smart choice. You'll go far.
+
+[message 1000007]
+Look for a Warp Gate close by and use it
+to reach a warp point you haven't found yet.
+
+[message 1000008]
+Keep at it.
+
+[message 1000009]
+You're short on gold.
+
+[message 1000010]
+Well? Are you buying or just looking?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000011]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000012]
+You're short on gold.
+
+[message 1000013]
+Nothing here needs mending.
+
+[message 1000014]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000015]
+There's nothing you don't already know about.
+
+[message 1000016]
+I'm Oren. I opened my shop in this town
+twenty years ago now.
+
+[message 1000017]
+Calado was a growing place in those days.
+
+[message 1000018]
+The land north of town is too dangerous.
+The way up there has been shut.
+
+[message 1000019]
+I'm Tibbs. I heal by the spirits' grace.
+
+[message 1000020]
+In my people's old tongue, Tibbs means
+"little acorn". I can't stand acorns.
+
+[message 1000021]
+Spirits, hear me!
+Close their wounds!
+
+[message 1000022]
+There. You look fit and well again.
+
+[message 1000023]
+I'm Vasco, the smith. Fine finishing work
+is what I do best.
+
+[message 1000024]
+Tired of your gear's look? I could give
+your armor a new color.
+
+[message 1000025]
+Who are you?
+
+[message 1000026]
+You've got honest eyes.
+Here's something for you.
+
+[message 1000027]
+Mandragora grows on Lunafuld Beach.
+
+[message 1000028]
+Who are you?
+
+[message 1000029]
+I've heard there's a secret medicine, the
+Clearmind Tonic, hidden in the ruins of
+Coldea, out in the Mesrald Burial Grounds.
+
+[message 1000030]
+I wonder what it's good for.
+
+[message 1000031]
+My, this town isn't safe anymore.
+
+[message 1000032]
+I really should get myself fit.
+
+[message 1000033]
+Anyway, the Plain of Dialose is littered
+with fallen walnuts. Go and gather some.
+
+[message 1000034]
+What is it?
+
+[message 1000035]
+Have you ever had sugarnuts? They're
+wonderful.
+
+[message 1000036]
+I'm told you'll find plenty of them at the
+Meria Ruin in Goronaburb.
+
+[message 1000037]
+Hmm...
+
+[message 1000038]
+If only I had some Clearmind Tonic...
+Hmm...
+
+[message 1000039]
+Oh!?
+
+[message 1000040]
+Is that Clearmind Tonic!?
+Where did you find it?
+
+[message 1000041]
+Let me have it, and I'll give you
+something rare for it.

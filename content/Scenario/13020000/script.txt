@@ -1,0 +1,163 @@
+# Written by tools/content/scripts.py after the original's scenario 3020000
+# (Tower of Nazzle, 1F), in our own words (tools/content/words/13020000.txt).
+
+object=2880,3520,3519,3679,o11000,obj_sealed_x,states=0/0/0,at=3235/3645
+object=3360,3520,3519,3679,o11001,obj_sealed_right_x,states=0/0/0,at=3235/3645
+object=2880,3520,3039,3679,o11002,obj_sealed_left_x,states=0/0/0,at=3235/3645
+temp=1000013,34
+temp=1000014,35
+temp=1000015,36
+temp=1000016,31
+temp=1000017,32
+temp=1000018,33
+temp=1000019,27
+temp=1000020,28
+temp=1000021,38
+temp=1000022,39
+temp=1000023,3
+temp=1000024,25
+temp=1000025,26
+temp=1000026,30
+temp=1000027,37
+temp=1000028,10
+temp=1000029,40
+temp=1000030,41
+temp=1000031,42
+temp=1000032,43
+
+[message 1000000]
+Tower of Nazzle, 1F
+
+[message 1000001]
+This tower is for the training of clergy.
+Please leave.
+
+[message 1000002]
+We come here to train of our own free will,
+so nobody has to give us leave.
+
+[message 1000003]
+If you carry a letter from Bishop Aurel,
+you may go in.
+
+[message 1000004]
+The tower's warding devices are broken, so some
+foes inside may be beyond your power to defeat.
+Take care.
+
+[message 1000005]
+Don't push yourself too hard.
+
+[message 1000006]
+Run into any demons?
+We've never been up the stairs,
+so we can't say what's waiting up there.
+
+[message 1000007]
+This tower is for the training of clergy.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000507 3
+
+[sentence s2]
+CHANGESCENARIO 13020001 0
+
+[sentence s3]
+on=tick
+IF save:79 > 1 @s4
+IF save:79 < 2 @s5
+
+[sentence s4]
+ABSOLUTEOBJECTFLAG o11000 0 0 0
+ABSOLUTEOBJECTFLAG o11001 1 1 1
+ABSOLUTEOBJECTFLAG o11002 1 1 1
+
+[sentence s5]
+ABSOLUTEOBJECTFLAG o11000 1 1 1
+ABSOLUTEOBJECTFLAG o11001 0 0 0
+ABSOLUTEOBJECTFLAG o11002 0 0 0
+
+[sentence s6]
+on=talk 12000000
+C_STOP 12000000
+C_SETANGLETO 12000000 0
+SETFLAG temp:1000002 -1
+IF save:79 = 2 @s7
+IF save:79 = 1 @s10
+IF save:79 = 0 @s13
+TALK temp:1000003 -1 0 -1 -1 -1
+
+[sentence s7]
+IF quest:21 ! 2 @s8
+IF quest:21 = 2 @s9
+
+[sentence s8]
+SETFLAG temp:1000003 msg:1000005
+SETFLAG temp:1000002 200
+
+[sentence s9]
+SETFLAG temp:1000003 msg:1000006
+SETFLAG temp:1000002 300
+
+[sentence s10]
+IF save:80 ! 0 @s11
+IF save:80 = 0 @s12
+
+[sentence s11]
+SETFLAG temp:1000003 msg:1000002
+SETFLAG temp:1000002 100
+SETFLAG save:79 2
+
+[sentence s12]
+SETFLAG temp:1000003 msg:1000007
+SETFLAG temp:1000002 400
+
+[sentence s13]
+IF quest:21 = 0 @s14
+IF quest:21 ! 0 @s15
+
+[sentence s14]
+SETFLAG temp:1000003 msg:1000001
+SETFLAG temp:1000002 0
+
+[sentence s15]
+SETFLAG temp:1000003 msg:1000007
+SETFLAG temp:1000002 400
+SETFLAG save:79 1
+
+[sentence s16]
+on=talk-end 12000000
+IF temp:1000002 = 0 @s17
+IF temp:1000002 = 102 @s18
+IF temp:1000002 = 200 @s19
+IF temp:1000002 = 300 @s20
+IF temp:1000002 = 400 @s21
+IF temp:1000002 = -1 @s22
+IF temp:1000002 ! -1 @s23
+
+[sentence s17]
+SETFLAG temp:1000002 -1
+
+[sentence s18]
+SETFLAG temp:1000002 -1
+
+[sentence s19]
+SETFLAG temp:1000002 -1
+
+[sentence s20]
+SETFLAG temp:1000002 -1
+
+[sentence s21]
+SETFLAG temp:1000002 -1
+
+[sentence s22]
+C_MOVABLE 12000000
+
+[sentence s23]
+ADD temp:1000002 1
+ADD temp:1000003 1
+TALK temp:1000003 -1 0 -1 -1 -1

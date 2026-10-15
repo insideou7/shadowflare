@@ -1,0 +1,118 @@
+# Written by tools/content/scripts.py after the original's scenario 3110000
+# (Tower of Licarn, 1F), in our own words (tools/content/words/13110000.txt).
+
+object=4099,5121,4258,5280,o1100,states=1/1/1,at=4192/5197
+object=4884,5126,5043,5285,o1101,states=1/1/1,at=4977/5202
+object=3659,4391,3859,4591,o1,states=0/1/0,at=3759/4491
+object=5038,4432,5238,4632,o2,states=0/1/0,at=5138/4532
+temp=1000013,81
+temp=1000014,82
+temp=1000015,83
+temp=1000016,31
+temp=1000017,32
+temp=1000018,33
+temp=1000019,27
+temp=1000020,28
+temp=1000021,38
+temp=1000022,39
+temp=1000023,3
+temp=1000024,25
+temp=1000025,26
+temp=1000026,30
+temp=1000027,37
+temp=1000028,10
+temp=1000029,40
+temp=1000030,41
+temp=1000031,42
+temp=1000032,43
+temp=1000033,53
+temp=1000034,80
+temp=1000035,51
+
+[message 1000000]
+Tower of Licarn, 1F
+
+[message 1000001]
+Warning.
+No transport from this place.
+Every warp rune here goes one way only.
+
+[message 1000002]
+Expect to be attacked.
+You may get few chances to restock, too.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000002
+IF temp:1000002 = 2 @s1
+
+[sentence s1]
+IF quest:28 = 1 @s2
+
+[sentence s2]
+SETQUESTFLAG 28 2 0
+
+[sentence s3]
+CHANGESCENARIO 13000403 3
+
+[sentence s4]
+on=judge o1
+IF quest:27 ! 0 @s5
+
+[sentence s5]
+CHANGESCENARIO 13110004 0
+
+[sentence s6]
+on=tick
+IF quest:27 ! 0 @s7
+
+[sentence s7]
+IF temp:1000009 = 0 @s8
+IF temp:1000009 ! 0 @s9
+
+[sentence s8]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000035 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000009
+
+[sentence s9]
+SUB temp:1000009 1
+
+[sentence s10]
+on=tick
+SETFLAG temp:1000002 1000
+IF temp:1000011 < 30 @s11
+IF temp:1000011 ! 0 @s12
+
+[sentence s11]
+SETFLAG temp:1000002 temp:1000011
+MUL temp:1000002 1000
+DIV temp:1000002 30
+
+[sentence s12]
+MESSAGEBOX o1100 0 -64 msg:1000001 160 160 192 temp:1000002
+SUB temp:1000011 1
+
+[sentence s13]
+on=talk o1100
+SETFLAG temp:1000011 150
+
+[sentence s14]
+on=tick
+SETFLAG temp:1000002 1000
+IF temp:1000012 < 30 @s15
+IF temp:1000012 ! 0 @s16
+
+[sentence s15]
+SETFLAG temp:1000002 temp:1000012
+MUL temp:1000002 1000
+DIV temp:1000002 30
+
+[sentence s16]
+MESSAGEBOX o1101 0 -64 msg:1000002 160 160 192 temp:1000002
+SUB temp:1000012 1
+
+[sentence s17]
+on=talk o1101
+SETFLAG temp:1000012 150

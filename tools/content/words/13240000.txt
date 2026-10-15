@@ -1,0 +1,8 @@
+# Dark Elves Hiding Place: its name, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Dark Elves Hiding Place
+
+[message 1000001]
+Dark Elves Hiding Place

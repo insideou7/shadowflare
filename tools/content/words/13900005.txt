@@ -1,0 +1,395 @@
+# Sena's Small Shrine: what its people say, in our own words, by the
+# original's message numbers (tools/content/scripts.py). Each keeps the
+# original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Saint Seren keeps the shrine and carries the spirit of Valmere,
+# the White Angel; Morvane is the fallen scientist sealed in Aurion; Aldo
+# the trader; Talon the partner. Coined here: the Fiend's Tooth (the key to
+# the burrow from Ento Village into the Fort of Demons), the Fellowship Stone (her reward), rare curios.
+
+[message 1000000]
+Sena's Small Shrine
+
+[message 1000001]
+Sena's Small Shrine
+
+[message 1000002]
+Oh, a visitor! We hardly ever have guests here.
+
+[message 1000003]
+Who might you be?
+And what can I do for you?
+
+[message 1000004]
+Lord Valdric means to hand the holy relics
+over to me, now?
+
+[message 1000005]
+...
+
+[message 1000006]
+...
+
+[message 1000007]
+...
+
+[message 1000008]
+Well, you're welcome at my shrine whenever you like.
+
+[message 1000009]
+I am Seren, and in a sense I am Valmere too.
+Some call me the White Angel herself, but it is
+her spirit I share, more than her face.
+
+[message 1000010]
+You might say she dwells in my body. The holy relics,
+and the coming of Morvane, the fiend, have woken
+Valmere's spirit inside me.
+
+[message 1000011]
+...
+
+[message 1000012]
+I see.
+You mean to go to Aurion and learn the truth.
+
+[message 1000013]
+A wise choice. But you are mortal, so to bear
+Morvane's power you'll need all five orbs.
+
+[message 1000014]
+I can tell you already hold two of them.
+
+[message 1000015]
+First, go to an old research hall, a ruin close
+to Berini Village. The blue and green orbs
+are kept there.
+
+[message 1000016]
+Once you have them,
+please come back to me.
+
+[message 1000017]
+Oh, it's you. You've been coming by quite often.
+
+[message 1000018]
+Oh, it's you. You've been coming by quite often.
+
+[message 1000019]
+...
+
+[message 1000020]
+...
+
+[message 1000021]
+...
+
+[message 1000022]
+So you've found the blue and green orbs?
+
+[message 1000023]
+With them, you may be able to stand up
+to Morvane's power now.
+
+[message 1000024]
+The last one, the Red Orb, is kept
+in a tower in Berini Village.
+
+[message 1000025]
+Come back to me once it's yours.
+
+[message 1000026]
+Hello. That must have been a long, hard road.
+Can I offer you some coffee?
+
+[message 1000027]
+Hello.
+
+[message 1000028]
+...
+
+[message 1000029]
+...
+
+[message 1000030]
+So you have every one of the orbs now.
+
+[message 1000031]
+I can feel their magic moving inside you.
+
+[message 1000032]
+...
+
+[message 1000033]
+Then I'll tell you all of it, even what
+the grimling faith itself does not know.
+
+[message 1000034]
+...
+
+[message 1000035]
+Long ago, humankind stood at its height.
+Science, the thing you call the craft of the
+ancient world, let people work wonders,
+and everyone lived in comfort.
+
+[message 1000036]
+Their power was so great they could even rule
+the weather. They turned deserts into meadows
+and made frozen wastes fit to live in.
+
+[message 1000037]
+In that world, Morvane and I
+were both scientists.
+
+[message 1000038]
+All was peaceful, until one day it wasn't...
+
+[message 1000039]
+Morvane was a brilliant scientist. Together we
+studied the hidden potential of human beings.
+
+[message 1000040]
+Put simply, we searched for ways to make people
+stronger and help them live longer.
+
+[message 1000041]
+And our work led us to a remarkable discovery.
+
+[message 1000042]
+Yet that same discovery
+was where the end began...
+
+[message 1000043]
+At first people cheered what we had done
+and hailed it as a great achievement.
+It didn't last. They soon turned on us
+and called our work evil.
+
+[message 1000044]
+Morvane's work on strengthening people drew
+the worst of it. In the end he was branded
+an enemy of all humankind.
+
+[message 1000045]
+It wounded him deeply. He was sure his work
+was meant for the good of everyone.
+
+[message 1000046]
+So he kept at it, hoping that one day people
+would understand and welcome what he had made.
+
+[message 1000047]
+And then it happened...
+
+[message 1000048]
+The army was ordered to seize him. And it was not
+only Morvane they came for. His family was judged
+guilty alongside him, and they...
+
+[message 1000049]
+...
+
+[message 1000050]
+He was never the same again.
+
+[message 1000051]
+The army forced Morvane to work for them,
+and he turned to experiments of a darker kind.
+
+[message 1000052]
+What he made frightened the army; they feared his
+power was beyond holding. They moved to lock him up
+and end his work, but Morvane had seen it coming
+and was ready for them.
+
+[message 1000053]
+He made himself into a mighty, demonlike creature
+and raised an army of others like him. With a
+living plague he turned anyone it touched into one
+of them. Truly, it was a dark and evil magic.
+
+[message 1000054]
+He was eaten up with hatred
+for all humankind...
+No one could stop him.
+The plague spread beyond counting.
+
+[message 1000055]
+The few who lived were those who could shield
+themselves from the plague, scientists and soldiers.
+But even for them, it was only a matter of time
+before nearly all were changed or killed.
+
+[message 1000056]
+I had been his partner and shared his research.
+It seemed only right that I, with what I knew,
+should be the one to stop him.
+
+[message 1000057]
+I followed his path and made myself one of his
+demons, then hunted him down and sealed him away.
+It cost me dearly. My body was broken by it.
+
+[message 1000058]
+That is how this world came to be cursed.
+I believe Morvane has now risen again from Aurion,
+where I sealed him.
+
+[message 1000059]
+The five orbs hold the power to stand against his
+magic. With my holy crest, you can call on it.
+
+[message 1000060]
+The spirit crest, too,
+can restore your strength.
+
+[message 1000061]
+I tell you all this because I sense
+a rare power in you.
+
+[message 1000062]
+I hope what I've told you helps you become all
+you can be. This world's fate rests with you now.
+
+[message 1000063]
+Go to Aurion,
+and do what you believe is right for this world.
+
+[message 1000064]
+Hello. How have you been?
+
+[message 1000065]
+I see...
+
+[message 1000066]
+As you know, Morvane all but destroyed the world.
+What he did can never be forgiven.
+
+[message 1000067]
+But please remember, at least, that had things gone
+another way, he might have been humankind's savior.
+
+[message 1000068]
+And as for you...
+
+[message 1000069]
+...
+
+[message 1000070]
+The whole world is grateful for what you've done.
+I'll go on living in this body, keeping Valmere's
+spirit with me until the end of my days.
+
+[message 1000071]
+If you're ever passing this way, please visit me.
+
+[message 1000072]
+Oh, hello there!
+
+[message 1000073]
+This may be asking too much of you,
+but I know you're the only one
+who can help me.
+
+[message 1000074]
+After Morvane was sealed away, the strongest of
+the demons that served him gathered at the Fort of
+Demons.
+
+[message 1000075]
+They are weaker than Morvane himself,
+but strong all the same, and they could wreak
+havoc if no one deals with them.
+
+[message 1000076]
+The burrow in Ento Village leads to the Fort of
+Demons, but it was made for demons alone. Without
+the Fiend's Tooth, no human can pass through it.
+
+[message 1000077]
+The demons of the Forest of Poison once had the
+Fiend's Tooth, but I don't know where it is now.
+
+[message 1000078]
+Will you go and defeat the demons
+at the Fort of Demons for me?
+
+[message 1000079]
+Be sure you come back alive.
+I'll be waiting to hear how it went.
+
+[message 1000080]
+Thank you, truly.
+Please take this Fellowship Stone as thanks.
+With it, your companions take less time
+to recover.
+
+[message 1000081]
+Oh, the demons at the Fort of Demons were people
+once. The plague robbed them of their reason.
+
+[message 1000082]
+Also, the demons at the Fort of Demons and the Ruins
+of Remoteness seem fond of rare curios,
+and hoard as many as they can.
+
+[message 1000083]
+And it might help to know that the Fiend's Tooth
+is said to restore spiritual power.
+
+[message 1000084]
+Is that of any help to you?
+
+[message 1000085]
+Hello.
+
+[message 1000086]
+Thank you so much.
+
+[message 1000087]
+I've got fine wares here.
+
+  ~Buy items             ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000088]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000089]
+You can't afford that.
+
+[message 1000090]
+Nothing here needs mending.
+
+[message 1000091]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000092]
+There's nothing unknown here.
+
+[message 1000093]
+Talon
+
+  ~Check status~
+  ~About me~
+  ~Swap~
+
+          ~Leave~
+
+[message 1000094]
+Count on me, above all when it comes to attacking.
+
+[message 1000095]
+I'd be glad of any items
+that build up my stamina.

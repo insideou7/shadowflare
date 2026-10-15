@@ -1,0 +1,24 @@
+# Mesrald Burial Grounds: signs, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+Mesrald Burial Grounds
+
+[message 1000001]
+Mesrald Burial Grounds
+
+[message 1000002]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000003]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000004]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000005]
+The grimling faith holds these ruins.
+Only those it allows may enter.

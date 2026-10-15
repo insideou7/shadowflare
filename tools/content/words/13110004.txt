@@ -1,0 +1,127 @@
+# Tower of Licarn, 5F: what Licarn, the holy knight, says, in our own
+# words, by the original's message numbers (tools/content/scripts.py).
+# Lissa is Lissa Tallow of Fanann (area 2). Gorr was a holy knight put to
+# death by the grimling faith; Lord Valdric is the cardinal in Losmans.
+
+[message 1000000]
+Tower of Licarn, 5F
+
+[message 1000001]
+I am Licarn, a holy knight.
+You'd be the sellsword Lissa told me about, yes?
+
+[message 1000002]
+You've come to hear how the elven rangers
+were wiped out. Am I right?
+
+[message 1000003]
+In truth, it was Lord Valdric who set off the chain
+of events that ended in that disaster.
+
+[message 1000004]
+He asked the elven rangers to look into the thefts
+of holy relics that have been going on of late.
+
+[message 1000005]
+They were the finest rangers there were, yet they
+were ambushed and slain while they searched.
+Lord Valdric is half human and half elf, and now
+the elves lay the blame at his feet.
+
+[message 1000006]
+And the timing of it all tells me someone inside
+the church is working hand in hand with the enemy.
+
+[message 1000007]
+Wait... What's this?
+
+[message 1000008]
+......
+
+[message 1000009]
+Odd...
+The tower has stopped working.
+
+[message 1000010]
+Give me a moment.
+
+[message 1000011]
+.......
+
+[message 1000012]
+I thought so.
+Someone outside is working the tower...
+
+[message 1000013]
+With the transport down, nobody can move between
+the floors. Someone has to go down to the first floor.
+
+[message 1000014]
+I haven't the gear to fight my way down there.
+Would you go in my place?
+
+[message 1000015]
+Reaching the first floor may be enough to set
+the tower running again. If it does, come back
+and see me.
+
+[message 1000016]
+You can't transport straight up to a higher floor.
+And the warp runes between the floors only go
+one way. Mind yourself.
+
+[message 1000017]
+Take care.
+
+[message 1000018]
+My thanks.
+Who would do such a thing, I wonder...
+
+[message 1000019]
+......
+
+[message 1000020]
+Ah, yes... the rangers and the stolen relics.
+
+[message 1000021]
+Does the name Gorr mean anything to you?
+
+[message 1000022]
+No, I didn't think so.
+Long ago there was a holy knight called Gorr.
+
+[message 1000023]
+A fine knight, until the day he dared to question
+the ways of the grimling faith. That was forbidden...
+
+[message 1000024]
+I'll spare you the whole tale for now, but
+the grimlings put him to death as a traitor.
+
+[message 1000025]
+You're wondering what that has to do with the thefts?
+
+[message 1000026]
+Just before the relics began to vanish, a grave
+keeper found Gorr's tomb empty. His body was gone.
+
+[message 1000027]
+So the holy knights whisper among themselves that
+Gorr has risen to take his revenge on the grimlings.
+
+[message 1000028]
+That's all I know.
+I hope it's of some use to you.
+
+[message 1000029]
+Why would I help you, you ask?
+
+[message 1000030]
+Ha ha ha.
+An old friend of mine in the mining town
+told me all about you.
+
+[message 1000031]
+I can feel a power in you that might change the world.
+See that you use it for the good of us all.
+Now, go on with your journey.

@@ -1,0 +1,1352 @@
+# Written by tools/content/scripts.py after the original's scenario 3900004
+# (Ponse, Village of Dwarves), in our own words (tools/content/words/13900004.txt).
+
+object=17787,13441,18084,13692,o200,states=1/1/1,at=17925/13554
+object=17757,13411,18105,13731,o201,states=1/0/0,at=17925/13554
+object=16676,12422,19184,14724,o202,states=0/0/0,at=17529/13049
+object=18125,13753,18175,13801,o203,states=1/0/0,at=17925/13554
+object=18125,13753,18175,13801,o204,states=1/0/0,at=17925/13554
+object=5565,5045,6204,5684,o300,states=1/1/1,at=5872/5319
+object=19628,17381,19788,17541,o1,states=0/0/0,at=19708/17461
+temp=1000015,-1
+temp=1000017,500
+temp=1000020,4
+temp=1000021,99000008
+temp=1000022,4
+temp=1000023,99000023
+temp=1000024,4
+temp=1000025,99000009
+temp=1000026,50
+temp=1000027,4
+temp=1000028,99000016
+temp=1000029,3
+temp=1000030,40000009
+temp=1000033,1
+temp=1000034,2
+temp=1000035,3
+temp=1000036,4
+temp=1000037,5
+temp=1000038,6
+temp=1000039,7
+temp=1000040,8
+temp=1000041,9
+temp=1000042,10
+temp=1000043,11
+temp=1000044,12
+temp=1000045,13
+temp=1000046,14
+temp=1000047,15
+temp=1000048,34
+temp=1000049,35
+temp=1000050,36
+temp=1000051,77
+temp=1000052,78
+temp=1000053,33
+temp=1000054,27
+temp=1000055,28
+temp=1000056,38
+temp=1000057,39
+temp=1000058,3
+temp=1000059,25
+temp=1000060,26
+temp=1000061,30
+temp=1000062,37
+temp=1000063,10
+temp=1000064,40
+temp=1000065,41
+temp=1000066,42
+temp=1000067,43
+temp=1000068,53
+temp=1000069,80
+temp=1000070,51
+temp=1000071,24
+temp=1000072,64
+
+[message 1000000]
+Ponse, Village of Dwarves
+
+[message 1000001]
+Ponse, Village of Dwarves
+
+[message 1000002]
+And you are?
+Unless it matters, leave me be.
+
+[message 1000003]
+An antidote that cures any poison?
+That's what you're after?
+
+[message 1000004]
+It won't come cheap, mind.
+
+[message 1000005]
+Are the grimlings paying for it?
+
+[message 1000006]
+Hmm... very well.
+But don't expect a perfect cure.
+
+[message 1000007]
+I'm out of Ponero fruit, though,
+and the antidote can't be made without it.
+
+[message 1000008]
+It grows on the trees inside Ponero Cave,
+to the south of the Moldona Peninsula...
+
+[message 1000009]
+Could you bring me some of that fruit?
+
+[message 1000010]
+Bring me the fruit and I'll make
+the antidote right away.
+
+[message 1000011]
+Ah, that's the fruit!
+Give me a moment to brew it.
+
+[message 1000012]
+...
+
+[message 1000013]
+...
+
+[message 1000014]
+Done! An antidote for any poison.
+
+[message 1000015]
+You fetched the fruit yourself,
+so this one costs you nothing.
+
+[message 1000016]
+Well? What do you need?
+
+[message 1000017]
+More Ponero fruit? Don't tell me
+you need another antidote already.
+
+[message 1000018]
+Try to hang on to this one.
+
+[message 1000019]
+Come to buy something?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000020]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000021]
+You can't afford that.
+
+[message 1000022]
+Nothing here needs mending.
+
+[message 1000023]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000024]
+There's nothing unknown here.
+
+[message 1000025]
+I'm Brokk. Trading in a dwarf village
+suits me down to the ground.
+
+[message 1000026]
+Dwarves fight with axes and nothing else,
+so axes are all the weapons I stock.
+
+[message 1000027]
+There's an apothecary in the village too,
+so I keep all sorts of medicine.
+
+[message 1000028]
+I'm Wynn, the spirit healer here.
+
+[message 1000029]
+Count yourself lucky you don't live here.
+Nothing ever happens!
+
+[message 1000030]
+Spirits, hear me! Close their wounds!
+
+[message 1000031]
+You look fine to me.
+
+[message 1000032]
+A sellsword, are you?
+Hargrim's the name. I'm the smith.
+
+[message 1000033]
+Old things are my weakness. Find me an
+ancient short sword and I'll make it
+worth your while.
+
+[message 1000034]
+Thanks.
+
+[message 1000035]
+Would you look at that!
+An ancient short sword, the real thing!
+
+[message 1000036]
+I'm in your debt, friend!
+
+[message 1000037]
+From now on, all your repairs are free.
+
+[message 1000038]
+Bring me anything that needs fixing
+and I'll see to it.
+
+[message 1000039]
+Hmm...
+
+[message 1000040]
+Here's a secret for you.
+
+[message 1000041]
+They say a vitality potion lies in the
+Ruins of Carn, in the Mesrald Burial Grounds.
+
+[message 1000042]
+And who are you?
+
+[message 1000043]
+I hear a peddler of tablets lives in Wog
+Cave, down in the Valley of Dying People.
+
+[message 1000044]
+Pay him a visit if you've the time.
+
+[message 1000045]
+Hello there.
+
+[message 1000046]
+I'm told someone in Mour Cave, on Lunafuld
+Beach, sells capsules.
+
+[message 1000047]
+Takes all sorts to make a world.
+
+[message 1000048]
+Me? You want me?
+
+[message 1000049]
+What I'd give for a handful of goji berries.
+
+[message 1000050]
+Folk say they grow at the Ruins of Goldo,
+along the Road of Atonement.
+
+[message 1000051]
+Hmm...
+
+[message 1000052]
+If only I had some akebi fruit...
+Hmm...
+
+[message 1000053]
+Hmm...!?
+
+[message 1000054]
+Is that akebi fruit? Where did you get it?
+No, forget I asked. It doesn't matter.
+
+[message 1000055]
+If you'll let me have it, I'll give you
+something rare in return.
+
+[message 1000056]
+Did you want something from me?
+
+[message 1000057]
+They say there's a learned man who
+studies the ruins of this world.
+
+[message 1000058]
+I wonder what he's looking into
+these days.
+
+[message 1000059]
+Well, hello there.
+
+[message 1000060]
+You're the sellsword who's been poking
+around the Sages' Ruins, aren't you?
+
+[message 1000061]
+Give me 80,000 Gold and I'll tell you
+something interesting. Deal?
+
+                         ~Yes~  ~No~
+
+[message 1000062]
+Spoken like a true fighter.
+
+[message 1000063]
+You're one of a kind.
+
+[message 1000064]
+Step onto the warp rune over there.
+
+[message 1000065]
+Don't lose heart.
+
+[message 1000066]
+You're short on gold.
+
+[message 1000067]
+I've got some fine wares today.
+
+[sentence s0]
+on=start
+INITTRADE 0 17
+INITTRADE 1 18
+INITTRADE 2 35
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000068 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 13000503 1
+
+[sentence s3]
+on=judge o1
+IF save:114 = 1 @s4
+
+[sentence s4]
+CHANGESCENARIO 13000304 2
+
+[sentence s5]
+on=tick
+IF save:114 = 1 @s6
+
+[sentence s6]
+IF temp:1000031 = 0 @s7
+IF temp:1000031 ! 0 @s8
+
+[sentence s7]
+CREATEEFFECTCHAR 20018 o1
+PLAYSOUND temp:1000070 0 x:o1 y:o1
+GETRANDAM 20 40 temp:1000031
+
+[sentence s8]
+SUB temp:1000031 1
+
+[sentence s9]
+on=talk 12000000
+C_STOP 12000000
+C_SETANGLETO 12000000 0
+SETFLAG temp:1000001 -1
+IF save:93 = 2 @s10
+IF save:93 = 1 @s15
+IF save:93 = 0 @s18
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s10]
+SETFLAG temp:1000014 0
+CHECKITEMEXIST temp:1000020 temp:1000021 temp:1000005
+IF temp:1000005 = 1 @s11
+IF temp:1000014 = 1 @s13
+IF temp:1000014 = 0 @s14
+
+[sentence s11]
+CHECKITEMEXIST temp:1000024 temp:1000025 temp:1000005
+IF temp:1000005 ! 1 @s12
+
+[sentence s12]
+SETFLAG temp:1000014 1
+
+[sentence s13]
+DELETEITEM temp:1000020 temp:1000021
+SETFLAG temp:1000002 msg:1000017
+SETFLAG temp:1000001 500
+
+[sentence s14]
+SETFLAG temp:1000002 msg:1000016
+SETFLAG temp:1000001 400
+
+[sentence s15]
+CHECKITEMEXIST temp:1000020 temp:1000021 temp:1000005
+IF temp:1000005 = 1 @s16
+IF temp:1000005 ! 1 @s17
+
+[sentence s16]
+DELETEITEM temp:1000020 temp:1000021
+SETFLAG temp:1000002 msg:1000011
+SETFLAG temp:1000001 300
+SETFLAG save:93 2
+
+[sentence s17]
+SETFLAG temp:1000002 msg:1000010
+SETFLAG temp:1000001 200
+
+[sentence s18]
+IF quest:31 ! 0 @s19
+IF quest:31 = 0 @s20
+
+[sentence s19]
+SETFLAG temp:1000002 msg:1000003
+SETFLAG temp:1000001 100
+SETFLAG save:93 1
+
+[sentence s20]
+SETFLAG temp:1000002 msg:1000002
+SETFLAG temp:1000001 0
+
+[sentence s21]
+on=talk-end 12000000
+IF temp:1000001 = 0 @s22
+IF temp:1000001 = 106 @s23
+IF temp:1000001 = 200 @s24
+IF temp:1000001 = 304 @s25
+IF temp:1000001 = 400 @s26
+IF temp:1000001 = 501 @s27
+IF temp:1000001 = -1 @s28
+IF temp:1000001 ! -1 @s29
+IF temp:1000001 = 303 @s30
+IF temp:1000001 = 501 @s31
+
+[sentence s22]
+SETFLAG temp:1000001 -1
+
+[sentence s23]
+SETFLAG temp:1000001 -1
+
+[sentence s24]
+SETFLAG temp:1000001 -1
+
+[sentence s25]
+SETFLAG temp:1000001 -1
+
+[sentence s26]
+SETFLAG temp:1000001 -1
+
+[sentence s27]
+SETFLAG temp:1000001 -1
+
+[sentence s28]
+C_MOVABLE 12000000
+
+[sentence s29]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s30]
+SETITEMDIRECT temp:1000024 temp:1000025
+
+[sentence s31]
+SETITEMDIRECT temp:1000024 temp:1000025
+
+[sentence s32]
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
+IF save:94 = 1 @s33
+IF save:94 = 0 @s34
+
+[sentence s33]
+TALK msg:1000019 temp:1000000 0 4 -1 -1
+SETFLAG temp:1000001 -1
+
+[sentence s34]
+TALK msg:1000025 -1 0 -1 -1 -1
+SETFLAG temp:1000001 10
+SETFLAG save:94 1
+
+[sentence s35]
+on=talk-end p1
+IF temp:1000001 = 0 @s36
+IF temp:1000001 = 11 @s37
+IF temp:1000001 = 10 @s38
+IF temp:1000001 = -1 @s39
+
+[sentence s36]
+C_MOVABLE p1
+
+[sentence s37]
+SETFLAG temp:1000001 0
+TALK msg:1000027 -1 0 -1 -1 -1
+
+[sentence s38]
+SETFLAG temp:1000001 11
+TALK msg:1000026 -1 0 -1 -1 -1
+
+[sentence s39]
+IF temp:1000016 = 6 @s40
+IF temp:1000016 = 5 @s41
+IF temp:1000016 = 4 @s42
+IF temp:1000016 = 3 @s47
+IF temp:1000016 = 2 @s48
+IF temp:1000016 = 1 @s49
+IF temp:1000016 = 0 @s86
+SETFLAG temp:1000000 -1
+
+[sentence s40]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s41]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s42]
+IF temp:1000000 ! 0 @s43
+IF temp:1000000 = 0 @s44
+
+[sentence s43]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s44]
+GETTOTALGOLD temp:1000005
+SETFLAG temp:1000006 0
+IF temp:1000005 < temp:1000017 @s45
+IF temp:1000006 = 0 @s46
+
+[sentence s45]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 5
+SETFLAG temp:1000006 1
+
+[sentence s46]
+PAYGOLD temp:1000017
+IDENTIFY
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s47]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s48]
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s49]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+GETTOTALGOLD temp:1000014
+SETFLAG temp:1000013 temp:1000000
+IF temp:1000013 = 0 @s50
+IF temp:1000013 = 1 @s55
+IF temp:1000013 = 2 @s60
+IF temp:1000013 = 3 @s65
+IF temp:1000013 = 4 @s70
+IF temp:1000013 = 5 @s75
+IF temp:1000013 = 6 @s80
+IF temp:1000013 = 7 @s85
+
+[sentence s50]
+IF temp:1000005 ! 0 @s51
+IF temp:1000005 = 0 @s54
+
+[sentence s51]
+SETFLAG temp:1000012 0
+IF temp:1000005 > temp:1000014 @s52
+IF temp:1000012 = 0 @s53
+
+[sentence s52]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s53]
+REPAIR 0
+PAYGOLD temp:1000005
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s54]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s55]
+IF temp:1000006 ! 0 @s56
+IF temp:1000006 = 0 @s59
+
+[sentence s56]
+SETFLAG temp:1000012 0
+IF temp:1000006 > temp:1000014 @s57
+IF temp:1000012 = 0 @s58
+
+[sentence s57]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s58]
+REPAIR 1
+PAYGOLD temp:1000006
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s59]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s60]
+IF temp:1000007 ! 0 @s61
+IF temp:1000007 = 0 @s64
+
+[sentence s61]
+SETFLAG temp:1000012 0
+IF temp:1000007 > temp:1000014 @s62
+IF temp:1000012 = 0 @s63
+
+[sentence s62]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s63]
+REPAIR 2
+PAYGOLD temp:1000007
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s64]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s65]
+IF temp:1000008 ! 0 @s66
+IF temp:1000008 = 0 @s69
+
+[sentence s66]
+SETFLAG temp:1000012 0
+IF temp:1000008 > temp:1000014 @s67
+IF temp:1000012 = 0 @s68
+
+[sentence s67]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s68]
+REPAIR 3
+PAYGOLD temp:1000008
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s69]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s70]
+IF temp:1000009 ! 0 @s71
+IF temp:1000009 = 0 @s74
+
+[sentence s71]
+SETFLAG temp:1000012 0
+IF temp:1000009 > temp:1000014 @s72
+IF temp:1000012 = 0 @s73
+
+[sentence s72]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s73]
+REPAIR 4
+PAYGOLD temp:1000009
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s74]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s75]
+IF temp:1000010 ! 0 @s76
+IF temp:1000010 = 0 @s79
+
+[sentence s76]
+SETFLAG temp:1000012 0
+IF temp:1000010 > temp:1000014 @s77
+IF temp:1000012 = 0 @s78
+
+[sentence s77]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s78]
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+PAYGOLD temp:1000010
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s79]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s80]
+IF temp:1000011 ! 0 @s81
+IF temp:1000011 = 0 @s84
+
+[sentence s81]
+SETFLAG temp:1000012 0
+IF temp:1000011 > temp:1000014 @s82
+IF temp:1000012 = 0 @s83
+
+[sentence s82]
+TALK msg:1000021 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 2
+SETFLAG temp:1000012 1
+
+[sentence s83]
+REPAIR -1
+PAYGOLD temp:1000011
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 3
+
+[sentence s84]
+TALK msg:1000022 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 3
+
+[sentence s85]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+SETFLAG temp:1000000 -1
+
+[sentence s86]
+IF temp:1000000 = 0 @s87
+IF temp:1000000 = 1 @s88
+IF temp:1000000 = 2 @s89
+IF temp:1000000 = 3 @s92
+IF temp:1000000 = 4 @s93
+
+[sentence s87]
+TRADE 0
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s88]
+TRADE 1
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s89]
+CHECKUNOPINIONITEM temp:1000005
+IF temp:1000005 = 1 @s90
+IF temp:1000005 = 0 @s91
+
+[sentence s90]
+SETMSGDEFINE temp:1000017 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000023 temp:1000000 0 1 -1 -1
+SETFLAG temp:1000016 4
+
+[sentence s91]
+TALK msg:1000024 temp:1000000 0 -1 -1 -1
+SETFLAG temp:1000016 6
+
+[sentence s92]
+GETREPAIRPRICE 0 temp:1000005
+GETREPAIRPRICE 1 temp:1000006
+GETREPAIRPRICE 2 temp:1000007
+GETREPAIRPRICE 3 temp:1000008
+GETREPAIRPRICE 4 temp:1000009
+SETFLAG temp:1000010 0
+ADD temp:1000010 temp:1000005
+ADD temp:1000010 temp:1000006
+ADD temp:1000010 temp:1000007
+ADD temp:1000010 temp:1000008
+ADD temp:1000010 temp:1000009
+GETREPAIRPRICE -1 temp:1000011
+SETMSGDEFINE temp:1000005 temp:1000006 temp:1000007 temp:1000008 temp:1000009 temp:1000010 temp:1000011 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+TALK msg:1000020 temp:1000000 0 7 -1 -1
+SETFLAG temp:1000016 1
+
+[sentence s93]
+C_MOVABLE p1
+SETFLAG temp:1000016 0
+
+[sentence s94]
+on=talk p2
+C_STOP p2
+C_SETANGLETO p2 0
+IF save:95 = 1 @s95
+IF save:95 = 0 @s101
+
+[sentence s95]
+SETFLAG temp:1000001 -1
+SETFLAG temp:1000007 0
+GETPLAYERLIFE temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s96
+GETPLAYERMENTAL temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s97
+GETPARTNERLIFE temp:1000005 temp:1000006
+IF temp:1000005 ! temp:1000006 @s98
+IF temp:1000007 = 1 @s99
+IF temp:1000007 = 0 @s100
+
+[sentence s96]
+SETFLAG temp:1000007 1
+
+[sentence s97]
+SETFLAG temp:1000007 1
+
+[sentence s98]
+SETFLAG temp:1000007 1
+
+[sentence s99]
+SETFLAG temp:1000015 msg:1000030
+TALK msg:1000030 -1 0 -1 -1 -1
+
+[sentence s100]
+SETFLAG temp:1000015 msg:1000031
+TALK temp:1000015 -1 0 -1 -1 -1
+
+[sentence s101]
+TALK msg:1000028 -1 0 -1 -1 -1
+SETFLAG temp:1000001 10
+SETFLAG save:95 1
+
+[sentence s102]
+on=talk-end p2
+IF temp:1000001 = 0 @s103
+IF temp:1000001 = 10 @s104
+IF temp:1000001 = -1 @s105
+
+[sentence s103]
+C_MOVABLE p2
+
+[sentence s104]
+SETFLAG temp:1000001 0
+TALK msg:1000029 -1 0 -1 -1 -1
+
+[sentence s105]
+C_MOVABLE p2
+IF temp:1000015 = msg:1000030 @s106
+
+[sentence s106]
+C_ACTIONREQ p2 4 -1 -1 -1 -1
+HEALLIFE
+HEALMENTAL
+PLAYSOUND temp:1000071 0 x:p2 y:p2
+
+[sentence s107]
+on=talk 12000003
+C_STOP 12000003
+C_SETANGLETO 12000003 0
+SETFLAG temp:1000001 -1
+IF save:100 = 2 @s108
+IF save:100 = 1 @s109
+IF save:100 = 0 @s112
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s108]
+SETFLAG temp:1000002 msg:1000038
+SETFLAG temp:1000001 300
+REPAIR 0
+REPAIR 1
+REPAIR 2
+REPAIR 3
+REPAIR 4
+
+[sentence s109]
+CHECKITEMEXIST temp:1000022 temp:1000023 temp:1000005
+IF temp:1000005 = 1 @s110
+IF temp:1000005 ! 1 @s111
+
+[sentence s110]
+DELETEITEM temp:1000022 temp:1000023
+SETQUESTFLAG 35 2 0
+SETFLAG temp:1000002 msg:1000035
+SETFLAG temp:1000001 200
+SETFLAG save:100 2
+GETEXPERIENCE temp:1000026
+PLAYSOUND temp:1000072 1 0 0
+
+[sentence s111]
+SETFLAG temp:1000002 msg:1000034
+SETFLAG temp:1000001 100
+
+[sentence s112]
+SETFLAG temp:1000002 msg:1000032
+SETFLAG temp:1000001 0
+SETFLAG save:100 1
+
+[sentence s113]
+on=talk-end 12000003
+IF temp:1000001 = 1 @s114
+IF temp:1000001 = 100 @s115
+IF temp:1000001 = 202 @s116
+IF temp:1000001 = 300 @s117
+IF temp:1000001 = -1 @s118
+IF temp:1000001 ! -1 @s119
+IF temp:1000001 = 1 @s120
+
+[sentence s114]
+SETFLAG temp:1000001 -1
+
+[sentence s115]
+SETFLAG temp:1000001 -1
+
+[sentence s116]
+SETFLAG temp:1000001 -1
+
+[sentence s117]
+SETFLAG temp:1000001 -1
+
+[sentence s118]
+C_MOVABLE 12000003
+
+[sentence s119]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s120]
+SETQUESTFLAG 35 1 0
+DRAWQUESTNAME 35
+
+[sentence s121]
+on=talk p4
+C_STOP p4
+C_SETANGLETO p4 0
+SETFLAG temp:1000001 -1
+IF quest:32 = 2 @s122
+IF quest:32 ! 2 @s123
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s122]
+SETFLAG temp:1000002 msg:1000040
+SETFLAG temp:1000001 100
+
+[sentence s123]
+SETFLAG temp:1000002 msg:1000039
+SETFLAG temp:1000001 0
+
+[sentence s124]
+on=talk-end p4
+IF temp:1000001 = 0 @s125
+IF temp:1000001 = 101 @s126
+IF temp:1000001 = -1 @s127
+IF temp:1000001 ! -1 @s128
+
+[sentence s125]
+SETFLAG temp:1000001 -1
+
+[sentence s126]
+SETFLAG temp:1000001 -1
+
+[sentence s127]
+C_MOVABLE p4
+
+[sentence s128]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s129]
+on=talk p5
+C_STOP p5
+C_SETANGLETO p5 0
+SETFLAG temp:1000001 -1
+IF quest:32 = 2 @s130
+IF quest:32 ! 2 @s131
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s130]
+SETFLAG temp:1000002 msg:1000043
+SETFLAG temp:1000001 100
+
+[sentence s131]
+SETFLAG temp:1000002 msg:1000042
+SETFLAG temp:1000001 0
+
+[sentence s132]
+on=talk-end p5
+IF temp:1000001 = 0 @s133
+IF temp:1000001 = 101 @s134
+IF temp:1000001 = -1 @s135
+IF temp:1000001 ! -1 @s136
+
+[sentence s133]
+SETFLAG temp:1000001 -1
+
+[sentence s134]
+SETFLAG temp:1000001 -1
+
+[sentence s135]
+C_MOVABLE p5
+
+[sentence s136]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s137]
+on=talk 12000006
+C_STOP 12000006
+C_SETANGLETO 12000006 0
+SETFLAG temp:1000001 -1
+IF quest:32 = 2 @s138
+IF quest:32 ! 2 @s139
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s138]
+SETFLAG temp:1000002 msg:1000046
+SETFLAG temp:1000001 100
+
+[sentence s139]
+SETFLAG temp:1000002 msg:1000045
+SETFLAG temp:1000001 0
+
+[sentence s140]
+on=talk-end 12000006
+IF temp:1000001 = 0 @s141
+IF temp:1000001 = 101 @s142
+IF temp:1000001 = -1 @s143
+IF temp:1000001 ! -1 @s144
+
+[sentence s141]
+SETFLAG temp:1000001 -1
+
+[sentence s142]
+SETFLAG temp:1000001 -1
+
+[sentence s143]
+C_MOVABLE 12000006
+
+[sentence s144]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s145]
+on=talk p7
+C_STOP p7
+C_SETANGLETO p7 0
+SETFLAG temp:1000001 -1
+IF quest:32 = 2 @s146
+IF quest:32 ! 2 @s147
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s146]
+SETFLAG temp:1000002 msg:1000049
+SETFLAG temp:1000001 100
+
+[sentence s147]
+SETFLAG temp:1000002 msg:1000048
+SETFLAG temp:1000001 0
+
+[sentence s148]
+on=talk-end p7
+IF temp:1000001 = 0 @s149
+IF temp:1000001 = 101 @s150
+IF temp:1000001 = -1 @s151
+IF temp:1000001 ! -1 @s152
+
+[sentence s149]
+SETFLAG temp:1000001 -1
+
+[sentence s150]
+SETFLAG temp:1000001 -1
+
+[sentence s151]
+C_MOVABLE p7
+
+[sentence s152]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s153]
+on=talk p8
+C_STOP p8
+C_SETANGLETO p8 0
+SETFLAG temp:1000001 -1
+IF quest:32 = 2 @s154
+IF quest:32 ! 2 @s159
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s154]
+CHECKITEMEXIST temp:1000027 temp:1000028 temp:1000005
+IF temp:1000005 = 1 @s155
+IF temp:1000005 ! 1 @s156
+
+[sentence s155]
+SETFLAG temp:1000002 msg:1000051
+SETFLAG temp:1000001 0
+
+[sentence s156]
+CHECKITEMEXIST temp:1000029 temp:1000030 temp:1000005
+IF temp:1000005 = 1 @s157
+IF temp:1000005 ! 1 @s158
+
+[sentence s157]
+SETFLAG temp:1000002 msg:1000053
+SETFLAG temp:1000001 200
+
+[sentence s158]
+SETFLAG temp:1000002 msg:1000052
+SETFLAG temp:1000001 100
+
+[sentence s159]
+SETFLAG temp:1000002 msg:1000051
+SETFLAG temp:1000001 0
+
+[sentence s160]
+on=talk-end p8
+IF temp:1000001 = 0 @s161
+IF temp:1000001 = 100 @s162
+IF temp:1000001 = 202 @s163
+IF temp:1000001 = -1 @s164
+IF temp:1000001 ! -1 @s165
+IF temp:1000001 = 202 @s166
+
+[sentence s161]
+SETFLAG temp:1000001 -1
+
+[sentence s162]
+SETFLAG temp:1000001 -1
+
+[sentence s163]
+SETFLAG temp:1000001 -1
+
+[sentence s164]
+C_MOVABLE p8
+
+[sentence s165]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s166]
+DELETEITEM temp:1000029 temp:1000030
+SETFLAG temp:1000003 x:p8
+SETFLAG temp:1000004 y:p8
+ADD temp:1000003 200
+CREATEITEM temp:1000027 temp:1000028 temp:1000003 temp:1000004 -1 -1
+
+[sentence s167]
+on=talk 12000009
+C_STOP 12000009
+C_SETANGLETO 12000009 0
+SETFLAG temp:1000001 -1
+IF quest:44 ! 0 @s168
+IF quest:44 = 0 @s169
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s168]
+SETFLAG temp:1000002 msg:1000056
+SETFLAG temp:1000001 0
+
+[sentence s169]
+SETFLAG temp:1000002 msg:1000057
+SETFLAG temp:1000001 100
+SETQUESTFLAG 44 1 0
+DRAWQUESTNAME 44
+
+[sentence s170]
+on=talk-end 12000009
+IF temp:1000001 = 0 @s171
+IF temp:1000001 = 101 @s172
+IF temp:1000001 = -1 @s173
+IF temp:1000001 ! -1 @s174
+
+[sentence s171]
+SETFLAG temp:1000001 -1
+
+[sentence s172]
+SETFLAG temp:1000001 -1
+
+[sentence s173]
+C_MOVABLE 12000009
+
+[sentence s174]
+ADD temp:1000001 1
+ADD temp:1000002 1
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s175]
+on=talk p10
+C_STOP p10
+C_SETANGLETO p10 0
+SETFLAG temp:1000001 -1
+IF save:114 = 1 @s176
+IF save:114 = 0 @s177
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s176]
+SETFLAG temp:1000002 msg:1000065
+SETFLAG temp:1000001 400
+
+[sentence s177]
+IF quest:44 ! 0 @s178
+IF quest:44 = 0 @s179
+
+[sentence s178]
+SETFLAG temp:1000002 msg:1000060
+SETFLAG temp:1000001 100
+
+[sentence s179]
+SETFLAG temp:1000002 msg:1000059
+SETFLAG temp:1000001 0
+
+[sentence s180]
+on=talk-end p10
+IF temp:1000001 = 0 @s181
+IF temp:1000001 = 200 @s182
+IF temp:1000001 = 301 @s183
+IF temp:1000001 = 400 @s184
+IF temp:1000001 = 500 @s185
+IF temp:1000001 = 101 @s186
+IF temp:1000001 = -1 @s191
+IF temp:1000001 ! -1 @s192
+
+[sentence s181]
+SETFLAG temp:1000001 -1
+
+[sentence s182]
+SETFLAG temp:1000001 -1
+
+[sentence s183]
+SETFLAG temp:1000001 -1
+
+[sentence s184]
+SETFLAG temp:1000001 -1
+
+[sentence s185]
+SETFLAG temp:1000001 -1
+
+[sentence s186]
+IF temp:1000000 = 0 @s187
+IF temp:1000000 = 1 @s190
+
+[sentence s187]
+GETTOTALGOLD temp:1000014
+IF temp:1000014 > 79999 @s188
+IF temp:1000014 < 80000 @s189
+
+[sentence s188]
+PAYGOLD 80000
+SETFLAG temp:1000002 msg:1000063
+SUB temp:1000002 1
+SETFLAG temp:1000001 300
+SUB temp:1000001 1
+SETFLAG save:114 1
+
+[sentence s189]
+SETFLAG temp:1000002 msg:1000066
+SUB temp:1000002 1
+SETFLAG temp:1000001 500
+SUB temp:1000001 1
+
+[sentence s190]
+SETFLAG temp:1000002 msg:1000062
+SUB temp:1000002 1
+SETFLAG temp:1000001 200
+SUB temp:1000001 1
+
+[sentence s191]
+C_MOVABLE p10
+
+[sentence s192]
+IF temp:1000001 ! 101 @s193
+IF temp:1000001 ! 101 @s194
+IF temp:1000001 = 101 @s195
+
+[sentence s193]
+ADD temp:1000001 1
+ADD temp:1000002 1
+
+[sentence s194]
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s195]
+TALK temp:1000002 temp:1000000 0 1 -1 -1
+
+[sentence s196]
+on=talk p100
+C_STOP p100
+C_SETANGLETO p100 0
+SETFLAG temp:1000002 msg:1000067
+TALK temp:1000002 -1 0 -1 -1 -1
+
+[sentence s197]
+on=talk-end p100
+C_MOVABLE p100
+TRADE 2
+
+[sentence s198]
+on=talk o300
+STORAGE 0
+
+[sentence s199]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s200
+IF temp:1000005 > 0 @s204
+IF temp:1000005 > -1 @s206
+
+[sentence s200]
+IF warp:33 = 0 @s201
+IF temp:1000018 ! 1000 @s202
+IF temp:1000019 = 0 @s203
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s201]
+SETFLAG warp:33 1
+
+[sentence s202]
+ADD temp:1000018 50
+
+[sentence s203]
+PLAYSOUND temp:1000069 0 x:o200 y:o200
+SETFLAG temp:1000019 1
+
+[sentence s204]
+IF temp:1000018 ! 0 @s205
+SETFLAG temp:1000019 0
+DELETEWARPGATE 0
+
+[sentence s205]
+SUB temp:1000018 50
+
+[sentence s206]
+SETCHARTRANS o203 temp:1000018
+SETCHARTRANS o204 temp:1000018
+
+[sentence s207]
+on=talk o200
+WARPGATE 0

@@ -69,7 +69,7 @@ def compare(game, pack, number):
     pad = 12
     ys, xs = np.arange(ys.min() - pad, ys.max() + pad + 1), np.arange(xs.min() - pad, xs.max() + pad + 1)
     ox, oy = origin(o, pack / "Scenario" / f"{fa.our_number(number):08d}" / "scenario.txt")
-    walk = read_open_map(pack / "Map" / f"{o.name}.txt")
+    walk = read_open_map(pack / "Map" / f"{fa.map_name(game, number)}.txt")
     X, Y = np.meshgrid((xs + o.jx0) * fa.CELL + fa.CELL // 2 - ox, (ys + o.jy0) * fa.CELL + fa.CELL // 2 - oy)
     ours = walk(X, Y)
     theirs = np.zeros(ours.shape, bool)

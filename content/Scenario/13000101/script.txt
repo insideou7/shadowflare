@@ -1,0 +1,97 @@
+# Written by tools/content/scripts.py after the original's scenario 3000101
+# (The Wilds of Death and Darkness), in our own words (tools/content/words/13000101.txt).
+
+object=1216,35722,1375,35881,o1000,states=1/0/1,at=1310/35868
+object=1214,34604,1373,34763,o1001,states=1/0/1,at=1409/34839
+object=1222,36846,1381,37005,o1002,states=1/0/1,at=1607/37351
+object=1214,33964,1373,34123,o1003,states=1/0/1,at=1389/33939
+object=1220,37478,1379,37637,o1004,states=1/0/1,at=1410/37548
+object=1163,38115,1322,38274,o1005,states=1/0/1,at=1548/38620
+object=1161,38747,1320,38906,o1006,states=1/0/1,at=1351/38817
+object=1217,33402,1376,33561,o1007,states=1/0/1,at=1412/33637
+object=1217,32762,1376,32921,o1008,states=1/0/1,at=1392/32737
+object=1216,35722,1375,35881,o1009,states=1/0/1,at=1310/35868
+object=2088,35039,2247,35198,o1100,states=1/1/1,at=2181/35115
+object=1328,35421,1578,36451,o1,states=0/0/0,at=1428/35521
+temp=1000016,34
+temp=1000017,35
+temp=1000018,36
+temp=1000019,77
+temp=1000020,78
+temp=1000021,33
+temp=1000022,27
+temp=1000023,28
+temp=1000024,38
+temp=1000025,39
+temp=1000026,3
+temp=1000027,25
+temp=1000028,26
+temp=1000029,30
+temp=1000030,37
+temp=1000031,10
+temp=1000032,40
+temp=1000033,41
+temp=1000034,42
+temp=1000035,43
+temp=1000036,53
+temp=1000037,80
+temp=1000038,51
+
+[message 1000000]
+The Wilds of Death and Darkness
+
+[message 1000001]
+Ahead lies Aurion, the forbidden land.
+None may pass who does not carry
+the five orbs and the spirit crest.
+
+[sentence s0]
+on=start
+GETENTRYPOINT temp:1000005
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13210000 1
+
+[sentence s2]
+on=judge o1
+IF quest:40 = 2 @s3
+
+[sentence s3]
+CHANGESCENARIO 14900002 0
+
+[sentence s4]
+on=tick
+IF quest:40 = 2 @s5
+IF quest:40 ! 2 @s6
+
+[sentence s5]
+ABSOLUTEOBJECTFLAG o1000 0 0 0
+ABSOLUTEOBJECTFLAG o1009 1 0 0
+
+[sentence s6]
+ABSOLUTEOBJECTFLAG o1000 1 0 0
+ABSOLUTEOBJECTFLAG o1009 0 0 0
+
+[sentence s7]
+on=tick
+SETTINGRAIN 64 64 224 5
+
+[sentence s8]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000015 < 30 @s9
+IF temp:1000015 ! 0 @s10
+
+[sentence s9]
+SETFLAG temp:1000005 temp:1000015
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s10]
+MESSAGEBOX o1100 0 -64 msg:1000001 160 160 192 temp:1000005
+SUB temp:1000015 1
+
+[sentence s11]
+on=talk o1100
+SETFLAG temp:1000015 150

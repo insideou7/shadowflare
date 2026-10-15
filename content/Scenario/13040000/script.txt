@@ -1,0 +1,356 @@
+# Written by tools/content/scripts.py after the original's scenario 3040000
+# (Ruins of Carn), in our own words (tools/content/words/13040000.txt).
+
+object=14773,21650,15003,21748,o20000,obj_chest_x,states=1/1/1,at=14838/21654
+object=14773,21650,15003,21748,o20001,obj_chest_open_x,states=0/0/0,at=14838/21654
+object=15369,21633,15599,21731,o20002,obj_chest_x,states=1/1/1,at=15434/21637
+object=15369,21633,15599,21731,o20003,obj_chest_open_x,states=0/0/0,at=15434/21637
+object=2631,15882,2861,15980,o20004,obj_chest_x,states=1/1/1,at=2696/15886
+object=2631,15882,2861,15980,o20005,obj_chest_open_x,states=0/0/0,at=2696/15886
+object=2913,15410,3143,15508,o20006,obj_chest_x,states=1/1/1,at=2978/15414
+object=2913,15410,3143,15508,o20007,obj_chest_open_x,states=0/0/0,at=2978/15414
+object=3091,15894,3321,15992,o20008,obj_chest_x,states=1/1/1,at=3156/15898
+object=3091,15894,3321,15992,o20009,obj_chest_open_x,states=0/0/0,at=3156/15898
+object=15096,21186,15326,21284,o20010,obj_chest_x,states=1/1/1,at=15161/21190
+object=15096,21186,15326,21284,o20011,obj_chest_open_x,states=0/0/0,at=15161/21190
+object=21254,13256,21269,13278,o60000,states=1/0/0,at=21128/13142
+object=21245,13886,21260,13908,o60001,states=1/0/0,at=21119/13772
+object=20629,12511,20644,12533,o60002,states=1/0/0,at=20503/12397
+object=18224,11806,18239,11828,o60003,states=1/0/0,at=18098/11692
+object=8792,10527,8807,10549,o60004,states=1/0/0,at=8666/10413
+object=9751,6378,9766,6400,o60005,states=1/0/0,at=9625/6264
+object=9744,5565,9759,5587,o60006,states=1/0/0,at=9618/5451
+object=9739,4760,9754,4782,o60007,states=1/0/0,at=9613/4646
+object=4623,7326,4638,7348,o60008,states=1/0/0,at=4497/7212
+object=4947,13562,4962,13584,o60009,states=1/0/0,at=4821/13448
+object=1428,8941,1443,8963,o60010,states=1/0/0,at=1302/8827
+temp=1000009,236
+temp=1000010,-1
+temp=1000011,-1
+temp=1000012,-1
+temp=1000013,-1
+temp=1000014,-1
+temp=1000015,-1
+temp=1000016,-1
+temp=1000017,600
+temp=1000018,800
+temp=1000019,236
+temp=1000020,-1
+temp=1000021,-1
+temp=1000022,-1
+temp=1000023,-1
+temp=1000024,236
+temp=1000025,-1
+temp=1000026,-1
+temp=1000027,-1
+temp=1000028,-1
+temp=1000029,236
+temp=1000030,-1
+temp=1000031,-1
+temp=1000032,-1
+temp=1000033,-1
+temp=1000034,236
+temp=1000035,-1
+temp=1000036,-1
+temp=1000037,-1
+temp=1000038,-1
+temp=1000039,81
+temp=1000040,82
+temp=1000041,83
+temp=1000042,31
+temp=1000043,32
+temp=1000044,33
+temp=1000045,27
+temp=1000046,28
+temp=1000047,38
+temp=1000048,39
+temp=1000049,3
+temp=1000050,25
+temp=1000051,26
+temp=1000052,30
+temp=1000053,37
+temp=1000054,10
+temp=1000055,40
+temp=1000056,41
+temp=1000057,42
+temp=1000058,43
+
+[message 1000000]
+Ruins of Carn
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13000505 1
+
+[sentence s2]
+on=talk o20000
+SETINACTIVE o20000
+SETACTIVE o20001
+PLAYSOUND temp:1000042 0 x:o20000 y:o20000
+IF net:1000000 = 0 @s3
+
+[sentence s3]
+SETFLAG temp:1000000 x:o20000
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20000
+ADD temp:1000001 200
+IF temp:1000012 = -1 @s4
+IF temp:1000012 ! -1 @s7
+SETFLAG net:1000000 1
+
+[sentence s4]
+IF temp:1000009 = -1 @s5
+IF temp:1000009 ! -1 @s6
+
+[sentence s5]
+CREATEITEM temp:1000010 temp:1000011 temp:1000000 temp:1000001 -1 -1
+
+[sentence s6]
+CREATEITEMTABLE temp:1000009 temp:1000000 temp:1000001
+
+[sentence s7]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000012 temp:1000013
+
+[sentence s8]
+on=talk o20001
+SETACTIVE o20000
+SETINACTIVE o20001
+PLAYSOUND temp:1000043 0 x:o20000 y:o20000
+
+[sentence s9]
+IF shown:o20000 = 0 @s10
+IF shown:o20000 = 1 @s11
+
+[sentence s10]
+PLAYSOUND temp:1000043 0 x:o20000 y:o20000
+
+[sentence s11]
+PLAYSOUND temp:1000042 0 x:o20000 y:o20000
+
+[sentence s12]
+on=talk o20002
+SETINACTIVE o20002
+SETACTIVE o20003
+PLAYSOUND temp:1000042 0 x:o20002 y:o20002
+IF net:1000001 = 0 @s13
+
+[sentence s13]
+SETFLAG temp:1000000 x:o20002
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20002
+ADD temp:1000001 200
+IF temp:1000017 = -1 @s14
+IF temp:1000017 ! -1 @s17
+SETFLAG net:1000001 1
+
+[sentence s14]
+IF temp:1000014 = -1 @s15
+IF temp:1000014 ! -1 @s16
+
+[sentence s15]
+CREATEITEM temp:1000015 temp:1000016 temp:1000000 temp:1000001 -1 -1
+
+[sentence s16]
+CREATEITEMTABLE temp:1000014 temp:1000000 temp:1000001
+
+[sentence s17]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000017 temp:1000018
+
+[sentence s18]
+on=talk o20003
+SETACTIVE o20002
+SETINACTIVE o20003
+PLAYSOUND temp:1000043 0 x:o20002 y:o20002
+
+[sentence s19]
+IF shown:o20002 = 0 @s20
+IF shown:o20002 = 1 @s21
+
+[sentence s20]
+PLAYSOUND temp:1000043 0 x:o20002 y:o20002
+
+[sentence s21]
+PLAYSOUND temp:1000042 0 x:o20002 y:o20002
+
+[sentence s22]
+on=talk o20004
+SETINACTIVE o20004
+SETACTIVE o20005
+PLAYSOUND temp:1000042 0 x:o20004 y:o20004
+IF net:1000002 = 0 @s23
+
+[sentence s23]
+SETFLAG temp:1000000 x:o20004
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20004
+ADD temp:1000001 200
+IF temp:1000022 = -1 @s24
+IF temp:1000022 ! -1 @s27
+SETFLAG net:1000002 1
+
+[sentence s24]
+IF temp:1000019 = -1 @s25
+IF temp:1000019 ! -1 @s26
+
+[sentence s25]
+CREATEITEM temp:1000020 temp:1000021 temp:1000000 temp:1000001 -1 -1
+
+[sentence s26]
+CREATEITEMTABLE temp:1000019 temp:1000000 temp:1000001
+
+[sentence s27]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000022 temp:1000023
+
+[sentence s28]
+on=talk o20005
+SETACTIVE o20004
+SETINACTIVE o20005
+PLAYSOUND temp:1000043 0 x:o20004 y:o20004
+
+[sentence s29]
+IF shown:o20004 = 0 @s30
+IF shown:o20004 = 1 @s31
+
+[sentence s30]
+PLAYSOUND temp:1000043 0 x:o20004 y:o20004
+
+[sentence s31]
+PLAYSOUND temp:1000042 0 x:o20004 y:o20004
+
+[sentence s32]
+on=talk o20006
+SETINACTIVE o20006
+SETACTIVE o20007
+PLAYSOUND temp:1000042 0 x:o20006 y:o20006
+IF net:1000003 = 0 @s33
+
+[sentence s33]
+SETFLAG temp:1000000 x:o20006
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20006
+ADD temp:1000001 200
+IF temp:1000027 = -1 @s34
+IF temp:1000027 ! -1 @s37
+SETFLAG net:1000003 1
+
+[sentence s34]
+IF temp:1000024 = -1 @s35
+IF temp:1000024 ! -1 @s36
+
+[sentence s35]
+CREATEITEM temp:1000025 temp:1000026 temp:1000000 temp:1000001 -1 -1
+
+[sentence s36]
+CREATEITEMTABLE temp:1000024 temp:1000000 temp:1000001
+
+[sentence s37]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000027 temp:1000028
+
+[sentence s38]
+on=talk o20007
+SETACTIVE o20006
+SETINACTIVE o20007
+PLAYSOUND temp:1000043 0 x:o20006 y:o20006
+
+[sentence s39]
+IF shown:o20006 = 0 @s40
+IF shown:o20006 = 1 @s41
+
+[sentence s40]
+PLAYSOUND temp:1000043 0 x:o20006 y:o20006
+
+[sentence s41]
+PLAYSOUND temp:1000042 0 x:o20006 y:o20006
+
+[sentence s42]
+on=talk o20008
+SETINACTIVE o20008
+SETACTIVE o20009
+PLAYSOUND temp:1000042 0 x:o20008 y:o20008
+IF net:1000004 = 0 @s43
+
+[sentence s43]
+SETFLAG temp:1000000 x:o20008
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20008
+ADD temp:1000001 200
+IF temp:1000032 = -1 @s44
+IF temp:1000032 ! -1 @s47
+SETFLAG net:1000004 1
+
+[sentence s44]
+IF temp:1000029 = -1 @s45
+IF temp:1000029 ! -1 @s46
+
+[sentence s45]
+CREATEITEM temp:1000030 temp:1000031 temp:1000000 temp:1000001 -1 -1
+
+[sentence s46]
+CREATEITEMTABLE temp:1000029 temp:1000000 temp:1000001
+
+[sentence s47]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000032 temp:1000033
+
+[sentence s48]
+on=talk o20009
+SETACTIVE o20008
+SETINACTIVE o20009
+PLAYSOUND temp:1000043 0 x:o20008 y:o20008
+
+[sentence s49]
+IF shown:o20008 = 0 @s50
+IF shown:o20008 = 1 @s51
+
+[sentence s50]
+PLAYSOUND temp:1000043 0 x:o20008 y:o20008
+
+[sentence s51]
+PLAYSOUND temp:1000042 0 x:o20008 y:o20008
+
+[sentence s52]
+on=talk o20010
+SETINACTIVE o20010
+SETACTIVE o20011
+PLAYSOUND temp:1000042 0 x:o20010 y:o20010
+IF net:1000005 = 0 @s53
+
+[sentence s53]
+SETFLAG temp:1000000 x:o20010
+ADD temp:1000000 200
+SETFLAG temp:1000001 y:o20010
+ADD temp:1000001 200
+IF temp:1000037 = -1 @s54
+IF temp:1000037 ! -1 @s57
+SETFLAG net:1000005 1
+
+[sentence s54]
+IF temp:1000034 = -1 @s55
+IF temp:1000034 ! -1 @s56
+
+[sentence s55]
+CREATEITEM temp:1000035 temp:1000036 temp:1000000 temp:1000001 -1 -1
+
+[sentence s56]
+CREATEITEMTABLE temp:1000034 temp:1000000 temp:1000001
+
+[sentence s57]
+CREATEITEM 4 0 temp:1000000 temp:1000001 temp:1000037 temp:1000038
+
+[sentence s58]
+on=talk o20011
+SETACTIVE o20010
+SETINACTIVE o20011
+PLAYSOUND temp:1000043 0 x:o20010 y:o20010
+
+[sentence s59]
+IF shown:o20010 = 0 @s60
+IF shown:o20010 = 1 @s61
+
+[sentence s60]
+PLAYSOUND temp:1000043 0 x:o20010 y:o20010
+
+[sentence s61]
+PLAYSOUND temp:1000042 0 x:o20010 y:o20010

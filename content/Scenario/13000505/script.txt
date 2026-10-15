@@ -1,0 +1,225 @@
+# Written by tools/content/scripts.py after the original's scenario 3000505
+# (Mesrald Burial Grounds), in our own words (tools/content/words/13000505.txt).
+
+object=62616,23761,62775,23920,o1000,states=1/0/1,at=62537/23899
+object=52001,24807,52298,25058,o200,states=1/1/1,at=52139/24920
+object=51971,24777,52319,25097,o201,states=1/0/0,at=52139/24920
+object=50890,23788,53398,26090,o202,states=0/0/0,at=51743/24415
+object=52339,25119,52389,25167,o203,states=1/0/0,at=52139/24920
+object=52339,25119,52389,25167,o204,states=1/0/0,at=52139/24920
+object=31048,18559,31207,18718,o1100,states=1/1/1,at=31141/18635
+object=46243,49284,46402,49443,o1101,states=1/1/1,at=46330/49366
+object=18724,34084,18883,34243,o1102,states=1/1/1,at=18812/34155
+object=5774,26253,5933,26412,o1103,states=1/1/1,at=5861/26316
+object=29822,17964,30665,18301,o1,states=0/0/0,at=29942/18424
+object=46780,48856,47498,49087,o2,states=0/0/0,at=46900/49316
+object=18162,33205,18924,33414,o3,states=0/0/0,at=18282/33665
+object=6464,25993,7110,26207,o4,states=0/0/0,at=6584/26453
+object=27298,44111,27899,44279,o6,states=0/0/0,at=27378/44191
+temp=1000021,34
+temp=1000022,35
+temp=1000023,36
+temp=1000024,77
+temp=1000025,78
+temp=1000026,33
+temp=1000027,27
+temp=1000028,28
+temp=1000029,38
+temp=1000030,39
+temp=1000031,3
+temp=1000032,25
+temp=1000033,26
+temp=1000034,30
+temp=1000035,37
+temp=1000036,10
+temp=1000037,40
+temp=1000038,41
+temp=1000039,42
+temp=1000040,43
+temp=1000041,53
+temp=1000042,80
+temp=1000043,51
+
+[message 1000000]
+Mesrald Burial Grounds
+
+[message 1000001]
+Mesrald Burial Grounds
+
+[message 1000002]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000003]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000004]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[message 1000005]
+The grimling faith holds these ruins.
+Only those it allows may enter.
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+GETENTRYPOINT temp:1000005
+IF temp:1000005 = 50 @s1
+
+[sentence s1]
+PLAYSOUND temp:1000041 0 x:o200 y:o200
+
+[sentence s2]
+CHANGESCENARIO 13000506 1
+
+[sentence s3]
+on=judge o1
+IF save:85 > 9 @s4
+
+[sentence s4]
+CHANGESCENARIO 13040000 0
+
+[sentence s5]
+on=judge o2
+IF save:85 > 9 @s6
+
+[sentence s6]
+CHANGESCENARIO 13050000 0
+
+[sentence s7]
+on=judge o3
+IF save:85 > 9 @s8
+
+[sentence s8]
+CHANGESCENARIO 13060000 0
+
+[sentence s9]
+on=judge o4
+IF save:85 > 9 @s10
+
+[sentence s10]
+CHANGESCENARIO 13070000 0
+
+[sentence s11]
+CHANGESCENARIO 13900001 3
+
+[sentence s12]
+on=judge o6
+CHANGESCENARIO 14110000 0
+
+[sentence s13]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000015 < 30 @s14
+IF temp:1000015 ! 0 @s15
+
+[sentence s14]
+SETFLAG temp:1000005 temp:1000015
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s15]
+MESSAGEBOX o1100 0 -64 msg:1000002 160 160 192 temp:1000005
+SUB temp:1000015 1
+
+[sentence s16]
+on=talk o1100
+SETFLAG temp:1000015 150
+
+[sentence s17]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000016 < 30 @s18
+IF temp:1000016 ! 0 @s19
+
+[sentence s18]
+SETFLAG temp:1000005 temp:1000016
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s19]
+MESSAGEBOX o1101 0 -64 msg:1000003 160 160 192 temp:1000005
+SUB temp:1000016 1
+
+[sentence s20]
+on=talk o1101
+SETFLAG temp:1000016 150
+
+[sentence s21]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000017 < 30 @s22
+IF temp:1000017 ! 0 @s23
+
+[sentence s22]
+SETFLAG temp:1000005 temp:1000017
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s23]
+MESSAGEBOX o1102 0 -64 msg:1000004 160 160 192 temp:1000005
+SUB temp:1000017 1
+
+[sentence s24]
+on=talk o1102
+SETFLAG temp:1000017 150
+
+[sentence s25]
+on=tick
+SETFLAG temp:1000005 1000
+IF temp:1000018 < 30 @s26
+IF temp:1000018 ! 0 @s27
+
+[sentence s26]
+SETFLAG temp:1000005 temp:1000018
+MUL temp:1000005 1000
+DIV temp:1000005 30
+
+[sentence s27]
+MESSAGEBOX o1103 0 -64 msg:1000005 160 160 192 temp:1000005
+SUB temp:1000018 1
+
+[sentence s28]
+on=talk o1103
+SETFLAG temp:1000018 150
+
+[sentence s29]
+on=tick
+CALCMYPLAYERDIST o202 temp:1000005
+IF temp:1000005 = 0 @s30
+IF temp:1000005 > 0 @s34
+IF temp:1000005 > -1 @s36
+
+[sentence s30]
+IF warp:27 = 0 @s31
+IF temp:1000019 ! 1000 @s32
+IF temp:1000020 = 0 @s33
+MESSAGEBOX o200 0 -160 msg:1000001 224 224 224 1000
+
+[sentence s31]
+SETFLAG warp:27 1
+
+[sentence s32]
+ADD temp:1000019 50
+
+[sentence s33]
+PLAYSOUND temp:1000042 0 x:o200 y:o200
+SETFLAG temp:1000020 1
+
+[sentence s34]
+IF temp:1000019 ! 0 @s35
+SETFLAG temp:1000020 0
+DELETEWARPGATE 0
+
+[sentence s35]
+SUB temp:1000019 50
+
+[sentence s36]
+SETCHARTRANS o203 temp:1000019
+SETCHARTRANS o204 temp:1000019
+
+[sentence s37]
+on=talk o200
+WARPGATE 0

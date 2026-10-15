@@ -1,0 +1,22 @@
+# East Losmans: the gate guard, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+East Losmans
+
+[message 1000001]
+The town is still mending after the enemy's raids.
+Nobody goes in for now. Those are my orders.
+
+[message 1000002]
+A letter from Bishop Aurel in Antalusia, you say?
+Let me have a look at it.
+
+[message 1000003]
+Even so, I can't open the gate just yet.
+It has to do with the town walls, I think.
+Nobody tells me more than that.
+
+[message 1000004]
+The walls are mended at last.
+The gate is open to you now.

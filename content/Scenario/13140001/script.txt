@@ -1,0 +1,58 @@
+# Written by tools/content/scripts.py after the original's scenario 3140001
+# (Ancient Ruins, B2F), in our own words (tools/content/words/13140001.txt).
+
+temp=1000010,81
+temp=1000011,82
+temp=1000012,83
+temp=1000013,31
+temp=1000014,32
+temp=1000015,33
+temp=1000016,27
+temp=1000017,28
+temp=1000018,38
+temp=1000019,39
+temp=1000020,3
+temp=1000021,25
+temp=1000022,26
+temp=1000023,30
+temp=1000024,37
+temp=1000025,10
+temp=1000026,40
+temp=1000027,41
+temp=1000028,42
+temp=1000029,43
+temp=1000030,51
+
+[message 1000000]
+Ancient Ruins, B2F
+
+[sentence s0]
+on=start
+SETCOMPASSES msg:1000000
+
+[sentence s1]
+CHANGESCENARIO 13140000 1
+
+[sentence s2]
+on=tick
+IF temp:1000009 = 0 @s3
+IF temp:1000009 ! 0 @s4
+
+[sentence s3]
+CREATEEFFECTCHAR 20018 10000000
+PLAYSOUND temp:1000030 0 x:10000000 y:10000000
+GETRANDAM 20 40 temp:1000009
+
+[sentence s4]
+SUB temp:1000009 1
+
+[sentence s5]
+on=tick
+IF playmode:0 ! 2 @s6
+
+[sentence s6]
+CHECKENEMYLIVE 14000000 14000000 temp:1000002
+IF temp:1000002 = -1 @s7
+
+[sentence s7]
+SETQUESTFLAG 30 2 1

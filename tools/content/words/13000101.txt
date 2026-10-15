@@ -1,0 +1,10 @@
+# The Wilds of Death and Darkness: a warning sign, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+The Wilds of Death and Darkness
+
+[message 1000001]
+Ahead lies Aurion, the forbidden land.
+None may pass who does not carry
+the five orbs and the spirit crest.

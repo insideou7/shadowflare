@@ -1,0 +1,49 @@
+# East of The Remains of The Dead: signs and crests, in our own words, by the
+# original's message numbers (tools/content/scripts.py).
+
+[message 1000000]
+East of The Remains of The Dead
+
+[message 1000001]
+These ruins hold the power and craft of a lost age.
+No human should go any farther than this.
+
+[message 1000002]
+Go back, travelers.
+You'll find nothing for you here.
+
+[message 1000003]
+        N
+     ( ) (*)
+   W         E
+     (*) ( )
+        S
+The crest of the ancient guardians.
+
+[message 1000004]
+        N
+     (*) (*)
+   W         E
+     (*) ( )
+        S
+The crest of the ancient guardians.
+
+[message 1000005]
+        N
+     ( ) (*)
+   W         E
+     (*) (*)
+        S
+The crest of the ancient guardians.
+
+[message 1000006]
+        N
+     (*) (*)
+   W         E
+     (*) (*)
+        S
+The crest of the ancient guardians.
+
+[message 1000007]
+Only one who is brave and who also knows
+the key of the ancient guardians may go on.

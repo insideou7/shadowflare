@@ -1,0 +1,261 @@
+# Ponse, Village of Dwarves: what its people say, in our own words, by
+# the original's message numbers (tools/content/scripts.py). Each keeps
+# the original's purpose and its options (~...~) and numbers (%d) in order.
+# Our cast: Durgan the dwarf apothecary; Brokk the trader; Wynn the spirit
+# healer; Hargrim the smith who loves old blades; Gunnar, Ingrid, Tob,
+# Pela, Runa and Nib, villagers; Eskil, who sells what he knows; Dulf
+# the traveling merchant.
+# Shared names: grimlings. Invented here: the Sages' Ruins (the ruins
+# the hero has been searching). Kept as plain game terms: Ponero fruit
+# (from Ponero Cave), warp rune, ancient short sword, vitality potion,
+# goji berries, akebi fruit.
+
+[message 1000000]
+Ponse, Village of Dwarves
+
+[message 1000001]
+Ponse, Village of Dwarves
+
+[message 1000002]
+And you are?
+Unless it matters, leave me be.
+
+[message 1000003]
+An antidote that cures any poison?
+That's what you're after?
+
+[message 1000004]
+It won't come cheap, mind.
+
+[message 1000005]
+Are the grimlings paying for it?
+
+[message 1000006]
+Hmm... very well.
+But don't expect a perfect cure.
+
+[message 1000007]
+I'm out of Ponero fruit, though,
+and the antidote can't be made without it.
+
+[message 1000008]
+It grows on the trees inside Ponero Cave,
+to the south of the Moldona Peninsula...
+
+[message 1000009]
+Could you bring me some of that fruit?
+
+[message 1000010]
+Bring me the fruit and I'll make
+the antidote right away.
+
+[message 1000011]
+Ah, that's the fruit!
+Give me a moment to brew it.
+
+[message 1000012]
+...
+
+[message 1000013]
+...
+
+[message 1000014]
+Done! An antidote for any poison.
+
+[message 1000015]
+You fetched the fruit yourself,
+so this one costs you nothing.
+
+[message 1000016]
+Well? What do you need?
+
+[message 1000017]
+More Ponero fruit? Don't tell me
+you need another antidote already.
+
+[message 1000018]
+Try to hang on to this one.
+
+[message 1000019]
+Come to buy something?
+
+  ~Buy weapons           ~
+  ~Buy gear              ~
+  ~Identify items        ~
+  ~Repair items          ~
+                              ~Leave~
+
+[message 1000020]
+  ~Weapon             %9d Gold~
+  ~Helmet             %9d Gold~
+  ~Body armor         %9d Gold~
+  ~Shield             %9d Gold~
+  ~Boots              %9d Gold~
+  ~Everything worn    %9d Gold~
+  ~Everything carried %9d Gold~
+                          ~Leave~
+
+[message 1000021]
+You can't afford that.
+
+[message 1000022]
+Nothing here needs mending.
+
+[message 1000023]
+Identifying that comes to %d Gold. All right?
+
+                         ~Yes~  ~No~
+
+[message 1000024]
+There's nothing unknown here.
+
+[message 1000025]
+I'm Brokk. Trading in a dwarf village
+suits me down to the ground.
+
+[message 1000026]
+Dwarves fight with axes and nothing else,
+so axes are all the weapons I stock.
+
+[message 1000027]
+There's an apothecary in the village too,
+so I keep all sorts of medicine.
+
+[message 1000028]
+I'm Wynn, the spirit healer here.
+
+[message 1000029]
+Count yourself lucky you don't live here.
+Nothing ever happens!
+
+[message 1000030]
+Spirits, hear me! Close their wounds!
+
+[message 1000031]
+You look fine to me.
+
+[message 1000032]
+A sellsword, are you?
+Hargrim's the name. I'm the smith.
+
+[message 1000033]
+Old things are my weakness. Find me an
+ancient short sword and I'll make it
+worth your while.
+
+[message 1000034]
+Thanks.
+
+[message 1000035]
+Would you look at that!
+An ancient short sword, the real thing!
+
+[message 1000036]
+I'm in your debt, friend!
+
+[message 1000037]
+From now on, all your repairs are free.
+
+[message 1000038]
+Bring me anything that needs fixing
+and I'll see to it.
+
+[message 1000039]
+Hmm...
+
+[message 1000040]
+Here's a secret for you.
+
+[message 1000041]
+They say a vitality potion lies in the
+Ruins of Carn, in the Mesrald Burial Grounds.
+
+[message 1000042]
+And who are you?
+
+[message 1000043]
+I hear a peddler of tablets lives in Wog
+Cave, down in the Valley of Dying People.
+
+[message 1000044]
+Pay him a visit if you've the time.
+
+[message 1000045]
+Hello there.
+
+[message 1000046]
+I'm told someone in Mour Cave, on Lunafuld
+Beach, sells capsules.
+
+[message 1000047]
+Takes all sorts to make a world.
+
+[message 1000048]
+Me? You want me?
+
+[message 1000049]
+What I'd give for a handful of goji berries.
+
+[message 1000050]
+Folk say they grow at the Ruins of Goldo,
+along the Road of Atonement.
+
+[message 1000051]
+Hmm...
+
+[message 1000052]
+If only I had some akebi fruit...
+Hmm...
+
+[message 1000053]
+Hmm...!?
+
+[message 1000054]
+Is that akebi fruit? Where did you get it?
+No, forget I asked. It doesn't matter.
+
+[message 1000055]
+If you'll let me have it, I'll give you
+something rare in return.
+
+[message 1000056]
+Did you want something from me?
+
+[message 1000057]
+They say there's a learned man who
+studies the ruins of this world.
+
+[message 1000058]
+I wonder what he's looking into
+these days.
+
+[message 1000059]
+Well, hello there.
+
+[message 1000060]
+You're the sellsword who's been poking
+around the Sages' Ruins, aren't you?
+
+[message 1000061]
+Give me 80,000 Gold and I'll tell you
+something interesting. Deal?
+
+                         ~Yes~  ~No~
+
+[message 1000062]
+Spoken like a true fighter.
+
+[message 1000063]
+You're one of a kind.
+
+[message 1000064]
+Step onto the warp rune over there.
+
+[message 1000065]
+Don't lose heart.
+
+[message 1000066]
+You're short on gold.
+
+[message 1000067]
+I've got some fine wares today.
