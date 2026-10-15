@@ -296,9 +296,9 @@ on=talk o300
 STORAGE 0
 
 [sentence s11]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF save:111 = 3 @s12
 IF save:111 = 2 @s13
@@ -346,7 +346,7 @@ SETFLAG temp:1000001 0
 SETFLAG save:111 1
 
 [sentence s20]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 5 @s21
 IF temp:1000001 = 100 @s22
 IF temp:1000001 = 203 @s23
@@ -377,7 +377,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s27]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s28]
 ADD temp:1000001 1

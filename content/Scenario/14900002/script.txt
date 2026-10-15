@@ -15,25 +15,25 @@ object=13096,15682,13096,15682,o102,states=0/0/0,at=13015/15601
 object=10429,14389,10504,14463,o30000,states=1/0/0,at=10086/14353
 object=9634,14275,9837,14510,o30001,states=1/0/1,at=10086/14353
 object=9730,14170,9801,14247,o30002,states=1/0/1,at=10086/14353
-object=10006,14273,10165,14432,o30003,states=1/0/0,at=10086/14353
+object=10006,14273,10165,14432,o30003,hole,states=1/0/0,at=10086/14353
 object=10384,14304,10568,14528,o30004,states=1/0/1,at=10086/14353
 object=10176,14444,10214,14475,o30099,states=0/0/0,at=10086/14353
 object=5545,11613,5620,11687,o30100,states=1/0/0,at=5202/11577
 object=4750,11499,4953,11734,o30101,states=1/0/1,at=5202/11577
 object=4846,11394,4917,11471,o30102,states=1/0/1,at=5202/11577
-object=5122,11497,5281,11656,o30103,states=1/0/0,at=5202/11577
+object=5122,11497,5281,11656,o30103,hole,states=1/0/0,at=5202/11577
 object=5500,11528,5684,11752,o30104,states=1/0/1,at=5202/11577
 object=5292,11668,5330,11699,o30199,states=0/0/0,at=5202/11577
 object=15028,1800,15103,1874,o30200,states=1/0/0,at=14685/1764
 object=14233,1686,14436,1921,o30201,states=1/0/1,at=14685/1764
 object=14329,1581,14400,1658,o30202,states=1/0/1,at=14685/1764
-object=14605,1684,14764,1843,o30203,states=1/0/0,at=14685/1764
+object=14605,1684,14764,1843,o30203,hole,states=1/0/0,at=14685/1764
 object=14983,1715,15167,1939,o30204,states=1/0/1,at=14685/1764
 object=14775,1855,14813,1886,o30299,states=0/0/0,at=14685/1764
 object=10635,2473,10710,2547,o30300,states=1/0/0,at=10292/2437
 object=9840,2359,10043,2594,o30301,states=1/0/1,at=10292/2437
 object=9936,2254,10007,2331,o30302,states=1/0/1,at=10292/2437
-object=10212,2357,10371,2516,o30303,states=1/0/0,at=10292/2437
+object=10212,2357,10371,2516,o30303,hole,states=1/0/0,at=10292/2437
 object=10590,2388,10774,2612,o30304,states=1/0/1,at=10292/2437
 object=10382,2528,10420,2559,o30399,states=0/0/0,at=10292/2437
 object=1804,13952,2034,14050,o20012,obj_chest_x,states=1/1/1,at=1869/13956
@@ -499,9 +499,9 @@ on=talk o300
 STORAGE 0
 
 [sentence s14]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF save:112 = 4 @s15
 IF save:112 = 3 @s16
@@ -563,7 +563,7 @@ SETFLAG temp:1000002 msg:1000010
 SETFLAG temp:1000001 200
 GETEXPERIENCE 50
 PLAYSOUND temp:1000125 1 0 0
-CREATEITEM 4 0 x:12000000 y:12000000 temp:1000018 temp:1000018
+CREATEITEM 4 0 x:p0 y:p0 temp:1000018 temp:1000018
 SETFLAG save:112 1
 
 [sentence s27]
@@ -575,7 +575,7 @@ SETFLAG temp:1000002 msg:1000002
 SETFLAG temp:1000001 0
 
 [sentence s29]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 6 @s30
 IF temp:1000001 = 100 @s31
 IF temp:1000001 = 207 @s32
@@ -624,7 +624,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s40]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s41]
 ADD temp:1000001 1
@@ -649,9 +649,9 @@ GETEXPERIENCE 50
 PLAYSOUND temp:1000125 1 0 0
 
 [sentence s46]
-on=talk 12000001
-C_STOP 12000001
-C_SETANGLETO 12000001 0
+on=talk p1
+C_STOP p1
+C_SETANGLETO p1 0
 IF quest:41 = 2 @s47
 IF quest:41 ! 2 @s50
 
@@ -673,7 +673,7 @@ TALK msg:1000047 -1 0 -1 -1 -1
 SETFLAG temp:1000001 0
 
 [sentence s51]
-on=talk-end 12000001
+on=talk-end p1
 IF temp:1000001 = 0 @s52
 IF temp:1000001 = 12 @s53
 IF temp:1000001 = 11 @s54
@@ -681,7 +681,7 @@ IF temp:1000001 = 10 @s55
 IF temp:1000001 = -1 @s56
 
 [sentence s52]
-C_MOVABLE 12000001
+C_MOVABLE p1
 
 [sentence s53]
 SETFLAG temp:1000001 0
@@ -706,12 +706,12 @@ IF temp:1000016 = 0 @s103
 SETFLAG temp:1000000 -1
 
 [sentence s57]
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 SETFLAG temp:1000000 -1
 
 [sentence s58]
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 SETFLAG temp:1000000 -1
 
@@ -720,7 +720,7 @@ IF temp:1000000 ! 0 @s60
 IF temp:1000000 = 0 @s61
 
 [sentence s60]
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 SETFLAG temp:1000000 -1
 
@@ -738,7 +738,7 @@ SETFLAG temp:1000006 1
 [sentence s63]
 PAYGOLD temp:1000017
 IDENTIFY
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 SETFLAG temp:1000000 -1
 
@@ -947,7 +947,7 @@ TALK msg:1000040 temp:1000000 0 -1 -1 -1
 SETFLAG temp:1000016 3
 
 [sentence s102]
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 SETFLAG temp:1000000 -1
 
@@ -960,12 +960,12 @@ IF temp:1000000 = 4 @s110
 
 [sentence s104]
 TRADE 0
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 
 [sentence s105]
 TRADE 1
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 
 [sentence s106]
@@ -1000,13 +1000,13 @@ TALK msg:1000038 temp:1000000 0 7 -1 -1
 SETFLAG temp:1000016 1
 
 [sentence s110]
-C_MOVABLE 12000001
+C_MOVABLE p1
 SETFLAG temp:1000016 0
 
 [sentence s111]
-on=talk 12000100
-C_STOP 12000100
-C_SETANGLETO 12000100 0
+on=talk p100
+C_STOP p100
+C_SETANGLETO p100 0
 IF quest:41 = 2 @s112
 IF quest:41 ! 2 @s113
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1018,17 +1018,17 @@ SETFLAG temp:1000002 msg:1000048
 SETFLAG temp:1000002 msg:1000049
 
 [sentence s114]
-on=talk-end 12000100
-C_MOVABLE 12000100
+on=talk-end p100
+C_MOVABLE p100
 IF quest:41 = 2 @s115
 
 [sentence s115]
 TRADE 2
 
 [sentence s116]
-on=talk 12000002
-C_STOP 12000002
-C_SETANGLETO 12000002 0
+on=talk p2
+C_STOP p2
+C_SETANGLETO p2 0
 IF quest:41 = 2 @s117
 IF quest:41 ! 2 @s118
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1042,7 +1042,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s119]
-on=talk-end 12000002
+on=talk-end p2
 IF temp:1000001 = 1 @s120
 IF temp:1000001 = 10 @s121
 IF temp:1000001 = -1 @s122
@@ -1055,7 +1055,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s122]
-C_MOVABLE 12000002
+C_MOVABLE p2
 
 [sentence s123]
 ADD temp:1000001 1
@@ -1063,9 +1063,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s124]
-on=talk 12000003
-C_STOP 12000003
-C_SETANGLETO 12000003 0
+on=talk p3
+C_STOP p3
+C_SETANGLETO p3 0
 IF quest:41 = 2 @s125
 IF quest:41 ! 2 @s126
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1079,7 +1079,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s127]
-on=talk-end 12000003
+on=talk-end p3
 IF temp:1000001 = 1 @s128
 IF temp:1000001 = 10 @s129
 IF temp:1000001 = -1 @s130
@@ -1092,7 +1092,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s130]
-C_MOVABLE 12000003
+C_MOVABLE p3
 
 [sentence s131]
 ADD temp:1000001 1
@@ -1100,9 +1100,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s132]
-on=talk 12000004
-C_STOP 12000004
-C_SETANGLETO 12000004 0
+on=talk p4
+C_STOP p4
+C_SETANGLETO p4 0
 IF quest:41 = 2 @s133
 IF quest:41 ! 2 @s134
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1116,7 +1116,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s135]
-on=talk-end 12000004
+on=talk-end p4
 IF temp:1000001 = 1 @s136
 IF temp:1000001 = 10 @s137
 IF temp:1000001 = -1 @s138
@@ -1129,7 +1129,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s138]
-C_MOVABLE 12000004
+C_MOVABLE p4
 
 [sentence s139]
 ADD temp:1000001 1
@@ -1137,9 +1137,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s140]
-on=talk 12000005
-C_STOP 12000005
-C_SETANGLETO 12000005 0
+on=talk p5
+C_STOP p5
+C_SETANGLETO p5 0
 IF quest:41 = 2 @s141
 IF quest:41 ! 2 @s142
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1153,7 +1153,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s143]
-on=talk-end 12000005
+on=talk-end p5
 IF temp:1000001 = 1 @s144
 IF temp:1000001 = 10 @s145
 IF temp:1000001 = -1 @s146
@@ -1166,7 +1166,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s146]
-C_MOVABLE 12000005
+C_MOVABLE p5
 
 [sentence s147]
 ADD temp:1000001 1
@@ -1174,9 +1174,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s148]
-on=talk 12000006
-C_STOP 12000006
-C_SETANGLETO 12000006 0
+on=talk p6
+C_STOP p6
+C_SETANGLETO p6 0
 IF quest:41 = 2 @s149
 IF quest:41 ! 2 @s150
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1190,7 +1190,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s151]
-on=talk-end 12000006
+on=talk-end p6
 IF temp:1000001 = 1 @s152
 IF temp:1000001 = 10 @s153
 IF temp:1000001 = -1 @s154
@@ -1203,7 +1203,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s154]
-C_MOVABLE 12000006
+C_MOVABLE p6
 
 [sentence s155]
 ADD temp:1000001 1
@@ -1211,9 +1211,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s156]
-on=talk 12000007
-C_STOP 12000007
-C_SETANGLETO 12000007 0
+on=talk p7
+C_STOP p7
+C_SETANGLETO p7 0
 IF quest:41 = 2 @s157
 IF quest:41 ! 2 @s158
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1227,7 +1227,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s159]
-on=talk-end 12000007
+on=talk-end p7
 IF temp:1000001 = 1 @s160
 IF temp:1000001 = 10 @s161
 IF temp:1000001 = -1 @s162
@@ -1240,7 +1240,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s162]
-C_MOVABLE 12000007
+C_MOVABLE p7
 
 [sentence s163]
 ADD temp:1000001 1
@@ -1248,9 +1248,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s164]
-on=talk 12000008
-C_STOP 12000008
-C_SETANGLETO 12000008 0
+on=talk p8
+C_STOP p8
+C_SETANGLETO p8 0
 IF quest:41 = 2 @s165
 IF quest:41 ! 2 @s166
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1264,7 +1264,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s167]
-on=talk-end 12000008
+on=talk-end p8
 IF temp:1000001 = 1 @s168
 IF temp:1000001 = 10 @s169
 IF temp:1000001 = -1 @s170
@@ -1277,7 +1277,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s170]
-C_MOVABLE 12000008
+C_MOVABLE p8
 
 [sentence s171]
 ADD temp:1000001 1
@@ -1285,9 +1285,9 @@ ADD temp:1000002 1
 TALK temp:1000002 -1 0 -1 -1 -1
 
 [sentence s172]
-on=talk 12000009
-C_STOP 12000009
-C_SETANGLETO 12000009 0
+on=talk p9
+C_STOP p9
+C_SETANGLETO p9 0
 IF quest:41 = 2 @s173
 IF quest:41 ! 2 @s174
 TALK temp:1000002 -1 0 -1 -1 -1
@@ -1301,7 +1301,7 @@ SETFLAG temp:1000002 msg:1000050
 SETFLAG temp:1000001 10
 
 [sentence s175]
-on=talk-end 12000009
+on=talk-end p9
 IF temp:1000001 = 1 @s176
 IF temp:1000001 = 10 @s177
 IF temp:1000001 = -1 @s178
@@ -1314,7 +1314,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s178]
-C_MOVABLE 12000009
+C_MOVABLE p9
 
 [sentence s179]
 ADD temp:1000001 1

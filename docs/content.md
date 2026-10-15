@@ -687,7 +687,7 @@ its monsters back one at a time, every 200 ticks, glowing as one climbs out,
 until the hero breaks it. `tools/content/enemy_holes.py` writes them (the
 `enemy=-1` lines in the original's order among the monsters, the burrow's
 objects and the script that runs it, after the original's script) from the
-player's own copy; run it after `first_area.py` and `enemy_stats.py`:
+player's own copy; run it after `first_area.py` and before `enemy_stats.py`:
 
     python3 tools/content/enemy_holes.py <game folder> content [area ...]
 

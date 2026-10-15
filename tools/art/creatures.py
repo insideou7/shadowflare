@@ -2421,7 +2421,6 @@ def build_injured_demon():
     of Poison: a dark slate body on its back in a pool of blood, its great
     wings of blue bone and pale membrane spread on the ground, spears and
     arrows stuck in it and broken round it. It stirs as it breathes."""
-    import mpfb_body
     skin = studio.material("slate skin", (0.30, 0.30, 0.40), (0.12, 0.12, 0.18), scale=20, bump=0.5)
     bone = studio.material("blue bone", (0.20, 0.22, 0.74), (0.07, 0.07, 0.34), scale=24, rough=0.45)
     membrane = studio.material("pale membrane", (0.88, 0.86, 0.64), (0.54, 0.52, 0.36), scale=5, bump=0.2)
@@ -2702,7 +2701,7 @@ def build_lizard_demon():
     hide = studio.material("grey hide", (0.66, 0.64, 0.58), (0.32, 0.30, 0.28), scale=40, bump=0.8)
     legs = studio.material("dark leggings", (0.30, 0.30, 0.30), (0.12, 0.12, 0.12), scale=20, bump=0.4)
     spike = studio.material("pale spikes", (0.88, 0.86, 0.76), (0.52, 0.50, 0.42), scale=30, rough=0.4)
-    height = 4.85
+    height = 4.97
 
     def pick(centre, bones, normal):
         return hide
@@ -2749,11 +2748,11 @@ def build_horned_demon():
     behind him."""
     import mpfb_body
     hide = studio.material("green hide", (0.28, 0.44, 0.26), (0.10, 0.20, 0.10), scale=30, bump=0.7)
-    scales = studio.material("green scale coat", (0.30, 0.50, 0.28), (0.06, 0.16, 0.06), scale=14, bump=1.0,
+    scales = studio.material("green scale coat", (0.30, 0.50, 0.28), (0.06, 0.16, 0.06), scale=10, bump=0.6,
                              spot=0.10, spot_colour=(0.70, 0.56, 0.22))
     horn = studio.material("horn", (0.84, 0.72, 0.46), (0.46, 0.36, 0.20), scale=40, rough=0.4, stretch=(4, 1, 1))
     spike = studio.material("pale spikes", (0.90, 0.86, 0.70), (0.54, 0.50, 0.36), scale=30, rough=0.4)
-    height = 4.8
+    height = 5.04
 
     def pick(centre, bones, normal):
         return hide
@@ -2792,7 +2791,7 @@ BUILDERS.update({"person39": build_injured_demon, "person40": build_hooded_woman
                  "person42": build_jackal_demon, "person43": build_golden_demon, "person44": build_lizard_demon,
                  "person45": build_horned_demon})
 HEIGHT.update({"person39": 1.0, "person40": 3.3, "person41": 4.4, "person42": 4.4, "person43": 4.2,
-               "person44": 4.8, "person45": 4.8})
+               "person44": 5.0, "person45": 5.0})
 SIZE.update({"person39": 240, "person43": 240})
 
 

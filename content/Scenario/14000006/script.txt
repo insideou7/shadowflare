@@ -153,9 +153,9 @@ on=tick
 SETTINGRAIN 224 64 64 5
 
 [sentence s5]
-on=talk 12000000
-C_STOP 12000000
-C_SETANGLETO 12000000 0
+on=talk p0
+C_STOP p0
+C_SETANGLETO p0 0
 SETFLAG temp:1000001 -1
 IF quest:46 ! 0 @s6
 IF quest:46 = 0 @s11
@@ -194,7 +194,7 @@ SETFLAG temp:1000002 msg:1000001
 SETFLAG temp:1000001 0
 
 [sentence s12]
-on=talk-end 12000000
+on=talk-end p0
 IF temp:1000001 = 0 @s13
 IF temp:1000001 = 100 @s14
 IF temp:1000001 = 200 @s15
@@ -211,7 +211,7 @@ SETFLAG temp:1000001 -1
 SETFLAG temp:1000001 -1
 
 [sentence s16]
-C_MOVABLE 12000000
+C_MOVABLE p0
 
 [sentence s17]
 ADD temp:1000001 1

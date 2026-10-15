@@ -791,7 +791,9 @@ def build(game, out, number, frames, sizes, rules, people_kinds, enemy_kinds, rn
             name = PEOPLE_NAMES.get((number, c["id"]))
             if not name and number not in AREAS[1]:
                 name = f"p{c['id']}"   # what scripts.py calls them
-            lines.append(f"person={c['kind']},{x},{y},{c['direction'] % 8}" + (f",{name}" if name else ""))
+            # Direction 8 (none) is kept: the people drawn only that way.
+            facing = c["direction"] if c["direction"] == 8 else c["direction"] % 8
+            lines.append(f"person={c['kind']},{x},{y},{facing}" + (f",{name}" if name else ""))
             if o.light != 2000 and c["light"] >= 0:
                 lines.append(f"glow={c['light']}")
     # In the dark, the original's lit objects (torches and braziers) become

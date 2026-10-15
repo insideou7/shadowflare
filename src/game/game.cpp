@@ -367,9 +367,12 @@ const CharacterModel* Game::model(const std::string& stem) {
 
 std::vector<int> Game::allLayers(const CharacterModel& m) {
     std::vector<int> layers;
-    if (!m.animations.charts.empty() && !m.animations.charts[0].directions.empty()) {
-        for (std::size_t i = 0; i < m.animations.charts[0].directions[0].layers.size(); ++i) layers.push_back(static_cast<int>(i));
-    }
+    if (m.animations.charts.empty()) return layers;
+    // The most layers any direction has (a model drawn only with no
+    // direction has none in direction 0).
+    std::size_t count = 0;
+    for (const auto& d : m.animations.charts[0].directions) count = std::max(count, d.layers.size());
+    for (std::size_t i = 0; i < count; ++i) layers.push_back(static_cast<int>(i));
     return layers;
 }
 
@@ -410,7 +413,10 @@ void Game::spawnActors() {
         actor.active = p.startsActive();
         actor.character.x = p.x;
         actor.character.y = p.y;
-        actor.character.direction = p.direction >= 0 && p.direction < 8 ? p.direction : 0;
+        // Direction 8 is no direction: kept for a model drawn only that way
+        // (people kind 39, the injured demon lying in the Forest of Poison).
+        const bool undirected = p.direction == 8 && actor.character.frameCountOf(chart::kIdle, 8) > 0;
+        actor.character.direction = p.direction >= 0 && (p.direction < 8 || undirected) ? p.direction : 0;
         actor.hp = actor.maxHp = std::max(1, p.stats.hp);
         if (ai_ && actor.hostile()) actor.aiList = ai_->find(p.stats.ai);
         nameOpenEnemy(actor);
