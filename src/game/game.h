@@ -51,9 +51,24 @@ class FileSystem;
 class Skin;
 struct SaveGame;
 
-// The original's Shift-JIS text as the font draws it (talk.cpp): the
-// English release only uses a few double-byte characters.
-std::string toAscii(const std::string& text);
+// The original's Shift-JIS text as its fonts draw it (talk.cpp).
+std::string toFontText(const std::string& text);
+
+// Whether a byte starts a double-byte (Shift-JIS) character, as the
+// original's text routine (RKC_UPDIB.dll 0x10001cce) reads them.
+inline bool fontLeadByte(unsigned char c) { return (c >= 0x80 && c <= 0x9f) || c >= 0xe0; }
+
+// How much of text fits in `max` bytes without cutting a double-byte
+// character in half.
+inline std::size_t fontCut(std::string_view text, std::size_t max) {
+    std::size_t end = 0;
+    while (end < text.size()) {
+        const std::size_t next = end + (fontLeadByte(static_cast<unsigned char>(text[end])) ? 2 : 1);
+        if (next > max) break;
+        end = next;
+    }
+    return std::min(end, text.size());
+}
 
 // An SDL texture the game owns.
 struct TextureFree {
@@ -371,6 +386,9 @@ private:
     const SpriteTexture* uiFont();
     int uiTextWidth(std::string_view text);
     void uiText(int x, int y, std::string_view text, SDL_Color color);
+    // Text in an original font bank whose pattern 0 is `half`, with its
+    // double-byte characters.
+    void fontText(const SpriteBank& bank, const SpriteTexture& half, int x, int y, std::string_view text, SDL_Color color);
     void renderDialogue();
     // Floating text from MESSAGEBOX (talk.cpp).
     struct Label {

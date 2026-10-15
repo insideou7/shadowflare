@@ -100,8 +100,8 @@ void Game::loadMissions() {
         }
     }
     for (auto& m : missions_.list) {
-        m.title = toAscii(m.title);
-        for (auto& l : m.lines) l = toAscii(l);
+        m.title = toFontText(m.title);
+        for (auto& l : m.lines) l = toFontText(l);
     }
     log::info("Loaded {} missions", missions_.count());
 }

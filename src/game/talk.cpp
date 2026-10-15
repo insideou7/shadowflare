@@ -47,22 +47,26 @@ int directionTowards(double dx, double dy) {
 
 }  // namespace
 
-// The original's messages are Shift-JIS. The English release only uses a
-// few double-byte characters: the wide space and the middle dot.
-std::string toAscii(const std::string& text) {
+// The original's messages are Shift-JIS. Its font draws every
+// double-byte character (fontLeadByte), so they are kept, but the English
+// release's wide space and middle dot are written half-width, as its
+// half-width font lines them up.
+std::string toFontText(const std::string& text) {
     std::string out;
     for (std::size_t i = 0; i < text.size(); ++i) {
         const auto c = static_cast<unsigned char>(text[i]);
-        if (c < 0x80) {
+        if (!fontLeadByte(c)) {
             out += static_cast<char>(c);
-        } else if ((c >= 0x81 && c <= 0x9f) || (c >= 0xe0 && c <= 0xfc)) {
-            const auto next = i + 1 < text.size() ? static_cast<unsigned char>(text[i + 1]) : 0;
-            // Full width is two half-width cells; 0xa5 is the original
-            // font's half-width middle dot.
-            if (c == 0x81 && next == 0x40) out += "  ";
-            if (c == 0x81 && next == 0x45) out += "\xa5 ";
-            ++i;
+            continue;
         }
+        if (i + 1 >= text.size()) break;  // a lead byte with nothing after it
+        const auto next = static_cast<unsigned char>(text[i + 1]);
+        // Full width is two half-width cells; 0xa5 is the original
+        // font's half-width middle dot.
+        if (c == 0x81 && next == 0x40) out += "  ";
+        else if (c == 0x81 && next == 0x45) out += "\xa5 ";
+        else out += text.substr(i, 2);
+        ++i;
     }
     return out;
 }
@@ -157,7 +161,7 @@ public:
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
     int random(int n) override { return g_.random_.next(n); }
     void showQuestName(int quest) override { g_.showMissionName(quest); }
-    void showAreaName(const std::string& name) override { g_.showAreaName(toAscii(name)); }
+    void showAreaName(const std::string& name) override { g_.showAreaName(toFontText(name)); }
     int entryPoint() const override { return g_.entryPoint_; }
     void openStorage(bool giant) override { trade(giant ? Game::kGiantStorage : Game::kStorage); }
     void identifyItems() override { g_.inventory_.identifyAll(); }
@@ -352,7 +356,7 @@ void Game::renderLabels() {
         // Messages end in line breaks; each line is centred.
         std::vector<std::string> lines;
         std::string line;
-        for (const char c : toAscii(l.label.text) + '\n') {
+        for (const char c : toFontText(l.label.text) + '\n') {
             if (c != '\n') {
                 line += c;
             } else if (!line.empty()) {
@@ -449,8 +453,14 @@ void Game::openDialogue(const ScriptHost::Talk& talk) {
         d.lines.push_back(line);
         line.clear();
     };
-    for (const char c : toAscii(talk.text)) {
-        if (c == '\n') {
+    bool trail = false;  // the second byte of a double-byte character
+    for (const char c : toFontText(talk.text)) {
+        if (trail || fontLeadByte(static_cast<unsigned char>(c))) {
+            // Never an option mark or a line break, though a trail byte can
+            // be '~'.
+            trail = !trail;
+            line += c;
+        } else if (c == '\n') {
             endLine();
         } else if (c == '~') {
             if (!inOption) {
@@ -498,6 +508,8 @@ const SpriteTexture* Game::uiFont() {
     return t && t->width >= 96 && t->height >= 192 ? t : nullptr;
 }
 
+// A double-byte character takes two half-width cells, so text is as wide
+// as it is long either way.
 int Game::uiTextWidth(std::string_view text) {
     return uiFont() ? static_cast<int>(text.size()) * 6 : textWidth(text);
 }
@@ -510,17 +522,46 @@ void Game::uiText(int x, int y, std::string_view text, SDL_Color color) {
         drawText(renderer_, x, y, plain, color);
         return;
     }
-    SDL_SetTextureColorMod(font->texture, color.r, color.g, color.b);
-    SDL_SetTextureAlphaMod(font->texture, color.a);
-    for (const char ch : text) {
-        const auto c = static_cast<unsigned char>(ch);
+    fontText(*itemBank("System/Common/Pattern/Font00"), *font, x, y, text, color);
+}
+
+// Text in one of the original's fonts, as RKC_UPDIB.dll writes it
+// (0x10001cce): a lead byte (fontLeadByte) and the byte after it are one
+// character, the after byte's 12 x 12 cell of a 16 x 16 grid in pattern
+// lead - 0x7f (0x80-0x9f) or lead - 0xbf (0xe0-0xff), two half cells wide.
+// Fonts without those patterns (the open pack's) show a question mark.
+void Game::fontText(const SpriteBank& bank, const SpriteTexture& half, int x, int y, std::string_view text, SDL_Color color) {
+    SDL_SetTextureColorMod(half.texture, color.r, color.g, color.b);
+    SDL_SetTextureAlphaMod(half.texture, color.a);
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        auto c = static_cast<unsigned char>(text[i]);
+        int width = 6;
+        if (fontLeadByte(c) && i + 1 < text.size()) {
+            const auto trail = static_cast<unsigned char>(text[++i]);
+            const int pattern = c <= 0x9f ? c - 0x7f : c - 0xbf;
+            const SpriteTexture* full =
+                pattern < static_cast<int>(bank.patterns.size()) ? sprites_.get(bank, pattern, false) : nullptr;
+            if (full && full->width >= 192 && full->height >= 192) {
+                SDL_SetTextureColorMod(full->texture, color.r, color.g, color.b);
+                SDL_SetTextureAlphaMod(full->texture, color.a);
+                const SDL_Rect src{(trail % 16) * 12, (trail / 16) * 12, 12, 12};
+                const SDL_Rect dst{x, y, 12, 12};
+                SDL_RenderCopy(renderer_, full->texture, &src, &dst);
+                SDL_SetTextureColorMod(full->texture, 255, 255, 255);
+                SDL_SetTextureAlphaMod(full->texture, 255);
+                x += 12;
+                continue;
+            }
+            c = '?';
+            width = 12;  // a missing character keeps its width
+        }
         const SDL_Rect src{(c % 16) * 6, (c / 16) * 12, 6, 12};
         const SDL_Rect dst{x, y, 6, 12};
-        SDL_RenderCopy(renderer_, font->texture, &src, &dst);
-        x += 6;
+        SDL_RenderCopy(renderer_, half.texture, &src, &dst);
+        x += width;
     }
-    SDL_SetTextureColorMod(font->texture, 255, 255, 255);
-    SDL_SetTextureAlphaMod(font->texture, 255);
+    SDL_SetTextureColorMod(half.texture, 255, 255, 255);
+    SDL_SetTextureAlphaMod(half.texture, 255);
 }
 
 // Where the box goes: above the speaker, kept on screen.
