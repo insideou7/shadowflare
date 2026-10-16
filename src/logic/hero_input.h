@@ -14,7 +14,7 @@ namespace sf {
 // and a point in world units). The game reads the mouse and keyboard into
 // one of these and the hero's tick acts on it, never on SDL directly.
 //
-// This is the seam for online play (docs/online.md): a host runs a joining
+// This is the seam for online play (docs/online.md): the server runs each
 // player's hero from the HeroInput their game sends, and checks it like
 // any request, since a player can send anything.
 struct HeroInput {

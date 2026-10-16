@@ -15,9 +15,9 @@ namespace sf {
 // window and choosing the item for Identify. The item and shop windows
 // turn clicks into these and Game::applyItemRequest carries them out
 // against the hero's own inventory, checking each one, so the same request
-// can come from a joining player's game online (docs/online.md). Items are named by the
-// cell or slot they are in, never by what they are, so a request can only
-// move what the hero has.
+// can come from a player's game to the server online (docs/online.md).
+// Items are named by the cell or slot they are in, never by what they are,
+// so a request can only move what the hero has.
 struct ItemRequest {
     enum class Kind : std::uint8_t {
         BagClick,         // x, y: take up the item on a cell, or put the hand down with its top-left there

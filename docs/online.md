@@ -14,25 +14,36 @@ while playing, goes straight into the online game.
 
 ## Our plan
 
-The same shape (one game hosts, a few join), with the host deciding
-everything:
+Decided: a dedicated server written in Rust, with a hub town of our own as
+the lobby and instanced areas. The server decides everything:
 
-- Online characters are kept by the host, apart from the six offline saves.
+- Online characters live on the server, apart from the six offline saves.
   Offline saves stay plain text you can edit, and cannot be brought online.
-- A joining game sends only what its player asks for: the hero's input
-  (below), and later item moves, shop and talk choices. The host checks
-  each one and works out every result: damage, experience, gold, drops,
-  quest flags.
-- Items get an id from the host, so none can be made up or copied.
-- Rules settings (original mode, the Debug tab's rates) are the host's.
-- WebSockets carry it, so native and web games can play together, polled
-  once a frame with no threads.
-- Later, a dedicated server: the same game with no window, which can also
-  run a shared hub town with a private copy of each area per party.
+  Accounts are a name and a password (an Argon2 hash on the server).
+- Players meet in the hub town, form parties with friends, and step
+  through the hub's gates into an instance: a private copy of an area that
+  only their party can enter.
+- Clients send only what their player asks for: the hero's input, item
+  requests (below), and later talk choices. The server checks each one and
+  works out every result: damage, experience, gold, drops, quest flags.
+  Story flags are kept per character; an instance follows the party
+  leader's.
+- Items get an id from the server, so none can be made up or copied.
+- Rules settings (original mode, the Debug tab's rates) are the server's.
+- The game's rules stay in C++. The server links them through a small C
+  interface (create a world, add a hero, apply a request, tick, read a
+  snapshot), and the client stays C++, so the web build needs no Rust.
+- WebSockets carry it, so native and web games can play together. Message
+  layouts are written down here with byte test cases that both the C++ and
+  the Rust tests check.
 
 The largest job is keeping the game's rules apart from its windows and
-drawing, so a host can run a hero it does not draw and a server can run
-with no window at all. That is done a piece at a time.
+drawing, so the server can run them with no window at all. That is done a
+piece at a time, with offline play checked against main after each.
+
+Order: finish the split (talking and quest choices, then an SDL-free
+`World`), then the Rust server with logins and the character store, then
+the hub town, then friends, parties and instances.
 
 ## In place
 
@@ -42,7 +53,7 @@ with no window at all. That is done a piece at a time.
   in world units), and `Game::tickPlayer` acts on that alone, never on SDL.
   It encodes to a fixed 21-byte message; decoding refuses anything out of
   range, and the hero's tick ignores an enemy, item or object that is not
-  there. This is what a host will run a joining player's hero from.
+  there. This is what the server will run a player's hero from.
 - **Item requests** (`src/logic/item_request.h`). Everything the item window
   and belt do with the hero's own items is an `ItemRequest`: a click in the
   bag, on a worn slot or on the belt, using, wearing (right click) or taking

@@ -1212,7 +1212,7 @@ void Game::tickPlayer(const HeroInput& in) {
     // Shift holds the hero where they stand; with the button down they
     // strike in place, at whatever is in reach.
     const bool stayPut = in.stayPut;
-    // What the input names must be there: online, a joining player's game
+    // What the input names must be there: online, a player's game
     // could name anything.
     std::optional<std::size_t> enemy, item, object;
     if (in.aim == HeroInput::Aim::Enemy && in.index < actors_.size() && actors_[in.index].hostile()) enemy = in.index;

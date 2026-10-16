@@ -1244,7 +1244,7 @@ bool beltCellAt(int x, int y, int& cx, int& cy) {
 // item from the bag is used up first, so the belt stays stocked.
 // Carries out one thing done with the hero's items (logic/item_request.h),
 // checking it first: the item window's clicks come here, and online a
-// joining player's requests will too.
+// player's requests to the server will too.
 void Game::applyItemRequest(const ItemRequest& r) {
     using K = ItemRequest::Kind;
     if (!r.valid()) return;
