@@ -47,10 +47,13 @@ with no window at all. That is done a piece at a time.
   and belt do with the hero's own items is an `ItemRequest`: a click in the
   bag, on a worn slot or on the belt, using, wearing (right click) or taking
   off an item, dropping the hand, the weapon set tabs, splitting a bag gold
-  stack, the Warehouse Transfer Box and the mine slot.
-  `Game::applyItemRequest` carries each out against the hero's inventory
+  stack, the Warehouse Transfer Box and the mine slot, buying and selling,
+  the warehouse windows (putting down and taking up, right clicks, gold
+  splits, Giant Warehouse pages, leaving) and choosing the item for
+  Identify. `Game::applyItemRequest` carries each out against the hero's inventory
   after checking it. Items are named by the cell or slot they are in, so a
   request can only move what the hero has. A request encodes to 10 bytes;
   decoding refuses cells off the bag or belt, slots and tabs that do not
-  exist, and gold amounts below 1. Shops, the warehouse window and
-  Identify still act directly; they come next.
+  exist, and gold amounts below 1. The game also checks what is open: a
+  purchase needs a shop open and gold enough, a warehouse move needs the
+  warehouse open, and Identify needs the spell waiting.

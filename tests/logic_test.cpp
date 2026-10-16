@@ -1456,7 +1456,11 @@ void testItemRequest() {
         ItemRequest::at(K::BeltClick, 3, 1), ItemRequest::at(K::UseBag, 0, 0), ItemRequest::at(K::UseBelt, 0, 1),
         ItemRequest::at(K::EquipFromBag, 4, 2), ItemRequest::of(K::UnequipToBag, 0), ItemRequest::of(K::DropHand),
         ItemRequest::of(K::ChooseWeaponSet, 1), ItemRequest::at(K::ToggleShared, 1, 0), {K::SplitGold, 2, 3, 9999},
-        ItemRequest::of(K::ToWarehouse), ItemRequest::of(K::MineSlot),
+        ItemRequest::of(K::ToWarehouse), ItemRequest::of(K::MineSlot), ItemRequest::at(K::Buy, 8, 9),
+        ItemRequest::of(K::SellHand), ItemRequest::at(K::SellFromBag, 1, 1), ItemRequest::at(K::StorageClick, -1, 9),
+        ItemRequest::at(K::StoreFromBag, 2, 2), ItemRequest::at(K::FromStorage, 0, 9), {K::SplitStorageGold, 3, 4, 50},
+        ItemRequest::of(K::GiantPage, 9), ItemRequest::of(K::CloseShop), ItemRequest::at(K::Identify, 8, 3),
+        ItemRequest::of(K::CancelIdentify),
     };
     for (const auto& r : requests) {
         check(r.valid(), "a sensible item request is valid");
@@ -1467,6 +1471,9 @@ void testItemRequest() {
     check(!ItemRequest::bagClick(100, 0).valid(), "a hand put down far outside the bag is refused");
     check(!ItemRequest::of(K::SlotClick, 9).valid(), "a slot that does not exist is refused");
     check(!ItemRequest::of(K::ChooseWeaponSet, 2).valid(), "a third weapon set is refused");
+    check(!ItemRequest::at(K::Buy, 9, 0).valid(), "a shop cell past the edge is refused");
+    check(!ItemRequest::of(K::GiantPage, 10).valid(), "an eleventh Giant Warehouse page is refused");
+    check(!ItemRequest::at(K::Identify, 0, 4).valid(), "identifying off the bag is refused");
     check(!ItemRequest({K::SplitGold, 0, 0, 0}).valid(), "splitting off no gold is refused");
     check(!ItemRequest({K::SplitGold, 0, 0, -5}).valid(), "splitting off negative gold is refused");
     check(!ItemRequest({K::UseBag, 0, 0, 5}).valid(), "an amount on a request without one is refused");

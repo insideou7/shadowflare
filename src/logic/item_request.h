@@ -11,10 +11,11 @@ namespace sf {
 // One thing the player does with their items: a click in the bag, on a
 // worn slot or on the belt, using, wearing or taking off an item, dropping
 // what is in the hand, the weapon set tabs, splitting gold, the Warehouse
-// Transfer Box and the mine slot. The item window turns clicks into these
-// and Game::applyItemRequest carries them out against the hero's own
-// inventory, checking each one, so the same request can come from a
-// joining player's game online (docs/online.md). Items are named by the
+// Transfer Box and the mine slot, buying and selling, the warehouse
+// window and choosing the item for Identify. The item and shop windows
+// turn clicks into these and Game::applyItemRequest carries them out
+// against the hero's own inventory, checking each one, so the same request
+// can come from a joining player's game online (docs/online.md). Items are named by the
 // cell or slot they are in, never by what they are, so a request can only
 // move what the hero has.
 struct ItemRequest {
@@ -32,13 +33,26 @@ struct ItemRequest {
         SplitGold,        // x, y, amount: take some gold off a bag stack into the hand
         ToWarehouse,      // the hand into the Warehouse Transfer Box
         MineSlot,         // take a mine into the hand, or put one back
+        // The open shop or warehouse (the cells are its 9 x 10 grid's).
+        Buy,               // x, y: buy the item on a shop cell
+        SellHand,          // sell what is in the hand to the open shop
+        SellFromBag,       // x, y: sell the item on a bag cell (right click, ours)
+        StorageClick,      // x, y: take up or put down in the warehouse, as BagClick
+        StoreFromBag,      // x, y: the item on a bag cell into the warehouse (right click, ours)
+        FromStorage,       // x, y: right click on a warehouse item: into the bag (ours) or use it
+        SplitStorageGold,  // x, y, amount: some gold off a warehouse stack into the hand
+        GiantPage,         // x: show another page of the Giant Warehouse
+        CloseShop,         // leave the shop or warehouse
+        // The Identify spell, waiting for a bag item to be chosen.
+        Identify,          // x, y: identify the item on a bag cell
+        CancelIdentify,    // call it off
     };
-    static constexpr int kKindCount = static_cast<int>(Kind::MineSlot) + 1;
+    static constexpr int kKindCount = static_cast<int>(Kind::CancelIdentify) + 1;
 
     Kind kind = Kind::DropHand;
     // Cells (x, y), or slot (EquipSlot) in x, or part in x and set in y.
     std::int16_t x = 0, y = 0;
-    std::int32_t amount = 0;  // SplitGold
+    std::int32_t amount = 0;  // SplitGold, SplitStorageGold
 
     static ItemRequest bagClick(int x, int y) { return {Kind::BagClick, static_cast<std::int16_t>(x), static_cast<std::int16_t>(y)}; }
     static ItemRequest at(Kind kind, int x, int y) { return {kind, static_cast<std::int16_t>(x), static_cast<std::int16_t>(y)}; }

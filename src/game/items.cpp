@@ -542,16 +542,11 @@ bool Game::inventoryClick(int x, int y, bool right) {
         // hand; that ends the spell and trains it (0x446320).
         const SDL_Rect bag{kBagX, kBagY, Inventory::kBagWidth * kCell, Inventory::kBagHeight * kCell};
         if (right) {
-            identifying_ = false;  // the right button calls it off (0x445a40)
-            showMessage("Identify cancelled");
+            applyItemRequest(ItemRequest::of(ItemRequest::Kind::CancelIdentify));
             return true;
         }
         if (hand_ || !inside(bag, x, y)) return true;
-        const int index = inventory_.indexAt((x - kBagX) / kCell, (y - kBagY) / kCell);
-        if (!inventory_.identify(index)) return true;
-        identifying_ = false;
-        trainSpell(kIdentify);
-        showMessage(inventory_.bag()[static_cast<std::size_t>(index)].item.shownName());
+        applyItemRequest(ItemRequest::at(ItemRequest::Kind::Identify, (x - kBagX) / kCell, (y - kBagY) / kCell));
         return true;
     }
     if (!showInventory_ || !inside(kPanel, x, y)) {
@@ -571,9 +566,9 @@ bool Game::inventoryClick(int x, int y, bool right) {
                 const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
                 openGoldSplit(GoldSplit::From::Bag, placed.x, placed.y, x, y);
             } else if (rules_.rightClickStores && storageOpen() && index >= 0) {
-                storeFromBag(index);
+                applyItemRequest(ItemRequest::at(ItemRequest::Kind::StoreFromBag, cx, cy));
             } else if (rules_.rightClickSells && openShop_ && !storageOpen()) {
-                sellFromBag(index);
+                applyItemRequest(ItemRequest::at(ItemRequest::Kind::SellFromBag, cx, cy));
             } else if (rules_.rightClickEquips && index >= 0 &&
                        inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) {
                 applyItemRequest(ItemRequest::at(ItemRequest::Kind::EquipFromBag, cx, cy));
@@ -723,13 +718,9 @@ void Game::finishGoldSplit() {
     SDL_StopTextInput();
     if (box.text.empty() || box.text.size() > 6) return;
     const int amount = std::stoi(box.text);
-    const ItemDef* gold = items_.find(ItemDef::Class::Special, 0);
-    if (box.from == GoldSplit::From::Bag) {
-        if (amount > 0) applyItemRequest({ItemRequest::Kind::SplitGold, static_cast<std::int16_t>(box.x), static_cast<std::int16_t>(box.y), amount});
-        return;
-    }
-    ShopStock& stock = box.from == GoldSplit::From::Storage ? shops_[kStorage] : openStock();
-    if (splitGold(stock.goods, stock.indexAt(box.x, box.y), amount, gold, hand_)) playSound(itemSound(*hand_->def, kItemTake));
+    if (amount <= 0) return;
+    const auto kind = box.from == GoldSplit::From::Bag ? ItemRequest::Kind::SplitGold : ItemRequest::Kind::SplitStorageGold;
+    applyItemRequest({kind, static_cast<std::int16_t>(box.x), static_cast<std::int16_t>(box.y), amount});
 }
 
 // A small box where the right click was, the amount in it (0x441ab0).
@@ -1324,6 +1315,71 @@ void Game::applyItemRequest(const ItemRequest& r) {
             break;
         case K::ToWarehouse: putInWarehouse(); break;
         case K::MineSlot: mineSlotClick(); break;
+        case K::Buy: buyAt(r.x, r.y); break;
+        case K::SellHand: sellHand(); break;
+        case K::SellFromBag:
+            if (rules_.rightClickSells) sellFromBag(inventory_.indexAt(r.x, r.y));
+            break;
+        case K::StorageClick: {
+            if (!storageOpen()) break;
+            ShopStock& stock = openStock();
+            if (hand_) {
+                const ItemDef& held = *hand_->def;
+                const auto result = stock.click(hand_, r.x, r.y);
+                if (result == Inventory::Result::NoRoom) showMessage("No room there");
+                // Put down in empty cells, or over one item, which is taken up (0x447970).
+                if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
+            } else if (stock.click(hand_, r.x, r.y) == Inventory::Result::Done) {
+                playSound(itemSound(*hand_->def, kItemTake));
+            }
+            break;
+        }
+        case K::StoreFromBag:
+            if (rules_.rightClickStores) storeFromBag(inventory_.indexAt(r.x, r.y));
+            break;
+        case K::FromStorage: {
+            if (!storageOpen() || hand_) break;
+            ShopStock& stock = openStock();
+            const int i = stock.indexAt(r.x, r.y);
+            if (i < 0 || stock.goods[static_cast<std::size_t>(i)].item.def->isGold()) break;
+            if (rules_.rightClickStores) {
+                takeFromStorage(i);
+            } else if (applyConsumable(*stock.goods[static_cast<std::size_t>(i)].item.def)) {
+                stock.goods.erase(stock.goods.begin() + i);
+            }
+            break;
+        }
+        case K::SplitStorageGold: {
+            if (!storageOpen()) break;
+            ShopStock& stock = openStock();
+            if (splitGold(stock.goods, stock.indexAt(r.x, r.y), r.amount, items_.find(ItemDef::Class::Special, 0), hand_)) {
+                playSound(itemSound(*hand_->def, kItemTake));
+            }
+            break;
+        }
+        case K::GiantPage:
+            if (openShop_ == kGiantStorage && giantPageOpen(r.x) && r.x != giantPage_) {
+                giantPage_ = r.x;
+                playSound(0x3a);
+            }
+            break;
+        case K::CloseShop: closeShop(); break;
+        case K::Identify: {
+            // Only an unknown item in the bag can be chosen, with an empty
+            // hand; that ends the spell and trains it (0x446320).
+            if (!identifying_ || hand_) break;
+            const int index = inventory_.indexAt(r.x, r.y);
+            if (!inventory_.identify(index)) break;
+            identifying_ = false;
+            trainSpell(kIdentify);
+            showMessage(inventory_.bag()[static_cast<std::size_t>(index)].item.shownName());
+            break;
+        }
+        case K::CancelIdentify:
+            if (!identifying_) break;
+            identifying_ = false;  // the right button calls it off (0x445a40)
+            showMessage("Identify cancelled");
+            break;
     }
 }
 

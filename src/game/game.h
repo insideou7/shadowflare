@@ -427,6 +427,7 @@ private:
     bool shopClick(int x, int y, bool right);
     // The shop takes the item in hand and pays for it; false, with the
     // item still in hand, when it will not.
+    void buyAt(int x, int y);  // the item on a cell of the open shop
     bool sellHand();
     // Right click on a bag item while a shop is open (Rules::rightClickSells).
     void sellFromBag(int index);

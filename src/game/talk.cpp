@@ -709,85 +709,89 @@ void Game::renderDialogue() {
 
 // The shop's half of the screen; the bag stays open on the right.
 bool Game::shopClick(int x, int y, bool right) {
+    using K = ItemRequest::Kind;
     if (!openShop_) return false;
     if (!inside(kShopPanel, x, y)) return false;
     if (openShop_ == kGiantStorage && !right && giantStorageHeaderClick(x, y)) return true;
     auto& stock = openStock();
     const SDL_Rect grid{kShopX, kShopY, ShopStock::kWidth * kCell, ShopStock::kHeight * kCell};
+    const int cx = (x - kShopX) / kCell, cy = (y - kShopY) / kCell;
     if (storageOpen()) {
         // A warehouse: items are put down and picked up as in the bag.
-        const int cx = (x - kShopX) / kCell, cy = (y - kShopY) / kCell;
         if (right) {
             // A right click off the cells leaves. On a stack of gold it asks
             // how much to take, and on a potion or other consumable it uses
             // it, as in the bag (0x44a9f0, 0x44ab60). Ours puts anything
             // else in the bag instead (Rules::rightClickStores).
             if (!inside(grid, x, y)) {
-                if (!hand_) closeShop();
+                if (!hand_) applyItemRequest(ItemRequest::of(K::CloseShop));
             } else if (const int i = stock.indexAt(cx, cy); !hand_ && i >= 0) {
                 const auto& placed = stock.goods[static_cast<std::size_t>(i)];
                 if (placed.item.def->isGold()) {
                     openGoldSplit(openShop_ == kGiantStorage ? GoldSplit::From::GiantStorage : GoldSplit::From::Storage, placed.x,
                                   placed.y, x, y);
-                } else if (rules_.rightClickStores) {
-                    takeFromStorage(i);
-                } else if (applyConsumable(*placed.item.def)) {
-                    stock.goods.erase(stock.goods.begin() + i);
+                } else {
+                    applyItemRequest(ItemRequest::at(K::FromStorage, cx, cy));
                 }
             }
         } else if (hand_ && inside(grid, x, y)) {
             const double left = x - hand_->def->width * kCell / 2.0 - kShopX;
             const double top = y - hand_->def->height * kCell / 2.0 - kShopY;
-            const int tx = static_cast<int>(std::lround(left / kCell)), ty = static_cast<int>(std::lround(top / kCell));
-            const ItemDef& held = *hand_->def;
-            const auto result = stock.click(hand_, tx, ty);
-            if (result == Inventory::Result::NoRoom) showMessage("No room there");
-            // Put down in empty cells, or over one item, which is taken up (0x447970).
-            if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
-        } else if (inside(grid, x, y) && stock.click(hand_, cx, cy) == Inventory::Result::Done) {
-            playSound(itemSound(*hand_->def, kItemTake));
+            applyItemRequest(ItemRequest::at(K::StorageClick, static_cast<int>(std::lround(left / kCell)), static_cast<int>(std::lround(top / kCell))));
+        } else if (inside(grid, x, y)) {
+            applyItemRequest(ItemRequest::at(K::StorageClick, cx, cy));
         }
         return true;
     }
     if (hand_) {
-        sellHand();
+        applyItemRequest(ItemRequest::of(K::SellHand));
         return true;
     }
     // A right click anywhere else in the window leaves the shop.
-    const int i = inside(grid, x, y) ? stock.indexAt((x - kShopX) / kCell, (y - kShopY) / kCell) : -1;
+    const int i = inside(grid, x, y) ? stock.indexAt(cx, cy) : -1;
     if (right && i < 0) {
-        closeShop();
+        applyItemRequest(ItemRequest::of(K::CloseShop));
         return true;
     }
     if (i < 0 || right) return true;
+    applyItemRequest(ItemRequest::at(K::Buy, cx, cy));
+    return true;
+}
+
+// Buys the item on a shop cell: it goes in the bag, the special items
+// window or onto the mine count, if there is room and gold enough.
+void Game::buyAt(int x, int y) {
+    if (!openShop_ || storageOpen() || hand_) return;
+    auto& stock = openStock();
+    const int i = stock.indexAt(x, y);
+    if (i < 0) return;
     const Item item = stock.goods[static_cast<std::size_t>(i)].item;
     const int price = buyPrice(item, modifierPrices_);
     if (inventory_.gold() < price) {
         showMessage("You're running short of money.");
-        return true;
+        return;
     }
     // A mine goes onto the mine count, never the bag, and isn't sold while
     // the hero carries as many as they can (0x44b020, 0x446320 case 9).
     if (item.def->isMine()) {
         if (!pickUpMine()) {
             showMessage("No room for more mines");
-            return true;
+            return;
         }
     } else if (item.def->specialPage >= 0) {
         // Into the special items window; not sold when one like it is
         // there already (0x4480c0).
         if (!inventory_.addSpecial(item)) {
             showMessage("You already have one");
-            return true;
+            return;
         }
     } else if (!inventory_.add(item)) {
         showMessage("No room in the bag");
-        return true;
+        return;
     }
     inventory_.addGold(-price);
     playSound(itemSound(*item.def, kItemTake));  // as the original takes it into the hand (0x4480c0)
     stock.goods.erase(stock.goods.begin() + i);
-    return true;
 }
 
 // Selling: the shop takes the item and pays a quarter of its value.
@@ -1047,15 +1051,12 @@ bool Game::giantStorageHeaderClick(int x, int y) {
         SDL_Rect tab = kGiantTabArea;
         tab.x += page * kGiantTabStep;
         if (!inside(tab, x, y)) continue;
-        if (giantPageOpen(page) && page != giantPage_) {
-            giantPage_ = page;
-            playSound(0x3a);
-        }
+        applyItemRequest(ItemRequest::of(ItemRequest::Kind::GiantPage, page));
         return true;
     }
     if (inside(kGiantClose, x, y)) {
         playSound(0x3a);
-        closeShop();
+        applyItemRequest(ItemRequest::of(ItemRequest::Kind::CloseShop));
         return true;
     }
     return false;
