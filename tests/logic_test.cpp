@@ -688,6 +688,9 @@ void testPartners() {
     r.kind = 3;
     r.countKill(*partners, 9);
     check(r.level() == 1 && r.experience[3] == 1 && r.experience[0] == 4, "each kind keeps its own level and experience");
+    sf::PartnerRecord fast;
+    check(fast.countKill(*partners, 1, 20) && fast.level() == 2 && fast.experience[0] == 0,
+          "a 20x kill levels up and stops at the cap");
 }
 
 void testScriptTalkAndShop() {

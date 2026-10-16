@@ -262,7 +262,7 @@ void Game::trapHitsPartner(const Effect& e) {
     playSound(e.trap->shot.hitSound, e.x, e.y);
     const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, random_.next(3)));
     hurtPartner(damage);
-    if (!partnerAlive()) return;
+    if (!partnerAlive() || invincibleCompanion()) return;
     if (const auto stun = trapStun(e, p.character.x, p.character.y, 0, 0, false, damage, st.maxHp)) {
         p.stun = stun;
         p.state = Partner::State::Hit;
