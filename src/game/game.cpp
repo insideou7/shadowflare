@@ -66,9 +66,9 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
     }
     try {
         if (auto raw = data_->read("System/Game/Parameter/Control.aid")) {
-            ai_ = AiControl::parse(*raw);
+            world_.ai = AiControl::parse(*raw);
         } else if (auto text = data_->read("ai.txt")) {
-            ai_ = open::parseAi(*text);
+            world_.ai = open::parseAi(*text);
         }
     } catch (const FormatError& e) {
         log::warn("Monster AI: {}", e.what());
@@ -101,9 +101,9 @@ Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& st
 
 // Where a new game begins.
 void Game::goToStart() {
-    map_.reset();
+    world_.map.reset();
     if (startScenario_ >= 0) changeScenario(startScenario_, 0);
-    if (!map_) loadMap(startMapIndex_);
+    if (!world_.map) loadMap(startMapIndex_);
 }
 
 void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
@@ -112,7 +112,7 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
     partner_.reset();
     clearSpells();
     loadMapLayers(index);
-    if (!map_) return;
+    if (!world_.map) return;
     if (!scenarioDir.empty()) {
         loadScenario(scenarioDir);
     } else {
@@ -125,12 +125,12 @@ void Game::loadMap(std::size_t index, const std::string& scenarioDir) {
 void Game::loadMapLayers(std::size_t index) {
     mapIndex_ = index;
     sprites_.clear();
-    map_ = Map::load(*data_, mapNames_[index]);
-    if (skin_) skin_->setMap(map_ ? &*map_ : nullptr);
+    world_.map = Map::load(*data_, mapNames_[index]);
+    if (skin_) skin_->setMap(world_.map ? &*world_.map : nullptr);
     drawOrder_.clear();
-    if (!map_) return;
+    if (!world_.map) return;
 
-    const auto& objects = map_->objects().objects;
+    const auto& objects = world_.map->objects().objects;
     drawOrder_.resize(objects.size());
     for (std::size_t i = 0; i < objects.size(); ++i) drawOrder_[i] = i;
     // Painter's order by where each object stands, not where its sprite's
@@ -140,42 +140,42 @@ void Game::loadMapLayers(std::size_t index) {
 
 void Game::loadScenario(const std::string& dir) {
     keepScenario();
-    auto visit = visited_.extract(dir);
+    auto visit = world_.visited.extract(dir);
     const bool back = !visit.empty();
-    scenarioDir_ = dir;
-    skippedCommands_.clear();
-    control_ = {};
-    script_.reset();
-    triggers_.clear();
+    world_.scenarioDir = dir;
+    world_.skippedCommands.clear();
+    world_.control = {};
+    world_.script.reset();
+    world_.triggers.clear();
     pendingScenario_.reset();
     // TEMP and NET flags (out of network play) belong to the scenario
     // (0x4300e0); the others persist.
-    std::erase_if(flags_, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
+    std::erase_if(world_.flags, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
     warpPage_ = 0;
     if (!dir.empty()) {
         ScenarioControl fresh;
-        readScenario(dir, back ? fresh : control_, &script_);
-        if (back) control_ = std::move(visit.mapped().control);
-        startAreaMusic(control_.areaKind);
+        readScenario(dir, back ? fresh : world_.control, &world_.script);
+        if (back) world_.control = std::move(visit.mapped().control);
+        startAreaMusic(world_.control.areaKind);
     }
     if (back) {
-        flags_.merge(visit.mapped().flags);
-        actors_ = std::move(visit.mapped().actors);
+        world_.flags.merge(visit.mapped().flags);
+        world_.actors = std::move(visit.mapped().actors);
         attackTarget_.reset();
         spawnObjects();
         const auto& fixed = visit.mapped().objectsFixed;
-        for (std::size_t i = 0; i < sceneObjects_.size() && i < fixed.size(); ++i) sceneObjects_[i].fixed = fixed[i];
-        groundItems_ = std::move(visit.mapped().groundItems);
-        log::info("Back in {} \"{}\" as it was left", scenarioDir_, control_.title);
+        for (std::size_t i = 0; i < world_.sceneObjects.size() && i < fixed.size(); ++i) world_.sceneObjects[i].fixed = fixed[i];
+        world_.groundItems = std::move(visit.mapped().groundItems);
+        log::info("Back in {} \"{}\" as it was left", world_.scenarioDir, world_.control.title);
     } else {
         // The NET flags start as the script lists them, then each
         // character's and object's activity flags join them.
-        if (script_) {
-            for (const auto& [id, value] : script_->netFlags) flags_[{ScenarioScript::kNet, id}] = value;
+        if (world_.script) {
+            for (const auto& [id, value] : world_.script->netFlags) world_.flags[{ScenarioScript::kNet, id}] = value;
         }
-        for (const auto& p : control_.placements) {
+        for (const auto& p : world_.control.placements) {
             for (std::size_t k = 0; k < kStateFlagBases.size(); ++k) {
-                flags_[{ScenarioScript::kNet, kStateFlagBases[k] + ScenarioControl::idBase(p.group) + p.id}] = p.states[k];
+                world_.flags[{ScenarioScript::kNet, kStateFlagBases[k] + ScenarioControl::idBase(p.group) + p.id}] = p.states[k];
             }
         }
         spawnActors();
@@ -190,17 +190,17 @@ void Game::loadScenario(const std::string& dir) {
     labels_.clear();
     // The original's scenario scripts name their area with SETCOMPASSES;
     // an open content pack's scenario names it with its title.
-    if (!dir.empty() && data_->read(dir + "/scenario.txt") && !control_.title.empty()) showAreaName(control_.title);
-    if (!script_) return;
+    if (!dir.empty() && data_->read(dir + "/scenario.txt") && !world_.control.title.empty()) showAreaName(world_.control.title);
+    if (!world_.script) return;
     if (!back) {
-        for (const auto& [id, value] : script_->tempFlags) flags_[{ScenarioScript::kTemp, id}] = value;
+        for (const auto& [id, value] : world_.script->tempFlags) world_.flags[{ScenarioScript::kTemp, id}] = value;
     }
     startScripts_ = true;
-    for (const auto& t : script_->triggers) {
+    for (const auto& t : world_.script->triggers) {
         if (t.event != ScenarioScript::kOnJudge) continue;
-        for (const auto& p : control_.placements) {
+        for (const auto& p : world_.control.placements) {
             if (ScenarioControl::idBase(p.group) + p.id != t.character) continue;
-            triggers_.push_back({static_cast<double>(p.x + p.rect[0]), static_cast<double>(p.y + p.rect[1]),
+            world_.triggers.push_back({static_cast<double>(p.x + p.rect[0]), static_cast<double>(p.y + p.rect[1]),
                                  static_cast<double>(p.x + p.rect[2]), static_cast<double>(p.y + p.rect[3]), t.sentence});
         }
     }
@@ -208,22 +208,22 @@ void Game::loadScenario(const std::string& dir) {
 }
 
 void Game::keepScenario() {
-    if (std::exchange(forgetCurrent_, false) || scenarioDir_.empty()) return;
+    if (std::exchange(forgetCurrent_, false) || world_.scenarioDir.empty()) return;
     ScenarioVisit visit;
-    visit.control = std::move(control_);
-    visit.actors = std::move(actors_);
-    for (const auto& o : sceneObjects_) visit.objectsFixed.push_back(o.fixed);
-    visit.groundItems = std::move(groundItems_);
-    for (const auto& [key, value] : flags_) {
+    visit.control = std::move(world_.control);
+    visit.actors = std::move(world_.actors);
+    for (const auto& o : world_.sceneObjects) visit.objectsFixed.push_back(o.fixed);
+    visit.groundItems = std::move(world_.groundItems);
+    for (const auto& [key, value] : world_.flags) {
         if (key.first == ScenarioScript::kTemp || key.first == ScenarioScript::kNet) visit.flags.emplace(key, value);
     }
-    visited_[scenarioDir_] = std::move(visit);
+    world_.visited[world_.scenarioDir] = std::move(visit);
 }
 
 // A new game or a loaded one starts every scenario afresh (0x41d3f0 makes
 // them all again), the one being left included.
 void Game::forgetVisitedScenarios() {
-    visited_.clear();
+    world_.visited.clear();
     forgetCurrent_ = true;
 }
 
@@ -326,14 +326,14 @@ void Game::setOurArt(bool on) {
     auto swapActor = [&](Actor& a) {
         if (swap(a.character)) a.character.visibleLayers = allLayers(*a.character.model());
     };
-    for (auto& a : actors_) swapActor(a);
-    for (auto& o : sceneObjects_) {
+    for (auto& a : world_.actors) swapActor(a);
+    for (auto& o : world_.sceneObjects) {
         if (o.animation) swap(*o.animation);
     }
-    for (auto& g : groundItems_) {
+    for (auto& g : world_.groundItems) {
         if (g.sprite) swap(*g.sprite);
     }
-    for (auto& [dir, visit] : visited_) {
+    for (auto& [dir, visit] : world_.visited) {
         for (auto& a : visit.actors) swapActor(a);
         for (auto& g : visit.groundItems) {
             if (g.sprite) swap(*g.sprite);
@@ -348,7 +348,7 @@ void Game::setOurArt(bool on) {
         updateEquipment();
     }
     sprites_.clear();
-    if (skin_) skin_->setMap(map_ ? &*map_ : nullptr);
+    if (skin_) skin_->setMap(world_.map ? &*world_.map : nullptr);
     // The area map's picture is drawn again in the new art.
     mapPicture_.reset();
     mapPictureFor_.clear();
@@ -378,15 +378,15 @@ std::vector<int> Game::allLayers(const CharacterModel& m) {
 }
 
 void Game::spawnActors() {
-    actors_.clear();
+    world_.actors.clear();
     attackTarget_.reset();
-    if (scenarioDir_.empty()) return;
+    if (world_.scenarioDir.empty()) return;
     // A monster of kind -1 has no picture: the original's Enemy Holes, a
     // burrow drawn by the objects round it that brings its monsters back
     // until the hero breaks it. It stands where it is placed, can be hit
     // and dies like any other (its script swaps the objects).
     static const CharacterModel kUnseen;
-    for (const auto& p : control_.placements) {
+    for (const auto& p : world_.control.placements) {
         // Map objects (chests, doors) and items come later.
         if (p.group == ScenarioControl::Group::Object || p.group == ScenarioControl::Group::Item) continue;
         if (p.kind < 0) {
@@ -397,7 +397,7 @@ void Game::spawnActors() {
             actor.character.y = p.y;
             actor.hp = actor.maxHp = std::max(1, p.stats.hp);
             nameOpenEnemy(actor);
-            actors_.push_back(std::move(actor));
+            world_.actors.push_back(std::move(actor));
             continue;
         }
         const char* folder = p.group == ScenarioControl::Group::Enemy ? "ENEMY" : "PEOPLE";
@@ -419,29 +419,29 @@ void Game::spawnActors() {
         const bool undirected = p.direction == 8 && actor.character.frameCountOf(chart::kIdle, 8) > 0;
         actor.character.direction = p.direction >= 0 && (p.direction < 8 || undirected) ? p.direction : 0;
         actor.hp = actor.maxHp = std::max(1, p.stats.hp);
-        if (ai_ && actor.hostile()) actor.aiList = ai_->find(p.stats.ai);
+        if (world_.ai && actor.hostile()) actor.aiList = world_.ai->find(p.stats.ai);
         nameOpenEnemy(actor);
         // Non-player characters wear what their animation file shows.
         actor.character.visibleLayers = allLayers(*m);
-        actors_.push_back(std::move(actor));
+        world_.actors.push_back(std::move(actor));
     }
-    const auto withAi = std::ranges::count_if(actors_, [](const Actor& a) { return a.aiList >= 0; });
-    log::info("{}: {} \"{}\" with {} characters, {} with game AI", mapNames_[mapIndex_], scenarioDir_, control_.title,
-              actors_.size(), withAi);
+    const auto withAi = std::ranges::count_if(world_.actors, [](const Actor& a) { return a.aiList >= 0; });
+    log::info("{}: {} \"{}\" with {} characters, {} with game AI", mapNames_[mapIndex_], world_.scenarioDir, world_.control.title,
+              world_.actors.size(), withAi);
 }
 
 // Puts the player at the scenario's first entry point, or else in the
 // middle of the map's scenery, and points the camera at them.
 void Game::placePlayer() {
-    for (const auto& e : control_.entryPoints) {
+    for (const auto& e : world_.control.entryPoints) {
         if (e.id != 0) continue;
         int sx, sy;
         worldToScreen(e.x, e.y, sx, sy);
         placePlayerAt(sx, sy);
         return;
     }
-    const auto& objects = map_->objects().objects;
-    const auto& g = map_->ground();
+    const auto& objects = world_.map->objects().objects;
+    const auto& g = world_.map->ground();
     int left, top, right, bottom;
     g.screenBounds(left, top, right, bottom);
     double cx = (left + right) / 2.0, cy = (top + bottom) / 2.0;
@@ -464,7 +464,7 @@ void Game::placePlayer() {
 void Game::placePlayerAt(double screenX, double screenY) {
     heroStun_.reset();
     combo_.reset();
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
     // A few maps have stray objects far outside the ground; stay on the map.
     int left, top, right, bottom;
     g.screenBounds(left, top, right, bottom);
@@ -518,20 +518,20 @@ bool Game::tryMove(Character& who, double dx, double dy) {
     // Turned off with the hero left inside a wall, it lasts until they are
     // back on open ground, so they can walk out.
     const bool hero = player_ && &who == &*player_;
-    const bool stuck = hero && !originalMode() && !map_->ground().walkable(x0, y0);
+    const bool stuck = hero && !originalMode() && !world_.map->ground().walkable(x0, y0);
     if (hero && (noClip() || stuck)) {
-        if (!map_->ground().onGrid(x0 + dx, y0 + dy)) return false;
+        if (!world_.map->ground().onGrid(x0 + dx, y0 + dy)) return false;
         who.x += dx;
         who.y += dy;
         return true;
     }
-    if (!sf::tryMove(map_->ground(), who.x, who.y, dx, dy)) return false;
+    if (!sf::tryMove(world_.map->ground(), who.x, who.y, dx, dy)) return false;
     if (!objectInTheWay(x0, y0, who.x, who.y)) return true;
     // A closed door or a chest in the way: slide along it as along a wall.
     for (const auto& [sx, sy] : {std::pair{dx, 0.0}, std::pair{0.0, dy}}) {
         if (sx == 0 && sy == 0) continue;
         double x = x0, y = y0;
-        if (sf::tryMove(map_->ground(), x, y, sx, sy) && !objectInTheWay(x0, y0, x, y)) {
+        if (sf::tryMove(world_.map->ground(), x, y, sx, sy) && !objectInTheWay(x0, y0, x, y)) {
             who.x = x;
             who.y = y;
             return true;
@@ -646,7 +646,7 @@ void Game::handleEvent(const SDL_Event& event) {
             // Away from the player zooms in, towards them out (ours; the
             // original has nothing on the wheel).
             const int notches = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
-            if (map_ && rules_.zoomOut && notches != 0) {
+            if (world_.map && rules_.zoomOut && notches != 0) {
                 zoomBy(notches);
                 showMessage(std::format("Zoom {}%", settings_.zoom));
             }
@@ -759,7 +759,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_q: toggleMissions(); break;
                 case SDLK_n: toggleAreaMap(); break;
                 case SDLK_HOME:
-                    if (map_) placePlayer();
+                    if (world_.map) placePlayer();
                     break;
                 default: break;
             }
@@ -797,7 +797,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 partnerOrder(static_cast<float>(event.button.x), static_cast<float>(event.button.y), event.button.button == SDL_BUTTON_RIGHT)) {
                 break;
             }
-            if (event.button.button == SDL_BUTTON_RIGHT && map_ && player_) {
+            if (event.button.button == SDL_BUTTON_RIGHT && world_.map && player_) {
                 double aimX, aimY;
                 screenToWorld(pixelX(event.button.x), pixelY(event.button.y), aimX, aimY);
                 // A Warrior holding the left button combos (or spins) with
@@ -813,8 +813,8 @@ void Game::handleEvent(const SDL_Event& event) {
                     if (rules_.spellsAimAtEnemy) {
                         if (const auto target = clickTarget(event.button.x, event.button.y, ~0u); target.kind == Settings::kEnemy) {
                             enemy = target.index;
-                            wx = actors_[target.index].character.x;
-                            wy = actors_[target.index].character.y;
+                            wx = world_.actors[target.index].character.x;
+                            wy = world_.actors[target.index].character.y;
                         }
                     }
                     startCast(wx, wy, enemy);
@@ -908,7 +908,7 @@ void Game::tick() {
     if (newCharacter_) tickNewCharacter();
     if (loadData_) tickLoadData();
     if (menuOpen_) tickTitleSmoke();
-    if (!map_ || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_ || gameOverOpen_) return;  // the world waits while a menu is open
+    if (!world_.map || menuOpen_ || optionsOpen_ || newCharacter_ || loadData_ || gameOverOpen_) return;  // the world waits while a menu is open
     tickMissions();
     if (startScripts_) {
         startScripts_ = false;
@@ -941,10 +941,10 @@ void Game::tick() {
         runEvent(ScenarioScript::kEveryTick);
     }
     tickObjects();
-    for (auto& actor : actors_) {
+    for (auto& actor : world_.actors) {
         // Scripts show and hide characters through their NET flag, by
         // SETACTIVE or by setting it themselves.
-        if (const auto f = flags_.find({ScenarioScript::kNet, kStateFlagBases[0] + actor.gameId()}); f != flags_.end()) {
+        if (const auto f = world_.flags.find({ScenarioScript::kNet, kStateFlagBases[0] + actor.gameId()}); f != world_.flags.end()) {
             actor.active = f->second != 0;
         }
         if (!actor.active) continue;
@@ -992,7 +992,7 @@ void Game::tick() {
     tickSpells();
     tickTransportGate();
     pickUpItems();
-    for (auto& g : groundItems_) {
+    for (auto& g : world_.groundItems) {
         if (g.sprite) g.sprite->tick();
     }
     deliverEvents();  // so a message from this tick counts it, as one shown at once did
@@ -1011,9 +1011,9 @@ void Game::tick() {
 // Runs the script of each trigger area the player has just stepped into.
 void Game::checkTriggers(bool fire) {
     if (!player_) return;
-    for (auto& t : triggers_) {
+    for (auto& t : world_.triggers) {
         const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
-        if (fire && inside && !t.inside && script_ && !pendingScenario_) {
+        if (fire && inside && !t.inside && world_.script && !pendingScenario_) {
             runScript(t.sentence);
         }
         t.inside = inside;
@@ -1081,8 +1081,8 @@ std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
     // Characters stand on their feet; aim at the middle of the body.
     std::optional<std::size_t> best;
     double bestDistance = INFINITY;
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
-        const auto& a = actors_[i];
+    for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+        const auto& a = world_.actors[i];
         if (!a.hostile() || !a.alive() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
@@ -1213,7 +1213,7 @@ void Game::tickPlayer(const HeroInput& in) {
         // can step past the frame).
         if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
             blowLanded_ = true;
-            Actor& target = actors_[*attackTarget_];
+            Actor& target = world_.actors[*attackTarget_];
             if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) strikeEnemy(target);
         }
         if (!player_->finished()) return;
@@ -1228,9 +1228,9 @@ void Game::tickPlayer(const HeroInput& in) {
     // What the input names must be there: online, a player's game
     // could name anything.
     std::optional<std::size_t> enemy, item, object;
-    if (in.aim == HeroInput::Aim::Enemy && in.index < actors_.size() && actors_[in.index].hostile()) enemy = in.index;
-    if (in.aim == HeroInput::Aim::Item && in.index < groundItems_.size()) item = in.index;
-    if (in.object >= 0 && static_cast<std::size_t>(in.object) < control_.placements.size()) object = static_cast<std::size_t>(in.object);
+    if (in.aim == HeroInput::Aim::Enemy && in.index < world_.actors.size() && world_.actors[in.index].hostile()) enemy = in.index;
+    if (in.aim == HeroInput::Aim::Item && in.index < world_.groundItems.size()) item = in.index;
+    if (in.object >= 0 && static_cast<std::size_t>(in.object) < world_.control.placements.size()) object = static_cast<std::size_t>(in.object);
     if (in.held) {
         attackTarget_.reset();
         talkTarget_.reset();
@@ -1252,13 +1252,13 @@ void Game::tickPlayer(const HeroInput& in) {
             walkTarget_.reset();
         } else if (item) {
             // Walking onto an item picks it up.
-            walkTarget_.emplace(groundItems_[*item].x, groundItems_[*item].y);
+            walkTarget_.emplace(world_.groundItems[*item].x, world_.groundItems[*item].y);
         } else if (object) {
             // Held on a chest or switch, the hero goes up to it and then
             // stays put while the button is down (0x449240: in reach, they
             // only turn to it; holding steers only a walk under way), so
             // CCHECK switches can be held down.
-            const auto& p = control_.placements[*object];
+            const auto& p = world_.control.placements[*object];
             const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));
             const double ny = std::clamp(player_->y, double(p.y + p.rect[1]), double(p.y + p.rect[3]));
             if (std::hypot(nx - player_->x, ny - player_->y) <= kTalkRange) {
@@ -1271,9 +1271,9 @@ void Game::tickPlayer(const HeroInput& in) {
             walkTarget_.emplace(in.x, in.y);
         }
     }
-    if (attackTarget_ && (!actors_[*attackTarget_].alive() || !actors_[*attackTarget_].active)) attackTarget_.reset();
+    if (attackTarget_ && (!world_.actors[*attackTarget_].alive() || !world_.actors[*attackTarget_].active)) attackTarget_.reset();
     if (talkTarget_) {
-        Actor& person = actors_[*talkTarget_];
+        Actor& person = world_.actors[*talkTarget_];
         if (distance(*player_, person.character) <= kTalkRange) {
             player_->faceTowards(person.character.x - player_->x, person.character.y - player_->y);
             player_->setAction(Action::Idle);
@@ -1284,7 +1284,7 @@ void Game::tickPlayer(const HeroInput& in) {
     }
     if (objectTarget_) {
         // Objects are used from anywhere in their rectangle or close to it.
-        const auto& p = control_.placements[*objectTarget_];
+        const auto& p = world_.control.placements[*objectTarget_];
         const double nx = std::clamp(player_->x, double(p.x + p.rect[0]), double(p.x + p.rect[2]));
         const double ny = std::clamp(player_->y, double(p.y + p.rect[1]), double(p.y + p.rect[3]));
         if (std::hypot(nx - player_->x, ny - player_->y) <= kTalkRange) {
@@ -1299,9 +1299,9 @@ void Game::tickPlayer(const HeroInput& in) {
     }
     if (autoFight_ && !attackTarget_) {
         double best = kAggroRange;
-        for (std::size_t i = 0; i < actors_.size(); ++i) {
-            if (!actors_[i].hostile() || !actors_[i].alive() || !actors_[i].active) continue;
-            const double d = distance(*player_, actors_[i].character);
+        for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+            if (!world_.actors[i].hostile() || !world_.actors[i].alive() || !world_.actors[i].active) continue;
+            const double d = distance(*player_, world_.actors[i].character);
             if (d < best) {
                 best = d;
                 attackTarget_ = i;
@@ -1310,7 +1310,7 @@ void Game::tickPlayer(const HeroInput& in) {
         // With nothing to fight, collect what is lying around.
         if (!attackTarget_ && !walkTarget_) {
             double nearest = kAggroRange;
-            for (const auto& g : groundItems_) {
+            for (const auto& g : world_.groundItems) {
                 const double d = std::hypot(g.x - player_->x, g.y - player_->y);
                 if (!g.waitForLeave && d < nearest) {
                     nearest = d;
@@ -1342,7 +1342,7 @@ void Game::tickPlayer(const HeroInput& in) {
         // A screen-space step converted to world space.
         screenToWorld(kx * projection.x, ky * projection.y, dx, dy);
     } else if (attackTarget_) {
-        const Character& enemy = actors_[*attackTarget_].character;
+        const Character& enemy = world_.actors[*attackTarget_].character;
         dx = enemy.x - player_->x;
         dy = enemy.y - player_->y;
         // A bowgun shoots from wherever the hero stands (0x449240).
@@ -1444,18 +1444,18 @@ void Game::tickEnemy(Actor& enemy) {
 
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
-    if (random_.next(100) < hitChance(playerHit(), s.evasion)) {
+    if (world_.random.next(100) < hitChance(playerHit(), s.evasion)) {
         playSound(6, player_->x, player_->y);  // the blow lands, at the hero
         // Table 7: the hero's level in the monster's opposite element
         // strengthens the blow (0x412a40).
-        const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, random_.next(3));
+        const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, world_.random.next(3));
         absorbFrom(enemy, damage);
         hurtEnemy(enemy, damage);
     } else {
         showMiss(enemy.character.x, enemy.character.y);
     }
     // Every blow wears the weapon a little, hit or miss.
-    sayBroken(inventory_.wearFromAttacking(random_));
+    sayBroken(inventory_.wearFromAttacking(world_.random));
 }
 
 // Absorption, rolled with each of the hero's blows and shots (0x44f990):
@@ -1465,12 +1465,12 @@ void Game::strikeEnemy(Actor& enemy) {
 // the Absorption Rate's share of the blow as health (Rules::absorptionHeals).
 void Game::absorbFrom(const Actor& enemy, int damage) {
     if (!enemy.alive() || !player_) return;
-    const int rate = inventory_.chanceModifier(ItemDef::kModAbsorptionChance, ItemDef::kModAbsorptionRate, random_.next(100));
+    const int rate = inventory_.chanceModifier(ItemDef::kModAbsorptionChance, ItemDef::kModAbsorptionRate, world_.random.next(100));
     if (rate == 0) return;
     const double toHero = std::atan2(player_->y - enemy.character.y, player_->x - enemy.character.x);
     for (int i = 0; i < 5; ++i) {
         Effect& orb = spawnEffect(kAbsorbOrb, enemy.character.x, enemy.character.y);
-        orb.angle = toHero + (random_.next(3000) - 1500) / 1000.0;
+        orb.angle = toHero + (world_.random.next(3000) - 1500) / 1000.0;
         orb.speed = 30;
         orb.turn = 15 * std::numbers::pi / 180;
         orb.homesOnPlayer = true;
@@ -1499,7 +1499,7 @@ void Game::strikePlayer(Actor& enemy, int slot) {
     const HeroStats stats = playerStats();
     // The blow also catches an ACTIVE companion in front of the monster.
     if (partnerInReach(enemy)) strikePartner(enemy, slot);
-    if (random_.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) {
+    if (world_.random.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) {
         showMiss(player_->x, player_->y);
         return;
     }
@@ -1513,7 +1513,7 @@ void Game::strikePlayer(Actor& enemy, int slot) {
     int defense = stats[HeroStats::kDefense];
     if (power_.active()) defense = defense * 12 / 10;
     if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
-    hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, random_.next(3)), false, &enemy);
+    hurtPlayer(damageToHero(magic_, s.attacks[k], s.element, playerElements(), defense, world_.random.next(3)), false, &enemy);
     landed();
 }
 
@@ -1588,13 +1588,13 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
         return;
     }
     // Blows that get through wear out the armour (0x443fa8).
-    sayBroken(inventory_.wearFromBlow(random_));
+    sayBroken(inventory_.wearFromBlow(world_.random));
     // Reflection sends part of a monster's blow back (0x444150): the
     // Reflection modifiers worn, when their chance comes up, and Counter
     // Burst's power while it is on. Half as much to monsters whose word 7
     // is 100, at least 1.
     if (!magic && attacker) {
-        int reflect = inventory_.chanceModifier(ItemDef::kModReflectionChance, ItemDef::kModReflectionRate, random_.next(100));
+        int reflect = inventory_.chanceModifier(ItemDef::kModReflectionChance, ItemDef::kModReflectionRate, world_.random.next(100));
         const bool burst = spellOn(kCounterBurst);
         if (burst) reflect += magic_.power(kCounterBurst, castLevel(kCounterBurst));
         if (reflect != 0 || burst) {
@@ -1629,7 +1629,7 @@ void Game::render(double interpolation) {
     if (visual_ && !menuOpen_ && !optionsOpen_) {
         // A story picture covers the game while it shows (0x417bd0).
         renderVisual();
-    } else if (map_) {
+    } else if (world_.map) {
         renderMap();
     } else {
         renderPlaceholder(interpolation);
@@ -1664,11 +1664,11 @@ void Game::renderMap() {
     // Worked out before the world picture below becomes the render target,
     // as the mouse is read through the screen's logical size.
     updateHover();
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
+    for (std::size_t i = 0; i < world_.actors.size(); ++i) {
         const bool lit = hovered(Settings::kEnemy, i) || hovered(Settings::kPerson, i);
-        actors_[i].character.glow = lit ? kHoverGlow : 0;
+        world_.actors[i].character.glow = lit ? kHoverGlow : 0;
     }
-    for (auto& o : sceneObjects_) {
+    for (auto& o : world_.sceneObjects) {
         if (o.animation) o.animation->glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
     }
 
@@ -1687,7 +1687,7 @@ void Game::renderMap() {
 
     const int camX = static_cast<int>(std::floor(cameraX_));
     const int camY = static_cast<int>(std::floor(cameraY_));
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
 
     if (g.isoTile > 0) {
         renderIsoGround(camX, camY);
@@ -1704,7 +1704,7 @@ void Game::renderMap() {
     std::vector<const Character*> characters;
     if (player_) characters.push_back(&*player_);
     if (partner_ && partner_->character.tint.a > 0) characters.push_back(&partner_->character);
-    for (const auto& actor : actors_) {
+    for (const auto& actor : world_.actors) {
         if (!actor.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(actor.character.x), static_cast<int>(actor.character.y), sx, sy);
@@ -1731,18 +1731,18 @@ void Game::renderMap() {
     };
     std::vector<Drawable> drawables;
     for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr, characterBounds(sprites_, *c)});
-    for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
+    for (const Effect& e : world_.effects) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
     const std::vector<Effect> gate = transportGateParts();
     for (const Effect& e : gate) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
     std::ranges::stable_sort(drawables, [](const Drawable& a, const Drawable& b) { return a.x + a.y < b.x + b.y; });
     // Where each map object's picture lands, by place in drawOrder_.
     std::vector<SDL_Rect> pictures(drawOrder_.size());
     if (!drawables.empty()) {
-        for (std::size_t k = 0; k < drawOrder_.size(); ++k) pictures[k] = objectPicture(map_->objects().objects[drawOrder_[k]]);
+        for (std::size_t k = 0; k < drawOrder_.size(); ++k) pictures[k] = objectPicture(world_.map->objects().objects[drawOrder_[k]]);
     }
     for (Drawable& d : drawables) {
         for (std::size_t k = drawOrder_.size(); k-- > 0;) {
-            if (SDL_HasIntersection(&pictures[k], &d.picture) && map_->objects().objects[drawOrder_[k]].inFront(d.x, d.y)) {
+            if (SDL_HasIntersection(&pictures[k], &d.picture) && world_.map->objects().objects[drawOrder_[k]].inFront(d.x, d.y)) {
                 d.frontOf = k + 1;
                 break;
             }
@@ -1751,11 +1751,11 @@ void Game::renderMap() {
 
     // Semi-transparent Shadow off draws them solid black.
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
-    const auto& objects = map_->objects().objects;
+    const auto& objects = world_.map->objects().objects;
     // The scenario's chests, doors and levers sort in among the map's
     // pieces by the same footprint.
     std::vector<std::pair<MapObject, const SceneObject*>> scene;
-    for (const auto& o : sceneObjects_) {
+    for (const auto& o : world_.sceneObjects) {
         if (placementOf(o).look.drawn() && objectState(o, kShown)) scene.emplace_back(objectFootprint(o), &o);
     }
     std::ranges::stable_sort(scene, [](const auto& a, const auto& b) { return a.first.depth() < b.first.depth(); });
@@ -1852,11 +1852,11 @@ void Game::renderMap() {
 // other (its picture, or the skin's in its place).
 void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int shadowAlpha) {
     if (const auto* pieces = skin_ ? skin_->replacement(o) : nullptr) {
-        if (!shadows && !map_->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
+        if (!shadows && !world_.map->isShadowBank(o.bank)) skin_->renderObject(o, *pieces, camX, camY);
         return;
     }
-    if (map_->isShadowBank(o.bank) != shadows) return;
-    const SpriteBank* bank = map_->bank(o.bank);
+    if (world_.map->isShadowBank(o.bank) != shadows) return;
+    const SpriteBank* bank = world_.map->bank(o.bank);
     if (!bank) return;
     int sx, sy;
     worldToScreen(o.x, o.y, sx, sy);
@@ -1875,10 +1875,10 @@ void Game::drawObject(const MapObject& o, bool shadows, int camX, int camY, int 
 }
 
 SDL_Rect Game::objectPicture(const MapObject& o) {
-    if (map_->isShadowBank(o.bank)) return {};
+    if (world_.map->isShadowBank(o.bank)) return {};
     const auto* pieces = skin_ ? skin_->replacement(o) : nullptr;
     if (pieces && pieces->empty()) return {};
-    const SpriteBank* bank = map_->bank(o.bank);
+    const SpriteBank* bank = world_.map->bank(o.bank);
     const SpriteTexture* sprite = bank ? sprites_.get(*bank, o.pattern, false) : nullptr;
     int sx, sy;
     worldToScreen(o.x, o.y, sx, sy);
@@ -1900,7 +1900,7 @@ SDL_Rect Game::objectPicture(const MapObject& o) {
 
 // The map's ground and objects with no one on them, for the map window.
 void Game::renderScenery(int camX, int camY, bool ground) {
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
     if (ground) {
         if (g.isoTile > 0) {
             renderIsoGround(camX, camY);
@@ -1912,12 +1912,12 @@ void Game::renderScenery(int camX, int camY, bool ground) {
     }
     const int shadowAlpha = settings_.seeThroughShadows ? 96 : 255;
     for (const bool shadows : {true, false}) {
-        for (std::size_t i : drawOrder_) drawObject(map_->objects().objects[i], shadows, camX, camY, shadowAlpha);
+        for (std::size_t i : drawOrder_) drawObject(world_.map->objects().objects[i], shadows, camX, camY, shadowAlpha);
     }
 }
 
 void Game::renderChips(int camX, int camY) {
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
     const int x0 = std::max(0, camX / g.chipWidth - 1);
     const int y0 = std::max(0, camY / g.chipHeight - 1);
     const int x1 = std::min(g.width, (camX + viewWidth()) / g.chipWidth + 2);
@@ -1925,7 +1925,7 @@ void Game::renderChips(int camX, int camY) {
     for (int cy = y0; cy < y1; ++cy) {
         for (int cx = x0; cx < x1; ++cx) {
             const auto& cell = g.at(cx, cy);
-            const SpriteBank* bank = map_->bank(cell.bank);
+            const SpriteBank* bank = world_.map->bank(cell.bank);
             if (!bank) continue;
             const SpriteTexture* sprite = sprites_.get(*bank, cell.pattern, true);
             if (!sprite) continue;
@@ -1938,7 +1938,7 @@ void Game::renderChips(int camX, int camY) {
 // Open content ground: isometric tiles, drawn back to front so taller
 // tiles overlap the ones behind them.
 void Game::renderIsoGround(int camX, int camY) {
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
     // Tiles touching the view, with a margin for sprites that stick out.
     int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
     const int w = viewWidth(), h = viewHeight();
@@ -1958,7 +1958,7 @@ void Game::renderIsoGround(int camX, int camY) {
         for (int tx = std::max(minX, sum - maxY); tx <= std::min(maxX, sum - minY); ++tx) {
             const int ty = sum - tx;
             const auto& cell = g.at(tx, ty);
-            const SpriteBank* bank = map_->bank(cell.bank);
+            const SpriteBank* bank = world_.map->bank(cell.bank);
             if (!bank) continue;
             const SpriteTexture* sprite = sprites_.get(*bank, cell.pattern, false);
             if (!sprite) continue;
@@ -1975,7 +1975,7 @@ void Game::renderHealthBars() {
     if (!rules_.healthBarsOverMonsters) return;
     // The one under the pointer shows its health in its name instead.
     const Actor* named = hoverOn_ ? hoveredActor() : nullptr;
-    for (const auto& a : actors_) {
+    for (const auto& a : world_.actors) {
         if (!a.hostile() || !a.alive() || !a.active || a.hp == a.maxHp || &a == named) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
@@ -1992,7 +1992,7 @@ void Game::renderHealthBars() {
 // Each judge cell is a world-space square, so it shows up as a diamond.
 // Blocked cells are tinted red, cells with the unknown 0x8000 bit yellow.
 void Game::renderJudge(int camX, int camY) {
-    const auto& g = map_->ground();
+    const auto& g = world_.map->ground();
     // Judge cells touching the view: invert the view corners.
     int minX = INT_MAX, minY = INT_MAX, maxX = INT_MIN, maxY = INT_MIN;
     const int w = viewWidth(), h = viewHeight();

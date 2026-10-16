@@ -31,9 +31,9 @@ double Game::gapToPlayer(const Actor& enemy) const {
 }
 
 bool Game::chooseAiAction(Actor& enemy, int event) {
-    const auto& list = ai_->lists[static_cast<std::size_t>(enemy.aiList)];
+    const auto& list = world_.ai->lists[static_cast<std::size_t>(enemy.aiList)];
     const AiSituation situation{gapToPlayer(enemy), enemy.hp * 100 / std::max(1, enemy.maxHp)};
-    const AiControl::Entry* e = selectAiEntry(list, event, situation, random_);
+    const AiControl::Entry* e = selectAiEntry(list, event, situation, world_.random);
     if (!e) return false;
     enemy.action = e->action;
     enemy.entry = *e;
@@ -67,7 +67,7 @@ void Game::tickEnemyAi(Actor& enemy) {
 
 void Game::runAiAction(Actor& enemy) {
     Character& c = enemy.character;
-    const auto& list = ai_->lists[static_cast<std::size_t>(enemy.aiList)];
+    const auto& list = world_.ai->lists[static_cast<std::size_t>(enemy.aiList)];
     const auto& p = enemy.entry.param;
     // Control.aid's speeds and durations count the original's ticks, 30 a
     // second (0x45c900), so each of ours moves 1.5 of its steps and counts
@@ -104,11 +104,11 @@ void Game::runAiAction(Actor& enemy) {
                 if (enemy.wanderPause <= 0) {
                     enemy.wanderPause = 0;
                     const auto& a = enemy.placement.stats.area;
-                    enemy.wanderX = enemy.placement.x + a[0] + random_.next(std::max(1, a[2] - a[0]));
-                    enemy.wanderY = enemy.placement.y + a[1] + random_.next(std::max(1, a[3] - a[1]));
+                    enemy.wanderX = enemy.placement.x + a[0] + world_.random.next(std::max(1, a[2] - a[0]));
+                    enemy.wanderY = enemy.placement.y + a[1] + world_.random.next(std::max(1, a[3] - a[1]));
                 }
             } else if (starting || moveTowards(enemy.wanderX, enemy.wanderY, p[3] * scale)) {
-                enemy.wanderPause = std::max(1, p[4] + random_.next(p[5] + 1));
+                enemy.wanderPause = std::max(1, p[4] + world_.random.next(p[5] + 1));
             }
             enemy.event = enemy.actionTicks >= p[1] ? AiControl::kWanderDone : AiControl::kWandering;
             break;

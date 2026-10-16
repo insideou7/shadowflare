@@ -162,21 +162,21 @@ void Game::loadSounds() {
 }
 
 void Game::playSound(int voice, double x, double y, bool everywhere) {
-    if (player_) events_.sound(voice, x, y, everywhere);
+    if (player_) world_.events.sound(voice, x, y, everywhere);
 }
 
-void Game::playSound(int voice) { events_.sound(voice); }
+void Game::playSound(int voice) { world_.events.sound(voice); }
 
 void Game::deliverEvents() {
-    if (events_.empty()) return;
-    for (const auto& s : events_.takeSounds()) {
+    if (world_.events.empty()) return;
+    for (const auto& s : world_.events.takeSounds()) {
         // A sound in the world is heard by the hero, if they are near.
         if (s.placed && (!player_ || (!s.everywhere && static_cast<int>(std::hypot(s.x - player_->x, s.y - player_->y)) > kHearing))) {
             continue;
         }
         mixer_.play(Mixer::kSoundBank, s.voice, false, Mixer::attenuation(settings_.effectVolume));
     }
-    for (auto& text : events_.takeMessages()) {
+    for (auto& text : world_.events.takeMessages()) {
         message_ = std::move(text);
         messageTicks_ = kMessageTicks;
     }

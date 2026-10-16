@@ -29,7 +29,7 @@ int Game::minePower(int level) const { return mines::power(magic_, level, invent
 // B and the MINE button (0x442a73, 0x445fc5): with a mine in hand and the
 // last one's wait over, a mine goes down where the hero stands.
 void Game::layMine() {
-    if (!player_ || !map_ || menuOpen_) return;
+    if (!player_ || !world_.map || menuOpen_) return;
     if (mineCount_ <= 0) {
         showMessage("No mines");
         return;
@@ -44,15 +44,15 @@ void Game::layMine() {
     // The mine's own object: a picture from the OPTION folder's Pattern
     // bank, not an animation, so it is made here rather than by spawnEffect.
     Effect e;
-    e.id = nextEffectId_++;
+    e.id = world_.nextEffectId++;
     e.option = mines::kMineOption;
     e.pattern = 0;
     e.x = mine.x;
     e.y = mine.y;
     e.life = mines::kLife;
     mine.effect = e.id;
-    pendingEffects_.push_back(std::move(e));
-    mines_.push_back(mine);
+    world_.pendingEffects.push_back(std::move(e));
+    world_.mines.push_back(mine);
     log::info("Laid a mine, {} left", mineCount_);
 }
 
@@ -83,7 +83,7 @@ void Game::stepMine(Mine& mine) {
     if (mine.tick >= mines::kRingsFrom && mine.tick <= mines::kRingsTo && (mine.tick - mines::kRingsFrom) % 2 == 0) {
         mine.ring += mines::kRingStep;
         for (int option : mines::kSmokeOptions) {
-            const double a = random_.next(360) * std::numbers::pi / 180;
+            const double a = world_.random.next(360) * std::numbers::pi / 180;
             spawnEffect(option, mine.x + std::cos(a) * mine.ring, mine.y + std::sin(a) * mine.ring);
         }
     }
@@ -91,7 +91,7 @@ void Game::stepMine(Mine& mine) {
     if (mine.tick == mines::kPiecesAt) {
         mine.lift = mines::kPieceLift;
         for (std::size_t i = 0; i < mine.pieces.size(); ++i) {
-            const double a = random_.next(360) * std::numbers::pi / 180;
+            const double a = world_.random.next(360) * std::numbers::pi / 180;
             const double x = mine.x + std::cos(a) * 50, y = mine.y + std::sin(a) * 50;
             for (int option : {mines::kPieceOptions[i], mines::kPieceFireOption}) {
                 Effect& piece = spawnEffect(option, x, y);
@@ -131,14 +131,14 @@ void Game::mineBlast(Mine& mine) {
     for (std::size_t i : struck) {
         if (std::ranges::find(done, i) != done.end()) continue;
         done.push_back(i);
-        Actor& enemy = actors_[i];
+        Actor& enemy = world_.actors[i];
         const auto& s = enemy.placement.stats;
-        spawnEffect(mines::kHitOptions[static_cast<std::size_t>(random_.next(4))], enemy.character.x,
+        spawnEffect(mines::kHitOptions[static_cast<std::size_t>(world_.random.next(4))], enemy.character.x,
                     enemy.character.y);
-        if (random_.next(100) >= hitChance(mines::kBlastHit, s.evasion)) continue;
+        if (world_.random.next(100) >= hitChance(mines::kBlastHit, s.evasion)) continue;
         if (!sounded) playSound(6, mine.x, mine.y);  // the blast's hit sound, once
         sounded = true;
-        const int damage = mines::damage(magic_, power, s.element, s.defense, random_.next(3));
+        const int damage = mines::damage(magic_, power, s.element, s.defense, world_.random.next(3));
         log::info("A mine hits for {}", damage);
         hurtEnemy(enemy, damage);
     }
@@ -157,10 +157,10 @@ bool Game::mineButtonClick(int x, int y) {
         y >= kMineButton.y + kMineButton.h) {
         return false;
     }
-    const std::size_t before = mines_.size();
+    const std::size_t before = world_.mines.size();
     layMine();
     // The button clicks when it lays one; the B key is silent (0x445bd0).
-    if (mines_.size() > before) playSound(0x3a);
+    if (world_.mines.size() > before) playSound(0x3a);
     return true;
 }
 

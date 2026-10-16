@@ -91,8 +91,8 @@ void Game::wakeInTown() {
     playerMp_ = playerMaxMp();
     player_->direction = 0;
     player_->restart(chart::kIdle);
-    log::info("The player wakes in town (scenario {}, entry {}), {} gold lost", control_.town, control_.townEntry, lost);
-    pendingScenario_.emplace(control_.town, control_.townEntry);
+    log::info("The player wakes in town (scenario {}, entry {}), {} gold lost", world_.control.town, world_.control.townEntry, lost);
+    pendingScenario_.emplace(world_.control.town, world_.control.townEntry);
 }
 
 bool Game::heroHasSave() const {

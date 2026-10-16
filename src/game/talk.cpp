@@ -81,7 +81,7 @@ public:
     void talk(const Talk& t) override { g_.openDialogue(t); }
     void initTrade(int shop, int list) override {
         if (!g_.tables_.tables.empty()) {
-            g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.random_);
+            g_.shops_[shop] = stockShop(g_.tables_, g_.items_, list, g_.world_.random);
             return;
         }
         const auto goods = g_.openShops_.find(list);
@@ -91,7 +91,7 @@ public:
         for (const auto& g : goods->second) {
             const ItemDef* def = g_.items_.find(g.cls, g.code);
             if (!def) continue;
-            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def, g_.random_));
+            for (int k = 0; k < g.count; ++k) stock.add(Item::make(def, g_.world_.random));
         }
     }
     void trade(int shop) override { g_.openTrade(shop); }
@@ -104,7 +104,7 @@ public:
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def) return;
         if (!def->isGold()) {
-            g_.dropItem(Item::make(def, g_.random_), x, y);
+            g_.dropItem(Item::make(def, g_.world_.random), x, y);
             return;
         }
         // Ours: the Debug tab's gold rate raises gold from objects (chests,
@@ -112,7 +112,7 @@ public:
         if (fromObject()) amount = scaleGold(amount, g_.goldRate());
         // Gold comes in piles of at most 10,000, spread out a little.
         for (const int pile : goldPiles(amount, Inventory::kGoldStack)) {
-            g_.dropItem({def, pile}, x + g_.random_.next(200) - 100, y + g_.random_.next(200) - 100);
+            g_.dropItem({def, pile}, x + g_.world_.random.next(200) - 100, y + g_.world_.random.next(200) - 100);
         }
     }
     void createItemTable(int list, int x, int y) override { g_.dropFromList(list, x, y); }
@@ -166,7 +166,7 @@ public:
     int playerSex() const override { return static_cast<int>(g_.heroSex_); }
     std::int64_t gold() const override { return g_.inventory_.gold(); }
     void payGold(std::int64_t amount) override { g_.inventory_.addGold(-static_cast<int>(std::min<std::int64_t>(amount, g_.inventory_.gold()))); }
-    int random(int n) override { return g_.random_.next(n); }
+    int random(int n) override { return g_.world_.random.next(n); }
     void showQuestName(int quest) override { g_.showMissionName(quest); }
     void showAreaName(const std::string& name) override { g_.showAreaName(toFontText(name)); }
     int entryPoint() const override { return g_.entryPoint_; }
@@ -189,7 +189,7 @@ public:
     std::optional<bool> enemyAlive(std::int32_t id) const override {
         if (const auto* a = g_.actorById(id)) return a->hostile() ? std::optional(a->alive()) : std::nullopt;
         // A monster the engine could not spawn still counts, as alive.
-        for (const auto& p : g_.control_.placements) {
+        for (const auto& p : g_.world_.control.placements) {
             if (p.group == ScenarioControl::Group::Enemy && ScenarioControl::idBase(p.group) + p.id == id) return true;
         }
         return std::nullopt;
@@ -199,7 +199,7 @@ public:
     void giveItem(int cls, int code) override {
         const ItemDef* def = g_.items_.find(static_cast<ItemDef::Class>(cls), code);
         if (!def || g_.inventory_.has(def->cls, code)) return;
-        const Item item = Item::make(def, g_.random_);
+        const Item item = Item::make(def, g_.world_.random);
         // SETITEMDIRECT is for items kept in the special items window
         // (0x430ffe case 0x4b); anything else goes in the bag, or on the
         // ground when it is full.
@@ -223,8 +223,8 @@ public:
     void skippedCommand(std::int32_t opcode) override {
         // Once per scenario and command, so a playthrough log lists what
         // each area still lacks without a line every frame.
-        if (g_.skippedCommands_.insert(opcode).second) {
-            log::warn("Script command {} ({}) in {} is not carried out yet", ScenarioScript::commandName(opcode), opcode, g_.scenarioDir_);
+        if (g_.world_.skippedCommands.insert(opcode).second) {
+            log::warn("Script command {} ({}) in {} is not carried out yet", ScenarioScript::commandName(opcode), opcode, g_.world_.scenarioDir);
         }
     }
     void fireTrap(const TrapFire& f) override { g_.fireTrap(f); }
@@ -258,7 +258,7 @@ public:
     void resurrect(std::int32_t enemy, int x, int y, int direction) override { g_.resurrect(enemy, x, y, direction); }
     // The object's opacity at + 0xf4, which 0x45ddd0 draws it with.
     void setObjectOpacity(std::int32_t object, int opacity) override {
-        for (auto& p : g_.control_.placements) {
+        for (auto& p : g_.world_.control.placements) {
             if (p.group == ScenarioControl::Group::Object && ScenarioControl::idBase(p.group) + p.id == object) p.look.opacity = opacity;
         }
     }
@@ -302,25 +302,25 @@ private:
     std::int32_t character_;
 };
 
-const Game::Actor* Game::actorById(std::int32_t id) const {
-    for (const auto& a : actors_) {
+const Actor* Game::actorById(std::int32_t id) const {
+    for (const auto& a : world_.actors) {
         if (a.gameId() == id) return &a;
     }
     return nullptr;
 }
 
-Game::Actor* Game::actorById(std::int32_t id) { return const_cast<Actor*>(std::as_const(*this).actorById(id)); }
+Actor* Game::actorById(std::int32_t id) { return const_cast<Actor*>(std::as_const(*this).actorById(id)); }
 
 std::optional<std::pair<double, double>> Game::positionOf(std::int32_t id) const {
     if (const auto* a = actorById(id)) return std::pair(a->character.x, a->character.y);
-    for (const auto& p : control_.placements) {
+    for (const auto& p : world_.control.placements) {
         if (ScenarioControl::idBase(p.group) + p.id == id) return std::pair(double(p.x), double(p.y));
     }
     return std::nullopt;
 }
 
 const ScenarioControl::Placement* Game::placementById(std::int32_t id) const {
-    for (const auto& p : control_.placements) {
+    for (const auto& p : world_.control.placements) {
         if (ScenarioControl::idBase(p.group) + p.id == id) return &p;
     }
     return nullptr;
@@ -335,11 +335,11 @@ std::optional<std::size_t> Game::usableObjectAt(float screenX, float screenY) co
 }
 
 std::optional<std::size_t> Game::objectAt(float screenX, float screenY, bool talks) const {
-    if (!script_) return std::nullopt;
+    if (!world_.script) return std::nullopt;
     double wx, wy;
     screenToWorld(pixelX(screenX), pixelY(screenY), wx, wy);
-    for (std::size_t i = 0; i < control_.placements.size(); ++i) {
-        const auto& p = control_.placements[i];
+    for (std::size_t i = 0; i < world_.control.placements.size(); ++i) {
+        const auto& p = world_.control.placements[i];
         if (p.group != ScenarioControl::Group::Object) continue;
         if (wx < p.x + p.rect[0] || wx > p.x + p.rect[2] || wy < p.y + p.rect[1] || wy > p.y + p.rect[3]) continue;
         const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
@@ -347,7 +347,7 @@ std::optional<std::size_t> Game::objectAt(float screenX, float screenY, bool tal
         const auto* o = sceneObject(id);
         if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) continue;
         if (!talks) return i;
-        for (const auto& t : script_->triggers) {
+        for (const auto& t : world_.script->triggers) {
             if (t.event == ScenarioScript::kOnTalk && t.character == id) return i;
         }
     }
@@ -388,9 +388,9 @@ void Game::renderLabels() {
 }
 
 void Game::runScript(std::int32_t sentence, std::int32_t character) {
-    if (!script_ || pendingScenario_) return;
+    if (!world_.script || pendingScenario_) return;
     GameScript host(*this, character);
-    ScriptRunner runner(*script_, flags_, &host, character);
+    ScriptRunner runner(*world_.script, world_.flags, &host, character);
     runner.setRules(rules_);
     if (const auto change = runner.run(sentence)) {
         pendingScenario_.emplace(change->scenario, change->entry);
@@ -398,8 +398,8 @@ void Game::runScript(std::int32_t sentence, std::int32_t character) {
 }
 
 void Game::runEvent(std::int32_t event, std::int32_t character) {
-    if (!script_) return;
-    for (const auto& t : script_->triggers) {
+    if (!world_.script) return;
+    for (const auto& t : world_.script->triggers) {
         if (t.event != event || (character != -1 && t.character != character)) continue;
         runScript(t.sentence, t.character);
     }
@@ -408,8 +408,8 @@ void Game::runEvent(std::int32_t event, std::int32_t character) {
 std::optional<std::size_t> Game::personAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
     double bestDistance = INFINITY;
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
-        const auto& a = actors_[i];
+    for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+        const auto& a = world_.actors[i];
         if (a.hostile() || !a.active) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(a.character.x), static_cast<int>(a.character.y), sx, sy);
@@ -432,17 +432,17 @@ void Game::talkTo(Actor& person) {
 }
 
 void Game::talkToId(std::int32_t id) {
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
-        if (actors_[i].gameId() != id) continue;
+    for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+        if (world_.actors[i].gameId() != id) continue;
         if (player_) {
-            player_->x = actors_[i].character.x + 150;
-            player_->y = actors_[i].character.y + 150;
+            player_->x = world_.actors[i].character.x + 150;
+            player_->y = world_.actors[i].character.y + 150;
         }
         talkTarget_ = i;
         return;
     }
-    for (std::size_t i = 0; i < control_.placements.size(); ++i) {
-        const auto& p = control_.placements[i];
+    for (std::size_t i = 0; i < world_.control.placements.size(); ++i) {
+        const auto& p = world_.control.placements[i];
         if (p.group != ScenarioControl::Group::Object || ScenarioControl::idBase(p.group) + p.id != id) continue;
         if (player_) {
             player_->x = p.x + p.rect[2] + 100;
@@ -508,14 +508,14 @@ bool Game::applyTalkRequest(const TalkRequest& r) {
     switch (r.kind) {
         case K::TalkTo:
             // Someone here to talk to: not a monster, and not hidden.
-            if (!player_ || dialogue_ || index >= actors_.size() || actors_[index].hostile() || !actors_[index].active) return false;
+            if (!player_ || dialogue_ || index >= world_.actors.size() || world_.actors[index].hostile() || !world_.actors[index].active) return false;
             talkTarget_ = index;
             attackTarget_.reset();
             return true;
         case K::UseObject: {
             // An object here that is shown and usable, as a click finds it.
-            if (!player_ || dialogue_ || index >= control_.placements.size()) return false;
-            const auto& p = control_.placements[index];
+            if (!player_ || dialogue_ || index >= world_.control.placements.size()) return false;
+            const auto& p = world_.control.placements[index];
             if (p.group != ScenarioControl::Group::Object) return false;
             const auto* o = sceneObject(ScenarioControl::idBase(p.group) + p.id);
             if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) return false;
@@ -540,8 +540,8 @@ void Game::closeDialogue(int answer) {
     const Dialogue d = std::move(*dialogue_);
     dialogue_.reset();
     if (!d.scripted) return;
-    if (script_) {
-        ScriptRunner(*script_, flags_).store(d.answer, answer);
+    if (world_.script) {
+        ScriptRunner(*world_.script, world_.flags).store(d.answer, answer);
     }
     runEvent(ScenarioScript::kOnTalkEnd, d.speaker);
 }
@@ -1055,14 +1055,14 @@ ShopStock& Game::openStock() {
 bool Game::giantPageOpen(int page) const {
     if (page < 0 || page >= kGiantStoragePages) return false;
     if (page < 2) return true;
-    const auto flag = flags_.find({ScenarioScript::kExtraStorage, page});
-    return flag != flags_.end() && flag->second == 1;
+    const auto flag = world_.flags.find({ScenarioScript::kExtraStorage, page});
+    return flag != world_.flags.end() && flag->second == 1;
 }
 
 int Game::unlockAllGiantPages() {
     int unlocked = 0;
     for (int page = 2; page < kGiantStoragePages; ++page) {
-        auto& flag = flags_[{ScenarioScript::kExtraStorage, page}];
+        auto& flag = world_.flags[{ScenarioScript::kExtraStorage, page}];
         if (flag != 1) ++unlocked;
         flag = 1;
     }

@@ -151,7 +151,7 @@ void Game::giveStartingKit() {
     }
     for (const std::int32_t code : {0, 10000000}) {
         const ItemDef* def = items_.find(ItemDef::Class::Consumable, code);
-        for (int i = 0; def && i < 4; ++i) inventory_.addToBelt(Item::make(def, random_));
+        for (int i = 0; def && i < 4; ++i) inventory_.addToBelt(Item::make(def, world_.random));
     }
 }
 
@@ -162,14 +162,14 @@ bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
         log::warn("No item {}/{}", itemClass, code);
         return false;
     }
-    Item item = Item::make(def, random_, def->isGold() ? count : 1);
+    Item item = Item::make(def, world_.random, def->isGold() ? count : 1);
     item.wear = wear;
     if (to == GiveTo::Ground) {
         if (!player_) return false;
         // Side by side in a row below the hero.
-        const double k = static_cast<double>(groundItems_.size() % 5) - 2;
+        const double k = static_cast<double>(world_.groundItems.size() % 5) - 2;
         dropItem(item, player_->x + 160 + k * 100, player_->y + 160 - k * 100);
-        groundItems_.back().waitForLeave = true;
+        world_.groundItems.back().waitForLeave = true;
         return true;
     }
     if (to == GiveTo::Wear) {
@@ -195,16 +195,16 @@ bool Game::give(int itemClass, int code, int count, GiveTo to, int wear) {
 }
 
 void Game::spawnGroundItems() {
-    groundItems_.clear();
+    world_.groundItems.clear();
     int unknown = 0;
-    for (const auto& p : control_.placements) {
+    for (const auto& p : world_.control.placements) {
         if (p.group != ScenarioControl::Group::Item) continue;
         const ItemDef* def = p.itemClass >= 0 && p.itemClass <= 4 ? items_.find(static_cast<ItemDef::Class>(p.itemClass), p.itemCode) : nullptr;
         if (!def) {
             ++unknown;
             continue;
         }
-        dropItem(Item::make(def, random_), p.x, p.y);
+        dropItem(Item::make(def, world_.random), p.x, p.y);
     }
     if (unknown > 0) log::warn("{} placed items are not in the item table", unknown);
 }
@@ -235,7 +235,7 @@ void Game::dropItem(const Item& item, double x, double y) {
             g.sprite = std::move(c);
         }
     }
-    groundItems_.push_back(std::move(g));
+    world_.groundItems.push_back(std::move(g));
 }
 
 // A monster's gold (0x45a030), dropped 100 units below it, then its drop
@@ -250,7 +250,7 @@ void Game::dropLoot(const Actor& enemy) {
         least = (*list->gold)[1];
         most = (*list->gold)[2];
     }
-    if (int gold = rollGold(chance, least, most, inventory_.goldBonus(), random_)) {
+    if (int gold = rollGold(chance, least, most, inventory_.goldBonus(), world_.random)) {
         // Ours: the Debug tab's gold rate. Above a pile's 10,000 the rest
         // lands in more piles around the first.
         gold = scaleGold(gold, goldRate());
@@ -258,7 +258,7 @@ void Game::dropLoot(const Actor& enemy) {
         if (const ItemDef* def = items_.find(ItemDef::Class::Special, 0)) {
             const auto piles = goldPiles(gold, Inventory::kGoldStack);
             for (std::size_t i = 0; i < piles.size(); ++i) {
-                const double dx = i ? random_.next(200) - 100 : 0, dy = i ? random_.next(200) - 100 : 0;
+                const double dx = i ? world_.random.next(200) - 100 : 0, dy = i ? world_.random.next(200) - 100 : 0;
                 dropItem({def, piles[i]}, x + dx, y + 100 + dy);
             }
         } else {
@@ -269,7 +269,7 @@ void Game::dropLoot(const Actor& enemy) {
 }
 
 void Game::dropFromList(int list, double x, double y) {
-    const auto drops = rollDrops(dropTables_, items_, list, random_, rules_.dropQualityPerRoll, luck(), playerLevel_);
+    const auto drops = rollDrops(dropTables_, items_, list, world_.random, rules_.dropQualityPerRoll, luck(), playerLevel_);
     for (std::size_t i = 0; i < drops.size(); ++i) {
         // Spread around the spot by how many rolls the list has, as the
         // exe does, whether or not each roll gave something.
@@ -277,13 +277,13 @@ void Game::dropFromList(int list, double x, double y) {
         const int rolls = l && l->rolls > 0 ? l->rolls : 1;
         double dx, dy;
         dropSpot(static_cast<int>(i), rolls, x, y, dx, dy);
-        dropItem(Item::make(drops[i], random_, 1, luck()), dx, dy);
+        dropItem(Item::make(drops[i], world_.random, 1, luck()), dx, dy);
         log::info("Dropped {}", drops[i]->name);
     }
 }
 
 void Game::pickUpItems() {
-    for (auto it = groundItems_.begin(); it != groundItems_.end();) {
+    for (auto it = world_.groundItems.begin(); it != world_.groundItems.end();) {
         const double d = std::hypot(it->x - player_->x, it->y - player_->y);
         if (d > kPickupRange) {
             it->waitForLeave = false;
@@ -306,7 +306,7 @@ void Game::pickUpItems() {
             }
             showMessage(item.shownName());
             log::info("Picked up a mine, {} now", mineCount_);
-            it = groundItems_.erase(it);
+            it = world_.groundItems.erase(it);
             continue;
         }
         if (item.def->specialPage >= 0) {
@@ -321,7 +321,7 @@ void Game::pickUpItems() {
             playSound(itemSound(*item.def, kItemTake));
             showMessage(item.shownName());
             log::info("Picked up {}", item.def->name);
-            it = groundItems_.erase(it);
+            it = world_.groundItems.erase(it);
             continue;
         }
         if (!inventory_.pickUp(item)) {
@@ -337,7 +337,7 @@ void Game::pickUpItems() {
             showMessage(item.shownName());
         }
         log::info("Picked up {}{}", item.def->isGold() ? std::format("{} ", item.count) : std::string(), item.def->name);
-        it = groundItems_.erase(it);
+        it = world_.groundItems.erase(it);
     }
 }
 
@@ -522,12 +522,12 @@ void Game::levelUp() {
     }
 }
 
-void Game::showMessage(std::string text) { events_.message(std::move(text)); }
+void Game::showMessage(std::string text) { world_.events.message(std::move(text)); }
 
 void Game::dropHand() {
     if (!hand_ || !player_) return;
     dropItem(*hand_, player_->x, player_->y);
-    groundItems_.back().waitForLeave = true;
+    world_.groundItems.back().waitForLeave = true;
     hand_.reset();
 }
 
@@ -786,9 +786,9 @@ void Game::putInWarehouse() {
 std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) const {
     std::optional<std::size_t> best;
     double bestDistance = INFINITY;
-    for (std::size_t i = 0; i < groundItems_.size(); ++i) {
+    for (std::size_t i = 0; i < world_.groundItems.size(); ++i) {
         int sx, sy;
-        worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
+        worldToScreen(static_cast<int>(world_.groundItems[i].x), static_cast<int>(world_.groundItems[i].y), sx, sy);
         const SDL_FPoint at = onScreen(sx, sy - 8);
         const double dx = at.x - screenX, dy = at.y - screenY;
         const double d = std::hypot(dx, dy);
@@ -886,11 +886,11 @@ bool Game::drawPanelPicture() {
 
 void Game::renderGroundItems(int camX, int camY) {
     std::vector<GroundItem*> order;
-    for (auto& g : groundItems_) order.push_back(&g);
+    for (auto& g : world_.groundItems) order.push_back(&g);
     std::ranges::stable_sort(order, [](const GroundItem* a, const GroundItem* b) { return a->x + a->y < b->x + b->y; });
     for (GroundItem* g : order) {
         // The one under the pointer is drawn brighter (0x40ee70).
-        const int glow = hovered(Settings::kItem, static_cast<std::size_t>(g - groundItems_.data())) ? kHoverGlow : 0;
+        const int glow = hovered(Settings::kItem, static_cast<std::size_t>(g - world_.groundItems.data())) ? kHoverGlow : 0;
         int sx, sy;
         worldToScreen(static_cast<int>(g->x), static_cast<int>(g->y), sx, sy);
         sx -= camX;

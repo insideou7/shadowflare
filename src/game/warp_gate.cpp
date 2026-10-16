@@ -76,8 +76,8 @@ std::vector<int> Game::warpGatesFound() const {
     std::vector<int> found;
     for (int g = 0; g < warpGates_.count(); ++g) {
         if (warpGates_.list[static_cast<std::size_t>(g)].name.empty()) continue;
-        const auto it = flags_.find({ScenarioScript::kWarp, g});
-        if (it != flags_.end() && it->second != 0) found.push_back(g);
+        const auto it = world_.flags.find({ScenarioScript::kWarp, g});
+        if (it != world_.flags.end() && it->second != 0) found.push_back(g);
     }
     return found;
 }
@@ -86,7 +86,7 @@ int Game::unlockAllWarpGates() {
     int unlocked = 0;
     for (int g = 0; g < warpGates_.count(); ++g) {
         if (warpGates_.list[static_cast<std::size_t>(g)].name.empty()) continue;
-        auto& flag = flags_[{ScenarioScript::kWarp, g}];
+        auto& flag = world_.flags[{ScenarioScript::kWarp, g}];
         if (flag == 0) ++unlocked;
         flag = 1;
     }

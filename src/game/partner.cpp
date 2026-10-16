@@ -208,8 +208,8 @@ void Game::tickPartner() {
     if (p.state == State::Bite) {
         if (!p.struck && c.frame() >= c.frameCount() / 2) {
             p.struck = true;
-            if (p.target && *p.target < actors_.size()) {
-                Actor& enemy = actors_[*p.target];
+            if (p.target && *p.target < world_.actors.size()) {
+                Actor& enemy = world_.actors[*p.target];
                 if (enemy.alive() && boxGap(c, enemy.placement.rect, enemy.character.x, enemy.character.y) <= kBiteReach + 9) partnerBites(enemy);
             }
         }
@@ -280,8 +280,8 @@ void Game::tickPartner() {
     // Fighting: the nearest living monster within reach of the hero.
     if (partnerRecord_.active && toHero < kSeekRange && !p.target) {
         double best = kSeekRange;
-        for (std::size_t i = 0; i < actors_.size(); ++i) {
-            const Actor& a = actors_[i];
+        for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+            const Actor& a = world_.actors[i];
             if (!a.hostile() || !a.alive() || !a.active) continue;
             const double d = std::hypot(a.character.x - c.x, a.character.y - c.y);
             if (d < best) {
@@ -291,14 +291,14 @@ void Game::tickPartner() {
         }
     }
     if (p.target) {
-        const bool valid = *p.target < actors_.size() && actors_[*p.target].alive() && partnerRecord_.active;
+        const bool valid = *p.target < world_.actors.size() && world_.actors[*p.target].alive() && partnerRecord_.active;
         if (!valid || toHero >= kLeashRange ||
-            std::hypot(actors_[*p.target].character.x - player_->x, actors_[*p.target].character.y - player_->y) > kSeekRange * 1.5) {
+            std::hypot(world_.actors[*p.target].character.x - player_->x, world_.actors[*p.target].character.y - player_->y) > kSeekRange * 1.5) {
             p.target.reset();
         }
     }
     if (p.target) {
-        Actor& enemy = actors_[*p.target];
+        Actor& enemy = world_.actors[*p.target];
         if (boxGap(c, enemy.placement.rect, enemy.character.x, enemy.character.y) <= kBiteReach) {
             c.faceTowards(enemy.character.x - c.x, enemy.character.y - c.y);
             // Attack speed sets how fast the bite plays (0x460015): 0.2 to
@@ -321,7 +321,7 @@ void Game::tickPartner() {
     if (toHero >= kTeleportRange) {
         c.x = player_->x + 200;
         c.y = player_->y + 200;
-        if (!map_->ground().walkable(c.x, c.y)) {
+        if (!world_.map->ground().walkable(c.x, c.y)) {
             c.x = player_->x;
             c.y = player_->y;
         }
@@ -378,9 +378,9 @@ void Game::tickPartnerIdle() {
 void Game::partnerBites(Actor& enemy) {
     const auto& s = enemy.placement.stats;
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(st.hit, s.evasion)) return;
+    if (world_.random.next(100) >= hitChance(st.hit, s.evasion)) return;
     playSound(0x2c, partner_->character.x, partner_->character.y);  // 0x45fff0
-    const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
+    const int damage = spellDamage(st.attack, st.element, s.element, s.defense, world_.random.next(3), world_.random.next(4));
     hurtEnemy(enemy, damage, false, true);
 }
 
@@ -391,11 +391,11 @@ void Game::strikePartner(Actor& enemy, int slot) {
     const auto& s = enemy.placement.stats;
     const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(s.hits[k], st.evasion)) {
+    if (world_.random.next(100) >= hitChance(s.hits[k], st.evasion)) {
         showMiss(partner_->character.x, partner_->character.y);
         return;
     }
-    hurtPartner(spellDamage(s.attacks[k], s.element, st.element, st.defense, random_.next(3), random_.next(4)));
+    hurtPartner(spellDamage(s.attacks[k], s.element, st.element, st.defense, world_.random.next(3), world_.random.next(4)));
     playSound(6, enemy.character.x, enemy.character.y);  // the blow lands (0x45a2f0)
 }
 
@@ -538,14 +538,14 @@ bool Game::partnerAt(float screenX, float screenY) const {
     return inClickRange(at.x - screenX, at.y - screenY);
 }
 
-bool Game::partnerCanStand(double x, double y) const { return map_ && map_->ground().walkable(x, y); }
+bool Game::partnerCanStand(double x, double y) const { return world_.map && world_.map->ground().walkable(x, y); }
 
 // With Tab held, the left button sends the companion to jump on a monster,
 // a switch or open ground, to fetch an item, or shows its status when
 // clicked itself; the right button dashes at a monster or towards the
 // cursor, from the hero's side only (0x441c00, 0x448b50, 0x4490b0).
 bool Game::partnerOrder(float screenX, float screenY, bool right) {
-    if (!partner_ || !player_ || !map_) return false;
+    if (!partner_ || !player_ || !world_.map) return false;
     Partner& p = *partner_;
     using State = Partner::State;
     using Order = Partner::Order;
@@ -567,7 +567,7 @@ bool Game::partnerOrder(float screenX, float screenY, bool right) {
         const Character& c = p.character;
         if (!alive || p.state == State::Dash || std::hypot(player_->x - c.x, player_->y - c.y) >= kDashFromHero) return true;
         if (target.kind == Settings::kEnemy) {
-            const auto& a = actors_[target.index].character;
+            const auto& a = world_.actors[target.index].character;
             order(Order::Dash, a.x, a.y);
         } else if (p.orderCooldown == 0) {
             order(Order::Dash, wx, wy);
@@ -577,7 +577,7 @@ bool Game::partnerOrder(float screenX, float screenY, bool right) {
 
     switch (target.kind) {
         case Settings::kEnemy: {
-            const auto& a = actors_[target.index].character;
+            const auto& a = world_.actors[target.index].character;
             if (alive && !leaping && partnerCanStand(a.x, a.y)) {
                 order(Order::Jump, a.x, a.y);
                 p.orderActor = target.index;
@@ -585,10 +585,10 @@ bool Game::partnerOrder(float screenX, float screenY, bool right) {
             return true;
         }
         case Settings::kItem:
-            if (alive) order(Order::Fetch, groundItems_[target.index].x, groundItems_[target.index].y);
+            if (alive) order(Order::Fetch, world_.groundItems[target.index].x, world_.groundItems[target.index].y);
             return true;
         case Settings::kObject: {
-            const auto& o = control_.placements[target.index];
+            const auto& o = world_.control.placements[target.index];
             if (o.companionSwitch && alive && !leaping && partnerCanStand(o.x, o.y)) {
                 order(Order::Jump, o.x, o.y);
                 p.orderObject = target.index;
@@ -622,14 +622,14 @@ void Game::orderPartnerBy(const std::string& kind, int dx, int dy) {
         p.order = Partner::Order::Jump;
         // Aimed at a monster, as clicking one does: it lands where the
         // monster is by then.
-        for (std::size_t i = 0; i < actors_.size(); ++i) {
-            const auto& a = actors_[i];
+        for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+            const auto& a = world_.actors[i];
             if (a.hostile() && a.alive() && std::hypot(a.character.x - p.orderX, a.character.y - p.orderY) < 200) p.orderActor = i;
         }
     } else if (kind == "explode") {
         // As the Explosion spell cast at that point, or at the monster
         // aimed at.
-        for (const auto& a : actors_) {
+        for (const auto& a : world_.actors) {
             if (a.hostile() && a.alive() && std::hypot(a.character.x - p.orderX, a.character.y - p.orderY) < 200) {
                 p.orderX = a.character.x;
                 p.orderY = a.character.y;
@@ -640,7 +640,7 @@ void Game::orderPartnerBy(const std::string& kind, int dx, int dy) {
         p.order = Partner::Order::Dash;
     } else if (kind == "fetch") {
         double best = INFINITY;
-        for (const auto& g : groundItems_) {
+        for (const auto& g : world_.groundItems) {
             const double d = std::hypot(g.x - player_->x, g.y - player_->y);
             if (d < best) {
                 best = d;
@@ -681,8 +681,8 @@ void Game::tickPartnerJump() {
             return;
         }
         double x = p.orderX, y = p.orderY;
-        if (p.orderActor && *p.orderActor < actors_.size()) {
-            const Actor& a = actors_[*p.orderActor];
+        if (p.orderActor && *p.orderActor < world_.actors.size()) {
+            const Actor& a = world_.actors[*p.orderActor];
             if (a.alive() && partnerCanStand(a.character.x, a.character.y)) {
                 x = a.character.x;
                 y = a.character.y;
@@ -757,14 +757,14 @@ std::vector<std::size_t> Game::monstersIn(double left, double top, double right,
     auto meets = [&](double x, double y, const std::int32_t (&r)[4]) {
         return x + r[2] >= left && x + r[0] <= right && y + r[3] >= top && y + r[1] <= bottom;
     };
-    for (std::size_t i = 0; i < actors_.size(); ++i) {
-        const Actor& a = actors_[i];
+    for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+        const Actor& a = world_.actors[i];
         if (a.hostile() && a.alive() && a.active && meets(a.character.x, a.character.y, a.placement.rect)) found.push_back(i);
     }
-    for (const auto& o : control_.placements) {
+    for (const auto& o : world_.control.placements) {
         if (o.group != ScenarioControl::Group::Object || o.linkedEnemy < 0 || !meets(o.x, o.y, o.rect)) continue;
-        for (std::size_t i = 0; i < actors_.size(); ++i) {
-            const Actor& a = actors_[i];
+        for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+            const Actor& a = world_.actors[i];
             if (a.placement.group == ScenarioControl::Group::Enemy && a.placement.id == o.linkedEnemy && a.hostile() &&
                 a.alive() && a.active) {
                 found.push_back(i);
@@ -784,13 +784,13 @@ void Game::partnerLands(double left, double top, double right, double bottom, bo
     const PartnerStats& st = p.stats;
     bool bit = false;
     for (std::size_t i : monstersIn(left, top, right, bottom)) {
-        Actor& enemy = actors_[i];
+        Actor& enemy = world_.actors[i];
         if (!enemy.alive()) continue;
         const auto& s = enemy.placement.stats;
-        if (random_.next(100) >= hitChance(st.hit, s.evasion)) continue;
+        if (world_.random.next(100) >= hitChance(st.hit, s.evasion)) continue;
         bit = true;
         if (dash) {
-            const int damage = spellDamage(st.attack, st.element, s.element, s.defense, random_.next(3), random_.next(4));
+            const int damage = spellDamage(st.attack, st.element, s.element, s.defense, world_.random.next(3), world_.random.next(4));
             log::info("The companion's dash hits {} for {}", enemy.gameId(), damage);
             hurtEnemy(enemy, damage, false, true);
             stunEnemy(enemy, kDashStunChance, kDashStunLength, false, st.element);
@@ -799,7 +799,7 @@ void Game::partnerLands(double left, double top, double right, double bottom, bo
             stunEnemy(enemy, st.jumpStunChance, st.jumpStunLength, st.jumpStunUncapped, st.element);
         }
     }
-    for (const auto& o : control_.placements) {
+    for (const auto& o : world_.control.placements) {
         if (o.group != ScenarioControl::Group::Object || !o.companionSwitch) continue;
         if (o.x + o.rect[2] < left || o.x + o.rect[0] > right || o.y + o.rect[3] < top || o.y + o.rect[1] > bottom) continue;
         log::info("The companion presses object {}", o.id);
@@ -844,12 +844,12 @@ void Game::partnerExplodes() {
     playSound(0x1d, c.x, c.y);
     playSound(0x17, c.x, c.y);
     for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
-        Actor& enemy = actors_[i];
+        Actor& enemy = world_.actors[i];
         if (!enemy.alive()) continue;
         const auto& s = enemy.placement.stats;
-        if (random_.next(100) >= hitChance(p.stats.hit, s.evasion)) continue;
+        if (world_.random.next(100) >= hitChance(p.stats.hit, s.evasion)) continue;
         trainSpell(kExplosion);
-        const int damage = spellDamage(kExplosionPower, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
+        const int damage = spellDamage(kExplosionPower, element, s.element, s.magicDefense, world_.random.next(3), world_.random.next(4));
         log::info("The companion's explosion hits {} for {}", enemy.gameId(), damage);
         hurtEnemy(enemy, damage, true);
         const auto& stun = magic_.stun(s.element, kExplosion, level);
@@ -872,7 +872,7 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
             length += t->value(5, 1);
         }
     }
-    if (random_.next(100) >= chance - s.stunChanceResist) return;
+    if (world_.random.next(100) >= chance - s.stunChanceResist) return;
     int ticks = std::max(1, length - s.stunLengthResist);
     if (!uncapped && !s.stunUncapped) ticks = std::min(ticks, kStunCap);
     enemy.stunTicks = ticks;
@@ -887,11 +887,11 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
     if (kind == StunKind::Freeze) {
         // Ice closes round it, one of four blocks holds it and it breaks
         // away when the stun ends (the controller at 0x42d380).
-        const int index = static_cast<int>(&enemy - actors_.data());
+        const int index = static_cast<int>(&enemy - world_.actors.data());
         const double x = enemy.character.x, y = enemy.character.y;
         spawnEffect(kFreezeStart, x, y).followsActor = index;
         playSound(0x77, x, y);  // 0x459690
-        Effect& ice = spawnEffect(kFreezeHold + random_.next(4), x, y);
+        Effect& ice = spawnEffect(kFreezeHold + world_.random.next(4), x, y);
         ice.followsActor = index;
         ice.life = ticks;
         ice.then = kFreezeEnd;
@@ -909,8 +909,8 @@ void Game::endStun(Actor& enemy) {
 bool Game::tickPartnerFetch(double toHero) {
     Partner& p = *partner_;
     Character& c = p.character;
-    auto it = std::ranges::find_if(groundItems_, [&](const GroundItem& g) { return std::hypot(g.x - p.orderX, g.y - p.orderY) < 1; });
-    if (it == groundItems_.end() || toHero >= kFetchGiveUp) {
+    auto it = std::ranges::find_if(world_.groundItems, [&](const GroundItem& g) { return std::hypot(g.x - p.orderX, g.y - p.orderY) < 1; });
+    if (it == world_.groundItems.end() || toHero >= kFetchGiveUp) {
         p.order = Partner::Order::None;
         return false;
     }
@@ -938,7 +938,7 @@ bool Game::tickPartnerFetch(double toHero) {
     }
     showMessage(item.def->isGold() ? std::format("{} gold", item.count) : item.shownName());
     log::info("The companion fetched {}", item.def->name);
-    groundItems_.erase(it);
+    world_.groundItems.erase(it);
     return true;
 }
 
