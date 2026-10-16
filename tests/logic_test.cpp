@@ -992,6 +992,8 @@ void testMagic() {
           "original mode casts at the point clicked, not the monster under it");
     check(sf::Rules::ours().gameOverWindow && !sf::Rules::original().gameOverWindow,
           "a fallen hero gets the Game Over window only outside original mode");
+    check(sf::Rules::ours().autosaveInTown && !sf::Rules::original().autosaveInTown,
+          "only outside original mode does coming into town save the game");
 }
 
 void testPowerMode() {
@@ -1110,6 +1112,10 @@ void testSettings() {
     sf::Settings names;
     names.itemNames = true;
     check(sf::Settings::parse(names.write()).itemNames, "item names left on survive a write and a parse");
+    check(defaults.autosave, "autosave in town is on by default");
+    sf::Settings noAutosave;
+    noAutosave.autosave = false;
+    check(!sf::Settings::parse(noAutosave.write()).autosave, "autosave turned off survives a write and a parse");
     sf::Settings fps;
     fps.showFps = true;
     check(sf::Settings::parse(fps.write()).showFps, "show FPS survives a write and a parse");

@@ -315,7 +315,12 @@ public:
     // saved. setSaveFile instead names one file for everything.
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
     void setSaveFolder(std::string folder);
-    bool saveGame();
+    // `autosave` says so on screen instead of "Game saved".
+    bool saveGame(bool autosave = false);
+    // Ours (Rules::autosaveInTown, the Settings Menu's AUTOSAVE IN TOWN):
+    // saves when the hero comes into a town from outside it. Scripted runs
+    // (tests, screenshots) do not unless they name where saves go.
+    void setAutosaveAllowed(bool on) { autosaveAllowed_ = on; }
     // The current hero's save, or with none chosen yet the newest one.
     bool loadGame();
 
@@ -463,6 +468,8 @@ private:
     // Every layer of a model's first chart: what non-player characters wear.
     static std::vector<int> allLayers(const CharacterModel& m);
     void changeScenario(int number, int entry);
+    // changeScenario for a pending scenario change, which may autosave.
+    void travel(int number, int entry);
     void goToStart();
     void checkTriggers(bool fire = true);
     const CharacterModel* model(const std::string& stem);
@@ -1183,6 +1190,13 @@ private:
     void chooseGameOver(bool carryOn);
     void renderGameOver();
     bool heroHasSave() const;
+    // Saves on coming into a town from another scenario
+    // (Rules::autosaveInTown). A town is an area's own: Transport leads to
+    // the scenario itself (scenario + 0x60). The rest floors of the Tower
+    // of Ordeal count too.
+    void autosaveIfInTown();
+    bool inTown() const;
+    bool autosaveAllowed_ = true;
 
     // The card game (card_game.cpp): Black Jack over the whole screen,
     // which STARTCARDGAME opens (0x434297) and 0x40da90 plays and draws.
@@ -1239,7 +1253,7 @@ private:
     enum class OptionsTab { Settings, Debug, Count };
     enum class OptionRow {
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
-        EffectVolume, MusicVolume, OriginalMode, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
+        EffectVolume, MusicVolume, OriginalMode, Autosave, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
         XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, ShowFps
     };

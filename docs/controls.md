@@ -171,6 +171,7 @@ change it, Enter steps through it or does it.
 | Click Priority | ENEM, ITEM, OBJ., PEOP, COMP in the order a click tries them; click one (or Left/Right) to bring it to the front |
 | Eff. Volume, BGM Volume | sliders from 0 (silent) to 10, as the original's. Left/Right move a step; click or drag along the bar. The music changes as it plays; effects take the new volume from the next one. Saved in options.txt. |
 | Original Mode | ours: play by the original's rules, bugs included (see `src/logic/rules.h`). Off by default; new games use this, a saved game keeps its own. |
+| Autosave in Town | ours: ON (the default) saves the game, with "Autosaved" on screen, whenever the hero comes into a town from another area: on foot, by warp gate or by Transport. It saves into the hero's own slot (the one last saved or loaded), or the first free one if the hero has never saved. A town is an area's own, the scenario Transport leads to (scenario + 0x60), so the Caravan, Sena's Small Shrine and the Tower of Ordeal's rest floors count too. The original has no autosave, so original mode turns it off and dims the row. Saved in options.txt. |
 | Art | ours: ORIGINAL or OURS, the art the original game is drawn with; F12 swaps it too. Only shown when playing with the original files. |
 | Mission List | opens the mission list |
 | Map | opens the area map, as N does |

@@ -906,7 +906,7 @@ void Game::tick() {
     }
     if (pendingScenario_ && !dialogue_) {
         const auto [number, entry] = *pendingScenario_;
-        changeScenario(number, entry);
+        travel(number, entry);
         updateCamera();
         return;
     }
@@ -989,7 +989,7 @@ void Game::tick() {
     checkTriggers();
     if (pendingScenario_) {
         const auto [number, entry] = *pendingScenario_;
-        changeScenario(number, entry);
+        travel(number, entry);
     }
     updateCamera();
     tickAreaMap();
@@ -1053,6 +1053,15 @@ void Game::changeScenario(int number, int entry) {
     }
     checkTriggers(false);
     updateCamera();
+}
+
+// A scenario change the game asked for: an exit, a warp gate, Transport, a
+// script. Coming into a town that way saves (Rules::autosaveInTown); a new
+// or loaded game going to its start does not.
+void Game::travel(int number, int entry) {
+    const int from = scenarioNumber();
+    changeScenario(number, entry);
+    if (scenarioNumber() != from) autosaveIfInTown();
 }
 
 std::optional<std::size_t> Game::enemyAt(float screenX, float screenY) const {
