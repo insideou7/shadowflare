@@ -1123,6 +1123,10 @@ void testSettings() {
     sf::Settings fps;
     fps.showFps = true;
     check(sf::Settings::parse(fps.write()).showFps, "show FPS survives a write and a parse");
+    check(!defaults.noClip, "no-clip is off by default");
+    sf::Settings ghost;
+    ghost.noClip = true;
+    check(sf::Settings::parse(ghost.write()).noClip, "no-clip survives a write and a parse");
     sf::Settings fast;
     fast.xpRate = 1000;
     check(fast.write().find("xp_rate=10\n") != std::string::npos && sf::Settings::parse(fast.write()).xpRate == 1000,

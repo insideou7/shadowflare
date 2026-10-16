@@ -43,6 +43,8 @@ struct GroundLayer {
     // Judge value of the cell containing a world position; blocked off the grid.
     std::int16_t judgeAt(double worldX, double worldY) const;
     bool walkable(double worldX, double worldY) const { return !(judgeAt(worldX, worldY) & kBlocked); }
+    // Whether a world position is on the judge grid at all, blocked or not.
+    bool onGrid(double worldX, double worldY) const;
 
     // The area the ground covers on screen, in map pixels.
     void screenBounds(int& left, int& top, int& right, int& bottom) const;

@@ -42,6 +42,12 @@ std::int16_t GroundLayer::judgeAt(double worldX, double worldY) const {
     return judge[static_cast<std::size_t>(jy) * judgeWidth + jx];
 }
 
+bool GroundLayer::onGrid(double worldX, double worldY) const {
+    const int jx = static_cast<int>(std::floor(worldX / magX)) - judgeX;
+    const int jy = static_cast<int>(std::floor(worldY / magY)) - judgeY;
+    return jx >= 0 && jy >= 0 && jx < judgeWidth && jy < judgeHeight;
+}
+
 void GroundLayer::screenBounds(int& left, int& top, int& right, int& bottom) const {
     if (isoTile <= 0) {
         left = top = 0;

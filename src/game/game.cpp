@@ -512,6 +512,18 @@ void Game::placePlayerAt(double screenX, double screenY) {
 
 bool Game::tryMove(Character& who, double dx, double dy) {
     const double x0 = who.x, y0 = who.y;
+    // No-clip (Debug tab): the hero goes anywhere on the map's grid,
+    // through walls, buildings and closed doors.
+    // Turned off with the hero left inside a wall, it lasts until they are
+    // back on open ground, so they can walk out.
+    const bool hero = player_ && &who == &*player_;
+    const bool stuck = hero && !originalMode() && !map_->ground().walkable(x0, y0);
+    if (hero && (noClip() || stuck)) {
+        if (!map_->ground().onGrid(x0 + dx, y0 + dy)) return false;
+        who.x += dx;
+        who.y += dy;
+        return true;
+    }
     if (!sf::tryMove(map_->ground(), who.x, who.y, dx, dy)) return false;
     if (!objectInTheWay(x0, y0, who.x, who.y)) return true;
     // A closed door or a chest in the way: slide along it as along a wall.

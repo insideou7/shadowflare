@@ -81,6 +81,7 @@ std::string Settings::write() const {
     out += std::format("luck={}\n", luck / 100);
     out += std::format("gold_rate={}\n", goldRate / 100);
     out += std::format("show_fps={}\n", showFps ? 1 : 0);
+    out += std::format("no_clip={}\n", noClip ? 1 : 0);
     out += std::format("zoom={}\n", zoom);
     out += std::format("item_names={}\n", itemNames ? 1 : 0);
     out += std::format("autosave={}\n", autosave ? 1 : 0);
@@ -143,6 +144,7 @@ Settings Settings::parse(std::string_view text) {
         else if (key == "original") s.originalMode = v != 0;
         else if (key == "our_art") s.ourArt = v != 0;
         else if (key == "show_fps") s.showFps = v != 0;
+        else if (key == "no_clip") s.noClip = v != 0;
         else if (key == "zoom") s.zoom = std::clamp(v, kMinZoom, kMaxZoom);
         else if (key == "item_names") s.itemNames = v != 0;
         else if (key == "autosave") s.autosave = v != 0;
