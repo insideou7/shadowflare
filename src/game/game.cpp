@@ -726,7 +726,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_1: case SDLK_2: case SDLK_3: case SDLK_4:
                 case SDLK_5: case SDLK_6: case SDLK_7: case SDLK_8: {
                     const int key = event.key.keysym.sym - SDLK_1;
-                    useBelt(key % Inventory::kBeltWidth, key / Inventory::kBeltWidth);
+                    applyItemRequest(ItemRequest::at(ItemRequest::Kind::UseBelt, key % Inventory::kBeltWidth, key / Inventory::kBeltWidth));
                     break;
                 }
                 case SDLK_b: layMine(); break;

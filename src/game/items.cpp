@@ -556,7 +556,7 @@ bool Game::inventoryClick(int x, int y, bool right) {
     }
     if (!showInventory_ || !inside(kPanel, x, y)) {
         if (!hand_) return false;
-        if (!right) dropHand();
+        if (!right) applyItemRequest(ItemRequest::of(ItemRequest::Kind::DropHand));
         return true;
     }
     // The tabs answer first, whatever is in the hand.
@@ -576,37 +576,28 @@ bool Game::inventoryClick(int x, int y, bool right) {
                 sellFromBag(index);
             } else if (rules_.rightClickEquips && index >= 0 &&
                        inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) {
-                equipFromBag(index);
+                applyItemRequest(ItemRequest::at(ItemRequest::Kind::EquipFromBag, cx, cy));
             } else {
-                useItem(index);
+                applyItemRequest(ItemRequest::at(ItemRequest::Kind::UseBag, cx, cy));
             }
             return true;
         }
-        if (hand_ && hand_->def->specialPage >= 0) {
-            // Put down in the bag, it goes back to its place in the special
-            // items window, silently, unless one like it is there (0x446320).
-            if (inventory_.addSpecial(*hand_)) hand_.reset();
-        } else if (hand_) {
+        if (hand_) {
             // The item is held by its middle; it goes in the cells under it.
             const double left = x - hand_->def->width * kCell / 2.0 - kBagX;
             const double top = y - hand_->def->height * kCell / 2.0 - kBagY;
-            const int tx = static_cast<int>(std::lround(left / kCell)), ty = static_cast<int>(std::lround(top / kCell));
-            const ItemDef& held = *hand_->def;
-            const auto result = inventory_.clickBag(hand_, tx, ty);
-            if (result == Inventory::Result::NoRoom) showMessage("No room there");
-            // Put down in empty cells, or over one item, which is taken up (0x446320).
-            if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
-        } else if (inventory_.clickBag(hand_, cx, cy) == Inventory::Result::Done) {
-            playSound(itemSound(*hand_->def, kItemTake));
+            applyItemRequest(ItemRequest::bagClick(static_cast<int>(std::lround(left / kCell)), static_cast<int>(std::lround(top / kCell))));
+        } else {
+            applyItemRequest(ItemRequest::bagClick(cx, cy));
         }
         return true;
     }
     if (inside(kTransferBox, x, y)) {
-        if (!right) putInWarehouse();
+        if (!right) applyItemRequest(ItemRequest::of(ItemRequest::Kind::ToWarehouse));
         return true;
     }
     if (inside(kMineSlot, x, y)) {
-        if (!right) mineSlotClick();
+        if (!right) applyItemRequest(ItemRequest::of(ItemRequest::Kind::MineSlot));
         return true;
     }
     if (!right && specialButtonLit(x, y)) {
@@ -617,20 +608,10 @@ bool Game::inventoryClick(int x, int y, bool right) {
     for (const auto& box : kSlots) {
         if (!inside(box.rect(), x, y)) continue;
         if (right) {
-            if (!hand_ && rules_.rightClickEquips) unequipToBag(box.slot);
+            applyItemRequest(ItemRequest::of(ItemRequest::Kind::UnequipToBag, static_cast<int>(box.slot)));
             return true;
         }
-        const ItemDef* held = hand_ ? hand_->def : nullptr;
-        switch (inventory_.clickSlot(hand_, box.slot, playerLevel_)) {
-            case Inventory::Result::Done:
-                // Wearing an item, or taking one off (0x446320).
-                playSound(held ? itemSound(*held, kItemEquip) : itemSound(*hand_->def, kItemTake));
-                updateEquipment();
-                break;
-            case Inventory::Result::WrongSlot: showMessage("That does not go there"); break;
-            case Inventory::Result::LevelTooLow: showMessage(std::format("Needs level {}", hand_->def->requiredLevel)); break;
-            default: break;
-        }
+        applyItemRequest(ItemRequest::of(ItemRequest::Kind::SlotClick, static_cast<int>(box.slot)));
         return true;
     }
     return true;
@@ -640,12 +621,9 @@ bool Game::weaponSetTabClick(int x, int y, bool right) {
     for (const auto& tab : kSetTabs) {
         if (!inside(tab.hit, x, y)) continue;
         if (right) {
-            // Only the tab in use answers: sharing its empty slot with the
-            // other set, or ending that. Silent.
-            if (inventory_.toggleShared(tab.part, tab.set)) updateEquipment();
-        } else if (inventory_.chooseWeaponSet(tab.set)) {
-            playSound(0x3a);
-            updateEquipment();
+            applyItemRequest(ItemRequest::at(ItemRequest::Kind::ToggleShared, tab.part, tab.set));
+        } else {
+            applyItemRequest(ItemRequest::of(ItemRequest::Kind::ChooseWeaponSet, tab.set));
         }
         return true;
     }
@@ -746,14 +724,12 @@ void Game::finishGoldSplit() {
     if (box.text.empty() || box.text.size() > 6) return;
     const int amount = std::stoi(box.text);
     const ItemDef* gold = items_.find(ItemDef::Class::Special, 0);
-    bool taken = false;
     if (box.from == GoldSplit::From::Bag) {
-        taken = inventory_.splitGold(inventory_.indexAt(box.x, box.y), amount, hand_);
-    } else {
-        ShopStock& stock = box.from == GoldSplit::From::Storage ? shops_[kStorage] : openStock();
-        taken = splitGold(stock.goods, stock.indexAt(box.x, box.y), amount, gold, hand_);
+        if (amount > 0) applyItemRequest({ItemRequest::Kind::SplitGold, static_cast<std::int16_t>(box.x), static_cast<std::int16_t>(box.y), amount});
+        return;
     }
-    if (taken) playSound(itemSound(*hand_->def, kItemTake));
+    ShopStock& stock = box.from == GoldSplit::From::Storage ? shops_[kStorage] : openStock();
+    if (splitGold(stock.goods, stock.indexAt(box.x, box.y), amount, gold, hand_)) playSound(itemSound(*hand_->def, kItemTake));
 }
 
 // A small box where the right click was, the amount in it (0x441ab0).
@@ -1275,6 +1251,82 @@ bool beltCellAt(int x, int y, int& cx, int& cy) {
 
 // Keys 1-8 and a right click on a belt cell use what is there; a like
 // item from the bag is used up first, so the belt stays stocked.
+// Carries out one thing done with the hero's items (logic/item_request.h),
+// checking it first: the item window's clicks come here, and online a
+// joining player's requests will too.
+void Game::applyItemRequest(const ItemRequest& r) {
+    using K = ItemRequest::Kind;
+    if (!r.valid()) return;
+    const auto slot = static_cast<EquipSlot>(r.x);
+    switch (r.kind) {
+        case K::BagClick:
+            if (hand_ && hand_->def->specialPage >= 0) {
+                // Put down in the bag, it goes back to its place in the special
+                // items window, silently, unless one like it is there (0x446320).
+                if (inventory_.addSpecial(*hand_)) hand_.reset();
+            } else if (hand_) {
+                const ItemDef& held = *hand_->def;
+                const auto result = inventory_.clickBag(hand_, r.x, r.y);
+                if (result == Inventory::Result::NoRoom) showMessage("No room there");
+                // Put down in empty cells, or over one item, which is taken up (0x446320).
+                if (result == Inventory::Result::Done) playSound(itemSound(held, hand_ ? kItemTake : kItemPut));
+            } else if (inventory_.clickBag(hand_, r.x, r.y) == Inventory::Result::Done) {
+                playSound(itemSound(*hand_->def, kItemTake));
+            }
+            break;
+        case K::SlotClick: {
+            const ItemDef* held = hand_ ? hand_->def : nullptr;
+            switch (inventory_.clickSlot(hand_, slot, playerLevel_)) {
+                case Inventory::Result::Done:
+                    // Wearing an item, or taking one off (0x446320).
+                    playSound(held ? itemSound(*held, kItemEquip) : itemSound(*hand_->def, kItemTake));
+                    updateEquipment();
+                    break;
+                case Inventory::Result::WrongSlot: showMessage("That does not go there"); break;
+                case Inventory::Result::LevelTooLow: showMessage(std::format("Needs level {}", hand_->def->requiredLevel)); break;
+                default: break;
+            }
+            break;
+        }
+        case K::BeltClick: {
+            // Taking an item, or putting one there, both with event 0 (0x445bd0).
+            const ItemDef* held = hand_ ? hand_->def : nullptr;
+            const auto result = inventory_.clickBelt(hand_, r.x, r.y);
+            if (result == Inventory::Result::WrongSlot) showMessage("Only potions go in the belt");
+            if (result == Inventory::Result::Done) playSound(itemSound(held ? *held : *hand_->def, kItemTake));
+            break;
+        }
+        case K::UseBag: useItem(inventory_.indexAt(r.x, r.y)); break;
+        case K::UseBelt: useBelt(r.x, r.y); break;
+        case K::EquipFromBag: {
+            const int index = inventory_.indexAt(r.x, r.y);
+            if (!rules_.rightClickEquips || hand_ || index < 0) break;
+            if (inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) equipFromBag(index);
+            break;
+        }
+        case K::UnequipToBag:
+            if (!hand_ && rules_.rightClickEquips) unequipToBag(slot);
+            break;
+        case K::DropHand: dropHand(); break;
+        case K::ChooseWeaponSet:
+            if (inventory_.chooseWeaponSet(r.x)) {
+                playSound(0x3a);
+                updateEquipment();
+            }
+            break;
+        case K::ToggleShared:
+            // Only the tab in use answers: sharing its empty slot with the
+            // other set, or ending that. Silent.
+            if (inventory_.toggleShared(r.x, r.y)) updateEquipment();
+            break;
+        case K::SplitGold:
+            if (inventory_.splitGold(inventory_.indexAt(r.x, r.y), r.amount, hand_)) playSound(itemSound(*hand_->def, kItemTake));
+            break;
+        case K::ToWarehouse: putInWarehouse(); break;
+        case K::MineSlot: mineSlotClick(); break;
+    }
+}
+
 void Game::useBelt(int x, int y) {
     const auto& item = inventory_.beltAt(x, y);
     if (!item || hand_) return;
@@ -1284,15 +1336,7 @@ void Game::useBelt(int x, int y) {
 bool Game::beltClick(int x, int y, bool right) {
     int cx, cy;
     if (menuOpen_ || !player_ || !beltCellAt(x, y, cx, cy)) return false;
-    if (right) {
-        useBelt(cx, cy);
-        return true;
-    }
-    // Taking an item, or putting one there, both with event 0 (0x445bd0).
-    const ItemDef* held = hand_ ? hand_->def : nullptr;
-    const auto result = inventory_.clickBelt(hand_, cx, cy);
-    if (result == Inventory::Result::WrongSlot) showMessage("Only potions go in the belt");
-    if (result == Inventory::Result::Done) playSound(itemSound(held ? *held : *hand_->def, kItemTake));
+    applyItemRequest(ItemRequest::at(right ? ItemRequest::Kind::UseBelt : ItemRequest::Kind::BeltClick, cx, cy));
     return true;
 }
 

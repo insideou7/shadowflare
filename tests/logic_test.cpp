@@ -16,6 +16,7 @@
 #include "logic/combat.h"
 #include "logic/explored_map.h"
 #include "logic/hero_input.h"
+#include "logic/item_request.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
 #include "formats/table_data.h"
@@ -1445,7 +1446,42 @@ void testHeroInput() {
     check(!HeroInput::decode(std::span(bytes).first(bytes.size() - 1)).has_value(), "a short message is refused");
 }
 
+// Item requests survive the trip to bytes and back, and ones that name no
+// real cell, slot or tab are refused.
+void testItemRequest() {
+    using sf::ItemRequest;
+    using K = ItemRequest::Kind;
+    const ItemRequest requests[] = {
+        ItemRequest::bagClick(8, 3), ItemRequest::bagClick(-1, 4), ItemRequest::of(K::SlotClick, 8),
+        ItemRequest::at(K::BeltClick, 3, 1), ItemRequest::at(K::UseBag, 0, 0), ItemRequest::at(K::UseBelt, 0, 1),
+        ItemRequest::at(K::EquipFromBag, 4, 2), ItemRequest::of(K::UnequipToBag, 0), ItemRequest::of(K::DropHand),
+        ItemRequest::of(K::ChooseWeaponSet, 1), ItemRequest::at(K::ToggleShared, 1, 0), {K::SplitGold, 2, 3, 9999},
+        ItemRequest::of(K::ToWarehouse), ItemRequest::of(K::MineSlot),
+    };
+    for (const auto& r : requests) {
+        check(r.valid(), "a sensible item request is valid");
+        check(ItemRequest::decode(r.encode()) == r, "an item request reads back as written");
+    }
+    check(!ItemRequest::at(K::UseBag, 9, 0).valid(), "a bag cell past the edge is refused");
+    check(!ItemRequest::at(K::UseBelt, 0, 2).valid(), "a belt cell past the edge is refused");
+    check(!ItemRequest::bagClick(100, 0).valid(), "a hand put down far outside the bag is refused");
+    check(!ItemRequest::of(K::SlotClick, 9).valid(), "a slot that does not exist is refused");
+    check(!ItemRequest::of(K::ChooseWeaponSet, 2).valid(), "a third weapon set is refused");
+    check(!ItemRequest({K::SplitGold, 0, 0, 0}).valid(), "splitting off no gold is refused");
+    check(!ItemRequest({K::SplitGold, 0, 0, -5}).valid(), "splitting off negative gold is refused");
+    check(!ItemRequest({K::UseBag, 0, 0, 5}).valid(), "an amount on a request without one is refused");
+    check(!ItemRequest::at(K::DropHand, 1, 0).valid(), "numbers on a request without any are refused");
+    auto bytes = ItemRequest::of(K::DropHand).encode();
+    bytes[1] = ItemRequest::kKindCount;
+    check(!ItemRequest::decode(bytes).has_value(), "an unknown kind is refused");
+    bytes = ItemRequest::of(K::DropHand).encode();
+    bytes[0] = ItemRequest::kVersion + 1;
+    check(!ItemRequest::decode(bytes).has_value(), "another version is refused");
+    check(!ItemRequest::decode(std::span(bytes).first(3)).has_value(), "a short message is refused");
+}
+
 int main() {
+    testItemRequest();
     testHeroInput();
     testItemLabels();
     testMixer();
