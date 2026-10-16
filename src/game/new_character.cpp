@@ -86,7 +86,7 @@ void Game::setHero(HeroSex sex, std::string name) {
 }
 
 void Game::openNewCharacter() {
-    newCharacter_.emplace();
+    newCharacter_ = NewCharacter{};  // not emplace(): Clang rejects it for a class nested in Game
     newCharacter_->hover = static_cast<int>(HeroSex::Male);
     newCharacter_->ticks = kFadeTicks;  // fading in
     mouseHeld_ = false;
