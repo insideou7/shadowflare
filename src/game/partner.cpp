@@ -404,7 +404,8 @@ bool Game::partnerInReach(const Actor& enemy) const {
 }
 
 void Game::hurtPartner(int damage) {
-    if (!partnerAlive()) return;
+    // The Invincible Companion cheat: blows land but do nothing.
+    if (!partnerAlive() || invincibleCompanion()) return;
     Partner& p = *partner_;
     p.hp -= damage;
     p.stun.reset();
@@ -432,7 +433,9 @@ void Game::hurtPartner(int damage) {
 
 void Game::partnerCountKill() {
     if (!partnerTables_ || !partnerAlive()) return;
-    if (partnerRecord_.countKill(*partnerTables_, playerLevel_)) {
+    // The Experience Rate cheat counts a kill as rate times one (always
+    // one in original mode).
+    if (partnerRecord_.countKill(*partnerTables_, playerLevel_, xpRate() / Settings::kXpRateNormal)) {
         // A new level rebuilds the stats and heals fully (0x412f34).
         refreshPartnerStats();
         partner_->hp = partner_->stats.maxHp;

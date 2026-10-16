@@ -193,6 +193,7 @@ public:
     // The Debug tab's no-clip: the hero ignores walls and blocking objects.
     // Never in original mode.
     bool noClip() const { return settings_.noClip && !originalMode(); }
+    bool invincibleCompanion() const { return settings_.invincibleCompanion && !originalMode(); }
 
     // Draws the original game with our art or its own, at once and
     // without reloading the map, like a remaster's classic-graphics
@@ -1255,7 +1256,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Autosave, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, NoClip, ShowFps
+        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, NoClip, InvincibleCompanion, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;

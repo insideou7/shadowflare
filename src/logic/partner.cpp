@@ -94,7 +94,7 @@ int PartnerTables::need(int kind, int level) const {
 
 int partnerLevelCap(int heroLevel) { return std::min(kPartnerMaxLevel, heroLevel / 3 + 2); }
 
-bool PartnerRecord::countKill(const PartnerTables& tables, int heroLevel) {
+bool PartnerRecord::countKill(const PartnerTables& tables, int heroLevel, int amount) {
     auto& level = levels[static_cast<std::size_t>(kind)];
     auto& exp = experience[static_cast<std::size_t>(kind)];
     const int cap = partnerLevelCap(heroLevel);
@@ -102,7 +102,7 @@ bool PartnerRecord::countKill(const PartnerTables& tables, int heroLevel) {
         exp = 0;
         return false;
     }
-    ++exp;
+    exp += std::max(amount, 1);
     bool up = false;
     while (level < cap) {
         const int need = tables.need(kind, level);
