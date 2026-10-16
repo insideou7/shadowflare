@@ -501,6 +501,40 @@ void Game::openDialogue(const ScriptHost::Talk& talk) {
     mouseHeld_ = false;
 }
 
+bool Game::applyTalkRequest(const TalkRequest& r) {
+    using K = TalkRequest::Kind;
+    if (!r.valid()) return false;
+    const auto index = static_cast<std::size_t>(r.index);
+    switch (r.kind) {
+        case K::TalkTo:
+            // Someone here to talk to: not a monster, and not hidden.
+            if (!player_ || dialogue_ || index >= actors_.size() || actors_[index].hostile() || !actors_[index].active) return false;
+            talkTarget_ = index;
+            attackTarget_.reset();
+            return true;
+        case K::UseObject: {
+            // An object here that is shown and usable, as a click finds it.
+            if (!player_ || dialogue_ || index >= control_.placements.size()) return false;
+            const auto& p = control_.placements[index];
+            if (p.group != ScenarioControl::Group::Object) return false;
+            const auto* o = sceneObject(ScenarioControl::idBase(p.group) + p.id);
+            if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) return false;
+            objectTarget_ = index;
+            attackTarget_.reset();
+            return true;
+        }
+        case K::Answer: {
+            // One of the options shown, or none when the box has none.
+            if (!dialogue_) return false;
+            const int count = static_cast<int>(dialogue_->options.size());
+            if (count ? r.index < 0 || r.index >= count : r.index != -1) return false;
+            closeDialogue(r.index);
+            return true;
+        }
+    }
+    return false;
+}
+
 void Game::closeDialogue(int answer) {
     if (!dialogue_) return;
     const Dialogue d = std::move(*dialogue_);
@@ -632,9 +666,9 @@ void Game::dialogueEvent(const SDL_Event& event) {
                 case SDLK_KP_ENTER:
                 case SDLK_SPACE:
                     playSound(0x39);  // (0x458080)
-                    closeDialogue(count ? d.choice : -1);
+                    applyTalkRequest(TalkRequest::answer(count ? d.choice : -1));
                     break;
-                case SDLK_ESCAPE: closeDialogue(count ? count - 1 : -1); break;
+                case SDLK_ESCAPE: applyTalkRequest(TalkRequest::answer(count ? count - 1 : -1)); break;
                 default: break;
             }
             break;
@@ -643,10 +677,10 @@ void Game::dialogueEvent(const SDL_Event& event) {
             break;
         case SDL_MOUSEBUTTONDOWN:
             if (!count) {
-                closeDialogue(-1);
+                applyTalkRequest(TalkRequest::answer(-1));
             } else if (const int o = dialogueOptionAt(event.button.x, event.button.y); o >= 0) {
                 playSound(0x39);  // (0x457fa0)
-                closeDialogue(o);
+                applyTalkRequest(TalkRequest::answer(o));
             }
             break;
         default: break;

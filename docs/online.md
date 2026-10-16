@@ -26,7 +26,7 @@ the lobby and instanced areas. The server decides everything:
   through the hub's gates into an instance: a private copy of an area that
   only their party can enter.
 - Clients send only what their player asks for: the hero's input, item
-  requests (below), and later talk choices. The server checks each one and
+  requests and talk requests (below). The server checks each one and
   works out every result: damage, experience, gold, drops, quest flags.
   Story flags are kept per character; an instance follows the party
   leader's.
@@ -43,8 +43,7 @@ The largest job is keeping the game's rules apart from its windows and
 drawing, so the server can run them with no window at all. That is done a
 piece at a time, with offline play checked against main after each.
 
-Order: finish the split (talking and quest choices, then an SDL-free
-`World`), then the Rust server with logins and the character store, then
+Order: finish the split (an SDL-free `World` next), then the Rust server with logins and the character store, then
 the hub town, then friends, parties and instances.
 
 ## In place
@@ -70,3 +69,13 @@ the hub town, then friends, parties and instances.
   exist, and gold amounts below 1. The game also checks what is open: a
   purchase needs a shop open and gold enough, a warehouse move needs the
   warehouse open, and Identify needs the spell waiting.
+- **Talk requests** (`src/logic/talk_request.h`). Clicking a person to walk
+  up and talk, clicking a chest, switch or other object to use it, and the
+  answer chosen when a conversation box closes (by click, Enter or Esc) are
+  each a `TalkRequest`, which `Game::applyTalkRequest` checks first: the
+  person must be there, not a monster and not hidden; the object must be
+  shown and usable; an answer needs a box open and must be one of its
+  options (or none, for a box with none). Quest choices are those answers:
+  the script stores the answer and decides what follows, so the server runs
+  the same script. A request encodes to 6 bytes; decoding refuses unknown
+  kinds, numbers below 0 and answers out of range.

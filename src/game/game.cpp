@@ -786,8 +786,7 @@ void Game::handleEvent(const SDL_Event& event) {
             // While Identify waits for an item, the right button calls it
             // off (0x445a40) and casts nothing.
             if (identifying_ && event.button.button == SDL_BUTTON_RIGHT) {
-                identifying_ = false;
-                showMessage("Identify cancelled");
+                applyItemRequest(ItemRequest::of(ItemRequest::Kind::CancelIdentify));
                 break;
             }
             if (areaMapClick(event.button.x, event.button.y, event.button.button == SDL_BUTTON_RIGHT)) break;
@@ -831,13 +830,9 @@ void Game::handleEvent(const SDL_Event& event) {
                 // Clicking a person walks up to them to talk, unless
                 // something nearer the front of the click priority is there.
                 const auto target = clickTarget(static_cast<float>(event.button.x), static_cast<float>(event.button.y), ~0u);
-                if (target.kind == Settings::kPerson && player_) {
-                    talkTarget_ = target.index;
-                    attackTarget_.reset();
+                if (target.kind == Settings::kPerson && applyTalkRequest(TalkRequest::talkTo(target.index))) {
                     mouseHeld_ = false;
-                } else if (target.kind == Settings::kObject && player_) {
-                    objectTarget_ = target.index;
-                    attackTarget_.reset();
+                } else if (target.kind == Settings::kObject && applyTalkRequest(TalkRequest::useObject(target.index))) {
                     mouseHeld_ = false;
                 }
             }
@@ -923,6 +918,8 @@ void Game::tick() {
         return;
     }
     if (dialogue_ && !answers_.empty()) {
+        // --answers, for tests: closes the box with whatever it is given,
+        // like --talk it goes round the checks a player's answer gets.
         const int answer = answers_.front();
         answers_.erase(answers_.begin());
         closeDialogue(answer);

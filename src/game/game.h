@@ -25,6 +25,7 @@
 #include "logic/item_labels.h"
 #include "logic/inventory.h"
 #include "logic/item_request.h"
+#include "logic/talk_request.h"
 #include "logic/loot.h"
 #include "logic/magic.h"
 #include "logic/mines.h"
@@ -579,6 +580,9 @@ private:
     void levelUp();  // one level up, with its sounds, spells and message
     // One thing done with the hero's items, checked (logic/item_request.h).
     void applyItemRequest(const ItemRequest& request);
+    // Carries out a talk, use or answer request if it fits what is there
+    // (src/logic/talk_request.h). Returns whether it was carried out.
+    bool applyTalkRequest(const TalkRequest& request);
     void useItem(int index);
     // A consumable's effect on the hero or companion; false when it would
     // do nothing, so it is not used up.

@@ -6,6 +6,7 @@
 #include <exception>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +18,7 @@
 #include "logic/explored_map.h"
 #include "logic/hero_input.h"
 #include "logic/item_request.h"
+#include "logic/talk_request.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
 #include "formats/table_data.h"
@@ -1527,8 +1529,32 @@ void testSaveSeal() {
     check(!refused(text, true) && sf::SaveGame::open(text, true).name == "Ada", "a plain text save loads with plain saves on");
 }
 
+void testTalkRequest() {
+    using T = sf::TalkRequest;
+    for (const T r : {T::talkTo(0), T::talkTo(57), T::useObject(3), T::answer(-1), T::answer(0), T::answer(T::kMaxOptions - 1)}) {
+        check(r.valid(), "a talk request in range is valid");
+        const auto bytes = r.encode();
+        check(T::decode(bytes) == r, "a talk request survives encode and decode");
+    }
+    const auto bytes = T::talkTo(0x01020304).encode();
+    check(bytes[0] == T::kVersion && bytes[1] == 0 && bytes[2] == 4 && bytes[5] == 1, "talk request bytes are little-endian");
+    check(!T{T::Kind::TalkTo, -1}.valid() && !T{T::Kind::UseObject, -5}.valid(), "no person or object below 0");
+    check(!T::answer(-2).valid() && !T::answer(T::kMaxOptions).valid(), "answers run from -1 to below the most options");
+    auto changed = T::answer(1).encode();
+    changed[1] = T::kKindCount;
+    check(!T::decode(changed), "an unknown kind is refused");
+    changed = T::answer(1).encode();
+    changed[0] = T::kVersion + 1;
+    check(!T::decode(changed), "another version is refused");
+    changed = T::answer(1).encode();
+    changed[5] = 0x80;
+    check(!T::decode(changed), "an answer out of range is refused");
+    check(!T::decode(std::span(bytes.data(), bytes.size() - 1)), "a short talk request is refused");
+}
+
 int main() {
     testSaveSeal();
+    testTalkRequest();
     testItemRequest();
     testHeroInput();
     testItemLabels();
