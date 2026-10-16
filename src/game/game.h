@@ -15,7 +15,7 @@
 #include <vector>
 
 #include "audio/mixer.h"
-#include "game/character.h"
+#include "world/character.h"
 #include "logic/ai_select.h"
 #include "logic/card_game.h"
 #include "logic/combat.h"
@@ -45,7 +45,7 @@
 #include "formats/scenario.h"
 #include "formats/scenario_script.h"
 #include "formats/warp_gates.h"
-#include "game/map.h"
+#include "world/map.h"
 #include "render/sprite_cache.h"
 
 namespace sf {

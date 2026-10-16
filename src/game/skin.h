@@ -15,7 +15,7 @@
 
 #include "formats/ground_skin.h"
 #include "formats/open_content.h"
-#include "game/character.h"
+#include "world/character.h"
 
 namespace sf {
 

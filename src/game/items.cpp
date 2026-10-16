@@ -10,8 +10,9 @@
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
 #include "formats/table_data.h"
-#include "game/content.h"
+#include "world/content.h"
 #include "game/game.h"
+#include "render/character_draw.h"
 #include "platform/filesystem.h"
 #include "render/tiny_font.h"
 
@@ -901,7 +902,7 @@ void Game::renderGroundItems(int camX, int camY) {
         if (sx < -128 || sy < -128 || sx > viewWidth() + 128 || sy > viewHeight() + 128) continue;
         if (g->sprite) {
             g->sprite->glow = glow;
-            g->sprite->draw(renderer_, sprites_, camX, camY);
+            drawCharacter(renderer_, sprites_, *g->sprite, camX, camY);
             continue;
         }
         const ItemDef& def = *g->item.def;

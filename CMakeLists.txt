@@ -99,17 +99,25 @@ if(NOT SFE_SAVE_KEY STREQUAL "")
     set_source_files_properties(src/logic/save_seal.cpp PROPERTIES COMPILE_DEFINITIONS "SF_SAVE_KEY=\"${SFE_SAVE_KEY}\"")
 endif()
 
-add_executable(shadowflare
-    src/main.cpp
+# The world without a window: maps, characters and loading the game's
+# files. Nothing here may need SDL, so the online server can run it
+# (docs/online.md); world_test links it alone to keep that so.
+add_library(sf_world STATIC
     src/core/log.cpp
     src/platform/filesystem.cpp
+    src/world/content.cpp
+    src/world/map.cpp
+    src/world/character.cpp
+)
+target_link_libraries(sf_world PUBLIC sf_logic)
+
+add_executable(shadowflare
+    src/main.cpp
+    src/render/character_draw.cpp
     src/platform/audio.cpp
     src/platform/crash_log.cpp
     src/render/sprite_cache.cpp
-    src/game/content.cpp
-    src/game/map.cpp
     src/game/skin.cpp
-    src/game/character.cpp
     src/game/game.cpp
     src/game/enemy_ai.cpp
     src/game/items.cpp
@@ -143,7 +151,7 @@ add_executable(shadowflare
     src/game/objects.cpp
     src/render/tiny_font.cpp
 )
-target_link_libraries(shadowflare PRIVATE sf_logic)
+target_link_libraries(shadowflare PRIVATE sf_world)
 if(SFE_SAVE_TOOLS)
     target_compile_definitions(shadowflare PRIVATE SF_SAVE_TOOLS)
 endif()
@@ -151,7 +159,7 @@ if(WIN32)
     target_link_libraries(shadowflare PRIVATE dbghelp)
 endif()
 
-foreach(target sf_formats sf_logic shadowflare)
+foreach(target sf_formats sf_logic sf_world shadowflare)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         # fopen, sscanf, getenv and localtime are portable C; MSVC's _s
@@ -190,6 +198,10 @@ if(BUILD_TESTING)
     add_executable(ground_skin_test tests/ground_skin_test.cpp)
     target_link_libraries(ground_skin_test PRIVATE sf_formats)
     add_test(NAME ground_skin COMMAND ground_skin_test)
+    add_executable(world_test tests/world_test.cpp)
+    target_link_libraries(world_test PRIVATE sf_world)
+    target_compile_definitions(world_test PRIVATE SF_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
+    add_test(NAME world COMMAND world_test)
 endif()
 
 if(EMSCRIPTEN)

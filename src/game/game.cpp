@@ -1,4 +1,5 @@
 #include "game/game.h"
+#include "render/character_draw.h"
 
 #include <algorithm>
 #include <cctype>
@@ -1725,7 +1726,7 @@ void Game::renderMap() {
         return SDL_Rect{sx - 192, sy - 384, 384, 480};
     };
     std::vector<Drawable> drawables;
-    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr, c->pictureBounds(sprites_)});
+    for (const Character* c : characters) drawables.push_back({c->x, c->y, c, nullptr, characterBounds(sprites_, *c)});
     for (const Effect& e : effects_) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
     const std::vector<Effect> gate = transportGateParts();
     for (const Effect& e : gate) drawables.push_back({e.x, e.y, nullptr, &e, effectBox(e)});
@@ -1759,7 +1760,7 @@ void Game::renderMap() {
         // Characters and effects not drawn yet this pass, back to front.
         std::vector<Drawable> pending = shadows ? std::vector<Drawable>{} : drawables;
         auto draw = [&](const Drawable& d) {
-            if (d.character) d.character->draw(renderer_, sprites_, camX, camY, shadowAlpha);
+            if (d.character) drawCharacter(renderer_, sprites_, *d.character, camX, camY, shadowAlpha);
             if (!shadows && d.character && player_ && d.character == &*player_) {
                 renderPowerAura(camX, camY);
                 if (unlockSwitch_) renderHeroOverlay(model("Player/Common/UnlockSW"), unlockTicks_, camX, camY);
@@ -1803,7 +1804,7 @@ void Game::renderMap() {
     }
     // Semi-transparent Player: a faint copy on top shows the hero through
     // walls; where nothing covers them it lands on itself and changes nothing.
-    if (player_ && settings_.seeThroughPlayer) player_->draw(renderer_, sprites_, camX, camY, shadowAlpha, 96);
+    if (player_ && settings_.seeThroughPlayer) drawCharacter(renderer_, sprites_, *player_, camX, camY, shadowAlpha, 96);
     renderSpells(camX, camY);
     if (darknessShown()) renderDarkness(camX, camY);
     if (showJudge_) renderJudge(camX, camY);

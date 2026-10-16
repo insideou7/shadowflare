@@ -9,8 +9,8 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/map_layers.h"
-#include "game/content.h"
-#include "game/map.h"
+#include "world/content.h"
+#include "world/map.h"
 #include "platform/filesystem.h"
 #include "render/sprite_cache.h"
 

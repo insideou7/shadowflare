@@ -1,4 +1,4 @@
-#include "game/content.h"
+#include "world/content.h"
 
 #include "core/log.h"
 #include "formats/binary_reader.h"

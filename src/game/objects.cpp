@@ -12,6 +12,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "game/game.h"
+#include "render/character_draw.h"
 #include "game/skin.h"
 #include "platform/filesystem.h"
 
@@ -144,7 +145,7 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
     const int glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
     const SDL_Color* outline = glow > 0 && rules_.outlineUnderPointer ? &kHoverOutline : nullptr;
     if (o.animation) {
-        if (!shadows) o.animation->draw(renderer_, sprites_, camX, camY, shadowAlpha, std::max(1, int{perMille(p.look.opacity)}));
+        if (!shadows) drawCharacter(renderer_, sprites_, *o.animation, camX, camY, shadowAlpha, std::max(1, int{perMille(p.look.opacity)}));
         return;
     }
     if (!o.body) return;
@@ -194,7 +195,7 @@ void Game::drawOutline(const SpriteBank& bank, int pattern, int x, int y, SDL_Co
 
 SDL_Rect Game::sceneObjectPicture(const SceneObject& o) {
     const auto& p = placementOf(o);
-    if (o.animation) return o.animation->pictureBounds(sprites_);
+    if (o.animation) return characterBounds(sprites_, *o.animation);
     if (!o.body) return {};
     const int pattern = o.prop >= 0 ? o.prop : p.look.pattern;
     const auto* pieces = skin_ && o.prop < 0 ? skin_->scenarioObject(p.kind, pattern) : nullptr;

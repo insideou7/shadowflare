@@ -79,3 +79,28 @@ the hub town, then friends, parties and instances.
   the script stores the answer and decides what follows, so the server runs
   the same script. A request encodes to 6 bytes; decoding refuses unknown
   kinds, numbers below 0 and answers out of range.
+- **The world library** (`sf_world`: `src/world/`). Maps, characters and
+  their animations, and reading the game's files build without SDL;
+  drawing a character moved to `src/render/character_draw.h`.
+  `tests/world_test.cpp` links `sf_world` alone, and SDL's headers are not
+  on its include path, so anything that pulls SDL into the world fails to
+  build.
+
+## The world split, step by step
+
+Each step keeps offline play the same, checked by comparing saves and
+screenshots of scripted runs with the build before it.
+
+1. Maps, characters and file loading in `sf_world` (done).
+2. What the rules tell the player (sounds, messages on screen) becomes a
+   list of events the world hands out each tick, which the game plays and
+   shows, so the rules call no audio or drawing code.
+3. A `World` class in `src/world/` holds one area's state (monsters,
+   people, ground items, objects, story flags, scripts) and its ticks
+   (monster AI, combat, shots, traps, scripts); `Game` owns one and draws
+   what is in it. It moves over a piece at a time.
+4. The hero's own state (inventory, stats, spells, companion) becomes a
+   hero record in the world, so a world can hold several heroes and take
+   each one's `HeroInput`, item and talk requests.
+5. The C interface the Rust server links: create a world, add a hero,
+   apply a request, tick, read a snapshot or a hero's record.

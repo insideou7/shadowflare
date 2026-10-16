@@ -7,6 +7,7 @@
 
 #include "core/log.h"
 #include "game/game.h"
+#include "render/character_draw.h"
 
 namespace sf {
 
@@ -138,7 +139,7 @@ void Game::renderCardGame() {
         hero.restart(hero.hasChart(9) ? 9 : chart::kIdle);
         if (hero.frameCount() > 0) hero.setFrame(static_cast<int>(ticks_ * 30 / kTicksPerSecond) % hero.frameCount());
         hero.x = hero.y = 0;
-        hero.draw(renderer_, sprites_, -0x1f8, -0x140);
+        drawCharacter(renderer_, sprites_, hero, -0x1f8, -0x140);
     }
     if (partner_ && partnerAlive()) {
         Character dog = partner_->character;
@@ -146,7 +147,7 @@ void Game::renderCardGame() {
         dog.restart(chart::kIdle);
         if (dog.frameCount() > 0) dog.setFrame(static_cast<int>(ticks_ * 30 / kTicksPerSecond) % dog.frameCount());
         dog.x = dog.y = 0;
-        dog.draw(renderer_, sprites_, -0x234, -0x154);
+        drawCharacter(renderer_, sprites_, dog, -0x234, -0x154);
     }
 
     if (cardGame_.buttonsShown()) {

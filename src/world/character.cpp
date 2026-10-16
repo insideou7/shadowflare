@@ -1,4 +1,4 @@
-#include "game/character.h"
+#include "world/character.h"
 
 #include <algorithm>
 #include <cmath>
@@ -8,9 +8,8 @@
 #include "formats/binary_reader.h"
 #include "formats/map_layers.h"
 #include "formats/open_content.h"
-#include "game/content.h"
+#include "world/content.h"
 #include "platform/filesystem.h"
-#include "render/sprite_cache.h"
 
 namespace sf {
 
@@ -179,105 +178,6 @@ void Character::tick() {
         }
         if (frame_ != was) reached(frame_);
     }
-}
-
-void Character::draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha,
-                     int alpha) const {
-    const auto* dir = currentDirection();
-    if (!dir) return;
-    int sx, sy;
-    worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
-    sx -= cameraX;
-    sy -= cameraY;
-
-    struct Item {
-        const AnimationSet::Cell* cell;
-        bool shadow;
-        int layer;
-    };
-    std::vector<Item> items;
-    for (std::size_t i = 0; i < dir->layers.size(); ++i) {
-        const auto& layer = dir->layers[i];
-        if (frame_ >= static_cast<int>(layer.size())) continue;
-        const auto& cell = layer[frame_];
-        const bool shadow = AnimationSet::isShadow(cell.status);
-        if (shadow && alpha < 255) continue;
-        if (!shadow && std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
-        items.push_back({&cell, shadow, static_cast<int>(i)});
-    }
-    // Shadows first, then the rest from the highest priority down: a
-    // lower number is nearer the viewer (armour over the body).
-    std::ranges::stable_sort(items, [](const Item& a, const Item& b) {
-        if (a.shadow != b.shadow) return a.shadow;
-        return a.cell->priority > b.cell->priority;
-    });
-
-    for (const auto& item : items) {
-        const SpriteBank& bank = item.shadow ? model_->shadow : model_->body;
-        const SpriteTexture* sprite = sprites.get(bank, item.cell->pattern, false, grey && !item.shadow);
-        if (!sprite) continue;
-        const bool additive = !item.shadow && (item.cell->status & AnimationSet::kAdditiveStatus);
-        const int trans = std::clamp(static_cast<int>(item.cell->trans), 0, 1000);
-        // Textures are shared: set their colour for this draw and put it
-        // back after.
-        if (item.shadow) {
-            SDL_SetTextureColorMod(sprite->texture, 0, 0, 0);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(shadowAlpha * tint.a / 255));
-        } else if (additive) {
-            // Glows and streaks add light at their own opacity, untinted
-            // (the partner's coat colour is set on its body layer only).
-            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
-        } else {
-            SDL_Color c = tint;
-            for (const auto& t : layerTints) {
-                if (t.layer != item.layer) continue;
-                // SDL can only darken: strengths over 1000 stay at full.
-                auto scale = [](Uint8 v, int permille) { return static_cast<Uint8>(v * std::clamp(permille, 0, 1000) / 1000); };
-                c = {scale(c.r, t.r), scale(c.g, t.g), scale(c.b, t.b), c.a};
-            }
-            SDL_SetTextureColorMod(sprite->texture, c.r, c.g, c.b);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(trans * 255 / 1000 * alpha / 255 * tint.a / 255));
-        }
-        SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-        SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
-        if (additive) SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
-        if (!item.shadow && !additive && glow > 0) {
-            // A second copy added on top brightens it.
-            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_ADD);
-            SDL_SetTextureAlphaMod(sprite->texture, static_cast<Uint8>(std::min(1000, glow) * 255 / 1000 * alpha / 255 * tint.a / 255));
-            SDL_RenderCopy(renderer, sprite->texture, nullptr, &dst);
-            SDL_SetTextureBlendMode(sprite->texture, SDL_BLENDMODE_BLEND);
-        }
-        if (!item.shadow) {
-            SDL_SetTextureColorMod(sprite->texture, 255, 255, 255);
-            SDL_SetTextureAlphaMod(sprite->texture, 255);
-        }
-    }
-}
-
-SDL_Rect Character::pictureBounds(SpriteCache& sprites) const {
-    SDL_Rect bounds{0, 0, 0, 0};
-    const auto* dir = currentDirection();
-    if (!dir) return bounds;
-    int sx, sy;
-    worldToScreen(static_cast<int>(x), static_cast<int>(y), sx, sy);
-    for (std::size_t i = 0; i < dir->layers.size(); ++i) {
-        const auto& layer = dir->layers[i];
-        if (frame_ >= static_cast<int>(layer.size())) continue;
-        const auto& cell = layer[frame_];
-        if (cell.status == AnimationSet::kShadowStatus) continue;
-        if (std::ranges::find(visibleLayers, static_cast<int>(i)) == visibleLayers.end()) continue;
-        const SpriteTexture* sprite = sprites.get(model_->body, cell.pattern, false, grey);
-        if (!sprite) continue;
-        const SDL_Rect r{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
-        if (SDL_RectEmpty(&bounds)) {
-            bounds = r;
-        } else {
-            SDL_UnionRect(&bounds, &r, &bounds);
-        }
-    }
-    return bounds;
 }
 
 }  // namespace sf

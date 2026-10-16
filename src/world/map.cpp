@@ -1,4 +1,4 @@
-#include "game/map.h"
+#include "world/map.h"
 
 #include <algorithm>
 #include <cctype>
@@ -7,7 +7,7 @@
 #include "core/log.h"
 #include "formats/binary_reader.h"
 #include "formats/open_content.h"
-#include "game/content.h"
+#include "world/content.h"
 #include "platform/filesystem.h"
 
 namespace sf {

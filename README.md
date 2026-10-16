@@ -204,7 +204,8 @@ own with `-DSFE_SAVE_KEY=<secret>`; keep that secret out of the repository.
     src/formats/    readers for the original data files (no SDL dependency)
     src/render/     turning decoded sprites into textures
     src/logic/      game rules without SDL: scripts, AI choice, movement
-    src/game/       maps, game state, simulation tick and drawing
+    src/world/      maps, characters and file loading without SDL (for the server)
+    src/game/       game state, simulation tick and drawing
     third_party/    stb_image and stb_vorbis (PNG and Ogg Vorbis decoding for the
                     open content), Monocypher (sealing saves)
     content/        open replacement content (MIT)
