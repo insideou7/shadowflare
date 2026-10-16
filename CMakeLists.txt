@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(shadowflare_engine LANGUAGES CXX)
+project(shadowflare_engine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,6 +12,13 @@ option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
 # SHADOWFLARE_SENTRY_DSN environment variable when the game starts.
 option(SFE_SENTRY "Send crash reports to Sentry (needs a DSN)" OFF)
 set(SFE_SENTRY_DSN "" CACHE STRING "Sentry DSN built into the game (empty: only SHADOWFLARE_SENTRY_DSN)")
+# Offline saves are sealed (src/logic/save_seal.h) with a key made from this
+# secret. Empty uses the one in the source; official builds should set their
+# own so the public source doesn't open their saves.
+set(SFE_SAVE_KEY "" CACHE STRING "Secret the offline save key is made from (empty: the one in the source)")
+# --plain-saves, --seal-save and --unseal-save, for editing saves while
+# developing. Turn off for release builds.
+option(SFE_SAVE_TOOLS "Build in the plain save tools for development" ON)
 
 if(EMSCRIPTEN)
     # The format readers report bad data by throwing, and Emscripten turns
@@ -53,6 +60,10 @@ endif()
 target_include_directories(sf_stb SYSTEM PUBLIC third_party/stb)
 target_link_libraries(sf_formats PRIVATE sf_stb)
 
+# Monocypher (third_party/monocypher, BSD-2-Clause or CC0): seals saves.
+add_library(sf_monocypher STATIC third_party/monocypher/monocypher.c)
+target_include_directories(sf_monocypher SYSTEM PUBLIC third_party/monocypher)
+
 # Game rules that need no window: scripts, AI choice, movement.
 add_library(sf_logic STATIC
     src/logic/script_runner.cpp
@@ -68,6 +79,7 @@ add_library(sf_logic STATIC
     src/logic/shop.cpp
     src/logic/progression.cpp
     src/logic/save_game.cpp
+    src/logic/save_seal.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
     src/logic/mines.cpp
@@ -81,7 +93,10 @@ add_library(sf_logic STATIC
     src/logic/title_smoke.cpp
     src/audio/mixer.cpp
 )
-target_link_libraries(sf_logic PUBLIC sf_formats)
+target_link_libraries(sf_logic PUBLIC sf_formats PRIVATE sf_monocypher)
+if(NOT SFE_SAVE_KEY STREQUAL "")
+    set_source_files_properties(src/logic/save_seal.cpp PROPERTIES COMPILE_DEFINITIONS "SF_SAVE_KEY=\"${SFE_SAVE_KEY}\"")
+endif()
 
 add_executable(shadowflare
     src/main.cpp
@@ -128,6 +143,9 @@ add_executable(shadowflare
     src/render/tiny_font.cpp
 )
 target_link_libraries(shadowflare PRIVATE sf_logic)
+if(SFE_SAVE_TOOLS)
+    target_compile_definitions(shadowflare PRIVATE SF_SAVE_TOOLS)
+endif()
 if(WIN32)
     target_link_libraries(shadowflare PRIVATE dbghelp)
 endif()

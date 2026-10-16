@@ -18,7 +18,9 @@ Decided: a dedicated server written in Rust, with a hub town of our own as
 the lobby and instanced areas. The server decides everything:
 
 - Online characters live on the server, apart from the six offline saves.
-  Offline saves stay plain text you can edit, and cannot be brought online.
+  Offline saves are sealed so they are not easy to edit
+  (src/logic/save_seal.h), but the key ships with the game, so the server
+  never trusts them: they cannot be brought online.
   Accounts are a name and a password (an Argon2 hash on the server).
 - Players meet in the hub town, form parties with friends, and step
   through the hub's gates into an instance: a private copy of an area that

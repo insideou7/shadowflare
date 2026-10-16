@@ -315,6 +315,9 @@ public:
     // saved (save1.bmp...); a new hero takes the first free one when first
     // saved. setSaveFile instead names one file for everything.
     void setSaveFile(std::string path) { saveFile_ = std::move(path); }
+    // Development: saves are written as plain text and plain ones load
+    // (--plain-saves). Otherwise saves are sealed and plain ones refused.
+    void setPlainSaves(bool on) { plainSaves_ = on; }
     void setSaveFolder(std::string folder);
     // `autosave` says so on screen instead of "Game saved".
     bool saveGame(bool autosave = false);
@@ -1480,6 +1483,7 @@ private:
     // (player + 0x1624).
     bool identifying_ = false;
     int playerLevel_ = 1;
+    bool plainSaves_ = false;
     std::string saveFile_ = "save.txt";  // the current hero's; empty until a new hero is first saved
     std::string saveFolder_;              // where the six save slots are, if there are slots
     bool worldOnly_ = false;              // renderMap leaves out the panel and windows

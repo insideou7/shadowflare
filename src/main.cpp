@@ -8,9 +8,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -20,6 +22,8 @@
 #include "formats/open_content.h"
 #include "game/game.h"
 #include "game/skin.h"
+#include "logic/save_game.h"
+#include "logic/save_seal.h"
 #include "platform/audio.h"
 #include "platform/crash_log.h"
 #include "platform/filesystem.h"
@@ -88,6 +92,8 @@ struct Options {
     std::string optionsFile;  // default: options.txt in the user's settings folder
     std::string saveFile;     // one save file for everything; default: six slots in the user's settings folder
     std::string saveFolder;   // where the six save slots are, instead of the settings folder
+    bool plainSaves = false;  // --plain-saves: write plain text saves and load them (SF_SAVE_TOOLS builds)
+    std::string sealFile, unsealFile;  // --seal-save, --unseal-save: turn one save file over and quit
     bool loadData = false;    // open the Load Data screen
     bool load = false;        // start from the saved game
     bool saveAtEnd = false;   // save when the run ends (for tests)
@@ -172,6 +178,14 @@ Options parseArgs(int argc, char** argv) {
             options.saveFile = argv[++i];
         } else if (arg == "--save-folder" && i + 1 < argc) {
             options.saveFolder = argv[++i];
+#ifdef SF_SAVE_TOOLS
+        } else if (arg == "--plain-saves") {
+            options.plainSaves = true;
+        } else if (arg == "--seal-save" && i + 1 < argc) {
+            options.sealFile = argv[++i];
+        } else if (arg == "--unseal-save" && i + 1 < argc) {
+            options.unsealFile = argv[++i];
+#endif
         } else if (arg == "--load-data") {
             options.loadData = true;
         } else if (arg == "--hurt" && i + 1 < argc) {
@@ -536,9 +550,58 @@ void frame(void* userData) {
 
 }  // namespace
 
+#ifdef SF_SAVE_TOOLS
+namespace {
+
+// --seal-save and --unseal-save: rewrites one save file sealed or as plain
+// text, in place, so a save can be edited while developing.
+int convertSave(const std::string& path, bool seal) {
+    std::string bytes;
+    {
+        std::ifstream in(path, std::ios::binary);
+        if (!in) {
+            sf::log::error("Could not read {}", path);
+            return EXIT_FAILURE;
+        }
+        std::ostringstream all;
+        all << in.rdbuf();
+        bytes = all.str();
+    }
+    std::string text = bytes;
+    if (sf::isSealedSave(bytes)) {
+        auto opened = sf::unsealSave(bytes);
+        if (!opened) {
+            sf::log::error("{} has been changed or was sealed by another build", path);
+            return EXIT_FAILURE;
+        }
+        text = std::move(*opened);
+    }
+    try {
+        sf::SaveGame::parse(text);
+    } catch (const sf::FormatError& e) {
+        sf::log::error("{} is not a saved game: {}", path, e.what());
+        return EXIT_FAILURE;
+    }
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out << (seal ? sf::sealSave(text) : text);
+    if (!out.flush()) {
+        sf::log::error("Could not write {}", path);
+        return EXIT_FAILURE;
+    }
+    sf::log::info("{} is now {}", path, seal ? "sealed" : "plain text");
+    return EXIT_SUCCESS;
+}
+
+}  // namespace
+#endif
+
 int main(int argc, char** argv) {
     sf::crash::install();
     const Options options = parseArgs(argc, argv);
+#ifdef SF_SAVE_TOOLS
+    if (!options.sealFile.empty()) return convertSave(options.sealFile, true);
+    if (!options.unsealFile.empty()) return convertSave(options.unsealFile, false);
+#endif
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) != 0) {
         sf::log::error("SDL_Init failed: {}", SDL_GetError());
@@ -656,6 +719,7 @@ int main(int argc, char** argv) {
     app.game->setInventoryOpen(options.inventory);
     if (options.special) app.game->setSpecialWindowOpen(true);
     app.game->setStatusOpen(options.status);
+    app.game->setPlainSaves(options.plainSaves);
     if (!options.saveFile.empty()) {
         app.game->setSaveFile(options.saveFile);
     } else if (!options.saveFolder.empty()) {

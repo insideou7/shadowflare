@@ -59,12 +59,19 @@ Walk onto an item to pick it up. In the inventory, click an item to
 pick it up and click again to put it in the bag or an equipment slot;
 right-click a potion to drink it; an item dropped outside the panel lands
 at the hero's feet. F10 saves the game and F11 loads it. As in the original,
-each hero has their own save, up to six: `save1.txt` to `save6.txt` (small
-text files, each with a `.bmp` picture of where it was saved) in SDL's
+each hero has their own save, up to six: `save1.txt` to `save6.txt` (each
+with a `.bmp` picture of where it was saved) in SDL's
 settings folder for the game (on Linux `~/.local/share/ShadowFlare/open/`, on
 Windows `%APPDATA%\ShadowFlare\open\`). Continue on the title opens the Load
 Data screen, which lists them and can delete one. A `save.txt` from an older
 version moves into the first free slot.
+
+Saves are sealed: encrypted and signed with a key built into the game, so
+they can't be read or changed in a text editor, and a save that was changed
+is refused as damaged. This stops easy editing, not someone who reads the
+source; a build can use its own key (see Building). Saves from before
+sealing are plain text: load them once with `--plain-saves` and save, or run
+`--seal-save <file>`.
 
 ## Building
 
@@ -118,6 +125,10 @@ Options:
 - `--save-folder <dir>` keep the six save slots in this folder; `--load-data`
   start on the Load Data screen
 - `--load` start from the saved game; `--save-at-end` saves when the run ends
+- `--plain-saves` write saves as plain text and load plain ones (for
+  development; sealed saves still load)
+- `--unseal-save <file>` / `--seal-save <file>` turn one save into plain text
+  to edit, or seal it again, then quit
 - `--level <n>` start the hero at level n
 - `--class <warrior|hunter|wizard>` the class `--level` gives the hero from level 5 on
 - `--hurt <percent>` drop the hero's HP to that share four seconds in, and
@@ -179,6 +190,12 @@ environment variable. Without a DSN nothing is sent. A crash is uploaded the
 next time the game starts, with the last log lines as breadcrumbs; a failed
 Debug check is sent at once.
 
+Saves are sealed with a key made from a secret in the source. A build that
+should not open saves made by other builds (an official release) sets its
+own with `-DSFE_SAVE_KEY=<secret>`; keep that secret out of the repository.
+`-DSFE_SAVE_TOOLS=OFF` leaves out `--plain-saves`, `--seal-save` and
+`--unseal-save`.
+
 ## Layout
 
     src/core/       logging and shared helpers
@@ -189,7 +206,7 @@ Debug check is sent at once.
     src/logic/      game rules without SDL: scripts, AI choice, movement
     src/game/       maps, game state, simulation tick and drawing
     third_party/    stb_image and stb_vorbis (PNG and Ogg Vorbis decoding for the
-                    open content)
+                    open content), Monocypher (sealing saves)
     content/        open replacement content (MIT)
     tests/          unit tests that run without game data
     tools/          inventory script, reverse engineering helpers, the
@@ -212,7 +229,8 @@ renders a whole map to an image.
 
 The engine, tools and the open content in [content/](content/) (our own
 art, maps and text) are under the MIT license; see [LICENSE](LICENSE).
-stb_image and stb_vorbis are public domain (or MIT).
+stb_image and stb_vorbis are public domain (or MIT). Monocypher is
+BSD-2-Clause or CC0 (third_party/monocypher/LICENSE.txt).
 
 The original game is copyrighted and is not covered by this license. Do
 not commit its files, extracted assets or decompiled code to this

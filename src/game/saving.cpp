@@ -10,6 +10,7 @@
 #include "game/game.h"
 #include "logic/open_areas.h"
 #include "logic/save_game.h"
+#include "logic/save_seal.h"
 #include "platform/filesystem.h"
 
 namespace sf {
@@ -163,7 +164,7 @@ bool Game::saveGame(bool autosave) {
     save.explored = explored_;
 
     std::ofstream out(saveFile_, std::ios::binary | std::ios::trunc);
-    out << save.write();
+    out << (plainSaves_ ? save.write() : sealSave(save.write()));
     if (!out.flush()) {
         log::warn("Could not write {}", saveFile_);
         showMessage("Could not save");
@@ -238,7 +239,7 @@ bool Game::loadGameFrom(const std::string& path) {
     text << in.rdbuf();
     SaveGame save;
     try {
-        save = SaveGame::parse(text.str());
+        save = SaveGame::open(text.str(), plainSaves_);
     } catch (const FormatError& e) {
         log::warn("{}: {}", path, e.what());
         showMessage("The saved game is damaged");

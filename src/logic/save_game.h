@@ -83,6 +83,11 @@ struct SaveGame {
     std::string write() const;
     // Throws FormatError on a malformed file.
     static SaveGame parse(std::string_view text);
+    // A save file as written: sealed (src/logic/save_seal.h), or plain text
+    // when allowPlain (the --plain-saves development mode). Throws
+    // FormatError for a sealed save that was changed, plain text when not
+    // allowed, or a malformed save inside.
+    static SaveGame open(std::string_view bytes, bool allowPlain);
 
     // Fills an inventory from the saved items, skipping any the item list
     // does not have. Returns how many were skipped.

@@ -25,6 +25,9 @@
 #include "logic/movement.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
+#include "logic/save_game.h"
+#include "logic/save_seal.h"
+#include "formats/binary_reader.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
 #include "logic/settings.h"
@@ -1487,7 +1490,41 @@ void testItemRequest() {
     check(!ItemRequest::decode(std::span(bytes).first(3)).has_value(), "a short message is refused");
 }
 
+void testSaveSeal() {
+    sf::SaveGame save;
+    save.map = "remote";
+    save.name = "Ada";
+    save.level = 7;
+    const std::string text = save.write();
+    const std::string sealed = sf::sealSave(text);
+    check(sf::isSealedSave(sealed), "a sealed save starts with the seal");
+    check(sealed.find("Ada") == std::string::npos, "a sealed save can't be read in a text editor");
+    check(sf::unsealSave(sealed) == text, "a sealed save opens to the same text");
+    check(sf::sealSave(text) != sealed, "each seal uses a new nonce");
+    const auto opened = sf::SaveGame::open(sealed, false);
+    check(opened.name == "Ada" && opened.level == 7 && opened.map == "remote", "a sealed save loads");
+
+    auto refused = [](const std::string& bytes, bool allowPlain) {
+        try {
+            sf::SaveGame::open(bytes, allowPlain);
+        } catch (const sf::FormatError&) {
+            return true;
+        }
+        return false;
+    };
+    for (const std::size_t at : {sf::kSealMagic.size(), sf::kSealMagic.size() + 30, sealed.size() - 1}) {
+        std::string changed = sealed;
+        changed[at] = static_cast<char>(changed[at] ^ 1);
+        check(!sf::unsealSave(changed), "a changed byte breaks the seal");
+        check(refused(changed, true), "a changed sealed save is refused, even with plain saves on");
+    }
+    check(!sf::unsealSave(sealed.substr(0, 20)), "a cut-off sealed save is refused");
+    check(refused(text, false), "a plain text save is refused");
+    check(!refused(text, true) && sf::SaveGame::open(text, true).name == "Ada", "a plain text save loads with plain saves on");
+}
+
 int main() {
+    testSaveSeal();
     testItemRequest();
     testHeroInput();
     testItemLabels();
