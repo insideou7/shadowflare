@@ -21,7 +21,6 @@ namespace sf {
 namespace {
 
 constexpr double kPickupRange = 150.0;  // world units from the player's feet
-constexpr int kMessageTicks = 3 * kTicksPerSecond;
 
 // The item window, where ShadowFlare.exe draws it (Status.njp patterns 2
 // and 3 at x = 320): the bag at (336, 264) and the slots from the table
@@ -523,10 +522,7 @@ void Game::levelUp() {
     }
 }
 
-void Game::showMessage(std::string text) {
-    message_ = std::move(text);
-    messageTicks_ = kMessageTicks;
-}
+void Game::showMessage(std::string text) { events_.message(std::move(text)); }
 
 void Game::dropHand() {
     if (!hand_ || !player_) return;

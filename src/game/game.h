@@ -46,6 +46,7 @@
 #include "formats/scenario_script.h"
 #include "formats/warp_gates.h"
 #include "world/map.h"
+#include "world/world_events.h"
 #include "render/sprite_cache.h"
 
 namespace sf {
@@ -121,6 +122,12 @@ public:
     Game& operator=(const Game&) = delete;
 
     void handleEvent(const SDL_Event& event);
+    // Delivers the queued events when it goes out of scope, however the
+    // tick or event handler returns.
+    struct DeliverAfter {
+        Game& game;
+        ~DeliverAfter() { game.deliverEvents(); }
+    };
     void tick();
     void render(double interpolation);
     // The sounds and music playing, for the main loop to send to the
@@ -942,10 +949,16 @@ private:
     Mixer mixer_;
     void loadSounds();
     // A sound effect where something happens (0x417260): only heard
-    // within 3000 units of the hero unless `everywhere`.
+    // within 3000 units of the hero unless `everywhere`. Queued in
+    // events_ and played by deliverEvents.
     void playSound(int voice, double x, double y, bool everywhere = false);
     // A sound heard wherever the hero is (the menus' clicks).
     void playSound(int voice);
+    // What the rules told the player since the last delivery (sounds,
+    // messages); deliverEvents plays and shows them, after each tick and
+    // each input event.
+    WorldEvents events_;
+    void deliverEvents();
     // The area's music, BGM<areaKind>.Voc, on a scenario change (0x4275e0).
     void startAreaMusic(int areaKind);
     // Plays the music: the title's on the title screens, otherwise the
@@ -1516,6 +1529,7 @@ private:
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
     int messageTicks_ = 0;
+    static constexpr int kMessageTicks = 3 * kTicksPerSecond;
 
     Missions missions_;
     bool missionsOpen_ = false;

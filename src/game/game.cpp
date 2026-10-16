@@ -612,6 +612,7 @@ void Game::zoomBy(int notches) {
 
 // The keys follow the manual's Shortcut Keys page (see docs/controls.md).
 void Game::handleEvent(const SDL_Event& event) {
+    const DeliverAfter deliver{*this};
     if (goldSplitEvent(event)) return;
     if (optionsOpen_) {
         optionsEvent(event);
@@ -900,6 +901,7 @@ Game::ClickTarget Game::clickTarget(float screenX, float screenY, unsigned kinds
 }
 
 void Game::tick() {
+    const DeliverAfter deliver{*this};
     ++ticks_;
     tickMusic();
     if (hurtPercent_ >= 0 && ticks_ == 4 * kTicksPerSecond) playerHp_ = std::max(1, playerMaxHp() * hurtPercent_ / 100);
@@ -993,6 +995,7 @@ void Game::tick() {
     for (auto& g : groundItems_) {
         if (g.sprite) g.sprite->tick();
     }
+    deliverEvents();  // so a message from this tick counts it, as one shown at once did
     if (messageTicks_ > 0) --messageTicks_;
     for (auto& l : labels_) --l.ticks;
     std::erase_if(labels_, [](const Label& l) { return l.ticks <= 0; });
@@ -1621,6 +1624,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
 }
 
 void Game::render(double interpolation) {
+    deliverEvents();  // anything from outside a tick or event (the command line's set-up)
     hoverOn_ = false;
     if (visual_ && !menuOpen_ && !optionsOpen_) {
         // A story picture covers the game while it shows (0x417bd0).

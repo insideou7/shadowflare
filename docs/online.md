@@ -94,7 +94,10 @@ screenshots of scripted runs with the build before it.
 1. Maps, characters and file loading in `sf_world` (done).
 2. What the rules tell the player (sounds, messages on screen) becomes a
    list of events the world hands out each tick, which the game plays and
-   shows, so the rules call no audio or drawing code.
+   shows, so the rules call no audio or drawing code (done:
+   `src/world/world_events.h`; `Game::playSound` and `showMessage` queue,
+   `Game::deliverEvents` plays and shows after each tick and input event,
+   and whether the hero is near enough to hear is decided there).
 3. A `World` class in `src/world/` holds one area's state (monsters,
    people, ground items, objects, story flags, scripts) and its ticks
    (monster AI, combat, shots, traps, scripts); `Game` owns one and draws
