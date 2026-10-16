@@ -144,6 +144,7 @@ void testGroundJudge() {
     check(g.judgeWidth == 4 && g.judgeHeight == 5, "judge size");
     check(g.walkable(10, 150) && !g.walkable(170, 10) && !g.walkable(-10, 10), "judge lookup");
     check(!g.walkable(100000, 0), "outside the judge grid is blocked");
+    check(g.onGrid(170, 10) && g.onGrid(-10, 10) && !g.onGrid(-170, 10) && !g.onGrid(100000, 0), "a blocked cell is on the grid, off it is not");
 }
 
 void testScenario() {
