@@ -138,10 +138,11 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
 # on frame 7 (HERO_STRIKE): see HERO_ATTACK. Shooting a bowgun (chart 10),
 # casting (chart 13) and Heal's own casting (chart 11) have the original's
 # lengths too, the shot or spell leaving on the frame HERO_STRIKE names.
-HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False), hit=(11, False), shoot=(17, False), cast=(14, False),
-                       heal=(10, False))
-# The original's walk starts its stride three of our ten frames later.
-HERO_WALK_PHASE = 0.3
+HERO_ANIMATIONS = dict(ANIMATIONS, walk=(20, True), run=(14, True), attack=(10, False), hit=(11, False),
+                       shoot=(17, False), cast=(14, False), heal=(10, False))
+# Where in its stride the walk starts (a fraction of the cycle), so frame 0
+# has the legs where the original's frame 0 has them.
+HERO_WALK_PHASE = 0.1
 HERO_STRIKE = {"attack": 7, "shoot": 3, "cast": 9, "heal": 8}
 
 # Monsters that cast spells in the open pack get a casting animation too
@@ -4424,8 +4425,11 @@ def pose(rig, animation, t, frames):
         return
     r = {"spine": (0, lean, 0), "head": (0, -lean, 0), "weapon": (0, rig.weapon, 0)}
     offset = (0, 0, 0)
-    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit", "shoot", "cast", "heal"):
+    if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "run", "attack", "hit", "shoot", "cast", "heal"):
         k = min(1.0, t * frames / max(1, frames - 1))
+        if animation in ("walk", "run") and "ankle_l" in rig.joints:
+            gait(rig, animation, t)
+            return
         if animation == "walk":
             s = math.sin(2 * math.pi * (t + HERO_WALK_PHASE))
             c = math.cos(2 * math.pi * (t + HERO_WALK_PHASE))
@@ -4524,6 +4528,171 @@ def pose(rig, animation, t, frames):
     rig.pose(r, offset)
     if animation == "death":
         rig.joints["root"].rotation_euler = Euler(r["root"])
+
+
+# How the hero and heroine walk and run (gait()). The engine moves the
+# player 20 world units an original tick walking and 40 running (at the
+# usual walking speed, magic.cpp heroMoveSpeed); 100 world units are one
+# Blender unit. A cycle is two steps, so a planted foot keeps pace with the
+# ground when a cycle covers `frames` x speed: walking 20 x 20 = 400 units,
+# running 14 x 40 = 560. The original draws its walk with a shorter step and
+# lets the feet slide; ours keep them planted.
+#   duty: the part of the cycle a foot is on the ground (under a half: both
+#     feet leave it, a run).
+#   crouch, bob: how far the hips sink (Blender units, unscaled rig space),
+#     and how far they rise and fall with each step.
+#   lift: how high the swinging foot clears the ground.
+#   heel, toe: the foot's pitch (radians) as the heel strikes and as it
+#     pushes off from its ball.
+#   ahead: where the planted stretch is centred, ahead of the hips.
+#   width: half the distance between the feet, sideways.
+#   lean, twist: the spine's forward lean and its turn against the hips.
+#   kick: over 1, the swinging foot rises behind first (the heel kicked up)
+#     and comes through late.
+#   reach: how far past its landing place the swinging foot reaches before
+#     it comes down.
+#   arm: how far the arms swing; elbow: how far they bend.
+GAITS = {
+    "walk": dict(cycle=4.0, duty=0.56, ahead=0.0, crouch=0.035, bob=0.035, lift=0.17, heel=0.32, toe=0.75, width=0.10,
+                 sway=0.025, lean=0.13, twist=0.13, arm=0.42, elbow=0.30, kick=1.0, reach=0.0, phase=HERO_WALK_PHASE),
+    "run": dict(cycle=5.6, duty=0.33, ahead=-0.25, crouch=0.10, bob=0.05, lift=0.45, heel=0.22, toe=0.95, width=0.07,
+                sway=0.02, lean=0.50, twist=0.20, arm=0.6, elbow=1.6, kick=1.8, reach=0.35, phase=0.0),
+}
+# The heroine's walk: feet nearer one line, more sway, a shorter step (her
+# feet slide a little, as the original's do) so she does not stride like
+# the hero; her phases put her legs where the original's are.
+HEROINE_GAIT = {"walk": {"cycle": 3.6, "duty": 0.52, "width": 0.04, "sway": 0.04, "twist": 0.10, "arm": 0.34,
+                         "phase": 0.05},
+                "run": {"phase": 0.5}}
+
+
+def leg_ik(rig, side, hip, target):
+    """Hip (x, y) and knee (y) rotations that put the ankle on `target`
+    (rig space, unscaled), hip being where the leg joint is. The hip's x
+    (sideways) turn points the leg at the target's side; then a damped
+    least squares on the hip's and knee's bends, the knee bending only
+    backwards. Out of reach, the leg ends pointing at the target, as
+    straight as it goes."""
+    thigh, shin = rig.rest[f"knee_{side}"], rig.rest[f"ankle_{side}"]
+    d = target - hip
+    roll = max(-0.5, min(0.5, math.atan2(d.y - (thigh.y + shin.y), -d.z)))
+
+    def ankle(h, k):
+        return hip + Euler((roll, h, 0)).to_matrix() @ (thigh + Euler((0, k, 0)).to_matrix() @ shin)
+
+    h, k = -0.2, 0.4
+    for _ in range(60):
+        a = ankle(h, k)
+        ex, ez = target.x - a.x, target.z - a.z
+        if ex * ex + ez * ez < 1e-9:
+            break
+        a1, a2 = ankle(h + 1e-4, k), ankle(h, k + 1e-4)
+        j = ((a1.x - a.x) / 1e-4, (a2.x - a.x) / 1e-4, (a1.z - a.z) / 1e-4, (a2.z - a.z) / 1e-4)
+        # (J^T J + damping) step, 2 x 2.
+        m11, m12, m22 = j[0] ** 2 + j[2] ** 2 + 1e-3, j[0] * j[1] + j[2] * j[3], j[1] ** 2 + j[3] ** 2 + 1e-3
+        g1, g2 = j[0] * ex + j[2] * ez, j[1] * ex + j[3] * ez
+        det = m11 * m22 - m12 * m12
+        h += (m22 * g1 - m12 * g2) / det
+        k += (m11 * g2 - m12 * g1) / det
+        h = max(-2.2, min(1.4, h))
+        k = max(0.02, min(2.4, k))
+    return roll, h, k
+
+
+def gait(rig, animation, t):
+    """Poses the hero or heroine walking or running at t in [0, 1): each
+    foot plants, rolls from heel to ball and stays put on the ground while
+    it bears the weight (so it keeps pace with the ground in the game),
+    then swings forward, lifted; the hips sink and rise with each step and
+    sway over the standing foot, the spine turns against them and the arms
+    swing against the legs. Legs are solved to reach the feet (leg_ik)."""
+    heroine = getattr(rig, "heroine", False)
+    g = dict(GAITS[animation], **(HEROINE_GAIT[animation] if heroine else {}))
+    run = animation == "run"
+    scale = rig.joints["root"].scale.x
+    D, duty = g["cycle"] / scale, g["duty"]
+    stride = D * duty
+    reach = (rig.rest["knee_l"].length + rig.rest["ankle_l"].length) * 0.985
+
+    def ease(u):
+        u = max(0.0, min(1.0, u))
+        return u * u * (3 - 2 * u)
+
+    def foot(p, side):
+        """(x, pitch, lift) of a foot at phase p of its own cycle (0 =
+        heel strike). x is where the ankle would be with the foot flat."""
+        p %= 1.0
+        if p < duty:
+            x = g["ahead"] / scale + stride / 2 - D * p
+            if p < 0.12:
+                pitch = -g["heel"] * (1 - ease(p / 0.12))
+            else:
+                pitch = g["toe"] * ease((p - (duty - 0.2)) / 0.2)
+            return x, pitch, 0.0
+        u = (p - duty) / (1 - duty)
+        x = g["ahead"] / scale - stride / 2 + stride * ease(u ** g["kick"])
+        x += g["reach"] / scale * math.sin(math.pi * max(0.0, (u - 0.5) / 0.5))
+        pitch = g["toe"] + (-g["heel"] - g["toe"]) * ease(u / 0.85)
+        lift = g["lift"] / scale * math.sin(math.pi * min(1.0, u / 0.9) ** (1 / g["kick"])) ** 1.5
+        return x, pitch, lift
+
+    p_left = (t + g["phase"]) % 1.0
+    phases = {"l": p_left, "r": (p_left + 0.5) % 1.0}
+    hips = rig.rest["hips"].copy()
+    hips.z -= (g["crouch"] + g["bob"] * (1 + (1 if run else -1) * math.cos(4 * math.pi * (p_left - duty / 2))) / 2) / scale
+    hips.y += g["sway"] / scale * math.cos(2 * math.pi * (p_left - duty / 2))
+    targets, pitches = {}, {}
+    for side, sign in (("l", 1), ("r", -1)):
+        x, pitch, lift = foot(phases[side], side)
+        heel, ball = rig.feet[side]
+        pivot = heel if pitch < 0 else ball
+        rest_ankle = Vector((x, sign * g["width"] / scale, -min(heel.z, ball.z)))
+        ground = rest_ankle + Vector((pivot.x, 0, pivot.z))
+        targets[side] = ground - Euler((0, pitch, 0)).to_matrix() @ Vector((pivot.x, 0, pivot.z)) + Vector((0, 0, lift))
+        pitches[side] = pitch
+    # Sink the hips where a standing leg could not reach its foot.
+    for side in ("l", "r"):
+        if phases[side] < duty:
+            hip = hips + rig.rest[f"leg_{side}"]
+            d = targets[side] - hip
+            flat = math.hypot(d.x, d.y)
+            if d.length > reach and flat < reach:
+                hips.z -= (-d.z) - math.sqrt(reach * reach - flat * flat)
+    r = {}
+    for side in ("l", "r"):
+        q = leg_ik(rig, side, hips + rig.rest[f"leg_{side}"], targets[side])
+        r[f"leg_{side}"] = (q[0], q[1], 0)
+        r[f"knee_{side}"] = (0, q[2], 0)
+        knee = Euler((q[0], q[1], 0)).to_matrix() @ Euler((0, q[2], 0)).to_matrix()
+        r[f"ankle_{side}"] = tuple((knee.transposed() @ Euler((0, pitches[side], 0)).to_matrix()).to_euler())
+    # The arms swing against the legs: the right arm forward with the left
+    # foot, the shield arm less. The spine turns the shoulders with them.
+    w = math.cos(2 * math.pi * p_left)  # 1: left foot forward
+    arm, lean, twist = g["arm"], g["lean"], g["twist"]
+    bounce = math.cos(4 * math.pi * (p_left - duty / 2))
+    r["spine"] = (0, lean + 0.02 * bounce, twist * w)
+    r["head"] = (0, -lean * 0.6, -twist * 0.8 * w)
+    if run:
+        # Against the lean, so they swing about hanging straight down.
+        r["arm_l"] = (0.22, -0.8 * lean - 0.1 + 0.55 * arm * w, 0)
+        r["elbow_l"] = (0, -g["elbow"], 0.9)
+        r["arm_r"] = (-0.15, -0.8 * lean - arm * w, 0)
+        r["elbow_r"] = (0, -g["elbow"], 0)
+        r["weapon"] = (0, math.radians(95), 0)
+    elif heroine:
+        r["arm_l"] = (0.22, -0.20 + 0.6 * arm * w, 0)
+        r["elbow_l"] = (0, -0.45, 0.9)
+        r["arm_r"] = (-0.14, -0.15 - arm * w, 0)
+        r["elbow_r"] = (0, -g["elbow"] - 0.15 * max(0.0, -w), 0)
+        r["weapon"] = (0, math.radians(70), 0)
+    else:
+        r["arm_l"] = (0.16, -0.15 + 0.6 * arm * w, 0)
+        r["elbow_l"] = (0, -0.35, 1.2)
+        r["arm_r"] = (-0.10, -0.20 - arm * w, 0)
+        r["elbow_r"] = (0, -g["elbow"] - 0.2 * max(0.0, -w), 0)
+        r["weapon"] = (0, math.radians(70), 0)
+    rig.pose(r)
+    rig.joints["hips"].location = hips
 
 
 def hero_guard(animation, s, c):

@@ -40,10 +40,14 @@ JOINTS = {
     "knee_l": (("calf_l",), "calf_l"),
     "leg_r": (("thigh_r",), "thigh_r"),
     "knee_r": (("calf_r",), "calf_r"),
+    # Ankles turn the feet (and the toes with them), so a walking foot can
+    # stand flat, strike with its heel and push off from its ball.
+    "ankle_l": (("foot_l",), "foot_l"),
+    "ankle_r": (("foot_r",), "foot_r"),
 }
 PARENT = {"hips": "root", "spine": "hips", "head": "spine", "arm_l": "spine", "arm_r": "spine",
           "elbow_l": "arm_l", "elbow_r": "arm_r", "leg_l": "hips", "leg_r": "hips", "knee_l": "leg_l",
-          "knee_r": "leg_r"}
+          "knee_r": "leg_r", "ankle_l": "knee_l", "ankle_r": "knee_r"}
 
 
 def enable():
@@ -217,6 +221,13 @@ def bind(rig, body, armature, scale):
         sole = (head(f"ball_{side}") + head(f"foot_{side}")) / 2
         sole.z = min((body.matrix_world @ v.co).z for v in body.data.vertices)
         marker(rig, f"knee_{side}", sole - world[f"knee_{side}"], scale)
+        # Where the sole's heel and ball touch the ground, from the ankle,
+        # for the walk's foot planting (creatures.gait).
+        ball = head(f"ball_{side}")
+        ankle = world[f"ankle_{side}"]
+        heel = Vector((ankle.x - 0.35 * (ball.x - ankle.x), ankle.y, sole.z))
+        rig.feet = getattr(rig, "feet", {})
+        rig.feet[side] = ((heel - ankle) / scale, (Vector((ball.x, ball.y, sole.z)) - ankle) / scale)
     marker(rig, "spine", (head("spine_03") + head("neck_01")) / 2 - world["spine"], scale)
 
 
