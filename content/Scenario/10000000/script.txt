@@ -35,7 +35,7 @@ object=9361,2086,9658,2337,gate
 # The ground round it is a judge area only: unusable, as the original's, so
 # a held click on the square still walks.
 object=8160,697,10460,3197,gate-ground,states=0/0/0
-object=6261,5738,6872,6355,warehouse
+object=6261,5738,6872,6355,warehouse,warehouse
 
 # The healer's blessing (temp:26) starts with none said yet.
 temp=26,-1
