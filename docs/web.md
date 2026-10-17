@@ -118,6 +118,20 @@ reading the folder again. **Forget my saved files** deletes them.
 Folder pickers work in Chrome, Edge, Firefox and Safari on computers; phones
 cannot pick folders.
 
+## Crash reports (Sentry)
+
+The page can send browser crash reports to Sentry, but only if the player says yes
+in the notice on the start page. Until then nothing from Sentry is requested. The
+answer is kept in `localStorage` (`sfCrashReports`: `on` or `off`) and can be
+changed on the same page. When on, the page loads Sentry's loader script and
+initializes it with `release` set to `shadowflare-web@<engine hash>` (the `?v=` of
+`shadowflare.js`, or `dev` for an unbuilt page), no default PII, and tracing and
+session replay at 0. Saves and original game files are never sent. The key in the
+loader URL is public by design; in Sentry, set Allowed Domains to
+`insideou7.github.io` and add rate limits to that key. `docs/play/index.html` was
+patched by hand to match `web/shell.html`; the next `tools/build_web.sh` run emits
+the same code.
+
 ## Saves and settings
 
 SDL's settings folder in the browser is `/libsdl/ShadowFlare/open/`. The
