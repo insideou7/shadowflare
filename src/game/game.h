@@ -1464,7 +1464,7 @@ private:
     Inventory inventory_;
     std::optional<Item> hand_;  // picked up in the inventory panel
     std::vector<GroundItem> groundItems_;
-    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
+    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_[2];  // by art (0 original, 1 ours), then path stem; null = missing
     bool showInventory_ = false;
     // The special items window (X), in the item window's place on the
     // right (DAT_0048ce68); the two never show together.
