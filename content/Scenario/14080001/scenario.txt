@@ -6,11 +6,11 @@ entry=1,2078,8491,1
 town=14900001,200
 exit=4402,1268,4849,1870,14080000,1
 exit=1284,7726,1721,8278,14080002,0
-enemy=3,4037,6047,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,0,attacks=1200/0/0,hits=280/0/0,spells=11/11/11,spell_power=1200/1200/1000,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,magic_evasion=20,speed=1500
+enemy=3,4037,6047,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,0,attacks=1200/0/0,hits=280/0/0,spells=11/11/11,spell_power=1200/1200/1000,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,spell_speed=5/5/5,magic_evasion=20,speed=1500
 glow=0
-enemy=3,4972,7121,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,1,attacks=1200/0/0,hits=280/0/0,spells=12/12/12,spell_power=1100/1100/900,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,magic_evasion=20,speed=1500
+enemy=3,4972,7121,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,1,attacks=1200/0/0,hits=280/0/0,spells=12/12/12,spell_power=1100/1100/900,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,spell_speed=5/5/5,magic_evasion=20,speed=1500
 glow=0
-enemy=3,5775,6099,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,3,attacks=1200/0/0,hits=280/0/0,spells=13/13/13,spell_power=1100/1100/900,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,magic_evasion=20,speed=1500
+enemy=3,5775,6099,1,15000,1200,960,mage-three-burst-last,5,30,500,800,20000,300,280,50,900,3,attacks=1200/0/0,hits=280/0/0,spells=13/13/13,spell_power=1100/1100/900,spell_level=20/20/20,spell_hit=300/300/300,stun=20/0/0,spell_speed=5/5/5,magic_evasion=20,speed=1500
 glow=0
 enemy=10,5616,5703,1,10000,1250,640,goblin,2,10,400,600,15000,300,280,50,700,5,attacks=1250/1100/0,hits=280/250/0,magic_evasion=40,speed=1400,shot=0/250/100/200/0
 glow=0
