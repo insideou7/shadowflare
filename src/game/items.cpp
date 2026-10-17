@@ -210,21 +210,25 @@ void Game::spawnGroundItems() {
     if (unknown > 0) log::warn("{} placed items are not in the item table", unknown);
 }
 
-void Game::dropItem(const Item& item, double x, double y) {
-    GroundItem g{item, x, y, std::nullopt};
-    // Folders 0-6 of Character/ITEM hold animations, 7-11 plain pictures.
+// The animation an item lies on the ground with, if its ground picture is
+// one (folders 0-6 of Character/ITEM hold animations, 7-11 plain pictures).
+// With our art chosen, a picture of ours for it is drawn plain instead.
+void Game::setGroundSprite(GroundItem& g) {
+    g.sprite.reset();
+    const ItemDef& def = *g.item.def;
+    if (skin_ && skin_->itemGround(def.groundFolder, def.groundPicture).bank) return;
     char stemBuf[64];
-    std::snprintf(stemBuf, sizeof stemBuf, "Character/ITEM/%08d/Animation", item.def->groundFolder);
+    std::snprintf(stemBuf, sizeof stemBuf, "Character/ITEM/%08d/Animation", def.groundFolder);
     const std::string stem = stemBuf;
-    if (item.def->groundFolder >= 0 && (data_->exists(stem + ".caf") || data_->exists(stem + ".anim"))) {
-        if (const CharacterModel* m = model(stem); m && item.def->groundPicture >= 0 &&
-                                                   static_cast<std::size_t>(item.def->groundPicture) < m->animations.charts.size()) {
+    if (def.groundFolder >= 0 && (data_->exists(stem + ".caf") || data_->exists(stem + ".anim"))) {
+        if (const CharacterModel* m = model(stem); m && def.groundPicture >= 0 &&
+                                                   static_cast<std::size_t>(def.groundPicture) < m->animations.charts.size()) {
             Character c(m);
-            c.x = x;
-            c.y = y;
-            c.restart(item.def->groundPicture);
+            c.x = g.x;
+            c.y = g.y;
+            c.restart(def.groundPicture);
             // Item charts use the ninth, "no direction" slot.
-            const auto& dirs = m->animations.charts[static_cast<std::size_t>(item.def->groundPicture)].directions;
+            const auto& dirs = m->animations.charts[static_cast<std::size_t>(def.groundPicture)].directions;
             for (std::size_t d = dirs.size(); d-- > 0;) {
                 if (dirs[d].frameCount > 0) {
                     c.direction = static_cast<int>(d);
@@ -236,6 +240,11 @@ void Game::dropItem(const Item& item, double x, double y) {
             g.sprite = std::move(c);
         }
     }
+}
+
+void Game::dropItem(const Item& item, double x, double y) {
+    GroundItem g{item, x, y, std::nullopt};
+    setGroundSprite(g);
     groundItems_.push_back(std::move(g));
 }
 
@@ -871,7 +880,11 @@ const SpriteBank* Game::itemBank(const std::string& stem) {
 // box with its initial when there is none.
 void Game::drawItemPicture(const ItemDef& def, const SDL_Rect& area) {
     const SpriteBank* bank = def.invBank >= 0 ? itemBank(std::format("System/Game/Pattern/Item{:04d}", def.invBank)) : nullptr;
-    if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, def.invPattern, false) : nullptr) {
+    int pattern = def.invPattern;
+    if (skin_) {
+        if (const auto ours = skin_->itemIcon(def.invBank, def.invPattern); ours.bank) bank = ours.bank, pattern = ours.pattern;
+    }
+    if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, pattern, false) : nullptr) {
         SDL_Rect dst{area.x + (area.w - sprite->width) / 2, area.y + (area.h - sprite->height) / 2, sprite->width, sprite->height};
         SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
         return;
@@ -950,8 +963,12 @@ void Game::renderGroundItems(int camX, int camY) {
         const ItemDef& def = *g->item.def;
         const SpriteBank* bank =
             def.groundFolder >= 0 ? itemBank(std::format("Character/ITEM/{:08d}/Pattern", def.groundFolder)) : nullptr;
-        if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, def.groundPicture, false) : nullptr) {
-            if (glow > 0 && rules_.outlineUnderPointer) drawOutline(*bank, def.groundPicture, sx, sy, kHoverOutline);
+        int picture = def.groundPicture;
+        if (skin_) {
+            if (const auto ours = skin_->itemGround(def.groundFolder, def.groundPicture); ours.bank) bank = ours.bank, picture = ours.pattern;
+        }
+        if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, picture, false) : nullptr) {
+            if (glow > 0 && rules_.outlineUnderPointer) drawOutline(*bank, picture, sx, sy, kHoverOutline);
             SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
             if (glow > 0) {
