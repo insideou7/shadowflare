@@ -618,8 +618,18 @@ original picture:
 
 `tools/content/item_skin.py <game> content` writes it: an item here with
 the same class and code as an original item lends its pictures to every
-picture that item (and its prefixed variants) uses. A picture with no line
-is drawn from the original's file.
+picture that item (and its prefixed variants) uses. The original's
+pictures no item here shares (crests, gems, medicines, fruit, quest items
+and a few plain swords and armours) are drawn only to stand in for them,
+by `tools/art/item_extras.py`, into `Item0004` (bag) and
+`Character/ITEM/00000011` (ground); its `EXTRAS` list names the original
+picture numbers each one replaces, and `item_skin.py` adds those lines:
+
+    python tools/art/item_extras.py render /tmp/extras     # a Python with bpy
+    python3 tools/art/item_extras.py pack /tmp/extras /tmp/extras-pack
+    python3 tools/art/shrink.py /tmp/extras-pack    # then copy its two sheets into content/
+
+A picture with no line is drawn from the original's file.
 
 ## The first four areas and the Tower of Ordeal
 

@@ -11,8 +11,11 @@ pattern) and a ground picture (folder, picture). An item that exists in
 our items.txt or uniques.txt under the same class and code (the base
 items and the unique items) lends its pictures to every original picture
 it shares: a prefixed variant such as Speed Short Sword uses its base
-item's pictures. Pictures nobody here has drawn are left out, and the
-engine draws the original's in their place.
+item's pictures. The original's pictures no item here stands in for
+(crests, gems, medicines, fruit, quest items, a few plain swords) are
+drawn by tools/art/item_extras.py, whose EXTRAS name the original picture
+numbers each one replaces. Pictures nobody here has drawn are left out,
+and the engine draws the original's in their place.
 
 Lines: `icon <bank>,<pattern> = <our bank>,<frame>` and
 `ground <folder>,<picture> = <our folder>,<frame>`.
@@ -23,6 +26,9 @@ import sys
 from pathlib import Path
 
 from item_ibn import CLASSES, read_items
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "art"))
+import item_extras  # noqa: E402
 
 
 def our_pictures(pack):
@@ -59,6 +65,13 @@ def main():
             icons.setdefault((item["inv_bank"], item["inv_pattern"]), mine[:2])
         if item["ground_dir"] >= 0 and mine[2] >= 0:
             grounds.setdefault((item["ground_dir"], item["ground_picture"]), mine[2:])
+    # The pictures drawn only to stand in for the original's.
+    extra_grounds = item_extras.ground_frames()
+    for n, e in enumerate(item_extras.EXTRAS):
+        for key in e["icons"]:
+            icons.setdefault(key, (item_extras.BANK, n))
+        for key in e["grounds"]:
+            grounds.setdefault(key, (item_extras.FOLDER, extra_grounds[n]))
     out = ["# Our pictures for the original's items, by the original's picture numbers:",
            "# made by tools/content/item_skin.py from the player's Item.Ibn.", ""]
     out += [f"icon {k[0]},{k[1]} = {v[0]},{v[1]}" for k, v in sorted(icons.items())]
