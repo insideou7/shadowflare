@@ -21,7 +21,7 @@ together:
 | `shadowflare.html` | the page (from `web/shell.html`) | 5 KB |
 | `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 260 KB |
 | `shadowflare.wasm` | the engine | 2 MB |
-| `shadowflare.data` | the open content pack (`content/`) | 124 MB |
+| `shadowflare.data` | the open content pack (`content/`) | 121 MB |
 
 Browsers do not run WebAssembly from `file://`, so test with a local server:
 
@@ -63,7 +63,7 @@ size before the game starts.
 | `index.html` | the page (from `web/shell.html`) | 6 KB |
 | `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 180 KB |
 | `shadowflare.wasm` | the engine | 2 MB |
-| `shadowflare-1.data` … `-3.data` | `content/` in three parts | 45, 45 and 29 MB |
+| `shadowflare-1.data` … `-3.data` | `content/` in three parts | 45, 45 and 25 MB |
 | `shadowflare-1.js` … `-3.js` | each part's loader | 30-100 KB |
 
 Every file is fetched with `?v=<hash of all files>`, so a browser that has
