@@ -36,6 +36,10 @@
     text-shadow: 0 2px 8px #000;
   }
   header p { max-width: 640px; margin: 0 auto; font-size: 1.1rem; text-shadow: 0 1px 4px #000; }
+  .play { display: inline-block; margin-top: 24px; padding: 12px 28px; border-radius: 6px; background: var(--gold); color: var(--bg);
+          font-size: 1.2rem; text-decoration: none; box-shadow: 0 2px 10px #000; }
+  .play:hover { filter: brightness(1.1); }
+  header .note { margin-top: 12px; font-size: .95rem; color: var(--text); }
   main { max-width: 1080px; margin: 0 auto; padding: 0 16px 64px; }
   h2 {
     margin: 48px 0 16px;
@@ -69,6 +73,10 @@
   <h1>ShadowFlare Engine</h1>
   <p>An open source reimplementation of the action RPG ShadowFlare, rebuilt from the
     ground up in C++ and SDL2, with open replacement art made from scratch.</p>
+  <a class="play" href="play/">Play in your browser</a>
+  <p class="note">Free, nothing to install: a one-time download of about 120 MB.
+    Have the original game? Bring your own files: the play page can open your ShadowFlare
+    folder, and your files never leave your computer.</p>
 </header>
 
 <main>
@@ -94,7 +102,7 @@
     <li><b>Towns and people</b>Talk to townspeople, take missions, and use shops, healers and class instructors as their scripts say.</li>
     <li><b>The full interface</b>Game panel, inventory and equipment, status window, mission list, area map, settings menu and six save slots.</li>
     <li><b>Open replacement art</b>Heroes, townspeople, 24 kinds of monster, map pieces, items, interface and story pages, all drawn from scratch.</li>
-    <li><b>Native first, web later</b>Built with CMake and SDL2 for desktop; a WebAssembly build from the same code is planned.</li>
+    <li><b>Desktop and browser</b>Built with CMake and SDL2 for desktop, and to WebAssembly from the same code to <a href="play/">play in your browser</a>.</li>
   </ul>
 
   <h2>Screenshots</h2>
@@ -157,9 +165,10 @@ cmake --build build
   <p>The engine's code and the open content are both under the MIT license. ShadowFlare
     is the work of its original developers; this project is not affiliated with them and
     contains none of their files. The original-game screenshots above are shown only to
-    compare the two.</p>
+    compare the two. Third-party code, models and fonts are listed on the
+    <a href="credits.html">credits and licenses</a> page.</p>
 </main>
 
-<footer>ShadowFlare Engine &middot; open source reimplementation</footer>
+<footer>ShadowFlare Engine &middot; open source reimplementation &middot; <a href="credits.html">Credits and licenses</a></footer>
 </body>
 </html>
