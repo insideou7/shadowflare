@@ -1,6 +1,233 @@
-<!doctypehtml><html lang=en><head><meta charset=utf-8><meta content="width=device-width,initial-scale=1"name=viewport><title>ShadowFlare (open)</title><style>:root{color-scheme:dark;--bg:#0d0b09;--panel:#1b1713;--text:#e8dfcf;--muted:#a39782;--accent:#d9a54a}body,html{margin:0;height:100%;background:var(--bg);color:var(--text);font:16px/1.5 Georgia,serif}#start{max-width:34rem;margin:0 auto;padding:3rem 1rem}h1{color:var(--accent);font-weight:400;letter-spacing:.08em;margin:0 0 .25rem}p{margin:.5rem 0}.muted{color:var(--muted);font-size:.9rem}.choice{background:var(--panel);border:1px solid #3a3127;border-radius:6px;padding:1rem;margin:1rem 0}[hidden]{display:none!important}.button,button{display:inline-block;font:inherit;color:var(--bg);background:var(--accent);border:0;border-radius:4px;padding:.5rem 1rem;cursor:pointer}.button.disabled,button:disabled{opacity:.5;cursor:default;pointer-events:none}button.quiet{background:0 0;color:var(--muted);border:1px solid #3a3127}label.check{display:block;margin-top:.5rem;font-size:.9rem;color:var(--muted)}#status{min-height:1.5em;color:var(--accent)}#bar{display:block;width:100%;height:.5rem;margin:.25rem 0;accent-color:var(--accent)}a{color:var(--accent)}#canvas{display:none;position:fixed;inset:0;margin:auto;background:#000;outline:0;width:min(100vw,calc(100vh * 4 / 3));height:min(100vh,calc(100vw * 3 / 4));image-rendering:pixelated}body.playing #start{display:none}body.playing #canvas{display:block}</style></head><body><div id=start><h1>ShadowFlare</h1><p class=muted>An open reimplementation of the 2001 action RPG, running in your browser.</p><div class=choice><p>Play the open game: our own maps, art, sound and story.</p><button id=play-open disabled>Play the open game</button></div><div class=choice><p>Play the original with your own copy of ShadowFlare. Pick the game's folder (the one with Map and System in it, or any folder above it).</p><button id=play-saved disabled hidden>Play with my saved files</button> <label class="button disabled"id=pick-label>Choose my ShadowFlare folder <input id=picker type=file directory disabled hidden multiple webkitdirectory></label> <label class=check><input id=keep type=checkbox checked> Keep the files in this browser for next time</label> <button id=forget hidden class=quiet>Forget my saved files</button><p class=muted>Your files stay on this computer. They are never uploaded anywhere.</p></div><p id=status>Loading…</p><progress id=bar max=1 value=0></progress><p class=muted hidden id=size-note></p><p class=muted>Saves are kept in this browser only: clearing its site data deletes them, and closing the tab right after saving (F10) can lose that save. Esc opens the settings in the game.</p><p class=muted><a href=../ >About this project</a> · <a href=../credits.html>Credits and licenses</a> · Not affiliated with the makers of the original ShadowFlare.</p></div><canvas id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas><script>const statusLine=document.getElementById("status"),bar=document.getElementById("bar");let dataMB=0;function sfDownloadSize(e,t){dataMB=t;const n=document.getElementById("size-note");n.textContent="The open game is a "+e+" MB download.",n.hidden=!1}var Module={canvas:document.getElementById("canvas"),print:function(e){console.log(e)},printErr:function(e){console.warn(e)},setStatus:function(e){const t=e.match(/\((\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)/);if(t){const e=1048576,n=Math.max(t[2]/e,dataMB),a=Math.min(t[1]/e,n);bar.value=a/n,statusLine.textContent="Downloading the game… "+Math.round(a)+" of "+Math.round(n)+" MB"}else statusLine.textContent=e},onRuntimeInitialized:function(){ready()},sfGameExit:function(){Module.sf.syncSaves().finally(function(){location.reload()})}};function ready(){statusLine.textContent="",bar.hidden=!0,document.getElementById("play-open").disabled=!1,document.getElementById("picker").disabled=!1,document.getElementById("pick-label").classList.remove("disabled"),Module.sf.hasSavedOriginals()&&(document.getElementById("play-saved").hidden=!1,document.getElementById("play-saved").disabled=!1,document.getElementById("forget").hidden=!1)}function play(e){document.body.classList.add("playing"),Module.canvas.focus(),Module.sf.start(e)}window.addEventListener("pagehide",function(){Module.sf&&Module.sf.syncSaves()}),window.onerror=function(e){statusLine.textContent="Something went wrong: "+e},document.getElementById("play-open").onclick=function(){play([])},document.getElementById("play-saved").onclick=async function(){statusLine.textContent="Loading your saved files…",await Module.sf.loadSavedOriginals()?play(["--data","/originals"]):statusLine.textContent="Your saved files are gone. Please choose the folder again."},document.getElementById("forget").onclick=async function(){await Module.sf.forgetOriginals(),document.getElementById("play-saved").hidden=!0,document.getElementById("forget").hidden=!0,statusLine.textContent="Your files are no longer kept in this browser."},document.getElementById("picker").onchange=async function(e){const t=e.target.files;if(!t.length)return;const n=document.getElementById("keep").checked;await Module.sf.useOriginals(t,n,function(e,t,n){statusLine.textContent=n?"Keeping your files in this browser…":"Reading your files… "+Math.round(100*e/Math.max(t,1))+"%"})?play(["--data","/originals"]):statusLine.textContent="No ShadowFlare game in that folder (it needs the Map and System folders)."}</script><script>Module.locateFile = function (path) { return path + '?v=8b75d58450'; };
-  sfDownloadSize(118, 116);</script>
-<script src="shadowflare-1.js?v=8b75d58450"></script>
-<script src="shadowflare-2.js?v=8b75d58450"></script>
-<script src="shadowflare-3.js?v=8b75d58450"></script>
-<script async src="shadowflare.js?v=8b75d58450"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShadowFlare (open)</title>
+<style>
+  :root { color-scheme: dark; --bg: #0d0b09; --panel: #1b1713; --text: #e8dfcf; --muted: #a39782; --accent: #d9a54a; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 16px/1.5 Georgia, serif; }
+  #start { max-width: 34rem; margin: 0 auto; padding: 3rem 1rem; }
+  h1 { color: var(--accent); font-weight: normal; letter-spacing: .08em; margin: 0 0 .25rem; }
+  p { margin: .5rem 0; }
+  .muted { color: var(--muted); font-size: .9rem; }
+  .choice { background: var(--panel); border: 1px solid #3a3127; border-radius: 6px; padding: 1rem; margin: 1rem 0; }
+  [hidden] { display: none !important; }
+  button, .button { display: inline-block; font: inherit; color: var(--bg); background: var(--accent); border: 0; border-radius: 4px; padding: .5rem 1rem; cursor: pointer; }
+  button:disabled, .button.disabled { opacity: .5; cursor: default; pointer-events: none; }
+  button.quiet { background: transparent; color: var(--muted); border: 1px solid #3a3127; }
+  label.check { display: block; margin-top: .5rem; font-size: .9rem; color: var(--muted); }
+  #status { min-height: 1.5em; color: var(--accent); }
+  #bar { display: block; width: 100%; height: .5rem; margin: .25rem 0; accent-color: var(--accent); }
+  a { color: var(--accent); }
+  #canvas { display: none; position: fixed; inset: 0; margin: auto; background: #000; outline: none;
+            width: min(100vw, calc(100vh * 4 / 3)); height: min(100vh, calc(100vw * 3 / 4)); image-rendering: pixelated; }
+  body.playing #start { display: none; }
+  body.playing #canvas { display: block; }
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>ShadowFlare</h1>
+  <p class="muted">An open reimplementation of the 2001 action RPG, running in your browser.</p>
+
+  <div class="choice">
+    <p>Play the open game: our own maps, art, sound and story.</p>
+    <button id="play-open" disabled>Play the open game</button>
+  </div>
+
+  <div class="choice">
+    <p>Play the original with your own copy of ShadowFlare. Pick the game's folder (the one with Map and System in it, or any folder above it).</p>
+    <button id="play-saved" hidden disabled>Play with my saved files</button>
+    <label class="button disabled" id="pick-label">Choose my ShadowFlare folder
+      <input type="file" id="picker" webkitdirectory directory multiple hidden disabled>
+    </label>
+    <label class="check"><input type="checkbox" id="keep" checked> Keep the files in this browser for next time</label>
+    <button id="forget" class="quiet" hidden>Forget my saved files</button>
+    <p class="muted">Your files stay on this computer. They are never uploaded anywhere.</p>
+  </div>
+
+  <p id="status">Loading…</p>
+  <progress id="bar" max="1" value="0"></progress>
+  <p class="muted" id="size-note" hidden></p>
+  <p class="muted">Saves are kept in this browser only: clearing its site data deletes them, and
+    closing the tab right after saving (F10) can lose that save. Esc opens the settings in the game.</p>
+  <p class="muted"><a href="../">About this project</a> · <a href="../credits.html">Credits and licenses</a>
+    · Not affiliated with the makers of the original ShadowFlare.</p>
+</div>
+<canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
+
+<script>
+  const statusLine = document.getElementById('status');
+  const bar = document.getElementById('bar');
+  // Set by tools/build_web.sh for the website: the content pack's size in
+  // MB, and its parts (script names, with the build's version). The pack is
+  // only fetched when the player asks for the open game, and kept in the
+  // browser's Cache Storage under that version so a return visit does not
+  // download it again. Empty when the content is linked into the engine.
+  let dataMB = 0;
+  let packParts = [];
+  let packVersion = '';
+  function sfContentPack(packMB, version, parts) {
+    dataMB = packMB;
+    packVersion = version;
+    packParts = parts;
+    const note = document.getElementById('size-note');
+    note.textContent = 'The open game downloads ' + packMB + ' MB when you press play, once; '
+      + 'your browser keeps it for next time.';
+    note.hidden = false;
+  }
+  var Module = {
+    canvas: document.getElementById('canvas'),
+    print: function (text) { console.log(text); },
+    printErr: function (text) { console.warn(text); },
+    setStatus: function (text) {
+      // "Downloading data... (12345/67890)" in bytes while the open pack
+      // comes down. With the pack in parts, the total grows as each part
+      // starts, so the size from the build is used when it is bigger.
+      if (!contentLoading) return;
+      const m = text.match(/\((\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)/);
+      if (m) {
+        const mb = 1024 * 1024;
+        const total = Math.max(m[2] / mb, dataMB);
+        const done = Math.min(m[1] / mb, total);
+        bar.value = done / total;
+        statusLine.textContent = 'Downloading the game… ' + Math.round(done) + ' of ' + Math.round(total) + ' MB';
+      } else {
+        statusLine.textContent = text;
+      }
+    },
+    onRuntimeInitialized: function () { ready(); },
+    // The engine asks for this when the player quits.
+    sfGameExit: function () {
+      Module.sf.syncSaves().finally(function () { location.reload(); });
+    },
+  };
+  window.addEventListener('pagehide', function () { if (Module.sf) Module.sf.syncSaves(); });
+  window.onerror = function (message) { statusLine.textContent = 'Something went wrong: ' + message; };
+
+  let contentLoading = false;
+  let contentLoaded = false;
+
+  // A fetch of a part comes from Cache Storage when this version of it is
+  // there; otherwise it goes to the network and is stored for next time.
+  // Older versions are dropped. Falls back to a plain fetch without the
+  // Cache API (private windows, blocked storage) or when storing fails.
+  function useContentCache() {
+    if (!window.caches || !packVersion) return;
+    const name = 'shadowflare-content-' + packVersion;
+    const plainFetch = window.fetch.bind(window);
+    window.fetch = async function (input, init) {
+      const url = typeof input === 'string' ? input : input.url;
+      if (!/shadowflare-\d+\.data/.test(url)) return plainFetch(input, init);
+      try {
+        const cache = await caches.open(name);
+        const hit = await cache.match(url);
+        if (hit) return hit;
+        const response = await plainFetch(input, init);
+        if (response.ok) cache.put(url, response.clone()).catch(function (e) { console.warn('content cache:', e); });
+        return response;
+      } catch (e) {
+        return plainFetch(input, init);
+      }
+    };
+    caches.keys().then(function (names) {
+      names.filter(function (n) { return n.startsWith('shadowflare-content-') && n !== name; })
+           .forEach(function (n) { caches.delete(n); });
+    }).catch(function () {});
+  }
+
+  // Fetches the open pack's parts (their loaders run against the engine
+  // that is already up) and resolves once every file is in place.
+  function loadContent() {
+    if (contentLoaded || !packParts.length) return Promise.resolve();
+    contentLoading = true;
+    bar.hidden = false;
+    bar.value = 0;
+    statusLine.textContent = 'Downloading the game…';
+    useContentCache();
+    return new Promise(function (resolve, reject) {
+      Module.monitorRunDependencies = function (left) {
+        if (left === 0) { contentLoaded = true; contentLoading = false; resolve(); }
+      };
+      packParts.forEach(function (src) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onerror = function () { reject(new Error('could not load ' + src)); };
+        document.body.appendChild(script);
+      });
+    });
+  }
+
+  function ready() {
+    statusLine.textContent = '';
+    bar.hidden = true;
+    document.getElementById('play-open').disabled = false;
+    document.getElementById('picker').disabled = false;
+    document.getElementById('pick-label').classList.remove('disabled');
+    if (Module.sf.hasSavedOriginals()) {
+      document.getElementById('play-saved').hidden = false;
+      document.getElementById('play-saved').disabled = false;
+      document.getElementById('forget').hidden = false;
+    }
+  }
+
+  function play(args) {
+    document.body.classList.add('playing');
+    Module.canvas.focus();
+    Module.sf.start(args);
+  }
+
+  document.getElementById('play-open').onclick = async function () {
+    const button = this;
+    button.disabled = true;
+    try {
+      await loadContent();
+    } catch (e) {
+      statusLine.textContent = 'The download failed (' + e.message + '). Check your connection and try again.';
+      bar.hidden = true;
+      contentLoading = false;
+      button.disabled = false;
+      return;
+    }
+    bar.hidden = true;
+    statusLine.textContent = '';
+    play([]);
+  };
+
+  document.getElementById('play-saved').onclick = async function () {
+    statusLine.textContent = 'Loading your saved files…';
+    if (await Module.sf.loadSavedOriginals()) {
+      play(['--data', '/originals']);
+    } else {
+      statusLine.textContent = 'Your saved files are gone. Please choose the folder again.';
+    }
+  };
+
+  document.getElementById('forget').onclick = async function () {
+    await Module.sf.forgetOriginals();
+    document.getElementById('play-saved').hidden = true;
+    document.getElementById('forget').hidden = true;
+    statusLine.textContent = 'Your files are no longer kept in this browser.';
+  };
+
+  document.getElementById('picker').onchange = async function (event) {
+    const files = event.target.files;
+    if (!files.length) return;
+    const keep = document.getElementById('keep').checked;
+    const ok = await Module.sf.useOriginals(files, keep, function (done, total, keeping) {
+      statusLine.textContent = keeping ? 'Keeping your files in this browser…'
+                                       : 'Reading your files… ' + Math.round(100 * done / Math.max(total, 1)) + '%';
+    });
+    if (ok) {
+      play(['--data', '/originals']);
+    } else {
+      statusLine.textContent = 'No ShadowFlare game in that folder (it needs the Map and System folders).';
+    }
+  };
+</script>
+<script>Module.locateFile = function (path) { return path + '?v=8b75d58450'; };
+  sfContentPack(116, '8b75d58450', ['shadowflare-1.js?v=8b75d58450', 'shadowflare-2.js?v=8b75d58450', 'shadowflare-3.js?v=8b75d58450']);</script>
+<script async src="shadowflare.js?v=8b75d58450"></script>
+</body>
+</html>

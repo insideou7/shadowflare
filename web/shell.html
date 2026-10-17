@@ -60,13 +60,21 @@
 <script>
   const statusLine = document.getElementById('status');
   const bar = document.getElementById('bar');
-  // Sizes in MB, set by tools/build_web.sh for the website: the whole
-  // download, and the content pack's part of it.
+  // Set by tools/build_web.sh for the website: the content pack's size in
+  // MB, and its parts (script names, with the build's version). The pack is
+  // only fetched when the player asks for the open game, and kept in the
+  // browser's Cache Storage under that version so a return visit does not
+  // download it again. Empty when the content is linked into the engine.
   let dataMB = 0;
-  function sfDownloadSize(mb, packMB) {
+  let packParts = [];
+  let packVersion = '';
+  function sfContentPack(packMB, version, parts) {
     dataMB = packMB;
+    packVersion = version;
+    packParts = parts;
     const note = document.getElementById('size-note');
-    note.textContent = 'The open game is a ' + mb + ' MB download.';
+    note.textContent = 'The open game downloads ' + packMB + ' MB when you press play, once; '
+      + 'your browser keeps it for next time.';
     note.hidden = false;
   }
   var Module = {
@@ -77,6 +85,7 @@
       // "Downloading data... (12345/67890)" in bytes while the open pack
       // comes down. With the pack in parts, the total grows as each part
       // starts, so the size from the build is used when it is bigger.
+      if (!contentLoading) return;
       const m = text.match(/\((\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)/);
       if (m) {
         const mb = 1024 * 1024;
@@ -97,6 +106,59 @@
   window.addEventListener('pagehide', function () { if (Module.sf) Module.sf.syncSaves(); });
   window.onerror = function (message) { statusLine.textContent = 'Something went wrong: ' + message; };
 
+  let contentLoading = false;
+  let contentLoaded = false;
+
+  // A fetch of a part comes from Cache Storage when this version of it is
+  // there; otherwise it goes to the network and is stored for next time.
+  // Older versions are dropped. Falls back to a plain fetch without the
+  // Cache API (private windows, blocked storage) or when storing fails.
+  function useContentCache() {
+    if (!window.caches || !packVersion) return;
+    const name = 'shadowflare-content-' + packVersion;
+    const plainFetch = window.fetch.bind(window);
+    window.fetch = async function (input, init) {
+      const url = typeof input === 'string' ? input : input.url;
+      if (!/shadowflare-\d+\.data/.test(url)) return plainFetch(input, init);
+      try {
+        const cache = await caches.open(name);
+        const hit = await cache.match(url);
+        if (hit) return hit;
+        const response = await plainFetch(input, init);
+        if (response.ok) cache.put(url, response.clone()).catch(function (e) { console.warn('content cache:', e); });
+        return response;
+      } catch (e) {
+        return plainFetch(input, init);
+      }
+    };
+    caches.keys().then(function (names) {
+      names.filter(function (n) { return n.startsWith('shadowflare-content-') && n !== name; })
+           .forEach(function (n) { caches.delete(n); });
+    }).catch(function () {});
+  }
+
+  // Fetches the open pack's parts (their loaders run against the engine
+  // that is already up) and resolves once every file is in place.
+  function loadContent() {
+    if (contentLoaded || !packParts.length) return Promise.resolve();
+    contentLoading = true;
+    bar.hidden = false;
+    bar.value = 0;
+    statusLine.textContent = 'Downloading the game…';
+    useContentCache();
+    return new Promise(function (resolve, reject) {
+      Module.monitorRunDependencies = function (left) {
+        if (left === 0) { contentLoaded = true; contentLoading = false; resolve(); }
+      };
+      packParts.forEach(function (src) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onerror = function () { reject(new Error('could not load ' + src)); };
+        document.body.appendChild(script);
+      });
+    });
+  }
+
   function ready() {
     statusLine.textContent = '';
     bar.hidden = true;
@@ -116,7 +178,22 @@
     Module.sf.start(args);
   }
 
-  document.getElementById('play-open').onclick = function () { play([]); };
+  document.getElementById('play-open').onclick = async function () {
+    const button = this;
+    button.disabled = true;
+    try {
+      await loadContent();
+    } catch (e) {
+      statusLine.textContent = 'The download failed (' + e.message + '). Check your connection and try again.';
+      bar.hidden = true;
+      contentLoading = false;
+      button.disabled = false;
+      return;
+    }
+    bar.hidden = true;
+    statusLine.textContent = '';
+    play([]);
+  };
 
   document.getElementById('play-saved').onclick = async function () {
     statusLine.textContent = 'Loading your saved files…';
