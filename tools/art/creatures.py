@@ -133,11 +133,15 @@ def limb(rig, joint, length, radius, mat, end=None, end_mat=None, end_size=None)
         rig.attach(shape(end, end_size, end_mat), joint, (end_size[0] * 0.4 if end == "box" else 0, 0, -length))
 
 
-# The player's attack is ten frames like the original's, with the blow landing
+# The player's attack is ten frames like the original's (and being struck,
+# eleven), with the blow landing
 # on frame 7 (HERO_STRIKE): see HERO_ATTACK. Shooting a bowgun (chart 10),
 # casting (chart 13) and Heal's own casting (chart 11) have the original's
 # lengths too, the shot or spell leaving on the frame HERO_STRIKE names.
-HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False), shoot=(17, False), cast=(14, False), heal=(10, False))
+HERO_ANIMATIONS = dict(ANIMATIONS, attack=(10, False), hit=(11, False), shoot=(17, False), cast=(14, False),
+                       heal=(10, False))
+# The original's walk starts its stride three of our ten frames later.
+HERO_WALK_PHASE = 0.3
 HERO_STRIKE = {"attack": 7, "shoot": 3, "cast": 9, "heal": 8}
 
 # Monsters that cast spells in the open pack get a casting animation too
@@ -4422,6 +4426,9 @@ def pose(rig, animation, t, frames):
     offset = (0, 0, 0)
     if getattr(rig, "kind", None) == "hero" and animation in ("idle", "walk", "attack", "hit", "shoot", "cast", "heal"):
         k = min(1.0, t * frames / max(1, frames - 1))
+        if animation == "walk":
+            s = math.sin(2 * math.pi * (t + HERO_WALK_PHASE))
+            c = math.cos(2 * math.pi * (t + HERO_WALK_PHASE))
         if animation == "attack":
             heroine = getattr(rig, "heroine", False)
             r = keyframes(HEROINE_ATTACK if heroine else HERO_ATTACK, k)
@@ -4431,14 +4438,17 @@ def pose(rig, animation, t, frames):
             shields = HEROINE_SHIELD_ARM if heroine else HERO_SHIELD_ARM
             r["arm_l"], r["elbow_l"] = shields[round(k * (len(shields) - 1))]
         elif animation == "hit":
-            r = keyframes(HERO_HIT, k)
+            r = keyframes(HEROINE_HIT if getattr(rig, "heroine", False) else HERO_HIT, k)
         elif animation in ("shoot", "cast", "heal"):
             r = keyframes({"shoot": HERO_SHOOT, "cast": HERO_CAST, "heal": HERO_HEAL}[animation], k)
         elif animation == "idle" and getattr(rig, "heroine", False):
             r = heroine_stand(s)
         else:
             r = hero_guard(animation, s, c)
+        shift = r.pop("shift", None)
         rig.pose(r)
+        if shift:
+            rig.joints["hips"].location = rig.rest["hips"] + Vector(shift)
         plant(rig)
         return
     if animation == "idle":
@@ -4675,65 +4685,97 @@ HEROINE_ATTACK = [
 # finds the 3D placing that best gives those pictures, and solves our
 # shoulders, elbows and wrist to hold sword and shield there.
 HERO_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
-    ((-0.4, 0.0625, -0.6), (0, 0.0, 0), (-39, -0.15)),
-    ((-0.4, 0.0625, -0.6), (0, 0.0, 0), (-39, -0.15)),
-    ((-0.2, 1.0, -0.8), (0, 0.0, 0), (144, 0.45)),
-    ((-0.2, 1.0, -0.8), (0, 0.0, 0), (144, 0.45)),
-    ((-0.2, 1.9375, -0.8), (0, 0.0, 0), (24, -0.1)),
-    ((0.3, 2.9375, -0.8), (0, 0.0, 0), (-3, -0.7)),
-    ((1.3, 4.5, -0.8), (0, 0.0, 0), (30, -0.25)),
-    ((1.4, 4.4375, -0.8), (0, 0.0, 0), (15, -0.25)),
-    ((1.4, 4.5, -0.8), (0, 0.0, 0), (18, -0.2)),
-    ((1.3, 4.5, -0.8), (0, 0.0, 0), (21, -0.25)),
+    ((-0.2, 0.5625, 0.4), (0, 0.0, 0), (-39, -1.25)),
+    ((-0.2, 0.5625, 0.4), (0, 0.0, 0), (-39, -1.25)),
+    ((0.6, 0.9375, 0.2), (0, 0.0, 0), (141, -0.1)),
+    ((0.6, 0.9375, 0.2), (0, 0.0, 0), (141, -0.1)),
+    ((0.6, 2.0, 0.0), (0, 0.0, 0), (24, 0.15)),
+    ((0.4, 3.1875, 0.0), (0, 0.0, 0), (0, 0.1)),
+    ((0.5, -1.5, 0.0), (0, 0.0, 0), (21, 0.0)),
+    ((0.6, -1.625, 0.0), (0, 0.0, 0), (15, 0.0)),
+    ((0.6, -1.5625, 0.0), (0, 0.0, 0), (15, 0.0)),
+    ((0.5, -1.625, 0.0), (0, 0.0, 0), (21, -0.05)),
 ]
 HEROINE_SWORD_ARM = [  # frame by frame: arm_r, elbow_r, weapon (degrees about Y, then the twist about Z)
-    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (0, -1.3)),
-    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (0, -1.3)),
+    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (-3, -1.3)),
+    ((0.1, 0.6875, 0.0), (0, 0.0, 0), (-3, -1.3)),
     ((0.0, 0.8125, 0.0), (0, 0.0, 0), (165, 1.15)),
     ((0.0, 0.8125, 0.0), (0, 0.0, 0), (165, 1.15)),
     ((-0.1, 2.625, 0.0), (0, -1.5, 0), (159, -0.95)),
     ((-0.1, 2.625, 0.0), (0, -1.5, 0), (159, -0.95)),
-    ((0.0, 4.375, 0.4), (0, 0.0, 0), (33, -1.25)),
-    ((0.6, 4.5, 0.4), (0, 0.0, 0), (72, -0.85)),
-    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.8)),
-    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.8)),
+    ((0.0, 4.375, 0.4), (0, 0.0, 0), (30, -1.25)),
+    ((0.7, 4.5, 0.4), (0, 0.0, 0), (69, -1.05)),
+    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.85)),
+    ((1.6, 4.5, -0.4), (0, 0.0, 0), (48, 0.85)),
 ]
 HERO_SHIELD_ARM = [  # frame by frame: arm_l, elbow_l
-    ((-0.35, -0.15, 0.60), (-0.40, -0.50, 0.00)),
-    ((-0.35, -0.15, 0.60), (-0.40, -0.50, 0.00)),
-    ((-0.05, -1.15, -0.80), (-1.20, -0.40, 0.00)),
-    ((-0.05, -1.15, -0.80), (-1.20, -0.40, 0.00)),
-    ((-0.10, -1.27, 0.90), (-1.70, 0.40, 0.70)),
-    ((1.70, -2.40, -0.20), (-1.40, 0.80, -0.35)),
-    ((1.55, -2.38, 0.20), (0.95, 0.80, -0.30)),
-    ((1.20, -2.70, 1.20), (1.35, 1.20, -0.25)),
-    ((1.20, -2.65, 1.20), (1.40, 1.20, -0.25)),
-    ((1.10, -2.45, 1.20), (2.20, 1.20, 0.70)),
+    ((-0.25, -0.10, 0.60), (-0.55, -0.60, 0.00)),
+    ((-0.25, -0.10, 0.60), (-0.55, -0.60, 0.00)),
+    ((0.00, -1.15, -0.80), (-1.30, -0.40, 0.00)),
+    ((0.00, -1.15, -0.80), (-1.30, -0.40, 0.00)),
+    ((-0.10, -1.32, 1.00), (-1.70, 0.60, 0.65)),
+    ((1.75, -1.90, -0.30), (-1.15, 0.85, 0.25)),
+    ((1.60, -1.82, 0.20), (0.65, 0.85, 0.20)),
+    ((1.25, -3.20, 1.20), (0.75, 1.30, -1.20)),
+    ((1.20, -3.20, 1.20), (0.75, 1.30, -1.25)),
+    ((1.05, -3.45, 1.20), (0.25, 1.75, -1.45)),
 ]
 HEROINE_SHIELD_ARM = [  # frame by frame: arm_l, elbow_l
-    ((-0.20, -0.55, 0.80), (-0.20, 0.05, 0.20)),
-    ((-0.20, -0.55, 0.80), (-0.20, 0.05, 0.20)),
-    ((-0.15, -0.65, 0.85), (-1.25, 0.05, 0.20)),
-    ((-0.15, -0.65, 0.85), (-1.25, 0.05, 0.20)),
-    ((-1.60, -0.78, 1.35), (-0.45, 0.60, 0.00)),
-    ((-1.60, -0.78, 1.35), (-0.45, 0.60, 0.00)),
-    ((2.00, -2.67, -0.10), (-1.90, 0.40, 0.00)),
-    ((2.10, -2.70, 0.60), (-2.65, 0.40, 0.00)),
-    ((-1.60, -2.75, 0.50), (-2.65, 0.20, 0.00)),
-    ((-1.60, -2.75, 0.50), (-2.65, 0.20, 0.00)),
+    ((-0.15, -0.50, 1.00), (-0.55, 0.05, 0.05)),
+    ((-0.15, -0.50, 1.00), (-0.55, 0.05, 0.05)),
+    ((0.05, -0.65, 0.60), (-1.20, 0.05, 0.40)),
+    ((0.05, -0.65, 0.60), (-1.20, 0.05, 0.40)),
+    ((-1.45, -0.82, 1.10), (-0.40, 0.40, 0.10)),
+    ((-1.45, -0.82, 1.10), (-0.40, 0.40, 0.10)),
+    ((2.00, -2.62, 0.00), (-1.70, 0.45, 0.00)),
+    ((1.40, -3.27, 0.60), (-3.45, 0.40, -0.40)),
+    ((-1.50, -2.75, 0.40), (-2.55, 0.30, 0.00)),
+    ((-1.50, -2.75, 0.40), (-2.55, 0.30, 0.00)),
 ]
 
 
-# Struck: doubled over, then thrown back with the shield arm flung up, and
-# back into the stance.
-HERO_HIT = [
-    (0.0, hero_key(GUARD, spine=(0, 1.15, 0), head=(0, 0.3, 0), arm_l=(0.3, -0.6, 0), elbow_l=(-1.0, 0, 0),
-                   arm_r=(-0.2, -0.9, 0), elbow_r=(0, -0.4, 0), leg_l=(0.3, -1.1, 0.2), knee_l=(0, 1.5, 0),
-                   leg_r=(-0.3, -0.3, -0.2), knee_r=(0, 1.3, 0))),
-    (0.35, hero_key(GUARD, spine=(0, -0.60, 0.2), head=(0, -0.40, 0), arm_l=(0.5, -2.7, 0), elbow_l=(-0.6, 0, 0),
-                    arm_r=(-0.5, 0.5, 0), elbow_r=(0, -0.3, 0), leg_l=(0.3, -0.9, 0.2), knee_l=(0, 0.5, 0))),
-    (1.0, GUARD),
-]
+# Struck, as the original's player is (measured with match_view.py): eleven
+# frames but only four drawings, each held. Doubled over (frames 0-2); then
+# thrown back off his feet, arched, arms flung up over his head (3-5); still
+# reeling back, leaning far back with the arms out and the front knee up
+# (6-7); then catching himself, upright again with the arms out wide and the
+# front knee raised (8-10). The four poses were fitted with match_view.py
+# --fit (mean IoU over the eight directions 0.43/0.42/0.38/0.36 before,
+# 0.66/0.66/0.59/0.55 after). He is knocked about half a step back ("shift",
+# the hips moved in the model's own space; + x is forward), as the
+# original's body moves back off its anchor.
+HIT_A = hero_key(GUARD, spine=(0.30, 0.48, 0), head=(0, 1.27, 0), arm_l=(0, -0.83, 0), elbow_l=(-0.85, 0, 0),
+                 arm_r=(-0.88, -0.53, 0), elbow_r=(0, -0.25, 0), leg_l=(0, -1.25, 0.2), knee_l=(0, 1.50, 0),
+                 leg_r=(-0.15, 0, -0.2), knee_r=(0, 1.30, 0), shift=(0, 0, 0))
+HIT_B = hero_key(GUARD, spine=(0, -1.08, 0), head=(0, -1.01, 0), arm_l=(1.25, -1.29, 0), elbow_l=(-0.73, 0, 0),
+                 arm_r=(-1.47, -0.19, 0), elbow_r=(0, -0.36, 0), leg_l=(0.10, -0.80, 0), knee_l=(0, 0.60, 0),
+                 leg_r=(-0.17, -0.19, 0), knee_r=(0, 0.84, 0), shift=(-0.40, 0, 0))
+HIT_C = hero_key(GUARD, spine=(-0.30, -1.20, 0), head=(0, 0, 0), arm_l=(1.80, -0.75, 0), elbow_l=(0.15, 0, 0),
+                 arm_r=(-1.27, -0.46, 0), elbow_r=(0, -0.22, 0), leg_l=(0.10, -1.25, 0), knee_l=(0, 1.15, 0),
+                 leg_r=(-0.17, 0.02, 0), knee_r=(0, 1.30, 0), shift=(-0.50, 0, 0))
+HIT_D = hero_key(GUARD, spine=(0, -0.42, 0), head=(0, 0.51, 0), arm_l=(1.28, -0.80, 0), elbow_l=(-0.63, 0, 0),
+                 arm_r=(-1.58, -0.80, 0), elbow_r=(0, -0.25, 0), leg_l=(0.15, -1.60, 0), knee_l=(0, 1.60, 0),
+                 leg_r=(-0.17, 0.47, 0), knee_r=(0, 1.08, 0), shift=(-0.30, 0, 0))
+HERO_HIT = [(0.0, HIT_A), (0.2, HIT_A), (0.3, HIT_B), (0.5, HIT_B), (0.6, HIT_C), (0.7, HIT_C), (0.8, HIT_D),
+            (1.0, HIT_D)]
+# The heroine's own (the original's differs): doubled over less, sinking
+# back onto her heels; thrown back with the arms out; down low leaning back;
+# then up on the back foot with the front knee raised. Fitted the same way
+# (mean IoU 0.19/0.29/0.36/0.37 -> 0.56/0.46/0.52/0.51).
+HEROINE_HIT_A = hero_key(GUARD, spine=(0, 0.63, 0), head=(0, 0.07, 0), arm_l=(-0.45, -0.98, 0), elbow_l=(-0.40, 0, 0),
+                         arm_r=(-0.35, -0.76, 0), elbow_r=(0, -0.32, 0), leg_l=(-0.30, -1.25, 0.2), knee_l=(0, 1.35, 0),
+                         leg_r=(0.15, -0.30, -0.2), knee_r=(0, 0.70, 0), shift=(-0.45, 0, 0))
+HEROINE_HIT_B = hero_key(GUARD, spine=(-0.15, -0.78, 0), head=(0, 0.64, 0), arm_l=(1.25, -0.84, 0), elbow_l=(0.02, 0, 0),
+                         arm_r=(-1.62, -0.86, 0), elbow_r=(0, 0.47, 0), leg_l=(-0.65, -0.65, 0), knee_l=(0, 1.50, 0),
+                         leg_r=(0.05, -0.34, 0), knee_r=(0, 0.84, 0), shift=(-0.40, 0, 0))
+HEROINE_HIT_C = hero_key(GUARD, spine=(-0.22, -0.90, 0), head=(0, 0.76, 0), arm_l=(0.82, -0.15, 0), elbow_l=(0.30, 0, 0),
+                         arm_r=(0.31, 0.44, 0), elbow_r=(0, 0.16, 0), leg_l=(-0.49, -1.25, 0), knee_l=(0, 1.83, 0),
+                         leg_r=(-0.17, 0.02, 0), knee_r=(0, 1.30, 0), shift=(-0.50, 0, 0))
+HEROINE_HIT_D = hero_key(GUARD, spine=(-0.07, -0.34, 0), head=(0, 0.35, 0), arm_l=(1.66, 0.11, 0), elbow_l=(-0.93, 0, 0),
+                         arm_r=(-0.83, 0.19, 0), elbow_r=(0, 0.57, 0), leg_l=(-0.60, -0.70, 0), knee_l=(0, 1.75, 0),
+                         leg_r=(-0.17, -0.13, 0), knee_r=(0, 1.38, 0), shift=(-0.30, 0, 0))
+HEROINE_HIT = [(0.0, HEROINE_HIT_A), (0.2, HEROINE_HIT_A), (0.3, HEROINE_HIT_B), (0.5, HEROINE_HIT_B),
+               (0.6, HEROINE_HIT_C), (0.7, HEROINE_HIT_C), (0.8, HEROINE_HIT_D), (1.0, HEROINE_HIT_D)]
 
 
 # Shooting a bowgun: aimed from the first frame, the crossbow held up at the
@@ -4816,9 +4858,17 @@ def ground(rig):
     rig.joints["root"].location.z -= low
 
 
-def facing(direction):
+def facing(direction, rig=None):
     """Blender Z rotation that makes a model facing +X look towards one of
-    the engine's directions (0 = screen down, then counter-clockwise)."""
+    the engine's directions (0 = screen down, then counter-clockwise).
+
+    The original turns its player in even 45 degree steps (measured with
+    match_view.py --calibrate: the turn between its directions is 45 degrees
+    give or take a few), so the hero and heroine do too. Other characters
+    still skew the diagonals to the maps' 15:10 diamond, 11.3 degrees off
+    even steps, until each is checked the same way."""
+    if getattr(rig, "kind", None) == "hero":
+        return math.radians(45 * direction - 45)
     sx, sy = math.sin(math.radians(45 * direction)), math.cos(math.radians(45 * direction))
     x = (sx / studio.PROJ[0] + sy / studio.PROJ[1]) / 2
     y = (sy / studio.PROJ[1] - sx / studio.PROJ[0]) / 2
@@ -4844,7 +4894,7 @@ def render_frames(scene, rig, kind, out, preview, skip=()):
             for f in ([frames // 2] if preview else range(frames)):
                 pose(rig, name, f / frames, frames)
                 spin = rig.joints["root"].rotation_euler
-                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(directional[0] if directional else d)))
+                rig.joints["root"].rotation_euler = Euler((spin.x, spin.y, facing(directional[0] if directional else d, rig)))
                 yield lines, name, d, f
         print(name, "done", flush=True)
 
