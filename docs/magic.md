@@ -345,6 +345,7 @@ with none of our fixes; it is off by default. Each fix is a switch in
 | `rightClickEquips` | a right click on a weapon, armour or accessory in the bag wears it, and on a worn item takes it off into the bag | a right click in the bag only uses a consumable, and one on a worn item does nothing ([controls.md](controls.md#mouse)) |
 | `rightClickStores` | with a warehouse open, a right click moves an item between the bag and the warehouse | it uses a consumable; items are moved by picking them up ([controls.md](controls.md#mouse)) |
 | `rightClickSells` | a right click on a bag item while a shop is open sells it | it uses the item; selling means dropping it on the shop ([controls.md](controls.md#mouse)) |
+| `noCastWhileStunned` | a hero held in a stun cannot start a spell | a spell cast during the stun leaves the hero frozen when it ends: no walking, no casting |
 
 Data the engine used to misread, such as the monster stat words, is
 corrected in both modes.

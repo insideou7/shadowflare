@@ -183,6 +183,7 @@ void Game::trainSpell(int spell) {
 
 void Game::startCast(double worldX, double worldY, std::optional<std::size_t> enemy) {
     if (casting_ || dialogue_ || openShop_) return;
+    if (rules_.noCastWhileStunned && heroStun_) return;
     const int spell = spells_.selected;
     if (!spells_.knows(spell)) {
         showMessage("No spell chosen (F1-F8)");

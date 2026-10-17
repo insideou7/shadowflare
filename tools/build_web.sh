@@ -71,19 +71,21 @@ for list in "$stage"/part*.list; do
 done
 IFS=$'\n' parts=($(sort -n <<<"${parts[*]}")); unset IFS
 
-# 3. The page: the parts' loaders go in before the engine's script, with
-# a version (a hash of every file) so browsers fetch fresh files after a
-# rebuild instead of mixing old and new ones.
+# 3. The page: the engine's script gets a version (a hash of every file) so
+# browsers fetch fresh files after a rebuild instead of mixing old and new ones.
 cp "$build/shadowflare.js" "$build/shadowflare.wasm" "$stage/"
 version=$(cat "$stage"/*.data "$stage"/*.js "$stage"/*.wasm | sha256sum | cut -c1-10)
 bytes=$(cat "$stage"/*.data "$stage"/*.wasm "$stage"/*.js | wc -c)
 mb=$(( (bytes + 1048575) / 1048576 ))
 data_mb=$(( ($(cat "$stage"/*.data | wc -c) + 1048575) / 1048576 ))
-tags="<script>Module.locateFile = function (path) { return path + '?v=$version'; };
-  sfDownloadSize($mb, $data_mb);</script>"
+# The parts' loaders are not in the page: the page injects them when the
+# player presses play, so the visit itself only fetches the engine.
+list=
 for n in "${parts[@]}"; do
-    tags+=$'\n'"<script src=\"shadowflare-$n.js?v=$version\"></script>"
+    list+="${list:+, }'shadowflare-$n.js?v=$version'"
 done
+tags="<script>Module.locateFile = function (path) { return path + '?v=$version'; };
+  sfContentPack($data_mb, '$version', [$list]);</script>"
 python3 - "$build/shadowflare.html" "$stage/index.html" "$version" "$tags" <<'EOF'
 import re, sys
 src, dst, version, tags = sys.argv[1:]

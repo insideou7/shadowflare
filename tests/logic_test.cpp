@@ -996,6 +996,8 @@ void testMagic() {
           "a fallen hero gets the Game Over window only outside original mode");
     check(sf::Rules::ours().autosaveInTown && !sf::Rules::original().autosaveInTown,
           "only outside original mode does coming into town save the game");
+    check(sf::Rules::ours().noCastWhileStunned && !sf::Rules::original().noCastWhileStunned,
+          "only outside original mode is a stunned hero kept from casting");
 }
 
 void testPowerMode() {

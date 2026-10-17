@@ -75,7 +75,7 @@ const SDL_Color kShadow{0, 0, 0, 255};
 }  // namespace
 
 void Game::openLoadData() {
-    loadData_.emplace();
+    loadData_ = LoadData{};  // not emplace(): Clang rejects it for a class nested in Game
     loadData_->ticks = kFadeInTicks;
     readSaveSlots();
     mouseHeld_ = false;

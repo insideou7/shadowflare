@@ -1121,6 +1121,7 @@ void Game::tickPlayer() {
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
         heroStun_.reset();
+        if (rules_.noCastWhileStunned) casting_.reset();
         player_->held = false;
         player_->grey = false;
         player_->play(chart::kIdle);
@@ -1999,6 +2000,19 @@ void Game::renderJudge(int camX, int camY) {
             }
             for (int k : {0, 1, 2, 0, 2, 3}) vertices.push_back({corners[k], color, {0, 0}});
         }
+    }
+    // The scenario's objects' click rectangles, in blue.
+    for (const auto& p : control_.placements) {
+        if (p.group != ScenarioControl::Group::Object) continue;
+        const int wx[4] = {p.x + p.rect[0], p.x + p.rect[2], p.x + p.rect[2], p.x + p.rect[0]};
+        const int wy[4] = {p.y + p.rect[1], p.y + p.rect[1], p.y + p.rect[3], p.y + p.rect[3]};
+        SDL_FPoint corners[4];
+        for (int k = 0; k < 4; ++k) {
+            int sx, sy;
+            worldToScreen(wx[k], wy[k], sx, sy);
+            corners[k] = {static_cast<float>(sx - camX), static_cast<float>(sy - camY)};
+        }
+        for (int k : {0, 1, 2, 0, 2, 3}) vertices.push_back({corners[k], SDL_Color{0, 120, 255, 70}, {0, 0}});
     }
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     if (!vertices.empty()) SDL_RenderGeometry(renderer_, nullptr, vertices.data(), static_cast<int>(vertices.size()), nullptr, 0);
