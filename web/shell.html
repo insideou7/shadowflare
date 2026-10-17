@@ -22,6 +22,9 @@
   a { color: var(--accent); }
   #canvas { display: none; position: fixed; inset: 0; margin: auto; background: #000; outline: none;
             width: min(100vw, calc(100vh * 4 / 3)); height: min(100vh, calc(100vw * 3 / 4)); image-rendering: pixelated; }
+  #reports { margin: 1rem 0; }
+  #reports .row { margin-top: .5rem; }
+  #reports button + button { margin-left: .5rem; }
   body.playing #start { display: none; }
   body.playing #canvas { display: block; }
 </style>
@@ -45,6 +48,21 @@
     <label class="check"><input type="checkbox" id="keep" checked> Keep the files in this browser for next time</label>
     <button id="forget" class="quiet" hidden>Forget my saved files</button>
     <p class="muted">Your files stay on this computer. They are never uploaded anywhere.</p>
+  </div>
+
+  <div class="choice" id="reports" hidden>
+    <p>Send crash reports to help us fix bugs?</p>
+    <p class="muted">If you say yes, the game's errors and your browser and system type are sent to
+      Sentry (a crash reporting service) when something breaks. Your saves, your ShadowFlare files and
+      personal details are never sent, and nothing is sent unless you say yes. You can turn this off
+      here at any time.</p>
+    <div class="row" id="reports-ask">
+      <button id="reports-yes">Yes, send crash reports</button>
+      <button id="reports-no" class="quiet">No thanks</button>
+    </div>
+    <div class="row" id="reports-state" hidden>
+      <span id="reports-text"></span> <button id="reports-toggle" class="quiet"></button>
+    </div>
   </div>
 
   <p id="status">Loading…</p>
@@ -104,6 +122,65 @@
   };
   window.addEventListener('pagehide', function () { if (Module.sf) Module.sf.syncSaves(); });
   window.onerror = function (message) { statusLine.textContent = 'Something went wrong: ' + message; };
+
+
+  // Crash reports (Sentry) are opt-in. Nothing from Sentry is requested
+  // until the player says yes; the answer is kept in localStorage.
+  const sentryLoader = 'https://js.sentry-cdn.com/7721089006b65ec521af519ee4ba02a1.min.js';
+  const reportsKey = 'sfCrashReports';
+  function reportsChoice() {
+    try { return localStorage.getItem(reportsKey); } catch (e) { return null; }
+  }
+  function setReportsChoice(value) {
+    try { localStorage.setItem(reportsKey, value); } catch (e) { /* choice lasts for this visit only */ }
+  }
+  window.sentryOnLoad = function () {
+    // The build's engine hash when published (tools/build_web.sh), else "dev".
+    const hash = (typeof sfVersions !== 'undefined' && sfVersions['shadowflare.js']) || 'dev';
+    Sentry.init({
+      release: 'shadowflare-web@' + hash,
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+    });
+  };
+  function loadSentry() {
+    if (window.sfSentryRequested) return;
+    window.sfSentryRequested = true;
+    const tag = document.createElement('script');
+    tag.src = sentryLoader;
+    tag.crossOrigin = 'anonymous';
+    document.head.appendChild(tag);
+  }
+  function showReportsChoice() {
+    const choice = reportsChoice();
+    document.getElementById('reports').hidden = false;
+    document.getElementById('reports-ask').hidden = choice !== null;
+    document.getElementById('reports-state').hidden = choice === null;
+    if (choice !== null) {
+      document.getElementById('reports-text').textContent = 'Crash reports are ' + (choice === 'on' ? 'on.' : 'off.');
+      document.getElementById('reports-toggle').textContent = choice === 'on' ? 'Turn off' : 'Turn on';
+    }
+  }
+  function answerReports(on) {
+    setReportsChoice(on ? 'on' : 'off');
+    if (on) loadSentry();
+    showReportsChoice();
+  }
+  document.getElementById('reports-yes').onclick = function () { answerReports(true); };
+  document.getElementById('reports-no').onclick = function () { answerReports(false); };
+  document.getElementById('reports-toggle').onclick = function () {
+    if (reportsChoice() === 'on') {
+      // The loader is already running in this page; a reload drops it.
+      setReportsChoice('off');
+      location.reload();
+    } else {
+      answerReports(true);
+    }
+  };
+  if (reportsChoice() === 'on') loadSentry();
+  showReportsChoice();
 
   let contentLoading = false;
   let contentLoaded = false;
