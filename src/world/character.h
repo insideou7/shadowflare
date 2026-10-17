@@ -1,7 +1,6 @@
 #pragma once
 
-#include <SDL.h>
-
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -13,7 +12,11 @@
 namespace sf {
 
 class FileSystem;
-class SpriteCache;
+
+// A colour and opacity, 0-255 each.
+struct Rgba {
+    std::uint8_t r = 255, g = 255, b = 255, a = 255;
+};
 
 // Sprites and animation charts shared by every instance of a character type.
 struct CharacterModel {
@@ -64,7 +67,7 @@ public:
     std::vector<int> visibleLayers = {0};
     // Colour and opacity the body is drawn with (partner dogs are recoloured
     // per kind, and fade out when they die).
-    SDL_Color tint{255, 255, 255, 255};
+    Rgba tint;
     // Colours some layers are drawn with on top of `tint`, per mille of
     // red, green and blue (the hero's dyed armour, Inventory::heroTints).
     struct LayerTint {
@@ -130,16 +133,11 @@ public:
     }
     // Whether any frame of the chart playing has one.
     bool hasStrikes() const;
-    // `shadowAlpha` is how dark the shadow is drawn. Below 255, `alpha`
-    // draws a see-through copy with no shadow.
-    void draw(SDL_Renderer* renderer, SpriteCache& sprites, int cameraX, int cameraY, int shadowAlpha = 96,
-              int alpha = 255) const;
-    // Where draw puts the picture (shadow left out), in map pixels; empty
-    // when it draws nothing.
-    SDL_Rect pictureBounds(SpriteCache& sprites) const;
+    // The chart playing in the direction faced, or null when the model has
+    // none (render/character_draw.h draws its frame).
+    const AnimationSet::Direction* currentDirection() const;
 
 private:
-    const AnimationSet::Direction* currentDirection() const;
 
     const CharacterModel* model_;
     int chart_ = chart::kIdle;

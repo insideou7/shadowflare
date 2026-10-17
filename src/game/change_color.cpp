@@ -8,6 +8,7 @@
 
 #include "core/log.h"
 #include "game/game.h"
+#include "render/character_draw.h"
 
 namespace sf {
 
@@ -219,7 +220,7 @@ void Game::renderChangeColor() {
     // Its frame counts the original's ticks, 30 a second.
     if (hero.frameCount() > 0) hero.setFrame(static_cast<int>(ticks_ * 30 / kTicksPerSecond) % hero.frameCount());
     hero.x = hero.y = 0;
-    hero.draw(renderer_, sprites_, -kHeroX, -kHeroY);
+    drawCharacter(renderer_, sprites_, hero, -kHeroX, -kHeroY);
 }
 
 }  // namespace sf

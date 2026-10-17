@@ -40,10 +40,7 @@ constexpr double kMissileRange = 6000.0;
 constexpr double kHeroMissileHeight = 200.0, kMonsterMissileHeight = 250.0;
 // "MISS!!": OPTION 11000011's picture, starting this high over whoever
 // was missed (0x417a60).
-constexpr int kMissOption = 11000011;
-constexpr double kMissHeight = 400.0;
 // What an effect is drawn for when the content has no animation for it.
-constexpr int kMissingLength = 16;
 // Special items (class 4) that add 5 to Life and Mental Recovery while
 // carried (0x44f2f0 looks for 0x5d75c83 and 0x5d75c84).
 constexpr std::int32_t kSpiritualHeraldry = 98000003, kDemonFang = 98000004;
@@ -150,7 +147,7 @@ void Game::selectSpellSlot(int slot) {
 }
 
 void Game::castBy(int slot, int screenDx, int screenDy) {
-    if (!player_ || !map_) return;
+    if (!player_ || !world_.map) return;
     selectSpellSlot(slot);
     int px, py;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), px, py);
@@ -183,7 +180,7 @@ void Game::trainSpell(int spell) {
 
 void Game::startCast(double worldX, double worldY, std::optional<std::size_t> enemy) {
     if (casting_ || dialogue_ || openShop_) return;
-    if (rules_.noCastWhileStunned && heroStun_) return;
+    if (world_.rules.noCastWhileStunned && heroStun_) return;
     const int spell = spells_.selected;
     if (!spells_.knows(spell)) {
         showMessage("No spell chosen (F1-F8)");
@@ -236,7 +233,7 @@ void Game::startCast(double worldX, double worldY, std::optional<std::size_t> en
         cast.x = player_->x;
         cast.y = player_->y;
         cast.aim = std::atan2(worldY - player_->y, worldX - player_->x);
-        casts_.push_back(std::move(cast));
+        world_.casts.push_back(std::move(cast));
     }
 }
 
@@ -244,10 +241,10 @@ void Game::releaseSpell() {
     castReleased_ = true;
     const int spell = *casting_;
     // Cast at a monster, it goes for where the monster is now.
-    if (castEnemy_ && *castEnemy_ < actors_.size() && actors_[*castEnemy_].alive() && actors_[*castEnemy_].active) {
-        const Character& t = actors_[*castEnemy_].character;
+    if (castEnemy_ && *castEnemy_ < world_.actors.size() && world_.actors[*castEnemy_].alive() && world_.actors[*castEnemy_].active) {
+        const Character& t = world_.actors[*castEnemy_].character;
         castTarget_ = {t.x, t.y};
-        for (auto& cast : casts_) {
+        for (auto& cast : world_.casts) {
             if (cast.spell == spell && cast.caster < 0 && cast.release < 0) cast.aim = std::atan2(t.y - cast.y, t.x - cast.x);
         }
     }
@@ -258,7 +255,7 @@ void Game::releaseSpell() {
         case Kind::Identify:
             // The inventory opens and the next unknown item clicked in the
             // bag is identified (0x43f8d0).
-            spawnEffect(kIdentifyGlow, player_->x, player_->y).followsPlayer = true;
+            world_.spawnEffect(kIdentifyGlow, player_->x, player_->y).followsPlayer = true;
             identifying_ = true;
             openItemWindow();
             closeWarpWindow();
@@ -268,7 +265,7 @@ void Game::releaseSpell() {
         case Kind::Companion: orderPartnerExplosion(castTarget_.first, castTarget_.second); break;
         case Kind::Toggle:
             setSpellOn(spell, true);
-            spawnEffect(kGatherSwirl, player_->x, player_->y).followsPlayer = true;
+            world_.spawnEffect(kGatherSwirl, player_->x, player_->y).followsPlayer = true;
             showMessage(std::format("{} on", magic_.spell(spell).name));
             break;
         case Kind::Moon:
@@ -283,14 +280,14 @@ void Game::releaseSpell() {
             // Table 17 is the percent of the most HP restored.
             const int amount = std::max(1, playerMaxHp() * magic_.power(spell, level) / 100);
             playerHp_ = std::min(playerMaxHp(), playerHp_ + amount);
-            spawnEffect(kHealGlow, player_->x, player_->y).followsPlayer = true;
+            world_.spawnEffect(kHealGlow, player_->x, player_->y).followsPlayer = true;
             playSound(0x11);  // 0x43ca60
             trainSpell(spell);
             break;
         }
         case Kind::Cast:
             // The controller makes the spell's effects from its next tick.
-            for (auto& cast : casts_) {
+            for (auto& cast : world_.casts) {
                 if (cast.spell == spell && cast.release < 0) cast.release = cast.tick;
             }
             break;
@@ -308,7 +305,7 @@ void Game::castMonsterSpell(Actor& enemy, int slot) {
     const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
     const int spell = s.spells[k];
     if (spell < 0 || spell >= kSpellCount) return;
-    const auto how = monsterSpell(spell, random_.next(4));
+    const auto how = monsterSpell(spell, world_.random.next(4));
     if (!how) {
         log::warn("Monster {} has no way to cast {}", enemy.gameId(), magic_.spell(spell).name);
         return;
@@ -322,11 +319,11 @@ void Game::castMonsterSpell(Actor& enemy, int slot) {
     cast.y = enemy.character.y;
     cast.aim = enemy.aim;
     cast.release = how->release;
-    cast.caster = static_cast<int>(&enemy - actors_.data());
+    cast.caster = static_cast<int>(&enemy - world_.actors.data());
     cast.hitOption = how->hitOption;
     cast.targetOnly = how->targetOnly;
     log::info("Monster {} casts {} at level {}", enemy.gameId(), magic_.spell(spell).name, cast.level);
-    casts_.push_back(std::move(cast));
+    world_.casts.push_back(std::move(cast));
 }
 
 // A monster's spell reaching the hero (0x45e1e0, then 0x443cb0): its hit
@@ -337,21 +334,21 @@ void Game::castMonsterSpell(Actor& enemy, int slot) {
 // Deathscythe freeze them in ice while it lasts.
 void Game::monsterSpellHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(e.hit, stats[HeroStats::kMagicEvasion])) {
-        showMiss(player_->x, player_->y);
+    if (world_.random.next(100) >= hitChance(e.hit, stats[HeroStats::kMagicEvasion])) {
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     const int element = magic_.spell(e.spell).element;
-    const int damage = damageToHero(magic_, e.power, element, playerElements(), stats[HeroStats::kMagicDefense], random_.next(3));
+    const int damage = damageToHero(magic_, e.power, element, playerElements(), stats[HeroStats::kMagicDefense], world_.random.next(3));
     log::info("{} hits the hero for {}", magic_.spell(e.spell).name, damage);
-    if (e.hitOption >= 0) spawnEffect(e.hitOption, player_->x, player_->y).followsPlayer = true;
+    if (e.hitOption >= 0) world_.spawnEffect(e.hitOption, player_->x, player_->y).followsPlayer = true;
     playSound(e.hitSound, e.x, e.y);
-    Actor* caster = static_cast<std::size_t>(e.caster) < actors_.size() ? &actors_[static_cast<std::size_t>(e.caster)] : nullptr;
+    Actor* caster = static_cast<std::size_t>(e.caster) < world_.actors.size() ? &world_.actors[static_cast<std::size_t>(e.caster)] : nullptr;
     hurtPlayer(damage, true, caster, false);
     if (playerHp_ <= 0 || !player_) return;
     const auto st = heroSpellStun(magic_, e.spell, e.level, playerElements());
     const auto ticks = stunTicks(st.chance, st.length, st.uncapped, inventory_.guardModifier(ItemDef::kModStunChance),
-                                 inventory_.guardModifier(ItemDef::kModStunLength), random_.next(100));
+                                 inventory_.guardModifier(ItemDef::kModStunLength), world_.random.next(100));
     if (!ticks) return;
     Stun stun;
     stun.total = *ticks;
@@ -364,8 +361,8 @@ void Game::monsterSpellHitsPlayer(const Effect& e) {
 // The hero frozen in ice for `ticks`: the same ice as on a monster (the
 // controllers 0x5217-0x521a) and its crackle.
 void Game::iceOnHero(int ticks) {
-    spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
-    Effect& ice = spawnEffect(kFreezeHold + random_.next(4), player_->x, player_->y);
+    world_.spawnEffect(kFreezeStart, player_->x, player_->y).followsPlayer = true;
+    Effect& ice = world_.spawnEffect(kFreezeHold + world_.random.next(4), player_->x, player_->y);
     ice.followsPlayer = true;
     ice.life = ticks;
     ice.then = kFreezeEnd;
@@ -376,13 +373,13 @@ void Game::iceOnHero(int ticks) {
 // by the damage rule its own blows take (0x45f9f0).
 void Game::monsterSpellHitsPartner(const Effect& e) {
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(e.hit, st.magicEvasion)) {
-        showMiss(partner_->character.x, partner_->character.y);
+    if (world_.random.next(100) >= hitChance(e.hit, st.magicEvasion)) {
+        world_.showMiss(partner_->character.x, partner_->character.y);
         return;
     }
-    const int damage = spellDamage(e.power, magic_.spell(e.spell).element, st.element, st.magicDefense, random_.next(3), random_.next(4));
+    const int damage = spellDamage(e.power, magic_.spell(e.spell).element, st.element, st.magicDefense, world_.random.next(3), world_.random.next(4));
     log::info("{} hits the companion for {}", magic_.spell(e.spell).name, damage);
-    if (e.hitOption >= 0) spawnEffect(e.hitOption, partner_->character.x, partner_->character.y).followsPartner = true;
+    if (e.hitOption >= 0) world_.spawnEffect(e.hitOption, partner_->character.x, partner_->character.y).followsPartner = true;
     playSound(e.hitSound, e.x, e.y);
     hurtPartner(damage);
 }
@@ -390,15 +387,15 @@ void Game::monsterSpellHitsPartner(const Effect& e) {
 bool Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption) {
     const auto& s = enemy.placement.stats;
     const int element = magic_.spell(spell).element;
-    if (hitOption >= 0) spawnEffect(hitOption, enemy.character.x, enemy.character.y);
+    if (hitOption >= 0) world_.spawnEffect(hitOption, enemy.character.x, enemy.character.y);
     // Spells must beat the monster's magic evasion (0x45eb2b).
-    if (random_.next(100) >= hitChance(hit, s.magicEvasion)) {
-        showMiss(enemy.character.x, enemy.character.y);
+    if (world_.random.next(100) >= hitChance(hit, s.magicEvasion)) {
+        world_.showMiss(enemy.character.x, enemy.character.y);
         return false;
     }
     // Every monster hit is one use towards the spell's next level.
     trainSpell(spell);
-    const int damage = spellDamage(power, element, s.element, s.magicDefense, random_.next(3), random_.next(4));
+    const int damage = spellDamage(power, element, s.element, s.magicDefense, world_.random.next(3), world_.random.next(4));
     log::info("{} hits for {}", magic_.spell(spell).name, damage);
     hurtEnemy(enemy, damage, true);
     // Then the spell's stun, as tables 70-78 give it for the monster's
@@ -408,96 +405,11 @@ bool Game::spellHits(Actor& enemy, int spell, int level, int power, int hit, int
     return true;
 }
 
-const CharacterModel* Game::effectModel(int option) {
-    if (option < 0) return nullptr;  // -1: an unseen area that only hurts; 0 is the trap arrow
-    auto it = effectModels_.find(option);
-    if (it == effectModels_.end()) {
-        auto model = CharacterModel::load(*data_, std::format("Character/OPTION/{:08d}/Animation", option));
-        if (!model) log::warn("No animation for effect {}", option);
-        it = effectModels_.emplace(option, model ? std::make_unique<CharacterModel>(std::move(*model)) : nullptr).first;
-    }
-    return it->second.get();
-}
-
-// The most frames any direction of a chart has (GetMaxFrameCount).
-int Game::effectLength(int option, int chart) {
-    const CharacterModel* model = effectModel(option);
-    if (!model || chart < 0 || static_cast<std::size_t>(chart) >= model->animations.charts.size()) return kMissingLength;
-    int frames = 0;
-    for (const auto& dir : model->animations.charts[static_cast<std::size_t>(chart)].directions) {
-        frames = std::max(frames, static_cast<int>(dir.frameCount));
-    }
-    return frames > 0 ? frames : kMissingLength;
-}
-
-// New effects wait in pendingEffects_ until the tick ends, so the ones
-// being stepped never move in memory. The reference is only good until the
-// next spawn.
-Game::Effect& Game::spawnEffect(int option, double x, double y, int chart) {
-    Effect e;
-    e.id = nextEffectId_++;
-    e.option = option;
-    e.chart = chart;
-    e.x = x;
-    e.y = y;
-    e.life = effectLength(option, chart);
-    pendingEffects_.push_back(std::move(e));
-    return pendingEffects_.back();
-}
-
-// "MISS!!" pops up over whoever was missed: a still picture, made here
-// rather than by spawnEffect, hopping where it was put (stepHop).
-void Game::showMiss(double x, double y) {
-    log::info("Missed at ({:.0f}, {:.0f})", x, y);
-    Effect e;
-    e.id = nextEffectId_++;
-    e.option = kMissOption;
-    e.pattern = 0;
-    e.x = x;
-    e.y = y;
-    e.life = -1;
-    e.height = kMissHeight;
-    e.hop = Effect::Hop{};
-    e.hop->floor = kMissHeight;
-    pendingEffects_.push_back(std::move(e));
-}
-
-// One of the original's ticks of the hop (0x42c900): up by a tenth of its
-// speed, which falls by 100 a tick. Each time it comes down to where it
-// started it bounces, at 300 and then 200; after the third landing it
-// fades by a tenth a tick and is gone.
-void Game::stepHop(Effect& e) {
-    Effect::Hop& h = *e.hop;
-    e.height += h.speed / 10;
-    if (e.height < h.floor) {
-        e.height = h.floor;
-        if (h.landings == 0) h.speed = 300;
-        if (h.landings == 1) h.speed = 200;
-        if (h.landings != 3) ++h.landings;
-    }
-    h.speed -= 100;
-    if (h.landings == 3) {
-        e.light = std::max(0, h.fade);
-        h.fade -= 100;
-        if (h.fade == 0) e.dead = true;
-    }
-    ++e.age;
-}
-
-Game::Effect* Game::findEffect(int id) {
-    for (auto* list : {&effects_, &pendingEffects_}) {
-        for (auto& e : *list) {
-            if (e.id == id && !e.dead) return &e;
-        }
-    }
-    return nullptr;
-}
-
 void Game::clearSpells() {
-    casts_.clear();
-    effects_.clear();
-    pendingEffects_.clear();
-    mines_.clear();
+    world_.casts.clear();
+    world_.effects.clear();
+    world_.pendingEffects.clear();
+    world_.mines.clear();
     mineWait_ = 0;
     originalTicks_ = 0;
     identifying_ = false;
@@ -531,7 +443,7 @@ void Game::stepCast(SpellCast& c) {
     // something or a wall.
     auto bolt = [&](int option, double angle, int half) -> Effect& {
         const auto [x, y] = along(180, angle);
-        Effect& e = spawnEffect(option, x, y);
+        Effect& e = world_.spawnEffect(option, x, y);
         e.angle = angle;
         e.directional = true;
         e.speed = magic_.speed(c.spell, c.level);
@@ -543,18 +455,18 @@ void Game::stepCast(SpellCast& c) {
         e.height = c.caster >= 0 ? kMonsterMissileHeight : kHeroMissileHeight;
         return e;
     };
-    auto blockedAt = [&](double x, double y) { return !map_ || !map_->ground().walkable(x, y); };
+    auto blockedAt = [&](double x, double y) { return !world_.map || !world_.map->ground().walkable(x, y); };
     // Plasma's burst: lightning that hurts all around it, a splash and glitter.
     auto plasma = [&](double x, double y, int chart) {
-        hurts(spawnEffect(kLightning, x, y, chart), square(100), true, kShock);
-        spawnEffect(kLightningSplash, x, y);
-        spawnEffect(kLightningGlitter, x, y);
+        hurts(world_.spawnEffect(kLightning, x, y, chart), square(100), true, kShock);
+        world_.spawnEffect(kLightningSplash, x, y);
+        world_.spawnEffect(kLightningGlitter, x, y);
     };
-    auto glow = [&](int option) { spawnEffect(option, c.x, c.y); };
+    auto glow = [&](int option) { world_.spawnEffect(option, c.x, c.y); };
     // The caster's own judge rectangle, which the controller is given
     // (the hero's + 0x2e8, as 0x439d10 passes it; a monster's its own).
     auto casterJudge = [&](const SpellCast& cast) {
-        if (cast.caster >= 0 && static_cast<std::size_t>(cast.caster) < actors_.size()) return judgeOf(actors_[static_cast<std::size_t>(cast.caster)].placement.rect);
+        if (cast.caster >= 0 && static_cast<std::size_t>(cast.caster) < world_.actors.size()) return judgeOf(world_.actors[static_cast<std::size_t>(cast.caster)].placement.rect);
         return kHeroJudge;
     };
 
@@ -575,7 +487,7 @@ void Game::stepCast(SpellCast& c) {
                 const auto [x, y] = along(250 + 200 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
                 if (!c.blocked[0]) {
-                    plasma(x, y, random_.next(4));
+                    plasma(x, y, world_.random.next(4));
                     playSound(0x15, x, y);
                 }
                 if (++c.step >= n) c.done = true;
@@ -587,17 +499,17 @@ void Game::stepCast(SpellCast& c) {
             if (c.caster < 0 && player_) {
                 c.x = player_->x;
                 c.y = player_->y;
-            } else if (c.caster >= 0 && static_cast<std::size_t>(c.caster) < actors_.size()) {
-                c.x = actors_[static_cast<std::size_t>(c.caster)].character.x;
-                c.y = actors_[static_cast<std::size_t>(c.caster)].character.y;
+            } else if (c.caster >= 0 && static_cast<std::size_t>(c.caster) < world_.actors.size()) {
+                c.x = world_.actors[static_cast<std::size_t>(c.caster)].character.x;
+                c.y = world_.actors[static_cast<std::size_t>(c.caster)].character.y;
             }
             if (t == 3) glow(kFireRing);
             if (r == 0) {
                 glow(kFireSpray);
-                spawnEffect(kFireSpray, c.x, c.y, 1);
+                world_.spawnEffect(kFireSpray, c.x, c.y, 1);
                 // Everything within 150 of the caster's own judge
                 // rectangle, once.
-                Effect& area = spawnEffect(-1, c.x, c.y);
+                Effect& area = world_.spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, grown(casterJudge(c), kBurstReach), true, kHellFireBurst);
                 area.hitSound = kMagicHitSound;
@@ -608,18 +520,18 @@ void Game::stepCast(SpellCast& c) {
             break;
         case kIceBlast: {
             // Times from the gathering ice, not the release.
-            const int l = effectLength(kIceGather);
+            const int l = world_.effectLength(kIceGather);
             if (t == 3) glow(kIceGather);
-            if (t == l) spawnEffect(kIceCrystals, c.x, c.y);
+            if (t == l) world_.spawnEffect(kIceCrystals, c.x, c.y);
             if (t == l + 4) {
-                Effect& area = spawnEffect(-1, c.x, c.y);
+                Effect& area = world_.spawnEffect(-1, c.x, c.y);
                 area.life = 1;
                 hurts(area, grown(casterJudge(c), kBurstReach), true, kFrostHit);
                 area.hitSound = kMagicHitSound;
             }
             // Six times, every 3 ticks from L + 6 to L + 21.
             if (t >= l + 6 && t <= l + 21 && (t - l - 6) % 3 == 0) playSound(0x16, c.x, c.y);
-            if (t == l + 15) spawnEffect(kIceMist, c.x, c.y);
+            if (t == l + 15) world_.spawnEffect(kIceMist, c.x, c.y);
             if (t >= std::max(l + 21, 3)) c.done = true;
             break;
         }
@@ -630,7 +542,7 @@ void Game::stepCast(SpellCast& c) {
                 const auto [x, y] = along(250 + 300 * c.step, c.aim);
                 if (!c.blocked[0] && blockedAt(x, y)) c.blocked[0] = true;
                 if (!c.blocked[0]) {
-                    hurts(spawnEffect(kEarthSpear, x, y), square(150), true, c.caster >= 0 ? c.hitOption : -1);
+                    hurts(world_.spawnEffect(kEarthSpear, x, y), square(150), true, c.caster >= 0 ? c.hitOption : -1);
                     playSound(0x16, x, y);
                 }
                 if (++c.step >= n) c.done = true;
@@ -667,7 +579,7 @@ void Game::stepCast(SpellCast& c) {
                 glow(kIceSwirl);
                 for (int i = 0; i < n; ++i) {
                     const auto [x, y] = along(150, angle(i));
-                    Effect& e = spawnEffect(kBladeAppear, x, y);
+                    Effect& e = world_.spawnEffect(kBladeAppear, x, y);
                     e.angle = angle(i);
                     e.directional = true;
                     e.life = -1;  // until the spell leaves the hand
@@ -676,7 +588,7 @@ void Game::stepCast(SpellCast& c) {
             }
             if (r == 0) {
                 for (int id : c.tracked) {
-                    if (Effect* e = findEffect(id)) e->dead = true;
+                    if (Effect* e = world_.findEffect(id)) e->dead = true;
                 }
                 for (int i = 0; i < n; ++i) bolt(kBladeFly, angle(i), 50).life = 90;
                 const auto [x, y] = along(180, angle(n - 1));
@@ -692,7 +604,7 @@ void Game::stepCast(SpellCast& c) {
                 for (int i = 0; i < n; ++i) {
                     const auto [x, y] = along(350 + 200 * c.step, c.aim + i * kTau / n);
                     if (!c.blocked[static_cast<std::size_t>(i)] && blockedAt(x, y)) c.blocked[static_cast<std::size_t>(i)] = true;
-                    if (!c.blocked[static_cast<std::size_t>(i)]) plasma(x, y, random_.next(4));
+                    if (!c.blocked[static_cast<std::size_t>(i)]) plasma(x, y, world_.random.next(4));
                 }
                 // Once a ring, at its last ray, even when every ray is blocked.
                 const auto [x, y] = along(350 + 200 * c.step, c.aim + (n - 1) * kTau / n);
@@ -713,7 +625,7 @@ void Game::stepCast(SpellCast& c) {
             if (r == 0) {
                 // A short, fast cut that hurts all in its square and is gone.
                 const auto [x, y] = along(100, c.aim);
-                Effect& e = spawnEffect(kSonicBladeFly, x, y);
+                Effect& e = world_.spawnEffect(kSonicBladeFly, x, y);
                 e.angle = c.aim;
                 e.directional = true;
                 e.speed = magic_.speed(c.spell, c.level);
@@ -733,10 +645,10 @@ void Game::stepCast(SpellCast& c) {
                 c.trackedAt = {{e.x, e.y}};
             } else if (r > 0) {
                 // Where the javelin ends, the mud bursts.
-                if (const Effect* e = findEffect(c.tracked[0])) {
+                if (const Effect* e = world_.findEffect(c.tracked[0])) {
                     c.trackedAt[0] = {e->x, e->y};
                 } else {
-                    Effect& burst = spawnEffect(kMudBurst, c.trackedAt[0].first, c.trackedAt[0].second);
+                    Effect& burst = world_.spawnEffect(kMudBurst, c.trackedAt[0].first, c.trackedAt[0].second);
                     hurts(burst, square(240), true, -1);
                     burst.hitSound = kMagicHitSound;
                     playSound(0x16, burst.x, burst.y);
@@ -757,7 +669,7 @@ void Game::stepCast(SpellCast& c) {
                     e.directional = false;
                     e.turn = 20 * std::numbers::pi / 180;
                     e.animSpeed = std::max(1, magic_.speed(c.spell, c.level) * 1000 / 30);
-                    e.life = effectLength(kElementOrb);
+                    e.life = world_.effectLength(kElementOrb);
                     e.hitOption = -1;
                     c.tracked.push_back(e.id);
                     c.trackedAt.emplace_back(e.x, e.y);
@@ -773,7 +685,7 @@ void Game::stepCast(SpellCast& c) {
                 bool finished = true;
                 for (std::size_t i = 0; i < c.tracked.size(); ++i) {
                     if (c.stage[i] == 0) {
-                        if (const Effect* e = findEffect(c.tracked[i])) {
+                        if (const Effect* e = world_.findEffect(c.tracked[i])) {
                             c.trackedAt[i] = {e->x, e->y};
                         } else {
                             c.stage[i] = 1;
@@ -783,14 +695,14 @@ void Game::stepCast(SpellCast& c) {
                         if (c.stageTicks[i] % 4 == 0 && c.stage[i] != 5) {
                             const int stage = c.stage[i];
                             const auto [x, y] = c.trackedAt[i];
-                            Effect& burst = spawnEffect(kStageOption[stage], x, y);
+                            Effect& burst = world_.spawnEffect(kStageOption[stage], x, y);
                             hurts(burst, square(240), true, kStageHit[stage]);
                             burst.hitSound = kMagicHitSound;
                             if (stage == 4) playSound(0x16, x, y);
                             playSound(0x13, x, y);
                             if (stage == 3) {
-                                spawnEffect(kLightningSplash, x, y);
-                                spawnEffect(kLightningGlitter, x, y);
+                                world_.spawnEffect(kLightningSplash, x, y);
+                                world_.spawnEffect(kLightningGlitter, x, y);
                             }
                             ++c.stage[i];
                         }
@@ -809,7 +721,7 @@ void Game::stepCast(SpellCast& c) {
 // One of the original's ticks of an effect: follow, home in, fly, hurt.
 void Game::stepEffect(Effect& e) {
     if (e.hop) {
-        stepHop(e);
+        world_.stepHop(e);
         return;
     }
     if (e.trap) {
@@ -825,15 +737,15 @@ void Game::stepEffect(Effect& e) {
         e.y = player_->y;
     }
     if (e.follows >= 0) {
-        if (const auto at = characterAt(e.follows)) std::tie(e.x, e.y) = *at;
+        if (const auto at = world_.characterAt(e.follows)) std::tie(e.x, e.y) = *at;
     }
     if (e.followsPartner && partner_) {
         e.x = partner_->character.x;
         e.y = partner_->character.y;
     }
-    if (e.followsActor >= 0 && static_cast<std::size_t>(e.followsActor) < actors_.size()) {
-        e.x = actors_[static_cast<std::size_t>(e.followsActor)].character.x;
-        e.y = actors_[static_cast<std::size_t>(e.followsActor)].character.y;
+    if (e.followsActor >= 0 && static_cast<std::size_t>(e.followsActor) < world_.actors.size()) {
+        e.x = world_.actors[static_cast<std::size_t>(e.followsActor)].character.x;
+        e.y = world_.actors[static_cast<std::size_t>(e.followsActor)].character.y;
     }
     if (e.turn > 0) {
         // Home in on the nearest monster, or for a monster's spell the
@@ -853,7 +765,7 @@ void Game::stepEffect(Effect& e) {
             if (player_) consider(player_->x, player_->y);
             if (partnerAlive() && partnerRecord_.active && !e.targetOnly) consider(partner_->character.x, partner_->character.y);
         } else {
-            for (const auto& actor : actors_) {
+            for (const auto& actor : world_.actors) {
                 if (actor.active && actor.hostile() && actor.alive()) consider(actor.character.x, actor.character.y);
             }
         }
@@ -863,7 +775,7 @@ void Game::stepEffect(Effect& e) {
         e.x += std::cos(e.angle) * e.speed;
         e.y += std::sin(e.angle) * e.speed;
         e.travelled += e.speed;
-        if (e.diesOnWall && (!map_ || !map_->ground().walkable(e.x, e.y))) e.dead = true;
+        if (e.diesOnWall && (!world_.map || !world_.map->ground().walkable(e.x, e.y))) e.dead = true;
         if (e.travelled >= kMissileRange) e.dead = true;
         if (e.homesOnPlayer && player_ && std::hypot(player_->x - e.x, player_->y - e.y) <= e.speed) e.dead = true;
     }
@@ -882,8 +794,8 @@ void Game::stepEffect(Effect& e) {
         if (struck && e.diesOnHit && !e.pierces) e.dead = true;
     } else if (!e.dead && e.spell >= 0) {
         bool struck = false, sounded = false;
-        for (std::size_t i = 0; i < actors_.size(); ++i) {
-            Actor& actor = actors_[i];
+        for (std::size_t i = 0; i < world_.actors.size(); ++i) {
+            Actor& actor = world_.actors[i];
             if (!actor.active || !actor.hostile() || !actor.alive()) continue;
             if (std::ranges::find(e.struck, i) != e.struck.end()) continue;
             if (!judgesOverlap(e.x, e.y, e.judge, actor.character.x, actor.character.y, judgeOf(actor.placement.rect))) continue;
@@ -900,7 +812,7 @@ void Game::stepEffect(Effect& e) {
     ++e.age;
     if (e.life >= 0 && e.age >= e.life) {
         e.dead = true;
-        if (e.then > 0) spawnEffect(e.then, e.x, e.y).followsActor = e.followsActor;
+        if (e.then > 0) world_.spawnEffect(e.then, e.x, e.y).followsActor = e.followsActor;
     }
 }
 
@@ -936,33 +848,33 @@ void Game::regenerateHero() {
 
 void Game::tickSpells() {
     for (originalTicks_ += kOriginalTicksPerTick; originalTicks_ >= 1.0; originalTicks_ -= 1.0) {
-        for (auto& cast : casts_) {
+        for (auto& cast : world_.casts) {
             // A cast cut short before it left the hand makes nothing more.
             if (cast.caster < 0 && cast.release < 0 && !casting_) {
                 for (int id : cast.tracked) {
-                    if (Effect* e = findEffect(id)) e->dead = true;
+                    if (Effect* e = world_.findEffect(id)) e->dead = true;
                 }
                 cast.done = true;
             }
             if (!cast.done) stepCast(cast);
         }
-        std::erase_if(casts_, [](const SpellCast& c) { return c.done; });
+        std::erase_if(world_.casts, [](const SpellCast& c) { return c.done; });
         if (mineWait_ > 0) --mineWait_;
-        for (auto& mine : mines_) stepMine(mine);
-        std::erase_if(mines_, [](const Mine& m) { return m.done; });
-        for (auto& effect : effects_) {
+        for (auto& mine : world_.mines) stepMine(mine);
+        std::erase_if(world_.mines, [](const Mine& m) { return m.done; });
+        for (auto& effect : world_.effects) {
             if (!effect.dead) stepEffect(effect);
         }
-        std::erase_if(effects_, [](const Effect& e) { return e.dead; });
-        for (auto& effect : pendingEffects_) effects_.push_back(std::move(effect));
-        pendingEffects_.clear();
+        std::erase_if(world_.effects, [](const Effect& e) { return e.dead; });
+        for (auto& effect : world_.pendingEffects) world_.effects.push_back(std::move(effect));
+        world_.pendingEffects.clear();
         if (++regenTicks_ % 3 == 0) regenerateHero();
     }
     // While Moon is on, the companion glows (0x45f550).
     const bool glows = spellOn(kMoon) && partner_ && partner_->hp > 0 && partner_->state != Partner::State::Dead;
-    Effect* glow = moonGlow_ ? findEffect(moonGlow_) : nullptr;
+    Effect* glow = moonGlow_ ? world_.findEffect(moonGlow_) : nullptr;
     if (glows && !glow && player_) {
-        Effect& e = spawnEffect(kMoonGlow, partner_->character.x, partner_->character.y);
+        Effect& e = world_.spawnEffect(kMoonGlow, partner_->character.x, partner_->character.y);
         e.followsPartner = true;
         e.life = -1;
         moonGlow_ = e.id;
@@ -994,7 +906,7 @@ void Game::renderEffect(const Effect& e, int camX, int camY) {
     }
     // A volley's arrow is not seen until it starts to fall.
     if (e.shot && e.shot->target >= 0 && e.shot->fall < 0) return;
-    const CharacterModel* model = effectModel(e.option);
+    const CharacterModel* model = world_.effectModel(e.option);
     if (!model) return;
     const auto& charts = model->animations.charts;
     if (static_cast<std::size_t>(e.chart) >= charts.size()) return;

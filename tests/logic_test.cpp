@@ -6,6 +6,7 @@
 #include <exception>
 #include <map>
 #include <optional>
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -15,6 +16,9 @@
 #include "logic/card_game.h"
 #include "logic/combat.h"
 #include "logic/explored_map.h"
+#include "logic/hero_input.h"
+#include "logic/item_request.h"
+#include "logic/talk_request.h"
 #include "logic/lighting.h"
 #include "logic/item_labels.h"
 #include "formats/table_data.h"
@@ -23,6 +27,9 @@
 #include "logic/movement.h"
 #include "logic/partner.h"
 #include "logic/rules.h"
+#include "logic/save_game.h"
+#include "logic/save_seal.h"
+#include "formats/binary_reader.h"
 #include "logic/progression.h"
 #include "logic/script_runner.h"
 #include "logic/settings.h"
@@ -1410,7 +1417,151 @@ void testCombat() {
     check(sf::inSwing(7, 0, sf::kSwingSpread) && !sf::inSwing(7, 1, sf::kSwingSpread), "swing wraps round");
 }
 
+// The hero's input survives the trip to bytes and back, and bytes a
+// player's game could send that are not a HeroInput are refused.
+void testHeroInput() {
+    using sf::HeroInput;
+    HeroInput in;
+    in.held = true;
+    in.running = true;
+    in.stepX = -1;
+    in.stepY = 1;
+    in.aim = HeroInput::Aim::Enemy;
+    in.index = 42;
+    in.object = 7;
+    in.x = 1234.5f;
+    in.y = -3.25f;
+    const auto bytes = in.encode();
+    check(HeroInput::decode(bytes) == in, "a hero input reads back as written");
+    check(HeroInput::decode(HeroInput{}.encode()) == HeroInput{}, "an empty hero input reads back");
+
+    auto bad = [&](std::size_t at, std::uint8_t value) {
+        auto b = bytes;
+        b[at] = value;
+        return !HeroInput::decode(b).has_value();
+    };
+    check(bad(0, HeroInput::kVersion + 1), "another version is refused");
+    check(bad(1, 8), "an unknown flag is refused");
+    check(bad(2, 2), "a step of two is refused");
+    check(bad(3, 0xfe), "a step of minus two is refused");
+    check(bad(4, 3), "an unknown aim is refused");
+    {
+        auto b = bytes;
+        for (int i = 0; i < 4; ++i) b[9 + i] = 0xfe;  // object -2
+        check(!HeroInput::decode(b).has_value(), "an object below -1 is refused");
+    }
+    {
+        auto b = bytes;
+        b[17] = b[18] = 0;
+        b[19] = 0xc0;
+        b[20] = 0x7f;  // x = NaN
+        check(!HeroInput::decode(b).has_value(), "a point that is not a number is refused");
+    }
+    check(!HeroInput::decode(std::span(bytes).first(bytes.size() - 1)).has_value(), "a short message is refused");
+}
+
+// Item requests survive the trip to bytes and back, and ones that name no
+// real cell, slot or tab are refused.
+void testItemRequest() {
+    using sf::ItemRequest;
+    using K = ItemRequest::Kind;
+    const ItemRequest requests[] = {
+        ItemRequest::bagClick(8, 3), ItemRequest::bagClick(-1, 4), ItemRequest::of(K::SlotClick, 8),
+        ItemRequest::at(K::BeltClick, 3, 1), ItemRequest::at(K::UseBag, 0, 0), ItemRequest::at(K::UseBelt, 0, 1),
+        ItemRequest::at(K::EquipFromBag, 4, 2), ItemRequest::of(K::UnequipToBag, 0), ItemRequest::of(K::DropHand),
+        ItemRequest::of(K::ChooseWeaponSet, 1), ItemRequest::at(K::ToggleShared, 1, 0), {K::SplitGold, 2, 3, 9999},
+        ItemRequest::of(K::ToWarehouse), ItemRequest::of(K::MineSlot), ItemRequest::at(K::Buy, 8, 9),
+        ItemRequest::of(K::SellHand), ItemRequest::at(K::SellFromBag, 1, 1), ItemRequest::at(K::StorageClick, -1, 9),
+        ItemRequest::at(K::StoreFromBag, 2, 2), ItemRequest::at(K::FromStorage, 0, 9), {K::SplitStorageGold, 3, 4, 50},
+        ItemRequest::of(K::GiantPage, 9), ItemRequest::of(K::CloseShop), ItemRequest::at(K::Identify, 8, 3),
+        ItemRequest::of(K::CancelIdentify),
+    };
+    for (const auto& r : requests) {
+        check(r.valid(), "a sensible item request is valid");
+        check(ItemRequest::decode(r.encode()) == r, "an item request reads back as written");
+    }
+    check(!ItemRequest::at(K::UseBag, 9, 0).valid(), "a bag cell past the edge is refused");
+    check(!ItemRequest::at(K::UseBelt, 0, 2).valid(), "a belt cell past the edge is refused");
+    check(!ItemRequest::bagClick(100, 0).valid(), "a hand put down far outside the bag is refused");
+    check(!ItemRequest::of(K::SlotClick, 9).valid(), "a slot that does not exist is refused");
+    check(!ItemRequest::of(K::ChooseWeaponSet, 2).valid(), "a third weapon set is refused");
+    check(!ItemRequest::at(K::Buy, 9, 0).valid(), "a shop cell past the edge is refused");
+    check(!ItemRequest::of(K::GiantPage, 10).valid(), "an eleventh Giant Warehouse page is refused");
+    check(!ItemRequest::at(K::Identify, 0, 4).valid(), "identifying off the bag is refused");
+    check(!ItemRequest({K::SplitGold, 0, 0, 0}).valid(), "splitting off no gold is refused");
+    check(!ItemRequest({K::SplitGold, 0, 0, -5}).valid(), "splitting off negative gold is refused");
+    check(!ItemRequest({K::UseBag, 0, 0, 5}).valid(), "an amount on a request without one is refused");
+    check(!ItemRequest::at(K::DropHand, 1, 0).valid(), "numbers on a request without any are refused");
+    auto bytes = ItemRequest::of(K::DropHand).encode();
+    bytes[1] = ItemRequest::kKindCount;
+    check(!ItemRequest::decode(bytes).has_value(), "an unknown kind is refused");
+    bytes = ItemRequest::of(K::DropHand).encode();
+    bytes[0] = ItemRequest::kVersion + 1;
+    check(!ItemRequest::decode(bytes).has_value(), "another version is refused");
+    check(!ItemRequest::decode(std::span(bytes).first(3)).has_value(), "a short message is refused");
+}
+
+void testSaveSeal() {
+    sf::SaveGame save;
+    save.map = "remote";
+    save.name = "Ada";
+    save.level = 7;
+    const std::string text = save.write();
+    const std::string sealed = sf::sealSave(text);
+    check(sf::isSealedSave(sealed), "a sealed save starts with the seal");
+    check(sealed.find("Ada") == std::string::npos, "a sealed save can't be read in a text editor");
+    check(sf::unsealSave(sealed) == text, "a sealed save opens to the same text");
+    check(sf::sealSave(text) != sealed, "each seal uses a new nonce");
+    const auto opened = sf::SaveGame::open(sealed, false);
+    check(opened.name == "Ada" && opened.level == 7 && opened.map == "remote", "a sealed save loads");
+
+    auto refused = [](const std::string& bytes, bool allowPlain) {
+        try {
+            sf::SaveGame::open(bytes, allowPlain);
+        } catch (const sf::FormatError&) {
+            return true;
+        }
+        return false;
+    };
+    for (const std::size_t at : {sf::kSealMagic.size(), sf::kSealMagic.size() + 30, sealed.size() - 1}) {
+        std::string changed = sealed;
+        changed[at] = static_cast<char>(changed[at] ^ 1);
+        check(!sf::unsealSave(changed), "a changed byte breaks the seal");
+        check(refused(changed, true), "a changed sealed save is refused, even with plain saves on");
+    }
+    check(!sf::unsealSave(sealed.substr(0, 20)), "a cut-off sealed save is refused");
+    check(refused(text, false), "a plain text save is refused");
+    check(!refused(text, true) && sf::SaveGame::open(text, true).name == "Ada", "a plain text save loads with plain saves on");
+}
+
+void testTalkRequest() {
+    using T = sf::TalkRequest;
+    for (const T r : {T::talkTo(0), T::talkTo(57), T::useObject(3), T::answer(-1), T::answer(0), T::answer(T::kMaxOptions - 1)}) {
+        check(r.valid(), "a talk request in range is valid");
+        const auto bytes = r.encode();
+        check(T::decode(bytes) == r, "a talk request survives encode and decode");
+    }
+    const auto bytes = T::talkTo(0x01020304).encode();
+    check(bytes[0] == T::kVersion && bytes[1] == 0 && bytes[2] == 4 && bytes[5] == 1, "talk request bytes are little-endian");
+    check(!T{T::Kind::TalkTo, -1}.valid() && !T{T::Kind::UseObject, -5}.valid(), "no person or object below 0");
+    check(!T::answer(-2).valid() && !T::answer(T::kMaxOptions).valid(), "answers run from -1 to below the most options");
+    auto changed = T::answer(1).encode();
+    changed[1] = T::kKindCount;
+    check(!T::decode(changed), "an unknown kind is refused");
+    changed = T::answer(1).encode();
+    changed[0] = T::kVersion + 1;
+    check(!T::decode(changed), "another version is refused");
+    changed = T::answer(1).encode();
+    changed[5] = 0x80;
+    check(!T::decode(changed), "an answer out of range is refused");
+    check(!T::decode(std::span(bytes.data(), bytes.size() - 1)), "a short talk request is refused");
+}
+
 int main() {
+    testSaveSeal();
+    testTalkRequest();
+    testItemRequest();
+    testHeroInput();
     testItemLabels();
     testMixer();
     testLighting();

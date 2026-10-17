@@ -5,6 +5,7 @@
 #include <format>
 
 #include "formats/binary_reader.h"
+#include "logic/save_seal.h"
 
 namespace sf {
 namespace {
@@ -404,6 +405,16 @@ int SaveGame::restoreGiantStorage(std::array<ShopStock, kGiantStoragePages>& pag
     int skipped = 0;
     for (std::size_t p = 0; p < pages.size(); ++p) skipped += restoreGoods(giantStorage[p], pages[p], items);
     return skipped;
+}
+
+SaveGame SaveGame::open(std::string_view bytes, bool allowPlain) {
+    if (isSealedSave(bytes)) {
+        const auto text = unsealSave(bytes);
+        if (!text) throw FormatError("the save has been changed");
+        return parse(*text);
+    }
+    if (!allowPlain) throw FormatError("the save is not sealed (plain text saves load with --plain-saves)");
+    return parse(bytes);
 }
 
 }  // namespace sf

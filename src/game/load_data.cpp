@@ -93,7 +93,7 @@ void Game::readSaveSlots() {
             std::ifstream in(slot.file, std::ios::binary);
             std::ostringstream text;
             text << in.rdbuf();
-            SaveGame save = SaveGame::parse(text.str());
+            SaveGame save = SaveGame::open(text.str(), plainSaves_);
             slot.level = std::max(1, save.level);
             slot.hp = save.hp;
             slot.mp = save.mp.value_or(0);

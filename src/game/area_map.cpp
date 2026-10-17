@@ -60,15 +60,15 @@ constexpr Parts kOpenParts{"System/Game/Pattern/Map", 0, 1, "System/Game/Pattern
 std::pair<int, int> Game::mapPosition(double worldX, double worldY) const {
     int sx, sy, left, top, right, bottom;
     worldToScreen(static_cast<int>(worldX), static_cast<int>(worldY), sx, sy);
-    map_->ground().screenBounds(left, top, right, bottom);
+    world_.map->ground().screenBounds(left, top, right, bottom);
     return {(sx - left) / kMapScale, (sy - top) / kMapScale};
 }
 
-std::string Game::exploredKey() const { return scenarioDir_.empty() ? "Map/" + mapNames_[mapIndex_] : scenarioDir_; }
+std::string Game::exploredKey() const { return world_.scenarioDir.empty() ? "Map/" + mapNames_[mapIndex_] : world_.scenarioDir; }
 
 ExploredMap& Game::explored() {
     int left, top, right, bottom;
-    map_->ground().screenBounds(left, top, right, bottom);
+    world_.map->ground().screenBounds(left, top, right, bottom);
     const int w = (right - left) / kMapScale, h = (bottom - top) / kMapScale;
     auto& e = explored_[exploredKey()];
     if (e.width != w || e.height != h) e = ExploredMap(w, h);  // new, or the map changed size
@@ -80,7 +80,7 @@ void Game::toggleAreaMap() {
         closeAreaMap();
         return;
     }
-    if (!map_ || !player_ || dialogue_ || openShop_) return;
+    if (!world_.map || !player_ || dialogue_ || openShop_) return;
     // It shares the left half with these.
     showStatus_ = false;
     closeMissions();
@@ -114,13 +114,13 @@ bool Game::areaMapClick(int x, int y, bool right) {
 }
 
 void Game::tickAreaMap() {
-    if (!map_ || !player_) return;
+    if (!world_.map || !player_) return;
     // The original reveals when the hero's screen position changes; the
     // block is the same wherever they stand, so revealing every tick is
     // the same.
     int sx, sy, left, top, right, bottom;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), sx, sy);
-    map_->ground().screenBounds(left, top, right, bottom);
+    world_.map->ground().screenBounds(left, top, right, bottom);
     explored().reveal((sx - left - kRevealLeft) / kMapScale, (sy - top - kRevealTop) / kMapScale, kRevealWidth, kRevealHeight);
     if (mapOpen_) {
         mapTicks_ += kOriginalTicksPerTick;
@@ -139,7 +139,7 @@ void Game::tickAreaMap() {
 // to go over it.
 std::vector<std::uint32_t> Game::drawAreaMapPixels(int& w, int& h) {
     int left, top, right, bottom;
-    map_->ground().screenBounds(left, top, right, bottom);
+    world_.map->ground().screenBounds(left, top, right, bottom);
     w = (right - left) / kMapScale;
     h = (bottom - top) / kMapScale;
     if (w <= 0 || h <= 0) return {};
@@ -163,7 +163,7 @@ std::vector<std::uint32_t> Game::drawAreaMapPixels(int& w, int& h) {
     }
     SDL_SetTextureBlendMode(piece.get(), SDL_BLENDMODE_NONE);
     SDL_SetTextureScaleMode(piece.get(), SDL_ScaleModeLinear);
-    const bool skinGround = skin_ && map_->ground().isoTile <= 0;
+    const bool skinGround = skin_ && world_.map->ground().isoTile <= 0;
     std::vector<std::uint32_t> small =
         skinGround ? skin_->groundOverview(left, top, kMapScale, w, h)
                    : std::vector<std::uint32_t>(static_cast<std::size_t>(w) * static_cast<std::size_t>(h));
@@ -236,7 +236,7 @@ void Game::buildAreaMapPicture() {
     mapPicture_.reset();
     mapPictureFor_ = mapNames_[mapIndex_];
     int left, top, right, bottom;
-    map_->ground().screenBounds(left, top, right, bottom);
+    world_.map->ground().screenBounds(left, top, right, bottom);
     const int wantW = (right - left) / kMapScale, wantH = (bottom - top) / kMapScale;
     const std::string file = areaMapPictureFile();
     std::optional<std::vector<std::uint8_t>> png;
@@ -283,7 +283,7 @@ int Game::renderMapPictures(const std::string& folder) {
     int made = 0;
     for (std::size_t i = 0; i < mapNames_.size(); ++i) {
         loadMapLayers(i);
-        if (!map_) continue;
+        if (!world_.map) continue;
         const std::filesystem::path path = folder.empty() ? std::filesystem::path(areaMapPictureFile()) : std::filesystem::path(folder) / (mapNames_[i] + ".png");
         if (path.empty()) {
             log::warn("No folder to keep the map pictures in");
@@ -311,14 +311,14 @@ int Game::renderMapPictures(const std::string& folder) {
 // The area's picture with its top left corner of the map at (left, top).
 void Game::drawAreaMapPicture(int left, int top) {
     // The original's own, for its maps in its own art.
-    if (!skin_ && !scenarioDir_.empty()) {
-        if (scenarioPictureFor_ != scenarioDir_) {
-            scenarioPictureFor_ = scenarioDir_;
+    if (!skin_ && !world_.scenarioDir.empty()) {
+        if (scenarioPictureFor_ != world_.scenarioDir) {
+            scenarioPictureFor_ = world_.scenarioDir;
             scenarioPicture_.reset();
             try {
-                if (auto raw = data_->read(scenarioDir_ + "/Scenario.Njp")) scenarioPicture_ = SpriteBank::parse(*raw);
+                if (auto raw = data_->read(world_.scenarioDir + "/Scenario.Njp")) scenarioPicture_ = SpriteBank::parse(*raw);
             } catch (const FormatError& e) {
-                log::warn("{}/Scenario.Njp: {}", scenarioDir_, e.what());
+                log::warn("{}/Scenario.Njp: {}", world_.scenarioDir, e.what());
             }
         }
         if (scenarioPicture_) {
@@ -336,7 +336,7 @@ void Game::drawAreaMapPicture(int left, int top) {
 }
 
 void Game::renderAreaMap() {
-    if (!mapOpen_ || !map_ || !player_) return;
+    if (!mapOpen_ || !world_.map || !player_) return;
     const auto [mx, my] = mapPosition(player_->x, player_->y);
     // Where the map's top left corner goes on the screen.
     const int left = kHeroX - mx - mapScrollX_, top = kHeroY - my - mapScrollY_;

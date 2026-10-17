@@ -35,25 +35,25 @@ constexpr int kNameColor[3] = {0x90, 0x90, 0xff};
 }  // namespace
 
 int Game::scenarioNumber() const {
-    const auto slash = scenarioDir_.find_last_of('/');
-    if (scenarioDir_.empty() || slash == std::string::npos) return -1;
+    const auto slash = world_.scenarioDir.find_last_of('/');
+    if (world_.scenarioDir.empty() || slash == std::string::npos) return -1;
     char* end = nullptr;
-    const long n = std::strtol(scenarioDir_.c_str() + slash + 1, &end, 10);
+    const long n = std::strtol(world_.scenarioDir.c_str() + slash + 1, &end, 10);
     return end && *end == '\0' ? static_cast<int>(n) : -1;
 }
 
 // Transport can only be cast where the area allows it (scenario + 0x70,
 // checked at 0x441c00): fields and dungeons, not towns.
-bool Game::transportAllowed() const { return !scenarioDir_.empty() && control_.transport; }
+bool Game::transportAllowed() const { return !world_.scenarioDir.empty() && world_.control.transport; }
 
 // At the start of the cast (0x43a260): the gate goes 500 away in the
 // direction of the cursor, up, down, left or right, whichever is most
 // that way; if the way there is blocked, the first of the four that is
 // clear. None in the town itself, nor where it would stand on a wall.
 void Game::openTransportGate() {
-    if (!player_ || !map_) return;
+    if (!player_ || !world_.map) return;
     const int here = scenarioNumber();
-    if (here < 0 || here == control_.town) return;
+    if (here < 0 || here == world_.control.town) return;
     const double dx = castTarget_.first - player_->x, dy = castTarget_.second - player_->y;
     const int toward = std::abs(dy) < std::abs(dx) ? (dx >= 0 ? 3 : 2) : (dy >= 0 ? 1 : 0);
     auto clear = [&](double x, double y, const int (&r)[4]) {
@@ -61,7 +61,7 @@ void Game::openTransportGate() {
         // rectangle; this samples the ground every 20 units.
         for (double ry = r[1]; ry <= r[3]; ry += 20) {
             for (double rx = r[0]; rx <= r[2]; rx += 20) {
-                if (!map_->ground().walkable(x + rx, y + ry)) return false;
+                if (!world_.map->ground().walkable(x + rx, y + ry)) return false;
             }
         }
         return true;
@@ -79,9 +79,9 @@ void Game::openTransportGate() {
     gate.field = here;
     gate.x = player_->x + kOffset[way][0];
     gate.y = player_->y + kOffset[way][1];
-    gate.town = control_.town;
+    gate.town = world_.control.town;
     if (!clear(gate.x, gate.y, kStandRect)) return;
-    gate.wait = {1 + random_.next(90), 1 + random_.next(90)};
+    gate.wait = {1 + world_.random.next(90), 1 + world_.random.next(90)};
     transportGate_ = gate;
     playSound(0x4f, gate.x, gate.y);  // as it is made (0x4201b0)
     log::info("Transport gate at {:.0f},{:.0f} to scenario {}", gate.x, gate.y, gate.town);
@@ -93,7 +93,7 @@ std::optional<std::pair<double, double>> Game::transportGateHere() const {
     const int here = scenarioNumber();
     if (here == transportGate_->field) return std::pair{transportGate_->x, transportGate_->y};
     if (here == transportGate_->town) {
-        for (const auto& e : control_.entryPoints) {
+        for (const auto& e : world_.control.entryPoints) {
             if (e.id == kTownEntry * 4) return std::pair<double, double>{e.x, e.y};
         }
     }
@@ -120,9 +120,9 @@ void Game::tickTransportGate() {
             if (frame == 0) {
                 if (const auto at = transportGateHere()) playSound(0x33, at->first, at->second);
             }
-            if (++frame >= effectLength(kGateOption)) {
+            if (++frame >= world_.effectLength(kGateOption)) {
                 frame = 0;
-                wait = 30 + random_.next(60);
+                wait = 30 + world_.random.next(60);
             }
         }
         for (std::size_t i = 0; i < 4; ++i) {
@@ -132,7 +132,7 @@ void Game::tickTransportGate() {
         }
         ++g.age;
     }
-    if (pendingScenario_ || !g.assembled()) return;
+    if (world_.pendingScenario || !g.assembled()) return;
     const int here = scenarioNumber();
     auto onIt = [&](double x, double y) {
         return std::abs(player_->x - x) < kGateHalf + kHeroHalf && std::abs(player_->y - y) < kGateHalf + kHeroHalf;
@@ -141,7 +141,7 @@ void Game::tickTransportGate() {
         if (onIt(g.x, g.y)) {
             if (!g.standing[0]) {
                 log::info("Through the Transport gate to scenario {}", g.town);
-                pendingScenario_.emplace(g.town, kTownEntry);
+                world_.pendingScenario.emplace(g.town, kTownEntry);
                 g.standing[1] = true;  // arriving on the other end does not send them back
             }
             g.standing[0] = true;
@@ -153,7 +153,7 @@ void Game::tickTransportGate() {
         if (end && onIt(end->first, end->second)) {
             if (!g.standing[1]) {
                 log::info("Back through the Transport gate to scenario {}", g.field);
-                pendingScenario_.emplace(g.field, -1);
+                world_.pendingScenario.emplace(g.field, -1);
                 pendingPosition_.emplace(g.x, g.y);
                 // Its owner coming back closes it.
                 transportGate_.reset();
@@ -168,7 +168,7 @@ void Game::tickTransportGate() {
 
 // The gate's four pieces from its Pattern bank, each as high and as bright
 // as it has come, then its animation (chart 0, undirected) once it stands.
-std::vector<Game::Effect> Game::transportGateParts() const {
+std::vector<Effect> Game::transportGateParts() const {
     std::vector<Effect> parts;
     const auto at = transportGateHere();
     if (!at) return parts;

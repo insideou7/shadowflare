@@ -51,7 +51,7 @@ bool Game::startCombo(double wx, double wy) {
 }
 
 void Game::comboBy(int screenDx, int screenDy) {
-    if (!player_ || !map_) return;
+    if (!player_ || !world_.map) return;
     int px, py;
     worldToScreen(static_cast<int>(player_->x), static_cast<int>(player_->y), px, py);
     double wx, wy;
@@ -186,17 +186,17 @@ void Game::comboBlow(const Combo& c) {
     const int weaponChance = weapon ? weapon->modifiers[ItemDef::kModStunChance] : 0;
     const int weaponLength = weapon ? weapon->modifiers[ItemDef::kModStunLength] : 0;
     const bool weaponSteady = weapon && weapon->modifiers[ItemDef::kModHighDamage] != 0;
-    for (auto& enemy : actors_) {
+    for (auto& enemy : world_.actors) {
         if (!enemy.hostile() || !enemy.alive() || !enemy.active) continue;
         const double dx = enemy.character.x - player_->x, dy = enemy.character.y - player_->y;
         if (std::hypot(dx, dy) > kBlowReach) continue;
         if (!inSwing(c.facing, facingOf(dx, dy), spin ? kAllRound : kComboSpread)) continue;
         const auto& s = enemy.placement.stats;
-        if (random_.next(100) >= hitChance(playerHit(), s.evasion)) {
-            showMiss(enemy.character.x, enemy.character.y);
+        if (world_.random.next(100) >= hitChance(playerHit(), s.evasion)) {
+            world_.showMiss(enemy.character.x, enemy.character.y);
             continue;
         }
-        const int roll = random_.next(3) + (!spin && c.blow == 3 ? 1 : 0);
+        const int roll = world_.random.next(3) + (!spin && c.blow == 3 ? 1 : 0);
         const int damage = heroBlowDamage(magic_, playerAttack(), playerElements(), s.element, s.defense, roll);
         absorbFrom(enemy, damage);
         hurtEnemy(enemy, damage);
@@ -208,7 +208,7 @@ void Game::comboBlow(const Combo& c) {
         } else {
             heroBlowStun(enemy, damage, weaponChance, weaponLength, c.blow < 3 || weaponSteady);
         }
-        sayBroken(inventory_.wearFromAttacking(random_));
+        sayBroken(inventory_.wearFromAttacking(world_.random));
         playSound(6, player_->x, player_->y);
     }
 }
@@ -239,7 +239,7 @@ bool Game::reviveWithElixir() {
     playerMp_ = playerMaxMp();
     playSound(0x11, player_->x, player_->y);
     if (const int option = scriptEffectOption(kElixirEffect); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     log::info("The Elixir brings the hero back");
     return true;

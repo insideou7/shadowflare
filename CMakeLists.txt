@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(shadowflare_engine LANGUAGES CXX)
+project(shadowflare_engine LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,6 +12,14 @@ option(SFE_FETCH_SDL "Download and build SDL2 if it is not installed" ON)
 # SHADOWFLARE_SENTRY_DSN environment variable when the game starts.
 option(SFE_SENTRY "Send crash reports to Sentry (needs a DSN)" OFF)
 set(SFE_SENTRY_DSN "" CACHE STRING "Sentry DSN built into the game (empty: only SHADOWFLARE_SENTRY_DSN)")
+# Offline saves are sealed (src/logic/save_seal.h) with a key made from this
+# secret. Empty uses the one in the source; official builds should set their
+# own so the public source doesn't open their saves.
+set(SFE_SAVE_KEY "" CACHE STRING "Secret the offline save key is made from (empty: the one in the source)")
+# --plain-saves, --seal-save and --unseal-save, for editing saves while
+# developing. Turn off for release builds.
+option(SFE_SAVE_TOOLS "Build in the plain save tools for development" ON)
+
 # Memory and undefined-behavior checks for our own targets (docs/fuzzing.md):
 # AddressSanitizer and UBSan on GCC and Clang, AddressSanitizer on MSVC.
 option(SFE_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
@@ -61,6 +69,10 @@ endif()
 target_include_directories(sf_stb SYSTEM PUBLIC third_party/stb)
 target_link_libraries(sf_formats PRIVATE sf_stb)
 
+# Monocypher (third_party/monocypher, BSD-2-Clause or CC0): seals saves.
+add_library(sf_monocypher STATIC third_party/monocypher/monocypher.c)
+target_include_directories(sf_monocypher SYSTEM PUBLIC third_party/monocypher)
+
 # Game rules that need no window: scripts, AI choice, movement.
 add_library(sf_logic STATIC
     src/logic/script_runner.cpp
@@ -69,11 +81,15 @@ add_library(sf_logic STATIC
     src/logic/combat.cpp
     src/logic/ai_select.cpp
     src/logic/movement.cpp
+    src/logic/hero_input.cpp
+    src/logic/item_request.cpp
+    src/logic/talk_request.cpp
     src/logic/inventory.cpp
     src/logic/loot.cpp
     src/logic/shop.cpp
     src/logic/progression.cpp
     src/logic/save_game.cpp
+    src/logic/save_seal.cpp
     src/logic/magic.cpp
     src/logic/magic_tables.cpp
     src/logic/mines.cpp
@@ -87,21 +103,34 @@ add_library(sf_logic STATIC
     src/logic/title_smoke.cpp
     src/audio/mixer.cpp
 )
-target_link_libraries(sf_logic PUBLIC sf_formats)
+target_link_libraries(sf_logic PUBLIC sf_formats PRIVATE sf_monocypher)
+if(NOT SFE_SAVE_KEY STREQUAL "")
+    set_source_files_properties(src/logic/save_seal.cpp PROPERTIES COMPILE_DEFINITIONS "SF_SAVE_KEY=\"${SFE_SAVE_KEY}\"")
+endif()
+
+# The world without a window: maps, characters and loading the game's
+# files. Nothing here may need SDL, so the online server can run it
+# (docs/online.md); world_test links it alone to keep that so.
+add_library(sf_world STATIC
+    src/core/log.cpp
+    src/platform/filesystem.cpp
+    src/world/content.cpp
+    src/world/map.cpp
+    src/world/character.cpp
+    src/world/world.cpp
+    src/world/monsters.cpp
+    src/world/world_script.cpp
+)
+target_link_libraries(sf_world PUBLIC sf_logic)
 
 add_executable(shadowflare
     src/main.cpp
-    src/core/log.cpp
-    src/platform/filesystem.cpp
+    src/render/character_draw.cpp
     src/platform/audio.cpp
     src/platform/crash_log.cpp
     src/render/sprite_cache.cpp
-    src/game/content.cpp
-    src/game/map.cpp
     src/game/skin.cpp
-    src/game/character.cpp
     src/game/game.cpp
-    src/game/enemy_ai.cpp
     src/game/items.cpp
     src/game/special_items.cpp
     src/game/saving.cpp
@@ -133,12 +162,15 @@ add_executable(shadowflare
     src/game/objects.cpp
     src/render/tiny_font.cpp
 )
-target_link_libraries(shadowflare PRIVATE sf_logic)
+target_link_libraries(shadowflare PRIVATE sf_world)
+if(SFE_SAVE_TOOLS)
+    target_compile_definitions(shadowflare PRIVATE SF_SAVE_TOOLS)
+endif()
 if(WIN32)
     target_link_libraries(shadowflare PRIVATE dbghelp)
 endif()
 
-foreach(target sf_formats sf_logic shadowflare)
+foreach(target sf_formats sf_logic sf_world shadowflare)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4)
         # fopen, sscanf, getenv and localtime are portable C; MSVC's _s
@@ -177,6 +209,10 @@ if(BUILD_TESTING)
     add_executable(ground_skin_test tests/ground_skin_test.cpp)
     target_link_libraries(ground_skin_test PRIVATE sf_formats)
     add_test(NAME ground_skin COMMAND ground_skin_test)
+    add_executable(world_test tests/world_test.cpp)
+    target_link_libraries(world_test PRIVATE sf_world)
+    target_compile_definitions(world_test PRIVATE SF_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
+    add_test(NAME world COMMAND world_test)
 endif()
 
 # Only our own code is built with the sanitizers: fetched SDL2 and Sentry
