@@ -31,6 +31,9 @@ The unique weapons' pictures (`System/Game/Pattern/Item0002` and
 prods on Quaternius's Medieval Weapons Pack (CC0, public domain; kept in
 [tools/art/quaternius](../tools/art/quaternius)), repainted and reshaped
 per item by `tools/art/uniques.py`.
+The plain swords in `System/Game/Pattern/Item0004` (pictures drawn to stand
+in for the original's items, by `tools/art/item_extras.py`) are built on
+the same models.
 
 ## License
 
