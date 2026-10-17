@@ -695,6 +695,9 @@ void testPartners() {
     r.kind = 3;
     r.countKill(*partners, 9);
     check(r.level() == 1 && r.experience[3] == 1 && r.experience[0] == 4, "each kind keeps its own level and experience");
+    sf::PartnerRecord fast;
+    check(fast.countKill(*partners, 1, 20) && fast.level() == 2 && fast.experience[0] == 0,
+          "a 20x kill levels up and stops at the cap");
 }
 
 void testScriptTalkAndShop() {
@@ -1000,6 +1003,8 @@ void testMagic() {
           "a fallen hero gets the Game Over window only outside original mode");
     check(sf::Rules::ours().autosaveInTown && !sf::Rules::original().autosaveInTown,
           "only outside original mode does coming into town save the game");
+    check(sf::Rules::ours().noCastWhileStunned && !sf::Rules::original().noCastWhileStunned,
+          "only outside original mode is a stunned hero kept from casting");
 }
 
 void testPowerMode() {

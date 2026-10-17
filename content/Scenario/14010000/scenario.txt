@@ -53,7 +53,7 @@ enemy=16,24144,12085,0,60000,1450,640,goblin,2,10,600,1000,100000,700,280,50,750
 glow=3
 enemy=16,7208,13161,0,100000,1450,640,goblin,2,10,600,1000,100000,600,280,50,750,2,attacks=1450/1350/0,hits=280/250/0,stun=40/8/0,magic_evasion=20,speed=1300
 glow=3
-enemy=16,17621,28688,0,60000,1450,640,goblin,2,10,600,1000,100000,600,280,50,750,3,attacks=1450/1350/0,hits=280/250/0,stun=40/8/0,magic_evasion=20,speed=1600
+enemy=16,17621,28688,0,60000,1450,640,goblin,2,10,600,1000,100000,600,280,50,750,3,attacks=1450/1350/0,hits=280/250/0,stun=40/8/0,attack_speed=6/5/4,magic_evasion=20,speed=1600
 glow=3
 enemy=15,12249,25162,4,12000,1300,640,goblin,2,10,400,600,15000,300,280,50,750,5,attacks=1300/0/0,hits=280/0/0,magic_evasion=20,speed=1300
 glow=1
@@ -73,13 +73,13 @@ enemy=15,27534,18385,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,0
 glow=1
 enemy=15,20308,26432,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,0,attacks=1000/0/0,hits=280/0/0,spells=1/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
 glow=1
-enemy=15,12420,27189,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
+enemy=15,12420,27189,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,spell_speed=3/4/4,magic_evasion=20
 glow=1
-enemy=15,10160,16560,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
+enemy=15,10160,16560,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,spell_speed=3/4/4,magic_evasion=20
 glow=1
-enemy=15,27466,17523,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
+enemy=15,27466,17523,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,spell_speed=3/4/4,magic_evasion=20
 glow=1
-enemy=15,20785,26395,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
+enemy=15,20785,26395,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,1,attacks=1000/0/0,hits=280/0/0,spells=2/-1/-1,spell_power=1300/0/0,spell_level=10/10/10,spell_hit=210/0/0,stun=20/0/0,spell_speed=3/4/4,magic_evasion=20
 glow=1
 enemy=15,13071,26887,4,10000,1000,640,goblin,2,10,400,600,15000,300,280,50,900,3,attacks=1000/0/0,hits=280/0/0,spells=3/-1/-1,spell_power=1100/0/0,spell_level=20/10/10,spell_hit=210/0/0,stun=20/0/0,magic_evasion=20
 glow=1

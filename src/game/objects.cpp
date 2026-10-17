@@ -71,7 +71,7 @@ void Game::spawnObjects() {
                 const auto& charts = m->animations.charts;
                 const bool ninth = static_cast<std::size_t>(p.look.chart) < charts.size() && charts[p.look.chart].directions.size() > 8;
                 o.animation->direction = ninth ? 8 : 0;
-                o.animation->restart(p.look.chart, 1.5);  // the original's 30 frames a second
+                o.animation->restart(p.look.chart);
             }
         }
         sceneObjects_.push_back(std::move(o));

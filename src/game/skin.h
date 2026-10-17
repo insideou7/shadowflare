@@ -43,6 +43,17 @@ public:
     // Title"), or null when it has none.
     const SpriteBank* sheet(const std::string& stem);
 
+    // Our picture for an original item's bag picture (bank, pattern of
+    // System/Game/Pattern/Item<bank>) or ground picture (folder, picture
+    // of Character/ITEM/<folder>/Pattern), by the pack's item_skin.txt: a
+    // null bank when the pack has not drawn it, and the original's is drawn.
+    struct ItemPicture {
+        const SpriteBank* bank = nullptr;
+        int pattern = -1;
+    };
+    ItemPicture itemIcon(int bank, int pattern);
+    ItemPicture itemGround(int folder, int picture);
+
     // Call when a new map is shown: forgets the last map's ground.
     void setMap(const Map* map);
 
@@ -100,8 +111,12 @@ private:
     SDL_Texture* propTexture(const std::string& prop, int& frame);
     SDL_Texture* propOutline(const std::string& prop);
 
+    ItemPicture itemPicture(const std::map<std::pair<int, int>, std::pair<int, int>>& table, int a, int b,
+                            const char* format);
+
     std::unique_ptr<FileSystem> pack_;
     SDL_Renderer* renderer_ = nullptr;
+    std::map<std::pair<int, int>, std::pair<int, int>> itemIcons_, itemGrounds_;  // item_skin.txt
     open::Skin file_;
     std::unique_ptr<SpriteBank> props_;
     std::map<std::string, int> propFrames_;

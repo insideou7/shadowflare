@@ -64,6 +64,9 @@ struct Settings {
     // Ours, on the Debug tab: the hero walks through walls, buildings and
     // closed doors (but stays on the map). Original mode never does.
     bool noClip = false;
+    // Ours, on the Debug tab: nothing hurts the companion (monsters, traps,
+    // spells). Original mode never does.
+    bool invincibleCompanion = false;
     // Ours: the world's zoom, kMinZoom-kMaxZoom percent (the scroll wheel).
     int zoom = kMaxZoom;
     // Ours: the names of the items on the ground always show (L), not only

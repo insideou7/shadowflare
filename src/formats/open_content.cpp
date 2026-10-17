@@ -504,6 +504,10 @@ Scenario parseScenario(std::span<const std::uint8_t> text) {
                         three(p.stats.spellLevel);
                     } else if (name == "spell_hit") {
                         three(p.stats.spellHit);
+                    } else if (name == "attack_speed") {
+                        three(p.stats.attackSpeeds);
+                    } else if (name == "spell_speed") {
+                        three(p.stats.spellSpeeds);
                     } else if (name == "magic_evasion") {
                         p.stats.magicEvasion = lines.toInt(v);
                     } else if (name == "speed") {

@@ -3,7 +3,8 @@
 # GATE window.
 
 object=2241,3926,2538,4177,gate
-object=1040,2537,3340,5037,gate-ground
+# Judge area only: unusable, so a held click on the square still walks.
+object=1040,2537,3340,5037,gate-ground,states=0/0/0
 
 # The warehouse by the merchant's (the original's object 300, which opens
 # the hero's storage), drawn as a long crate.

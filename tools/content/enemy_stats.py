@@ -26,11 +26,11 @@ from first_area import find, original_number, read_mct
 # they differ from what the engine assumes without them.
 SLOTS = [("attacks", (23, 24, 25)), ("hits", (29, 30, 31)), ("spells", (32, 33, 34)),
          ("spell_power", (35, 36, 37)), ("spell_level", (38, 39, 40)), ("spell_hit", (41, 42, 43)),
-         ("stun", (61, 62, 63))]
+         ("stun", (61, 62, 63)), ("attack_speed", (70, 71, 72)), ("spell_speed", (73, 74, 75))]
 SINGLE = [("magic_evasion", 12, 0), ("speed", 77, 1000)]
-SPELL_KEYS = {"spells", "spell_power", "spell_level", "spell_hit"}
+SPELL_KEYS = {"spells", "spell_power", "spell_level", "spell_hit", "spell_speed"}
 DEFAULT_SLOTS = {"spells": [-1, -1, -1], "spell_power": [0, 0, 0], "spell_level": [1, 1, 1],
-                 "spell_hit": [0, 0, 0], "stun": [0, 0, 0]}
+                 "spell_hit": [0, 0, 0], "stun": [0, 0, 0], "attack_speed": [4, 4, 4], "spell_speed": [4, 4, 4]}
 
 
 def stats_line(line, w):
