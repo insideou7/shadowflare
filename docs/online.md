@@ -101,7 +101,17 @@ screenshots of scripted runs with the build before it.
 3. A `World` class in `src/world/` holds one area's state (monsters,
    people, ground items, objects, story flags, scripts) and its ticks
    (monster AI, combat, shots, traps, scripts); `Game` owns one and draws
-   what is in it. It moves over a piece at a time.
+   what is in it. It moves over a piece at a time (done:
+   `src/world/world.h`). The world holds the map, people and monsters,
+   ground items, objects, trigger areas, AI lists, the script and its
+   flags, the visited scenarios, spells, shots, mines, the rules, the
+   random rolls and the events. It runs the people and monsters
+   (`World::tickActors`: AI, chase, scripted actions, cries), the scenario
+   script (`World::runScript`, with `WorldScript` carrying out what scripts
+   ask of the world itself and Game's `GameScript` the rest), objects,
+   trigger areas and effects. What still needs the hero (a monster's blow,
+   spell or shot landing, the hero's own spells and items) asks Game
+   through `WorldHost`; those rules move with the hero in step 4.
 4. The hero's own state (inventory, stats, spells, companion) becomes a
    hero record in the world, so a world can hold several heroes and take
    each one's `HeroInput`, item and talk requests.

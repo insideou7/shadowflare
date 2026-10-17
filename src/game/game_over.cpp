@@ -58,7 +58,7 @@ void Game::fall() {
     mouseHeld_ = false;
     casting_.reset();
     combo_.reset();
-    if (effectModel(kPartingGlow)) spawnEffect(kPartingGlow, player_->x, player_->y).followsPlayer = true;
+    if (world_.effectModel(kPartingGlow)) world_.spawnEffect(kPartingGlow, player_->x, player_->y).followsPlayer = true;
     if (player_->frameCountOf(kDeathChart, kNoDirection) > 0) {
         player_->direction = kNoDirection;
         player_->restart(kDeathChart);
@@ -72,7 +72,7 @@ void Game::tickFall() {
     if (!player_->finished()) return;
     *fallTicks_ += kOriginalTicksPerTick;
     if (*fallTicks_ <= kHoldTicks) return;
-    if (rules_.gameOverWindow) {
+    if (world_.rules.gameOverWindow) {
         gameOverOpen_ = true;
         gameOverChoice_ = 0;
         log::info("Game Over (tick {})", ticks_);
@@ -91,8 +91,8 @@ void Game::wakeInTown() {
     playerMp_ = playerMaxMp();
     player_->direction = 0;
     player_->restart(chart::kIdle);
-    log::info("The player wakes in town (scenario {}, entry {}), {} gold lost", control_.town, control_.townEntry, lost);
-    pendingScenario_.emplace(control_.town, control_.townEntry);
+    log::info("The player wakes in town (scenario {}, entry {}), {} gold lost", world_.control.town, world_.control.townEntry, lost);
+    world_.pendingScenario.emplace(world_.control.town, world_.control.townEntry);
 }
 
 bool Game::heroHasSave() const {

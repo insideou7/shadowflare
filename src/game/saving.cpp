@@ -83,7 +83,7 @@ void Game::adoptOldSave() {
 }
 
 void Game::saveThumbnail(const std::string& path) {
-    if (!map_ || !player_) return;
+    if (!world_.map || !player_) return;
     SDL_Texture* target = SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET,
                                             kScreenWidth, kScreenHeight);
     if (!target) return;
@@ -120,7 +120,7 @@ void Game::saveThumbnail(const std::string& path) {
 }
 
 bool Game::saveGame(bool autosave) {
-    if (!map_ || !player_ || mapNames_.empty()) return false;
+    if (!world_.map || !player_ || mapNames_.empty()) return false;
     if (saveFile_.empty()) {
         const auto slot = freeSlot();
         if (!slot) {
@@ -135,7 +135,7 @@ bool Game::saveGame(bool autosave) {
 
     SaveGame save;
     save.map = mapNames_[mapIndex_];
-    save.scenario = scenarioDir_;
+    save.scenario = world_.scenarioDir;
     save.x = static_cast<int>(player_->x);
     save.y = static_cast<int>(player_->y);
     save.direction = player_->direction;
@@ -157,7 +157,7 @@ bool Game::saveGame(bool autosave) {
     save.store(inventory_);
     if (const auto storage = shops_.find(kStorage); storage != shops_.end()) save.storeStorage(storage->second);
     save.storeGiantStorage(giantStorage_);
-    for (const auto& [key, value] : flags_) {
+    for (const auto& [key, value] : world_.flags) {
         // TEMP and NET flags start again with every scenario.
         if (key.first != ScenarioScript::kTemp && key.first != ScenarioScript::kNet && key.first >= 0) save.flags[key] = value;
     }
@@ -179,13 +179,13 @@ bool Game::saveGame(bool autosave) {
 
 bool Game::inTown() const {
     const int here = scenarioNumber();
-    return here >= 0 && here == control_.town;
+    return here >= 0 && here == world_.control.town;
 }
 
 void Game::autosaveIfInTown() {
-    if (!rules_.autosaveInTown || !settings_.autosave || !autosaveAllowed_ || !inTown()) return;
+    if (!world_.rules.autosaveInTown || !settings_.autosave || !autosaveAllowed_ || !inTown()) return;
     if (fallTicks_ || !player_) return;
-    log::info("Autosave on coming into {} \"{}\"", scenarioDir_, control_.title);
+    log::info("Autosave on coming into {} \"{}\"", world_.scenarioDir, world_.control.title);
     saveGame(true);
 }
 
@@ -257,7 +257,7 @@ bool Game::loadGameFrom(const std::string& path) {
     forgetVisitedScenarios();
     hand_.reset();
     specialOpen_ = false;
-    flags_ = save.flags;
+    world_.flags = save.flags;
     explored_ = save.explored;
     // Saves from before companions: Kerberos at level 1, at rest.
     partnerRecord_ = save.partner.value_or(PartnerRecord{});
@@ -265,7 +265,7 @@ bool Game::loadGameFrom(const std::string& path) {
     partnerHpCarried_ = save.partnerHp;
     setHero(save.sex, save.name);
     loadMap(index, save.scenario);
-    if (!map_ || !player_) return false;
+    if (!world_.map || !player_) return false;
     player_->x = save.x;
     player_->y = save.y;
     player_->direction = save.direction;

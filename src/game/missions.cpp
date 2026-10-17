@@ -107,8 +107,8 @@ void Game::loadMissions() {
 }
 
 int Game::missionState(int mission) const {
-    const auto it = flags_.find({ScenarioScript::kQuest, mission});
-    return it == flags_.end() ? 0 : it->second;
+    const auto it = world_.flags.find({ScenarioScript::kQuest, mission});
+    return it == world_.flags.end() ? 0 : it->second;
 }
 
 bool Game::anyMissionTaken() const {

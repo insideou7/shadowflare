@@ -21,41 +21,21 @@ constexpr int kPartnerHitChart = 3;  // the companion's hit chart (partner.cpp)
 
 // Where a character stands: 0-3 are the players (the hero is 0 in single
 // play), anything else a scenario id.
-std::optional<std::pair<double, double>> Game::characterAt(std::int32_t id) const {
-    if (id >= 0 && id < 4) {
-        if (id == 0 && player_) return std::pair(player_->x, player_->y);
-        return std::nullopt;
-    }
-    return positionOf(id);
-}
-
 // The frames of an effect's first chart in one direction (0x42b860 and
 // 0x42a300 ask GetMaxFrameCount for the direction it faces).
-int Game::directionFrames(int option, int direction) {
-    const CharacterModel* model = effectModel(option);
-    if (!model || model->animations.charts.empty()) return effectLength(option);
-    const auto& dirs = model->animations.charts[0].directions;
-    for (int d : {direction, 8, 0}) {
-        if (d >= 0 && static_cast<std::size_t>(d) < dirs.size() && dirs[static_cast<std::size_t>(d)].frameCount > 0) {
-            return dirs[static_cast<std::size_t>(d)].frameCount;
-        }
-    }
-    return effectLength(option);
-}
-
 void Game::fireTrap(const ScriptHost::TrapFire& f) {
     const auto shot = trapShot(f.kind, f.direction, f.angle);
     if (!shot) {
         log::warn("CREATEOPTIONANGLE kind {} is not carried out", f.kind);
         return;
     }
-    Effect& e = spawnEffect(shot->option, f.x, f.y);
+    Effect& e = world_.spawnEffect(shot->option, f.x, f.y);
     e.facing = shot->direction;
     e.height = f.height;
     // The engine's angles have world y down.
     e.angle = -f.angle;
     e.speed = f.speed;
-    e.life = shot->lastsItsAnimation ? directionFrames(shot->option, shot->direction) : -1;
+    e.life = shot->lastsItsAnimation ? world_.directionFrames(shot->option, shot->direction) : -1;
     e.trap = Effect::Trap{*shot, f.kind, f.power, f.fixedDamage, f.stun};
     // Kind 0 is the plain arrow: its flame and frost layers are turned off
     // once it is made (0x42a300), as for a bowgun's.
@@ -97,8 +77,8 @@ void Game::stepTrap(Effect& e) {
     if (e.life >= 0 && e.age >= e.life) e.dead = true;
     // Ours: a monster's shot that misses is gone once it leaves the map's
     // judge grid (the original would fly it on into nothing).
-    if (e.trap->thrower >= 0 && map_) {
-        const auto& g = map_->ground();
+    if (e.trap->thrower >= 0 && world_.map) {
+        const auto& g = world_.map->ground();
         const double left = (g.judgeX - 1) * g.magX, top = (g.judgeY - 1) * g.magY;
         const double right = (g.judgeX + g.judgeWidth + 1) * g.magX, bottom = (g.judgeY + g.judgeHeight + 1) * g.magY;
         if (e.x < left || e.x > right || e.y < top || e.y > bottom) e.dead = true;
@@ -123,7 +103,7 @@ void Game::throwShot(Actor& enemy, int slot) {
     }
     const double x = enemy.character.x + std::trunc(std::cos(up) * st.shotStart);
     const double y = enemy.character.y - std::trunc(std::sin(up) * st.shotStart);
-    Effect& e = spawnEffect(shot->option, x, y);
+    Effect& e = world_.spawnEffect(shot->option, x, y);
     e.facing = shot->direction;
     e.height = st.shotHeight;
     e.angle = enemy.aim;
@@ -134,7 +114,7 @@ void Game::throwShot(Actor& enemy, int slot) {
     t.shot = *shot;
     t.kind = st.shotKind;
     t.power = st.attacks[k];
-    t.thrower = static_cast<int>(&enemy - actors_.data());
+    t.thrower = static_cast<int>(&enemy - world_.actors.data());
     t.hit = st.hits[k];
     t.element = st.element;
     e.trap = t;
@@ -146,22 +126,22 @@ void Game::throwShot(Actor& enemy, int slot) {
 // spark and sound where it lands, and a fire or ice arrow's effect.
 void Game::shotHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) {
-        showMiss(player_->x, player_->y);
+    if (world_.random.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) {
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
     int defense = stats[HeroStats::kDefense];
     if (power_.active()) defense = defense * 12 / 10;
     if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
-    if (const int option = scriptEffectOption(monsterShotSpark(e.trap->kind, random_.next(4))); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+    if (const int option = scriptEffectOption(monsterShotSpark(e.trap->kind, world_.random.next(4))); option > 0) {
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     if (const int option = scriptEffectOption(monsterShotEffect(e.trap->kind)); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
-    Actor* thrower = static_cast<std::size_t>(e.trap->thrower) < actors_.size() ? &actors_[static_cast<std::size_t>(e.trap->thrower)] : nullptr;
-    const int damage = damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, random_.next(3));
+    Actor* thrower = static_cast<std::size_t>(e.trap->thrower) < world_.actors.size() ? &world_.actors[static_cast<std::size_t>(e.trap->thrower)] : nullptr;
+    const int damage = damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, world_.random.next(3));
     hurtPlayer(damage, false, thrower);
     // An ice arrow (kind 5) freezes the hero it stuns and a stone shot
     // (kind 7) turns them to stone (hit word 3 set to 1 or 2, 0x45a2f0):
@@ -174,7 +154,7 @@ void Game::shotHitsPlayer(const Effect& e) {
     const auto* t = tables_.find(25);
     if (!t || t->rows <= row || t->cols < 2) return;
     const auto ticks = stunTicks(t->value(row, 0), t->value(row, 1), false, inventory_.guardModifier(ItemDef::kModStunChance),
-                                 inventory_.guardModifier(ItemDef::kModStunLength), random_.next(100));
+                                 inventory_.guardModifier(ItemDef::kModStunLength), world_.random.next(100));
     if (!ticks) return;
     Stun stun;
     stun.total = *ticks;
@@ -194,12 +174,12 @@ void Game::shotHitsPlayer(const Effect& e) {
 // The same shot on an ACTIVE companion, as strikePartner's blow.
 void Game::shotHitsPartner(const Effect& e) {
     const PartnerStats& st = partner_->stats;
-    if (random_.next(100) >= hitChance(e.trap->hit, st.evasion)) {
-        showMiss(partner_->character.x, partner_->character.y);
+    if (world_.random.next(100) >= hitChance(e.trap->hit, st.evasion)) {
+        world_.showMiss(partner_->character.x, partner_->character.y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
-    hurtPartner(spellDamage(e.trap->power, e.trap->element, st.element, st.defense, random_.next(3), random_.next(4)));
+    hurtPartner(spellDamage(e.trap->power, e.trap->element, st.element, st.defense, world_.random.next(3), world_.random.next(4)));
 }
 
 // A trap's blow on the hero (0x443cb0 by way of 0x45e1e0): it must beat
@@ -208,8 +188,8 @@ void Game::shotHitsPartner(const Effect& e) {
 // stay on the hero, and the blow may stun them.
 void Game::trapHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
-    if (random_.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) {
-        showMiss(player_->x, player_->y);
+    if (world_.random.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) {
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
@@ -217,11 +197,11 @@ void Game::trapHitsPlayer(const Effect& e) {
     if (!e.trap->fixedDamage) {
         int defense = stats[HeroStats::kDefense];
         if (power_.active()) defense = defense * 12 / 10;
-        damage = damageToHero(magic_, e.trap->power, -1, playerElements(), defense, random_.next(3));
+        damage = damageToHero(magic_, e.trap->power, -1, playerElements(), defense, world_.random.next(3));
     }
     damage = std::max(1, damage);
-    if (const int option = trapHitOption(e.trap->kind, random_.next(4)); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+    if (const int option = trapHitOption(e.trap->kind, world_.random.next(4)); option > 0) {
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     hurtPlayer(damage, false, nullptr, false);
     if (playerHp_ <= 0 || !player_) return;
@@ -255,12 +235,12 @@ void Game::stunHero(const Stun& stun) {
 void Game::trapHitsPartner(const Effect& e) {
     Partner& p = *partner_;
     const PartnerStats& st = p.stats;
-    if (random_.next(100) >= hitChance(kTrapHit, st.evasion)) {
-        showMiss(p.character.x, p.character.y);
+    if (world_.random.next(100) >= hitChance(kTrapHit, st.evasion)) {
+        world_.showMiss(p.character.x, p.character.y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
-    const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, random_.next(3)));
+    const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, world_.random.next(3)));
     hurtPartner(damage);
     if (!partnerAlive() || invincibleCompanion()) return;
     if (const auto stun = trapStun(e, p.character.x, p.character.y, 0, 0, false, damage, st.maxHp)) {
@@ -288,7 +268,7 @@ std::optional<Game::Stun> Game::trapStun(const Effect& e, double x, double y, in
         if (chance == -1) chance = has ? t->value(row, 0) : 0;
         if (length == -1) length = has ? t->value(row, 1) : 0;
     }
-    const auto ticks = stunTicks(chance, length, s.steady, chanceResist, lengthResist, random_.next(100));
+    const auto ticks = stunTicks(chance, length, s.steady, chanceResist, lengthResist, world_.random.next(100));
     if (!ticks) return std::nullopt;
     Stun stun;
     stun.total = *ticks;
@@ -313,12 +293,12 @@ bool Game::tickStun(Character& who, Stun& stun) {
 // Hit word 0x48: one hit in five splashes 11000024 or 11000025 on the one
 // hit, facing a random direction (0x443cb0, 0x45f9f0).
 void Game::trapSplash(const Effect& e, double x, double y, bool onHero) {
-    if (!e.trap->stun.splash || random_.next(100) >= 20) return;
-    const int option = 11000024 + random_.next(2);
-    Effect& splash = spawnEffect(option, x, y);
-    splash.facing = random_.next(8);
+    if (!e.trap->stun.splash || world_.random.next(100) >= 20) return;
+    const int option = 11000024 + world_.random.next(2);
+    Effect& splash = world_.spawnEffect(option, x, y);
+    splash.facing = world_.random.next(8);
     splash.followsPlayer = onHero;
-    splash.life = directionFrames(option, splash.facing);
+    splash.life = world_.directionFrames(option, splash.facing);
 }
 
 // CREATEEFFECT and CREATEEFFECTCHAR (0x42b860): the effect plays once
@@ -329,30 +309,11 @@ void Game::createScriptEffect(int number, double x, double y, int height, int di
         log::warn("Script effect {} is not carried out", number);
         return;
     }
-    Effect& e = spawnEffect(option, x, y);
+    Effect& e = world_.spawnEffect(option, x, y);
     e.facing = direction;
     e.height = height;
     e.follows = follows;
-    e.life = directionFrames(option, direction);
-}
-
-// RESSURECT (0x45a140): a dead enemy is back where the script says, at
-// full health, facing `direction`, and counts as alive again.
-void Game::resurrect(std::int32_t enemy, int x, int y, int direction) {
-    Actor* a = actorById(enemy);
-    if (!a || !a->hostile() || a->alive()) return;
-    a->hp = a->maxHp;
-    a->state = Actor::State::Idle;
-    a->action = -1;
-    a->actionTicks = 0;
-    a->event = AiControl::kDecide;
-    a->stunTicks = 0;
-    a->struck = false;
-    a->character.x = x;
-    a->character.y = y;
-    if (direction >= 0 && direction < 8) a->character.direction = direction;
-    a->character.restart(chart::kIdle);
-    log::info("Monster {} is back", enemy);
+    e.life = world_.directionFrames(option, direction);
 }
 
 // SETTINGRAIN r g b count (0x41fe20): `count` new drops, each a short
@@ -361,12 +322,12 @@ void Game::resurrect(std::int32_t enemy, int x, int y, int direction) {
 void Game::addRain(int r, int g, int b, int count) {
     for (int i = 0; i < count; ++i) {
         RainDrop d;
-        d.x = random_.next(1000) - 180;
+        d.x = world_.random.next(1000) - 180;
         d.y = -30;
-        d.speed = random_.next(1000) + 2000;
-        d.length = random_.next(10) + 5;
-        d.brightness = random_.next(700) + 300;
-        d.angle = 4.712388000000001 - 3.141592 / (random_.next(10) + 10);
+        d.speed = world_.random.next(1000) + 2000;
+        d.length = world_.random.next(10) + 5;
+        d.brightness = world_.random.next(700) + 300;
+        d.angle = 4.712388000000001 - 3.141592 / (world_.random.next(10) + 10);
         d.r = static_cast<Uint8>(r);
         d.g = static_cast<Uint8>(g);
         d.b = static_cast<Uint8>(b);

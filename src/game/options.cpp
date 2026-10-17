@@ -73,9 +73,9 @@ bool Game::optionEnabled(OptionRow row) const {
         // Not in the engine yet.
         case OptionRow::SaveImage: return false;
         case OptionRow::MissionList:
-        case OptionRow::Map: return map_ && player_;
+        case OptionRow::Map: return world_.map && player_;
         case OptionRow::SaveAndTitle:
-        case OptionRow::SaveAndExit: return map_ && player_;
+        case OptionRow::SaveAndExit: return world_.map && player_;
         case OptionRow::ClickSize: return settings_.clickRange;
         // Ours, so original mode turns it off.
         case OptionRow::Autosave: return !originalMode();
@@ -87,21 +87,21 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::InvincibleCompanion: return !originalMode();
         // Only in a game, and dimmed once every gate is found.
         case OptionRow::UnlockGates: {
-            if (originalMode() || !map_ || !player_) return false;
+            if (originalMode() || !world_.map || !player_) return false;
             const auto named = std::count_if(warpGates_.list.begin(), warpGates_.list.end(),
                                              [](const WarpGates::Gate& g) { return !g.name.empty(); });
             return static_cast<std::size_t>(named) > warpGatesFound().size();
         }
         // Only in a game, and dimmed once every page is open.
         case OptionRow::UnlockStorage: {
-            if (originalMode() || !map_ || !player_) return false;
+            if (originalMode() || !world_.map || !player_) return false;
             for (int page = 0; page < kGiantStoragePages; ++page)
                 if (!giantPageOpen(page)) return true;
             return false;
         }
         // Only in a game, and dimmed once the hero knows them all.
         case OptionRow::UnlockMagic:
-            return !originalMode() && map_ && player_ && !spells_.unlearned(magic_, career_.history, career_.current).empty();
+            return !originalMode() && world_.map && player_ && !spells_.unlearned(magic_, career_.history, career_.current).empty();
         default: return true;
     }
 }
@@ -718,7 +718,7 @@ void Game::renderHelp() {
     int y = panel.y + 34;
     for (const auto& k : kKeys) {
         // Original mode has no item names (Rules::groundItemNames).
-        const bool works = k.works && (k.key != std::string_view("ALT / L") || rules_.groundItemNames);
+        const bool works = k.works && (k.key != std::string_view("ALT / L") || world_.rules.groundItemNames);
         uiText(panel.x + 20, y, k.key, works ? kTitle : kDimmed);
         uiText(panel.x + 140, y, k.what, works ? kLabel : kDimmed);
         y += 14;

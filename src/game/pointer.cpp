@@ -123,11 +123,11 @@ void Game::followPointerTarget() {
         }
     };
     if (pointerOnKind_ == Settings::kItem) {
-        for (const auto& g : groundItems_) consider(g.x, g.y, 8);
+        for (const auto& g : world_.groundItems) consider(g.x, g.y, 8);
     } else if (pointerOnKind_ == Settings::kObject) {
         // The middle of each usable object, where a click would go.
-        for (std::size_t i = 0; i < control_.placements.size(); ++i) {
-            const auto& p = control_.placements[i];
+        for (std::size_t i = 0; i < world_.control.placements.size(); ++i) {
+            const auto& p = world_.control.placements[i];
             if (p.group != ScenarioControl::Group::Object) continue;
             const double x = p.x + (p.rect[0] + p.rect[2]) / 2.0, y = p.y + (p.rect[1] + p.rect[3]) / 2.0;
             int sx, sy;
@@ -136,7 +136,7 @@ void Game::followPointerTarget() {
             if (usableObjectAt(px, py) == i) consider(x, y, 0);
         }
     } else {
-        for (const auto& a : actors_) {
+        for (const auto& a : world_.actors) {
             const bool want = pointerOnKind_ == Settings::kEnemy ? a.hostile() && a.alive() : !a.hostile();
             if (want && a.active) consider(a.character.x, a.character.y, 40);
         }
@@ -169,8 +169,8 @@ void Game::updateHover() {
     hover_ = clickTarget(p->x, p->y, ~0u);
 }
 
-const Game::Actor* Game::hoveredActor() const {
-    if ((hover_.kind == Settings::kEnemy || hover_.kind == Settings::kPerson) && hover_.index < actors_.size()) return &actors_[hover_.index];
+const Actor* Game::hoveredActor() const {
+    if ((hover_.kind == Settings::kEnemy || hover_.kind == Settings::kPerson) && hover_.index < world_.actors.size()) return &world_.actors[hover_.index];
     return nullptr;
 }
 
@@ -207,7 +207,7 @@ void Game::renderHoverName() {
     switch (hover_.kind) {
         case Settings::kEnemy:
         case Settings::kPerson: {
-            const Actor& a = actors_[hover_.index];
+            const Actor& a = world_.actors[hover_.index];
             // The open pack's people are named for its scripts, not shown.
             if (!a.hostile() && openPack) return;
             name = toFontText(a.placement.name);
@@ -220,7 +220,7 @@ void Game::renderHoverName() {
         }
         case Settings::kObject: {
             if (openPack) return;
-            const auto& p = control_.placements[hover_.index];
+            const auto& p = world_.control.placements[hover_.index];
             name = toFontText(p.name);
             color = rgb(p.nameColor);
             height = p.nameHeight;
@@ -231,7 +231,7 @@ void Game::renderHoverName() {
         case Settings::kItem: {
             // With every item named, its own name is already there.
             if (itemNamesShown()) return;
-            const GroundItem& g = groundItems_[hover_.index];
+            const GroundItem& g = world_.groundItems[hover_.index];
             const ItemDef& def = *g.item.def;
             name = def.isGold() ? std::format("{} Gold", g.item.count) : toFontText(g.item.shownName());
             color = qualityColor(def.quality);
@@ -293,7 +293,7 @@ void Game::renderHoverName() {
 
 // Ours (Rules::groundItemNames): Alt held, or L to keep them on.
 bool Game::itemNamesShown() const {
-    if (!rules_.groundItemNames || !map_ || groundItems_.empty()) return false;
+    if (!world_.rules.groundItemNames || !world_.map || world_.groundItems.empty()) return false;
     return forceItemNames_ || settings_.itemNames || (SDL_GetModState() & KMOD_ALT) != 0;
 }
 
@@ -309,9 +309,9 @@ std::vector<Game::ItemLabel> Game::itemLabels() const {
         float x, y;
     };
     std::vector<Anchor> anchors;
-    for (std::size_t i = 0; i < groundItems_.size(); ++i) {
+    for (std::size_t i = 0; i < world_.groundItems.size(); ++i) {
         int sx, sy;
-        worldToScreen(static_cast<int>(groundItems_[i].x), static_cast<int>(groundItems_[i].y), sx, sy);
+        worldToScreen(static_cast<int>(world_.groundItems[i].x), static_cast<int>(world_.groundItems[i].y), sx, sy);
         const SDL_FPoint at = onScreen(sx, sy);
         if (at.x < -64 || at.x > kScreenWidth + 64 || at.y < 0 || at.y > kPanelTop + kLabelLift) continue;
         anchors.push_back({i, at.x, at.y});
@@ -319,7 +319,7 @@ std::vector<Game::ItemLabel> Game::itemLabels() const {
     std::ranges::stable_sort(anchors, [](const Anchor& a, const Anchor& b) { return a.y > b.y; });
     std::vector<LabelBox> boxes;
     for (const Anchor& a : anchors) {
-        const GroundItem& g = groundItems_[a.item];
+        const GroundItem& g = world_.groundItems[a.item];
         const ItemDef& def = *g.item.def;
         std::string name = def.isGold() ? std::format("{} Gold", g.item.count) : toFontText(g.item.shownName());
         trim(name);

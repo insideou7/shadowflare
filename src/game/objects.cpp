@@ -31,10 +31,10 @@ Uint8 perMille(int value) { return static_cast<Uint8>(std::clamp(value, 0, 1000)
 }  // namespace
 
 void Game::spawnObjects() {
-    sceneObjects_.clear();
-    unlockSwitch_ = false;
-    for (std::size_t i = 0; i < control_.placements.size(); ++i) {
-        const auto& p = control_.placements[i];
+    world_.sceneObjects.clear();
+    world_.unlockSwitch = false;
+    for (std::size_t i = 0; i < world_.control.placements.size(); ++i) {
+        const auto& p = world_.control.placements[i];
         if (p.group != ScenarioControl::Group::Object) continue;
         SceneObject o;
         o.placement = i;
@@ -46,7 +46,7 @@ void Game::spawnObjects() {
                     o.body = props;
                     o.prop = static_cast<int>(found - props->names.begin());
                 } else {
-                    log::warn("{}: no prop called {} in Map/props.sheet", scenarioDir_, p.look.prop);
+                    log::warn("{}: no prop called {} in Map/props.sheet", world_.scenarioDir, p.look.prop);
                 }
             }
         } else if (p.kind >= 0 && p.look.pattern >= 0) {
@@ -74,62 +74,12 @@ void Game::spawnObjects() {
                 o.animation->restart(p.look.chart);
             }
         }
-        sceneObjects_.push_back(std::move(o));
+        world_.sceneObjects.push_back(std::move(o));
     }
-}
-
-// Pictures change with the states alone; only charts move, and only while
-// the object is shown (0x45ddd0 counts its frame there).
-void Game::tickObjects() {
-    for (auto& o : sceneObjects_) {
-        if (o.animation && objectState(o, kShown)) o.animation->tick();
-    }
-    if (unlockSwitch_) unlockTicks_ += 1.5;
-}
-
-bool Game::objectState(const SceneObject& o, ObjectState which) const {
-    if (o.fixed) return (*o.fixed)[which] != 0;
-    const auto& p = placementOf(o);
-    const auto found = flags_.find({ScenarioScript::kNet, kStateFlagBases[which] + ScenarioControl::idBase(p.group) + p.id});
-    // A missing flag reads as -1, which counts as set (0x4541c0).
-    return found == flags_.end() || found->second != 0;
-}
-
-const Game::SceneObject* Game::sceneObject(std::int32_t id) const {
-    for (const auto& o : sceneObjects_) {
-        const auto& p = placementOf(o);
-        if (ScenarioControl::idBase(p.group) + p.id == id) return &o;
-    }
-    return nullptr;
-}
-
-Game::SceneObject* Game::sceneObject(std::int32_t id) { return const_cast<SceneObject*>(std::as_const(*this).sceneObject(id)); }
-
-bool Game::objectInTheWay(double fromX, double fromY, double toX, double toY) const {
-    for (const auto& o : sceneObjects_) {
-        const auto& p = placementOf(o);
-        if (p.rect[0] == p.rect[2] || p.rect[1] == p.rect[3]) continue;
-        if (!objectState(o, kBlocks)) continue;
-        if (inside(p, toX, toY) && !inside(p, fromX, fromY)) return true;
-    }
-    return false;
-}
-
-bool Game::boxMeetsObject(double x, double y, const JudgeRect& box) const {
-    for (const auto& o : sceneObjects_) {
-        const auto& p = placementOf(o);
-        if (p.rect[0] == p.rect[2] || p.rect[1] == p.rect[3]) continue;
-        if (!objectState(o, kBlocks)) continue;
-        if (x + box.left <= p.x + p.rect[2] && p.x + p.rect[0] <= x + box.right && y + box.top <= p.y + p.rect[3] &&
-            p.y + p.rect[1] <= y + box.bottom) {
-            return true;
-        }
-    }
-    return false;
 }
 
 MapObject Game::objectFootprint(const SceneObject& o) const {
-    const auto& p = placementOf(o);
+    const auto& p = world_.placementOf(o);
     MapObject m;
     m.x = p.x;
     m.y = p.y;
@@ -138,12 +88,12 @@ MapObject Game::objectFootprint(const SceneObject& o) const {
 }
 
 void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha) {
-    const auto& p = placementOf(o);
-    if (!p.look.drawn() || !objectState(o, kShown)) return;
+    const auto& p = world_.placementOf(o);
+    if (!p.look.drawn() || !world_.objectState(o, World::kShown)) return;
     // The one under the pointer is drawn brighter (0x40ee70); a chart's
     // brightness is set with the characters'.
     const int glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
-    const SDL_Color* outline = glow > 0 && rules_.outlineUnderPointer ? &kHoverOutline : nullptr;
+    const SDL_Color* outline = glow > 0 && world_.rules.outlineUnderPointer ? &kHoverOutline : nullptr;
     if (o.animation) {
         if (!shadows) drawCharacter(renderer_, sprites_, *o.animation, camX, camY, shadowAlpha, std::max(1, int{perMille(p.look.opacity)}));
         return;
@@ -194,7 +144,7 @@ void Game::drawOutline(const SpriteBank& bank, int pattern, int x, int y, SDL_Co
 }
 
 SDL_Rect Game::sceneObjectPicture(const SceneObject& o) {
-    const auto& p = placementOf(o);
+    const auto& p = world_.placementOf(o);
     if (o.animation) return characterBounds(sprites_, *o.animation);
     if (!o.body) return {};
     const int pattern = o.prop >= 0 ? o.prop : p.look.pattern;
@@ -216,9 +166,9 @@ bool Game::workingObject(std::int32_t id) const {
     // script stops the hold from walking, but the button is still down.
     const bool down = pressed_ || (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON_LMASK) != 0;
     if (!player_ || (!down && heldObject_ != id)) return false;
-    const auto* o = sceneObject(id);
-    if (!o || !objectState(*o, kShown) || !objectState(*o, kUsable)) return false;
-    const auto& p = placementOf(*o);
+    const auto* o = world_.sceneObject(id);
+    if (!o || !world_.objectState(*o, World::kShown) || !world_.objectState(*o, World::kUsable)) return false;
+    const auto& p = world_.placementOf(*o);
     if (heldObject_ != id) {
         const auto at = pointerPosition();
         if (!at) return false;

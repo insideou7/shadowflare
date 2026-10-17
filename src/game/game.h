@@ -46,6 +46,7 @@
 #include "formats/scenario_script.h"
 #include "formats/warp_gates.h"
 #include "world/map.h"
+#include "world/world.h"
 #include "world/world_events.h"
 #include "render/sprite_cache.h"
 
@@ -84,16 +85,7 @@ using TexturePtr = std::unique_ptr<SDL_Texture, TextureFree>;
 inline constexpr int kScreenWidth = 640;
 inline constexpr int kScreenHeight = 480;
 
-// Simulation runs at a fixed rate, separate from rendering, so game logic
-// can later be matched tick-for-tick against the original executable.
-inline constexpr int kTicksPerSecond = 20;
-// The original runs 30 ticks a second, so each engine tick is 1.5 of them.
-inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
-static_assert(Character::kFramesPerTick == kOriginalTicksPerTick);
-
-// Frames a tick of a monster's attack or spell chart at its speed step
-// (ScenarioControl's attackSpeeds and spellSpeeds).
-double monsterChartSpeed(int step);
+// kTicksPerSecond and kOriginalTicksPerTick are in world/world.h.
 
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
@@ -115,7 +107,7 @@ inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBe
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
-class Game {
+class Game : private WorldHost {
 public:
     // Loads a skin: the original's maps and characters drawn with an open
     // content pack's art where it has some. Called the first time our art
@@ -195,8 +187,8 @@ public:
 
     // Original mode plays by the original game's rules, bugs included
     // (logic/rules.h). Off by default.
-    void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
-    bool originalMode() const { return rules_.originalMode(); }
+    void setOriginalMode(bool on) { world_.rules = on ? Rules::original() : Rules::ours(); }
+    bool originalMode() const { return world_.rules.originalMode(); }
     // The Debug tab's experience rate in percent; 100 in original mode.
     int xpRate() const { return originalMode() ? Settings::kXpRateNormal : settings_.xpRate; }
     // The Debug tab's luck in percent (unique drops); 100 in
@@ -297,14 +289,14 @@ public:
         pressed_ = true;
         mouseHeld_ = true;
     }
-    void setSaveFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kSave, id}] = value; }
+    void setSaveFlag(std::int32_t id, std::int32_t value) { world_.flags[{ScenarioScript::kSave, id}] = value; }
     // Sets a mission's QUEST flag (1 taken, 2 cleared), for testing.
-    void setQuestFlag(std::int32_t id, std::int32_t value) { flags_[{ScenarioScript::kQuest, id}] = value; }
+    void setQuestFlag(std::int32_t id, std::int32_t value) { world_.flags[{ScenarioScript::kQuest, id}] = value; }
     // Opens the mission list (Q), with one mission's description showing
     // when `shown` is not -1 (for testing).
     void openMissions(int shown = -1);
     // Marks warp gate `gate` found (its WARP flag), for testing.
-    void setWarpFlag(std::int32_t gate, std::int32_t value) { flags_[{ScenarioScript::kWarp, gate}] = value; }
+    void setWarpFlag(std::int32_t gate, std::int32_t value) { world_.flags[{ScenarioScript::kWarp, gate}] = value; }
     int warpGateCount() const { return warpGates_.count(); }
     // The Debug tab's UNLOCK ALL GATES: marks every named gate found.
     // Returns how many were not found before.
@@ -352,51 +344,13 @@ public:
     bool loadDataOpen() const { return loadData_.has_value(); }
 
 private:
-    // People and monsters placed by the map's scenario file.
-    struct Actor {
-        enum class State { Idle, Chase, Attack, Hit, Dead };
-        Actor(ScenarioControl::Placement p, Character c) : placement(std::move(p)), character(std::move(c)) {}
-        ScenarioControl::Placement placement;
-        Character character;
-        State state = State::Idle;
-        int hp = 0, maxHp = 0;
-        // A stun holds it in its hit pose this many of the original's ticks;
-        // Freeze and Stone are what the spell's stun does besides.
-        double stunTicks = 0;
-        StunKind stunKind = StunKind::Plain;
-        bool stoned() const { return stunTicks > 0 && stunKind == StunKind::Stone; }
+    // What the world asks of the hero's side (world/world.h).
+    const Character* hero() const override { return player_ ? &*player_ : nullptr; }
+    void monsterStrikes(Actor& monster, int slot) override { strikePlayer(monster, slot); }
+    void monsterCasts(Actor& monster, int slot) override { castMonsterSpell(monster, slot); }
+    void monsterThrows(Actor& monster, int slot) override { throwShot(monster, slot); }
+    bool heroAlive() const override { return playerHp_ > 0; }
 
-        // Control.aid state; aiList -1 = no list, use the simple chase.
-        int aiList = -1;
-        int action = -1;
-        double actionTicks = 0;  // the original's ticks since the action began
-        int event = AiControl::kDecide;
-        AiControl::Entry entry;
-        bool struck = false;  // the current attack has landed
-        double aim = 0;       // where its spell goes, radians in world space (monster + 0x260)
-        double wanderX = 0, wanderY = 0;
-        double wanderPause = 0;
-        bool active = true;   // SETINACTIVE hides a character
-        bool stopped = false;  // C_STOP holds it still while it talks
-        // A person's C_ACTIONREQ action: the chart it plays, and the frames
-        // it repeats when it loops (0x45d850).
-        struct ScriptedAction {
-            int chart = 0;
-            bool loop = false;
-            int from = -1, to = -1;
-        };
-        std::optional<ScriptedAction> scripted;
-        std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
-        bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
-        bool alive() const { return state != State::Dead; }
-    };
-    // An area whose script runs when the player walks into it, such as an
-    // exit to the next map.
-    struct TriggerArea {
-        double left, top, right, bottom;  // world units
-        std::int32_t sentence;
-        bool inside = false;  // only entering fires it
-    };
     // Talking, shops and the rest of the scenario script (talk.cpp).
     friend class GameScript;
     struct Dialogue {
@@ -434,11 +388,8 @@ private:
     };
     void showLabel(const ScriptHost::Label& label);
     void renderLabels();
-    // Where a character or a map object is, in world units.
-    std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
-    const ScenarioControl::Placement* placementById(std::int32_t id) const;
     // A map object with a talk script (the warehouse) under the mouse,
-    // as an index into control_.placements.
+    // as an index into world_.control.placements.
     std::optional<std::size_t> objectAt(float screenX, float screenY) const;
     // Any shown, usable map object under the mouse, talk script or not
     // (a CCHECK switch has none).
@@ -473,14 +424,12 @@ private:
     // always, the others once a script sets EXSTRG n.
     bool giantPageOpen(int page) const;
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
-    Actor* actorById(std::int32_t id);
-    const Actor* actorById(std::int32_t id) const;
     void talkTo(Actor& person);
 
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
     void loadMapLayers(std::size_t index);
     void loadScenario(const std::string& dir);
-    // Puts the scenario being left in visited_, unless the game is being
+    // Puts the scenario being left in world_.visited, unless the game is being
     // started or loaded (forgetVisitedScenarios).
     void keepScenario();
     void forgetVisitedScenarios();
@@ -523,12 +472,6 @@ private:
     HeroInput sampleHeroInput() const;
     void tickPlayer(const HeroInput& in);
     void swing();
-    void tickEnemy(Actor& enemy);
-    // Monster behaviour from Control.aid (enemy_ai.cpp).
-    void tickEnemyAi(Actor& enemy);
-    bool chooseAiAction(Actor& enemy, int event);
-    void runAiAction(Actor& enemy);
-    double gapToPlayer(const Actor& enemy) const;
     // A blow from the player or from a monster: it may miss, otherwise it
     // does the original's damage.
     void strikeEnemy(Actor& enemy);
@@ -556,12 +499,6 @@ private:
     void renderPlaceholder(double interpolation);
 
     // Items, the inventory panel and loot (items.cpp).
-    struct GroundItem {
-        Item item;
-        double x = 0, y = 0;  // world units
-        std::optional<Character> sprite;  // when its picture is an animation chart
-        bool waitForLeave = false;  // not picked up until the player steps away
-    };
     void loadItems();
     void giveStartingKit();
     void spawnGroundItems();
@@ -663,129 +600,12 @@ private:
     void changeCareer();
     void renderHud();
 
-    // Spells (spells.cpp).
-    //
-    // An effect is one of the original's OPTION animations
-    // (Character/OPTION/<id>/Animation) playing in the world: a glow, a
-    // missile or a burst. Those that hurt carry the spell's power. Times
-    // are the original's ticks, 30 a second; tickSpells runs 1.5 of them
-    // per engine tick.
-    struct Effect {
-        int id = 0;
-        int option = -1, chart = 0;  // Character/OPTION folder, -1 for none
-        double x = 0, y = 0;
-        int age = 0, life = 0;  // life -1: until it hits something or a wall
-        double speed = 0, angle = 0;  // world units a tick; radians, in world space
-        double turn = 0;              // homing: how far it may turn a tick, 0 = flies straight
-        int animSpeed = 1000;         // animation frames per 1000 ticks
-        bool directional = false;     // drawn facing its angle
-        bool followsPlayer = false;
-        int followsActor = -1;  // an index into actors_ (a freeze's ice)
-        bool followsPartner = false;
-        bool homesOnPlayer = false;  // turns towards the hero and ends on reaching them
-        int then = -1;          // played where it stands when its life runs out
-        // Hurting: spell < 0 for effects that only show.
-        int spell = -1, level = 1, power = 0, hit = 0;
-        JudgeRect judge;           // where it hurts, around (x, y)
-        bool area = false;         // hurts everyone in its box (each once), else the first
-        bool diesOnHit = false;
-        bool diesOnWall = false;
-        int hitOption = -1;        // played on whoever it hurts
-        // The Voice00.Voc sound where it is when a hit lands (struct words
-        // 0x76 and 0x77), at most once a tick; -1 for none.
-        int hitSound = -1;
-        double travelled = 0;
-        std::vector<std::size_t> struck;  // actors already hurt
-        bool pierces = false;  // a missile that flies on through what it hits (table 21)
-        // A monster's spell (the index of its caster in actors_), which
-        // hurts the hero and an ACTIVE companion instead of monsters;
-        // -1 for the hero's own. `targetOnly`: the hero alone, and walls
-        // do not stop it (Dread Deathscythe's blades).
-        int caster = -1;
-        bool targetOnly = false;
-        bool struckHero = false, struckPartner = false;
-        // A picture of the OPTION folder's Pattern bank instead of its
-        // animation (the mine on the ground), -1 = the animation.
-        int pattern = -1;
-        int light = 1000;   // how bright a Pattern picture is drawn, 0-1000
-        double height = 0;  // above the ground, as the original's objects (+0x124)
-        int facing = -1;    // a fixed direction 0-8 to draw it in; -1: see `directional`
-        std::int32_t follows = -1;  // a character it stays on (CREATEEFFECTCHAR), 0-3 the players
-        // A trap's shot (CREATEOPTIONANGLE), which hurts the hero and the
-        // companion instead of monsters (traps.cpp), or a monster's stone
-        // or arrow (throwShot).
-        struct Trap {
-            TrapShot shot;
-            int kind = 0;
-            int power = 0;
-            bool fixedDamage = false;
-            ScriptHost::TrapFire::Stun stun;
-            // A monster's shot: its thrower's index in actors_ (-1 for a
-            // trap's), and the hit and element of the attack that threw
-            // it, taken as it leaves the hand.
-            int thrower = -1;
-            int hit = 0, element = -1;
-        };
-        std::optional<Trap> trap;
-        // One of the hero's bowgun shots, or an arrow of the hunter's
-        // volley falling on its target (archery.cpp).
-        struct Shot {
-            int power = 0, hit = 0;  // the attack and hit rate it carries
-            int hitOption = -1;      // the spark on what it strikes
-            int box = 30;            // half the side of the square it strikes in
-            bool pierces = false;    // flies on, striking each monster once
-            // The volley's falling arrow: the actor it falls on and where
-            // it last saw it, the ticks still to wait before it shows, and
-            // the tick of its fall.
-            int target = -1;
-            double targetX = 0, targetY = 0;
-            int wait = 0, fall = -1;
-        };
-        std::optional<Shot> shot;
-        // Layers of its animation that are not drawn (an arrow's flame and
-        // frost, which the original turns off unless the bowgun is a fire or
-        // ice one; 0x42a300).
-        unsigned hiddenLayers = 0;
-        // The "MISS!!" over whoever an attack missed (showMiss): it hops,
-        // landing three times, then fades out (controller 20012, 0x42c750).
-        struct Hop {
-            int speed = 500;  // tenths of a world unit a tick, up
-            int landings = 0;
-            int fade = 1000;
-            double floor = 0;  // the height it lands on
-        };
-        std::optional<Hop> hop;
-        bool dead = false;
-    };
-    // A spell on its way: spawns its effects tick by tick, as the
-    // original's spell controllers do (0x42b1c0 and its neighbours).
-    struct SpellCast {
-        int spell = 0, level = 1, power = 0, hit = 0;
-        double x = 0, y = 0;  // the caster, when the cast began
-        double aim = 0;       // towards the point cast at, radians in world space
-        int tick = 0;
-        int release = -1;  // the tick the spell left the hand, -1 = not yet
-        int step = 0;      // bursts made so far
-        std::array<bool, 8> blocked{};
-        std::vector<int> tracked;  // effects followed (missiles, orbs, blades)
-        std::vector<std::pair<double, double>> trackedAt;
-        std::vector<int> stage, stageTicks;  // Elemental Strike, per orb
-        bool done = false;
-        // A monster's cast (castMonsterSpell): its index in actors_, -1
-        // for the hero's; the effect on whoever it hurts, and whether it
-        // goes for the hero alone.
-        int caster = -1;
-        int hitOption = -1;
-        bool targetOnly = false;
-    };
-    // "MISS!!" over whoever an attack or a spell just missed (0x417a60).
-    void showMiss(double x, double y);
-    void stepHop(Effect& e);
+    // Spells (spells.cpp): effects and casts are in the world (world/world.h).
     // A monster's spell leaving its hand (0x45b043).
     void castMonsterSpell(Actor& enemy, int slot);
     void monsterSpellHitsPlayer(const Effect& e);
     void monsterSpellHitsPartner(const Effect& e);
-    // At a monster (an index in actors_), the spell follows it until it
+    // At a monster (an index in world_.actors), the spell follows it until it
     // leaves the hand (Rules::spellsAimAtEnemy).
     void startCast(double worldX, double worldY, std::optional<std::size_t> enemy = std::nullopt);
     void releaseSpell();
@@ -793,10 +613,6 @@ private:
     void regenerateHero();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
-    const CharacterModel* effectModel(int option);
-    int effectLength(int option, int chart = 0);
-    Effect& spawnEffect(int option, double x, double y, int chart = 0);
-    Effect* findEffect(int id);
     void stepCast(SpellCast& cast);
     void stepEffect(Effect& effect);
     void clearSpells();
@@ -823,34 +639,8 @@ private:
     // An effect animation's first chart, looping, drawn round the hero.
     void renderHeroOverlay(const CharacterModel* model, double ticks, int camX, int camY);
 
-    // Scenario objects: the chests, doors, levers and gates a scenario
-    // places (objects.cpp). Each has three states, kept in the NET flags
-    // 100,000,000, 300,000,000 and 200,000,000 + its id until
-    // ABSOLUTEOBJECTFLAG fixes them: whether it is shown, whether it can
-    // be used (clicked), and whether its rectangle stands in the way
-    // (0x45e080).
-    struct SceneObject {
-        std::size_t placement = 0;  // into control_.placements
-        std::optional<std::array<int, 3>> fixed;  // set by ABSOLUTEOBJECTFLAG
-        std::optional<Character> animation;       // for a chart rather than a still picture
-        const SpriteBank* body = nullptr;
-        const SpriteBank* shadow = nullptr;
-        int prop = -1;  // open content: frame of Map/props.sheet
-    };
-    enum ObjectState { kShown = 0, kUsable = 1, kBlocks = 2 };
+    // Scenario objects (objects.cpp; world/world.h's SceneObject).
     void spawnObjects();
-    void tickObjects();
-    bool objectState(const SceneObject& o, ObjectState which) const;
-    SceneObject* sceneObject(std::int32_t id);
-    const SceneObject* sceneObject(std::int32_t id) const;
-    const ScenarioControl::Placement& placementOf(const SceneObject& o) const { return control_.placements[o.placement]; }
-    // Whether a step from one world position to another walks into an
-    // object that stands in the way (0x414990); starting inside one does
-    // not trap anyone.
-    bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
-    // Whether a box at a spot meets an object that stands in the way, as a
-    // shot's does (0x45e1e0: status bit 0, which is that state).
-    bool boxMeetsObject(double x, double y, const JudgeRect& box) const;
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -877,7 +667,7 @@ private:
 
     // Bowguns (archery.cpp, docs/archery.md).
     bool bowInHand() const;
-    // A pull of the bowgun's trigger at a monster (an actors_ index) or,
+    // A pull of the bowgun's trigger at a monster (an world_.actors index) or,
     // with none, along `angle` (radians, world y down).
     void shoot(std::optional<std::size_t> target, double angle);
     void loose();  // the shot leaves the bow, at the animation's shooting frame
@@ -920,9 +710,6 @@ private:
     // pushed back (0x443cb0).
     void stunHero(const Stun& stun);
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
-    int directionFrames(int option, int direction);
-    std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
-    void resurrect(std::int32_t enemy, int x, int y, int direction);
     struct RainDrop {
         int age = 0;
         int x = 0, y = 0;  // screen pixels it starts from
@@ -957,14 +744,13 @@ private:
     void loadSounds();
     // A sound effect where something happens (0x417260): only heard
     // within 3000 units of the hero unless `everywhere`. Queued in
-    // events_ and played by deliverEvents.
+    // world_.events and played by deliverEvents.
     void playSound(int voice, double x, double y, bool everywhere = false);
     // A sound heard wherever the hero is (the menus' clicks).
     void playSound(int voice);
-    // What the rules told the player since the last delivery (sounds,
-    // messages); deliverEvents plays and shows them, after each tick and
-    // each input event.
-    WorldEvents events_;
+    // Plays and shows what the rules told the player since the last
+    // delivery (world_.events: sounds, messages), after each tick and each
+    // input event.
     void deliverEvents();
     // The area's music, BGM<areaKind>.Voc, on a scenario change (0x4275e0).
     void startAreaMusic(int areaKind);
@@ -973,10 +759,6 @@ private:
     // (0x4275a0).
     void tickMusic();
     void loadMusic(const std::string& path);
-    // The sounds a monster's animation called for this tick, and its death
-    // cry (0x45a2a0, 0x45bec0).
-    void monsterCries(Actor& enemy);
-    void monsterDeathCry(const Actor& enemy);
     void heroSteps(bool walking, bool running);
     double stepTicks_ = -1;  // original ticks since the hero set off, -1 standing
     bool stepRunning_ = false;
@@ -990,17 +772,6 @@ private:
     // Land mines (mines.cpp): B or the MINE button lays one where the hero
     // stands; a controller, as the original's (0x42bd40), arms it, sets it
     // off and plays the blast.
-    struct Mine {
-        double x = 0, y = 0;
-        int tick = 0;        // the original's ticks since it was laid, then since the blast
-        int effect = 0;      // the mine on the ground; 0 once it has gone off
-        bool blasted = false;
-        int level = 1;       // the hero's when it was laid, for its power
-        int ring = 0;        // how far out the last smoke ring was
-        std::array<int, 4> pieces{}, fires{};
-        int lift = 0;        // the pieces' upward speed
-        bool done = false;
-    };
     void layMine();
     void stepMine(Mine& mine);
     void mineBlast(Mine& mine);
@@ -1018,7 +789,7 @@ private:
         PartnerStats stats{};
         int hp = 1;
         enum class State { Idle, Walk, Run, Bite, Hit, Dead, Jump, Dash } state = State::Idle;
-        std::optional<std::size_t> target{};  // the monster it fights, in actors_
+        std::optional<std::size_t> target{};  // the monster it fights, in world_.actors
         int walkDelay = 5;   // ticks before it starts walking after the hero
         int regenCarry = 0;  // thousandths of a point of health
         int deadTicks = 0;   // since it fell, for the fade
@@ -1028,8 +799,8 @@ private:
         // or dashes to, and what it jumps on or fetches.
         enum class Order { None, Fetch, Jump, Dash, Explode } order = Order::None;
         double orderX = 0, orderY = 0;
-        std::optional<std::size_t> orderActor{};   // a monster to land on, in actors_
-        std::optional<std::size_t> orderObject{};  // a switch to land on, in control_.placements
+        std::optional<std::size_t> orderActor{};   // a monster to land on, in world_.actors
+        std::optional<std::size_t> orderObject{};  // a switch to land on, in world_.control.placements
         int orderCooldown = 0;  // ticks until it takes a new order on open ground (+0x210)
         int skillTick = 0;      // ticks into the jump or dash (+0x158)
         bool landed = false;    // the jump has come down
@@ -1072,7 +843,6 @@ private:
     bool partnerCanStand(double x, double y) const;
     void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1,
                    StunKind kind = StunKind::Plain);
-    void endStun(Actor& enemy);
     void renderPartnerGauge();
     bool partnerGaugeClick(int x, int y);
     // The game panel along the bottom of the screen (panel.cpp).
@@ -1205,10 +975,6 @@ private:
     void closeWarpWindow() { warpOpen_ = false; }
     bool warpGateClick(int x, int y, bool right);
     void renderWarpGate();
-
-    // People's scripted actions (C_ACTIONREQ, talk.cpp).
-    void requestAction(const ScriptHost::ActionRequest& r);
-    void tickScriptedAction(Actor& a);
 
     // The hero's fall (game_over.cpp). At no health the hero drops
     // (0x435b60): the death sound, the parting glow (option 11000023,
@@ -1356,41 +1122,16 @@ private:
     SpriteCache sprites_;
     std::vector<std::string> mapNames_;
     std::size_t mapIndex_ = 0;
-    std::optional<Map> map_;
+    // The area being played: its map, characters, items, objects, flags,
+    // scripts and what flies about in it (world/world.h).
+    World world_;
     std::vector<std::size_t> drawOrder_;  // objects sorted back to front
 
     std::map<std::string, std::string> scenarioByMap_;  // lower-case map name -> Scenario/<dir>
     // By path stem (null = failed): [0] the original's, [1] the skin's.
     std::array<std::map<std::string, std::unique_ptr<CharacterModel>>, 2> models_;
-    std::vector<Actor> actors_;
-    std::vector<SceneObject> sceneObjects_;
     std::map<std::string, std::unique_ptr<SpriteBank>> objectShadows_;  // by path stem; null = missing
-    bool unlockSwitch_ = false;  // SETUNLOCKSW this frame
     std::int32_t heldObject_ = -1;  // --hold
-    double unlockTicks_ = 0;
-    std::optional<AiControl> ai_;
-    Random random_;
-    std::string scenarioDir_;  // Scenario/<dir> of the current map, or empty
-    std::set<std::int32_t> skippedCommands_;  // script commands not carried out, logged once per scenario
-    ScenarioControl control_;
-    std::optional<ScenarioScript> script_;
-    std::vector<TriggerArea> triggers_;
-    ScriptFlags flags_;
-    std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
-    // Every scenario entered since the game was started or loaded, as it
-    // was left. The original loads each scenario once (0x426000 skips one
-    // already loaded, 0x427b50) and keeps it until the game is started
-    // again (0x41d3f0): its characters, dead monsters included, its items
-    // on the ground and its TEMP and NET flags stay as they were, so
-    // nothing comes back by leaving and returning.
-    struct ScenarioVisit {
-        ScenarioControl control;
-        std::vector<Actor> actors;
-        std::vector<std::optional<std::array<int, 3>>> objectsFixed;  // each SceneObject's
-        std::vector<GroundItem> groundItems;
-        ScriptFlags flags;  // its TEMP and NET ones
-    };
-    std::map<std::string, ScenarioVisit> visited_;  // by Scenario/<dir>
     bool forgetCurrent_ = false;
 
     std::array<std::array<std::optional<CharacterModel>, 2>, 2> playerModels_;  // [art][HeroSex], as models_
@@ -1401,9 +1142,9 @@ private:
     std::optional<LoadData> loadData_;
     std::optional<Character> player_;
     std::optional<std::pair<double, double>> walkTarget_;  // world units
-    std::optional<std::size_t> attackTarget_;              // index into actors_
+    std::optional<std::size_t> attackTarget_;              // index into world_.actors
     std::optional<std::size_t> talkTarget_;                // a person the player is walking up to
-    std::optional<std::size_t> objectTarget_;              // a map object likewise, in control_.placements
+    std::optional<std::size_t> objectTarget_;              // a map object likewise, in world_.control.placements
     std::vector<Label> labels_;
     int playerHp_ = 0;
     // The hero's point on the attribute disc (player +0x74), which their
@@ -1469,16 +1210,9 @@ private:
     std::pair<double, double> castTarget_;     // where, in world units
     bool castReleased_ = false;
     std::optional<std::size_t> castEnemy_;     // the monster cast at, if any
-    std::vector<SpellCast> casts_;
-    std::vector<Effect> effects_;
-    std::vector<Effect> pendingEffects_;  // spawned this tick
-    std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
-    int nextEffectId_ = 1;
     double originalTicks_ = 0;  // carried between engine ticks
-    std::vector<Mine> mines_;
     int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
     int mineWait_ = 0;                    // ticks before another can be laid
-    Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;
     std::optional<Partner> partner_;
@@ -1491,7 +1225,6 @@ private:
     ItemTable items_;
     Inventory inventory_;
     std::optional<Item> hand_;  // picked up in the inventory panel
-    std::vector<GroundItem> groundItems_;
     std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_[2];  // by art (0 original, 1 ours), then path stem; null = missing
     bool showInventory_ = false;
     // The special items window (X), in the item window's place on the
@@ -1531,7 +1264,6 @@ private:
     std::optional<GoldSplit> goldSplit_;
     bool swapWeaponSetsPending_ = false;
     std::optional<int> openShop_;
-    int entryPoint_ = 0;
     std::vector<int> answers_;
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;
@@ -1589,7 +1321,7 @@ private:
     // Ours: the names of the items on the ground while Alt is held, or
     // always once L turns them on (Rules::groundItemNames).
     struct ItemLabel {
-        std::size_t item;  // into groundItems_
+        std::size_t item;  // into world_.groundItems
         LabelBox box;      // logical screen pixels, edge included
         std::string name;
         SDL_Color color;
@@ -1612,7 +1344,7 @@ private:
     bool gameOverOpen_ = false;
     int gameOverChoice_ = 0;  // 0 Continue, 1 Exit
 
-    CardGame cardGame_{[this](int n) { return random_.next(n); }};
+    CardGame cardGame_{[this](int n) { return world_.random.next(n); }};
     double cardTickCarry_ = 0;  // the card game runs at the original's 30 ticks a second
     std::optional<SDL_Point> cardClick_;  // a left click for its next tick
     // The Change Color window (0xa06c): which item's tab is chosen (0

@@ -15,7 +15,7 @@
 namespace sf {
 
 bool Game::darknessShown() const {
-    return settings_.darkness && map_ && player_ && control_.light != ScenarioControl::kLit;
+    return settings_.darkness && world_.map && player_ && world_.control.light != ScenarioControl::kLit;
 }
 
 // Dark.njp's parts from the player's copy, or our own soft ellipses of the
@@ -62,16 +62,16 @@ void Game::renderDarkness(int camX, int camY) {
     addAt(lighting::kPlayerLight + 1, player_->x, player_->y);
     // Characters that carry a light. Monsters lose theirs when they die;
     // map objects keep their place in the scenario.
-    for (const auto& actor : actors_) {
+    for (const auto& actor : world_.actors) {
         if (actor.placement.light < 0 || !actor.active || (actor.hostile() && !actor.alive())) continue;
         addAt(actor.placement.light + 1, actor.character.x, actor.character.y);
     }
-    for (const auto& p : control_.placements) {
+    for (const auto& p : world_.control.placements) {
         if (p.light < 0 || (p.group != ScenarioControl::Group::Object && p.group != ScenarioControl::Group::Item)) continue;
         addAt(p.light + 1, p.x, p.y);
     }
 
-    const auto levels = lighting::levels(control_.light);
+    const auto levels = lighting::levels(world_.control.light);
     if (!darkTexture_ || darkTextureW_ != w || darkTextureH_ != h) {
         darkTexture_.reset(SDL_CreateTexture(renderer_, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, w, h));
         if (!darkTexture_) return;

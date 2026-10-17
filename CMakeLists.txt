@@ -108,6 +108,9 @@ add_library(sf_world STATIC
     src/world/content.cpp
     src/world/map.cpp
     src/world/character.cpp
+    src/world/world.cpp
+    src/world/monsters.cpp
+    src/world/world_script.cpp
 )
 target_link_libraries(sf_world PUBLIC sf_logic)
 
@@ -119,7 +122,6 @@ add_executable(shadowflare
     src/render/sprite_cache.cpp
     src/game/skin.cpp
     src/game/game.cpp
-    src/game/enemy_ai.cpp
     src/game/items.cpp
     src/game/special_items.cpp
     src/game/saving.cpp
