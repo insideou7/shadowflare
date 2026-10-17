@@ -12,6 +12,7 @@
 #include "formats/table_data.h"
 #include "game/content.h"
 #include "game/game.h"
+#include "game/skin.h"
 #include "platform/filesystem.h"
 #include "render/tiny_font.h"
 
@@ -838,7 +839,16 @@ std::optional<std::size_t> Game::groundItemAt(float screenX, float screenY) cons
 
 // An original .njp sprite bank or an open content .sheet, by path stem.
 const SpriteBank* Game::itemBank(const std::string& stem) {
-    auto [it, inserted] = itemBanks_.try_emplace(stem);
+    // With our art chosen, our pack's picture goes first so the windows,
+    // items and gauges match the rest of the screen; the player's own file
+    // fills in only what the pack has no picture for. Item pictures stay the
+    // original's: our sheets are numbered by our own items, not by the
+    // original's item table, so a swap would draw the wrong things.
+    const bool itemPictures = stem.starts_with("System/Game/Pattern/Item0") || stem.starts_with("Character/ITEM/");
+    if (skin_ && !itemPictures) {
+        if (const SpriteBank* ours = skin_->sheet(stem)) return ours;
+    }
+    auto [it, inserted] = itemBanks_[skin_ ? 1 : 0].try_emplace(stem);
     if (inserted) {
         try {
             if (auto njp = data_->read(stem + ".njp")) {
