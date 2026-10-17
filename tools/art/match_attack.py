@@ -86,13 +86,13 @@ def measure(folder):
     return out, shields
 
 
-def projections(scene):
+def projections(scene, rig=None):
     """2x3 matrices taking a point of the model (facing +X) to screen pixels
     from the feet, one per direction."""
     origin = Vector(studio.anchor(scene))
     matrices = []
     for d in range(8):
-        turn = Matrix.Rotation(creatures.facing(d), 3, "Z")
+        turn = Matrix.Rotation(creatures.facing(d, rig), 3, "Z")
         cols = [Vector(studio.anchor(scene, turn @ Vector(e))) - origin for e in ((1, 0, 0), (0, 1, 0), (0, 0, 1))]
         matrices.append(np.array([[c.x for c in cols], [c.y for c in cols]]))
     return matrices
@@ -229,7 +229,7 @@ def main():
     scene = studio.reset(samples=4)
     rig = creatures.BUILDERS[kind]()
     studio.camera(scene, 200, 200, target=(0, 0, creatures.HEIGHT[kind] * 0.42))
-    proj = projections(scene)
+    proj = projections(scene, rig)
     table = creatures.HEROINE_ATTACK if kind == "heroine" else creatures.HERO_ATTACK
     creatures.build_gear(rig, SHIELD)
     seen, shields = measure(folder)

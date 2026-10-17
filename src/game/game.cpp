@@ -329,14 +329,10 @@ void Game::setOurArt(bool on) {
     for (auto& o : sceneObjects_) {
         if (o.animation) swap(*o.animation);
     }
-    for (auto& g : groundItems_) {
-        if (g.sprite) swap(*g.sprite);
-    }
+    for (auto& g : groundItems_) setGroundSprite(g);
     for (auto& [dir, visit] : visited_) {
         for (auto& a : visit.actors) swapActor(a);
-        for (auto& g : visit.groundItems) {
-            if (g.sprite) swap(*g.sprite);
-        }
+        for (auto& g : visit.groundItems) setGroundSprite(g);
     }
     if (partner_) {
         auto& c = partner_->character;

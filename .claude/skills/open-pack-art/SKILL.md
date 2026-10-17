@@ -93,7 +93,8 @@ Pinky liked this loop and wants it used for every sprite and texture.
   `ENEMY_CHARTS`, `PARTNER_CHARTS`). Mark the frame a blow lands with
   `!` in the `.anim`.
 - Fit timing and poses to the original by measuring it, never by copying
-  frames. `match_attack.py` shows how.
+  frames. `match_attack.py` shows how; for camera angle, facing and whole
+  poses use the `match-angle-posture` skill (`match_view.py`).
 - Equipment is drawn in layers (`layerNN/`, NN = the `layer=` in
   `items.txt`), each with its own draw priority per frame.
 
