@@ -200,6 +200,7 @@ public:
     // The Debug tab's no-clip: the hero ignores walls and blocking objects.
     // Never in original mode.
     bool noClip() const { return settings_.noClip && !originalMode(); }
+    bool invincibleCompanion() const { return settings_.invincibleCompanion && !originalMode(); }
 
     // Draws the original game with our art or its own, at once and
     // without reloading the map, like a remaster's classic-graphics
@@ -501,6 +502,7 @@ private:
     void loadItems();
     void giveStartingKit();
     void spawnGroundItems();
+    void setGroundSprite(GroundItem& g);
     void dropItem(const Item& item, double x, double y);
     void dropLoot(const Actor& enemy);
     // Drops what a drop list gives around (x, y): monsters and
@@ -1053,7 +1055,7 @@ private:
         ScreenMode, SeeThroughPlayer, SeeThroughShadows, Darkness, SaveImage, ClickRange, ClickSize, ClickPriority,
         EffectVolume, MusicVolume, OriginalMode, Autosave, Art, MissionList, Map, Help, SaveAndTitle, SaveAndExit, Exit, Back,
         // Debug tab.
-        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, NoClip, ShowFps
+        XpRate, Luck, GoldRate, UnlockGates, UnlockStorage, UnlockMagic, NoClip, InvincibleCompanion, ShowFps
     };
     std::vector<OptionRow> optionRows() const;
     bool optionEnabled(OptionRow row) const;
@@ -1223,7 +1225,7 @@ private:
     ItemTable items_;
     Inventory inventory_;
     std::optional<Item> hand_;  // picked up in the inventory panel
-    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
+    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_[2];  // by art (0 original, 1 ours), then path stem; null = missing
     bool showInventory_ = false;
     // The special items window (X), in the item window's place on the
     // right (DAT_0048ce68); the two never show together.

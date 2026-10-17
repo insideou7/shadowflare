@@ -215,9 +215,15 @@ if(EMSCRIPTEN)
         -sUSE_SDL=2 -sALLOW_MEMORY_GROWTH=1 -sMAXIMUM_MEMORY=4GB -sSTACK_SIZE=4MB
         -sFORCE_FILESYSTEM=1 -lidbfs.js -sINVOKE_RUN=0 -sENVIRONMENT=web
         -sEXPORTED_RUNTIME_METHODS=callMain
-        --preload-file ${CMAKE_SOURCE_DIR}/content@/content
         --pre-js ${CMAKE_SOURCE_DIR}/web/pre.js
         --shell-file ${CMAKE_SOURCE_DIR}/web/shell.html)
+    # One shadowflare.data for local testing. tools/build_web.sh turns this
+    # off and packs content/ into several smaller parts for the website.
+    option(SFE_WEB_PRELOAD_CONTENT "Pack content/ into shadowflare.data" ON)
+    if(SFE_WEB_PRELOAD_CONTENT)
+        target_link_options(shadowflare PRIVATE
+            --preload-file ${CMAKE_SOURCE_DIR}/content@/content)
+    endif()
     set_target_properties(shadowflare PROPERTIES SUFFIX ".html"
         LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/pre.js;${CMAKE_SOURCE_DIR}/web/shell.html")
 else()

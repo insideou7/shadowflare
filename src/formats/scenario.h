@@ -62,6 +62,12 @@ struct ScenarioControl {
             // 0x11c), and each spell, less 7 (words 67-69, + 0x164), as
             // 0x45a749 and 0x45ac90 read them.
             std::array<std::int32_t, 3> attackCharts{0, 1, 2}, spellCharts{};
+            // How fast each attack's and each spell's chart plays: a step
+            // 0-9 of 0.3, 0.4, 0.6, 0.8, 1, 1.5, 2, 2.5, 3 and 4 frames a
+            // tick (words 70-72 and 73-75, read as monster + 0x128 and
+            // + 0x170 by 0x45a593 and 0x45aea6; which words is inferred:
+            // they sit after the charts and hold 1-6, mostly 4).
+            std::array<std::int32_t, 3> attackSpeeds{4, 4, 4}, spellSpeeds{4, 4, 4};
             // What it throws or shoots (words 44-48, monster + 0x184, 0x190,
             // 0x188, 0x18c and 0x194; 0x45a2f0 reads them): the shot
             // controller (0x429ec0; 1 a stone, 0, 4, 5 and 7 arrows, -1

@@ -51,7 +51,7 @@ std::vector<Game::OptionRow> Game::optionRows() const {
     // A new debug option or cheat is a row here, with its label, its
     // choices or stepper text, what setOption or stepOption does with it,
     // and a field in Settings. A cheat must do nothing in original mode.
-    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::GoldRate, R::UnlockGates, R::UnlockStorage, R::UnlockMagic, R::NoClip, R::ShowFps};
+    if (optionsTab_ == OptionsTab::Debug) return {R::XpRate, R::Luck, R::GoldRate, R::UnlockGates, R::UnlockStorage, R::UnlockMagic, R::NoClip, R::InvincibleCompanion, R::ShowFps};
     std::vector<R> rows{R::ScreenMode,   R::SeeThroughPlayer, R::SeeThroughShadows, R::Darkness,
                         R::SaveImage,    R::ClickRange,       R::ClickSize,         R::ClickPriority,
                         R::EffectVolume, R::MusicVolume,      R::OriginalMode,      R::Autosave};
@@ -83,7 +83,8 @@ bool Game::optionEnabled(OptionRow row) const {
         case OptionRow::XpRate:
         case OptionRow::Luck:
         case OptionRow::GoldRate:
-        case OptionRow::NoClip: return !originalMode();
+        case OptionRow::NoClip:
+        case OptionRow::InvincibleCompanion: return !originalMode();
         // Only in a game, and dimmed once every gate is found.
         case OptionRow::UnlockGates: {
             if (originalMode() || !world_.map || !player_) return false;
@@ -134,6 +135,7 @@ const char* Game::optionLabel(OptionRow row) {
         case OptionRow::UnlockStorage: return "UNLOCK ALL STORAGE";
         case OptionRow::UnlockMagic: return "UNLOCK ALL MAGIC";
         case OptionRow::NoClip: return "NO CLIP";
+        case OptionRow::InvincibleCompanion: return "INVINCIBLE COMPANION";
         case OptionRow::ShowFps: return "SHOW FPS";
     }
     return "";
@@ -157,6 +159,7 @@ std::vector<std::string> Game::optionChoices(OptionRow row, int& chosen) const {
         case OptionRow::ClickRange: return onOff(settings_.clickRange);
         case OptionRow::OriginalMode: return onOff(originalMode());
         case OptionRow::NoClip: return onOff(noClip());
+        case OptionRow::InvincibleCompanion: return onOff(invincibleCompanion());
         case OptionRow::ShowFps: return onOff(settings_.showFps);
         case OptionRow::Autosave: return onOff(settings_.autosave && !originalMode());
         case OptionRow::Art:
@@ -346,6 +349,7 @@ void Game::setOption(OptionRow row, int index) {
             log::info("Original mode {}", originalMode() ? "on" : "off");
             break;
         case OptionRow::NoClip: settings_.noClip = index == 0; break;
+        case OptionRow::InvincibleCompanion: settings_.invincibleCompanion = index == 0; break;
         case OptionRow::ShowFps: settings_.showFps = index == 0; break;
         case OptionRow::Autosave: settings_.autosave = index == 0; break;
         case OptionRow::Art:

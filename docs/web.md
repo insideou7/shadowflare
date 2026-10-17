@@ -21,7 +21,7 @@ together:
 | `shadowflare.html` | the page (from `web/shell.html`) | 5 KB |
 | `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 260 KB |
 | `shadowflare.wasm` | the engine | 2 MB |
-| `shadowflare.data` | the open content pack (`content/`) | 58 MB |
+| `shadowflare.data` | the open content pack (`content/`) | 121 MB |
 
 Browsers do not run WebAssembly from `file://`, so test with a local server:
 
@@ -34,6 +34,52 @@ blocks GitHub archives), clone it and point Emscripten at it:
 
     git clone --depth 1 -b release-2.32.10 https://github.com/libsdl-org/SDL.git sdl2-src
     EMCC_LOCAL_PORTS=sdl2=$PWD/sdl2-src cmake --build build-web
+
+## The website (GitHub Pages)
+
+The game is played at <https://insideou7.github.io/shadowflare/play/>. Pages
+serves the repository's `docs/` folder from `main`, and the browser build is
+committed in `docs/play/`. The data has to come from the same site: a page
+on `github.io` cannot load files from a GitHub Release, because Release
+downloads send no CORS headers.
+
+`tools/build_web.sh` makes `docs/play/` in one command (with Emscripten on
+`PATH`, and `EMCC_LOCAL_PORTS` as above if needed):
+
+    tools/build_web.sh            # build into docs/play/
+    tools/build_web.sh --serve    # then serve docs/ at http://localhost:8000/play/
+
+It builds the engine without content (`-DSFE_WEB_PRELOAD_CONTENT=OFF`) and
+packs `content/` with Emscripten's `file_packager` into parts of at most
+45 MB (`SFE_WEB_PART_MB`), files in path order, because GitHub refuses
+files over 100 MB and warns over 50 MB. Each part is a `shadowflare-N.data`
+with a small `shadowflare-N.js` that loads it. Visiting the page fetches
+only the engine (about 2 MB). The parts are fetched when the player
+presses "Play the open game": the page then injects their loaders, shows
+a bar and "x of y MB", and starts the game once every part is in place.
+Choosing the player's own ShadowFlare folder never downloads the open pack.
+
+The parts are also stored in the browser's Cache Storage, under the build's
+version, so a return visit starts without downloading them again (GitHub
+Pages sets its own short `Cache-Control`, so the HTTP cache alone is not
+relied on). Older versions' caches are deleted. Where Cache Storage is
+unavailable (some private windows) the parts are simply fetched each time.
+
+| File | What it is | Size |
+| --- | --- | --- |
+| `index.html` | the page (from `web/shell.html`) | 12 KB |
+| `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 180 KB |
+| `shadowflare.wasm` | the engine | 2 MB |
+| `shadowflare-1.data` … `-3.data` | `content/` in three parts | 45, 45 and 26 MB |
+| `shadowflare-1.js` … `-3.js` | each part's loader | 30-100 KB |
+
+Every file is fetched with `?v=<hash of all files>`, so a browser that has
+an old copy fetches fresh files after a rebuild instead of mixing old and
+new ones.
+
+Every rebuild that changes `content/` adds the whole pack (about 124 MB)
+to git history once committed, so rebuild and commit `docs/play/` on
+release days only, not for every content change.
 
 ## The page
 
@@ -86,6 +132,10 @@ page.
 
 In Chromium 1194 (Playwright, software WebGL):
 
+- `docs/play/` from `tools/build_web.sh` served locally: the three parts
+  download with the bar, then the title screen, and Remote Town and area
+  13000000 started with `--map`.
+
 - The open game: title, Create New Character, Remote Town, walking.
 - The original files picked from a folder above the game (316 MB, read
   and kept in about 34 seconds), playing in Remote Town, F10 save, reload,
@@ -98,7 +148,9 @@ Firefox and Safari are not tested yet.
 
 ## Not done yet
 
-- Publishing it. The four files can go on GitHub Pages next to
-  `docs/index.html` (`docs/play/`), but the 58 MB data file would then be in
-  the repository, and Pages needs the repository public or a paid plan.
+- Firefox, Safari, phones and touch controls are not tested.
+- Exporting and importing saves (they live only in the browser's storage).
+- An act-1-only web pack, for a smaller first download; it would need the
+  warp gates and cheats to skip areas that are not in the pack.
+- Native downloads (GitHub Releases).
 - Online multiplayer (a separate design).

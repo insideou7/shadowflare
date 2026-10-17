@@ -207,6 +207,13 @@ void testScenario() {
     const auto& t = thrower.control.placements.at(0).stats;
     check(t.shotKind == 1 && t.shotHeight == 250 && t.shotSpeed == 50 && t.shotStart == 200 && t.shotSlot == 0, "what an enemy throws");
     check(full.control.placements.at(0).stats.shotKind == -1, "an enemy throws nothing without shot=");
+    check(t.attackSpeeds == std::array<std::int32_t, 3>{4, 4, 4} && t.spellSpeeds == std::array<std::int32_t, 3>{4, 4, 4},
+          "an enemy's charts play a frame a tick without attack_speed= and spell_speed=");
+    const auto quick = sf::open::parseScenario(
+        bytes("enemy=2,5,6,0,40,30,960,thrower,2,10,10,20,2,10,170,50,0,0,attack_speed=6/4/3,spell_speed=2/4/5\n"));
+    const auto& q = quick.control.placements.at(0).stats;
+    check(q.attackSpeeds == std::array<std::int32_t, 3>{6, 4, 3} && q.spellSpeeds == std::array<std::int32_t, 3>{2, 4, 5},
+          "an enemy's chart speeds");
     // A burrow (the original's Enemy Hole) is a monster of kind -1 with no model.
     const auto burrow = sf::open::parseScenario(bytes("enemy=-1,5,6,3,600,0,0,none,2,100,100,200,50,50,0,50,50,0\n"));
     const auto& b = burrow.control.placements.at(0);

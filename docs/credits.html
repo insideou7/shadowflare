@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credits and Licenses</title>
+<meta name="description" content="Credits and licenses for the ShadowFlare Engine and the third-party code, models and fonts it uses.">
+<style>
+  :root { --bg: #14110d; --panel: #1f1a14; --line: #3a3024; --text: #e8dfcf; --muted: #a99b84; --gold: #d9b26a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Georgia, "Times New Roman", serif; }
+  a { color: var(--gold); }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { color: var(--gold); font-weight: normal; letter-spacing: .05em; margin: 0 0 8px; }
+  h2 { margin: 36px 0 12px; color: var(--gold); font-weight: normal; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  dl { margin: 0; }
+  dt { margin-top: 16px; color: var(--gold); }
+  dd { margin: 4px 0 0; }
+  .muted { color: var(--muted); font-size: .95rem; }
+  nav { font-size: .95rem; }
+</style>
+</head>
+<body>
+<main>
+  <nav><a href="./">ShadowFlare Engine</a> · <a href="play/">Play in your browser</a></nav>
+  <h1>Credits and licenses</h1>
+  <p>ShadowFlare is the work of its original developers. This project is not affiliated
+    with them, and neither the engine nor the open content contains any of the original
+    game's files.</p>
+
+  <h2>This project</h2>
+  <dl>
+    <dt>The engine, tools and open content</dt>
+    <dd>Code, maps, art, sound, music and text in the
+      <a href="https://github.com/insideou7/shadowflare">repository</a>, made for this
+      project. MIT license; see
+      <a href="https://github.com/insideou7/shadowflare/blob/main/LICENSE">LICENSE</a>.
+      The numbers in the monster stats, items and dogs follow the original game's; the
+      names and wording are ours.</dd>
+  </dl>
+
+  <h2>Code in the game</h2>
+  <dl>
+    <dt>SDL 2</dt>
+    <dd>Window, input, graphics and sound, by Sam Lantinga and the SDL contributors.
+      <a href="https://www.libsdl.org/license.php">zlib license</a>.</dd>
+    <dt>stb_image, stb_image_write and stb_vorbis</dt>
+    <dd>Picture and Ogg Vorbis decoding, by Sean Barrett and contributors. Public domain
+      or MIT, at your choice.</dd>
+    <dt>Emscripten (browser version only)</dt>
+    <dd>Compiles the engine to WebAssembly and supplies the loader and runtime library in
+      the page's files. Emscripten is under the MIT and University of Illinois/NCSA
+      licenses; its C library (musl) is MIT, and its C++ library (LLVM libc++) is
+      Apache 2.0 with LLVM exceptions. See
+      <a href="https://github.com/emscripten-core/emscripten/blob/main/LICENSE">Emscripten's license</a>.</dd>
+    <dt>Sentry Native (optional, desktop builds only)</dt>
+    <dd>Crash reports, off unless built with <code>SFE_SENTRY</code>. MIT license. Not in
+      the browser version.</dd>
+  </dl>
+
+  <h2>Models and fonts used to make the art</h2>
+  <p class="muted">These were used in Blender and Pillow to render the open content's
+    pictures. Only the rendered pictures ship with the game.</p>
+  <dl>
+    <dt>LowPoly Medieval Weapons, by Quaternius</dt>
+    <dd>The base shapes of the unique weapons' pictures.
+      <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a> (public domain).
+      <a href="https://quaternius.com/packs/medievalweapons.html">quaternius.com</a>.</dd>
+    <dt>MPFB 2 (MakeHuman), base mesh, targets and rig</dt>
+    <dd>The bodies under some of the characters. The assets are
+      <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>; MPFB's own
+      code (GPL) is only run as a tool and is not part of the game.
+      <a href="https://github.com/makehumancommunity/mpfb2">github.com/makehumancommunity/mpfb2</a>.</dd>
+    <dt>New Rocker, by Impallari Type</dt>
+    <dd>The name on the title screen.
+      <a href="https://openfontlicense.org/">SIL Open Font License 1.1</a>.</dd>
+    <dt>Liberation Serif</dt>
+    <dd>The story pages and the Create New Character screen.
+      <a href="https://openfontlicense.org/">SIL Open Font License 1.1</a>.</dd>
+  </dl>
+</main>
+</body>
+</html>

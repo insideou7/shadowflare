@@ -33,6 +33,10 @@ class FileSystem;
 inline constexpr int kTicksPerSecond = 20;
 // The original runs 30 ticks a second, so each engine tick is 1.5 of them.
 inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
+
+// Frames a tick of a monster's attack or spell chart at its speed step
+// (ScenarioControl's attackSpeeds and spellSpeeds).
+double monsterChartSpeed(int step);
 inline constexpr double kMeleeRange = 220.0;   // world units between the two characters' feet
 inline constexpr double kAggroRange = 1600.0;  // monsters notice the hero within this distance
 inline constexpr double kGiveUpRange = 3200.0; // and stop chasing beyond this one

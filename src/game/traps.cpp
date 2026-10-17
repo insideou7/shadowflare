@@ -226,7 +226,7 @@ void Game::stunHero(const Stun& stun) {
     walkTarget_.reset();
     attackTarget_.reset();
     if (stun.pushed) player_->direction = directionOfAngle(stun.angle - 3.141592);
-    player_->restart(chart::kPlayerHit, static_cast<double>(std::max(1, player_->frameCount())) / stun.total * 30 / kTicksPerSecond);
+    player_->restart(chart::kPlayerHit, static_cast<double>(std::max(1, player_->frameCount())) / stun.total);
 }
 
 // The same blow on an ACTIVE companion (its own hit code, 0x45f9f0): the
@@ -242,7 +242,7 @@ void Game::trapHitsPartner(const Effect& e) {
     playSound(e.trap->shot.hitSound, e.x, e.y);
     const int damage = std::max(1, e.trap->fixedDamage ? e.trap->power : meleeDamage(e.trap->power, st.defense, world_.random.next(3)));
     hurtPartner(damage);
-    if (!partnerAlive()) return;
+    if (!partnerAlive() || invincibleCompanion()) return;
     if (const auto stun = trapStun(e, p.character.x, p.character.y, 0, 0, false, damage, st.maxHp)) {
         p.stun = stun;
         p.state = Partner::State::Hit;
@@ -250,7 +250,7 @@ void Game::trapHitsPartner(const Effect& e) {
         if (stun->pushed) c.direction = directionOfAngle(stun->angle - 3.141592);
         const int hit = c.hasChart(kPartnerHitChart) ? kPartnerHitChart : chart::kIdle;
         c.restart(hit);
-        c.restart(hit, static_cast<double>(std::max(1, c.frameCount())) / stun->total * 30 / kTicksPerSecond);
+        c.restart(hit, static_cast<double>(std::max(1, c.frameCount())) / stun->total);
     }
     trapSplash(e, p.character.x, p.character.y, false);
 }

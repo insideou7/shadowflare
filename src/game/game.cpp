@@ -324,14 +324,10 @@ void Game::setOurArt(bool on) {
     for (auto& o : world_.sceneObjects) {
         if (o.animation) swap(*o.animation);
     }
-    for (auto& g : world_.groundItems) {
-        if (g.sprite) swap(*g.sprite);
-    }
+    for (auto& g : world_.groundItems) setGroundSprite(g);
     for (auto& [dir, visit] : world_.visited) {
         for (auto& a : visit.actors) swapActor(a);
-        for (auto& g : visit.groundItems) {
-            if (g.sprite) swap(*g.sprite);
-        }
+        for (auto& g : visit.groundItems) setGroundSprite(g);
     }
     if (partner_) {
         auto& c = partner_->character;
@@ -1098,6 +1094,7 @@ void Game::tickPlayer(const HeroInput& in) {
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
         heroStun_.reset();
+        if (world_.rules.noCastWhileStunned) casting_.reset();
         player_->held = false;
         player_->grey = false;
         player_->play(chart::kIdle);
@@ -1138,7 +1135,10 @@ void Game::tickPlayer(const HeroInput& in) {
         // as the blow falls, hit or miss (0x435e60); the rest are the plain
         // attack (0x439140).
         const bool bladed = subtype == 0 || subtype == 1 || subtype == 3;
-        if (player_->frame() >= 4 && !shouted_) {
+        // Both on the swing's strike frame, the one whose cell has status
+        // 0x40 (0x4360b3); frame 4 for a chart without one.
+        const int strike = strikeFrame(chart::kPlayerPunch, 4);
+        if (player_->frame() >= strike && !shouted_) {
             shouted_ = true;
             if (bladed) playSound(heroSex_ == HeroSex::Female ? 0x63 : 0x60, player_->x, player_->y);
         }
@@ -1149,9 +1149,8 @@ void Game::tickPlayer(const HeroInput& in) {
             playSound(weapon ? itemSound(*weapon->def, kItemSwing) : 1, player_->x, player_->y);
         }
         swingTicks_ += 1.5;
-        // The blow lands halfway through the swing (once, as a fast swing
-        // can step past the frame).
-        if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
+        // The blow lands (once, as a fast swing can step past the frame).
+        if (player_->frame() >= strike && !blowLanded_ && attackTarget_) {
             blowLanded_ = true;
             Actor& target = world_.actors[*attackTarget_];
             if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) strikeEnemy(target);
@@ -1909,6 +1908,19 @@ void Game::renderJudge(int camX, int camY) {
             }
             for (int k : {0, 1, 2, 0, 2, 3}) vertices.push_back({corners[k], color, {0, 0}});
         }
+    }
+    // The scenario's objects' click rectangles, in blue.
+    for (const auto& p : world_.control.placements) {
+        if (p.group != ScenarioControl::Group::Object) continue;
+        const int wx[4] = {p.x + p.rect[0], p.x + p.rect[2], p.x + p.rect[2], p.x + p.rect[0]};
+        const int wy[4] = {p.y + p.rect[1], p.y + p.rect[1], p.y + p.rect[3], p.y + p.rect[3]};
+        SDL_FPoint corners[4];
+        for (int k = 0; k < 4; ++k) {
+            int sx, sy;
+            worldToScreen(wx[k], wy[k], sx, sy);
+            corners[k] = {static_cast<float>(sx - camX), static_cast<float>(sy - camY)};
+        }
+        for (int k : {0, 1, 2, 0, 2, 3}) vertices.push_back({corners[k], SDL_Color{0, 120, 255, 70}, {0, 0}});
     }
     SDL_SetRenderDrawBlendMode(renderer_, SDL_BLENDMODE_BLEND);
     if (!vertices.empty()) SDL_RenderGeometry(renderer_, nullptr, vertices.data(), static_cast<int>(vertices.size()), nullptr, 0);

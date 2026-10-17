@@ -93,13 +93,18 @@ struct Rules {
     // Menu's AUTOSAVE IN TOWN is on. The original only saves from its menu
     // (0x4103c0).
     bool autosaveInTown = true;
+    // A hero held in a stun cannot start a spell. Cast during the stun, the
+    // casting pose is swapped for idle when the stun ends, which never
+    // finishes, so the hero stood frozen for good: no walking, no casting.
+    // Ours refuses the cast, as the stun does a swing.
+    bool noCastWhileStunned = true;
 
     bool originalMode() const {
         return !shieldsCostTheirOwnMp && !partnerStatusShowsMagicEvasion && !explosionUsesItsOwnLevel &&
                !dropQualityPerRoll && !missionsClearOnlyWhenTaken && !healthBarsOverMonsters && !zoomOut &&
                !outlineUnderPointer && !rightClickSells && !rightClickEquips && !rightClickStores &&
                !noEmptyGoldInWarehouse && !groundItemNames && !absorptionHeals && !spellsAimAtEnemy && !gameOverWindow &&
-               !autosaveInTown;
+               !autosaveInTown && !noCastWhileStunned;
     }
     static Rules ours() { return {}; }
     static Rules original() {
@@ -121,6 +126,7 @@ struct Rules {
         r.spellsAimAtEnemy = false;
         r.gameOverWindow = false;
         r.autosaveInTown = false;
+        r.noCastWhileStunned = false;
         return r;
     }
 };

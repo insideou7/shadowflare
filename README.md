@@ -1,6 +1,10 @@
 # ShadowFlare engine
 
 An open source reimplementation of the ShadowFlare engine in C++20 and SDL2.
+It is not affiliated with or endorsed by the makers of the original game.
+
+Play the open game in your browser at
+<https://insideou7.github.io/shadowflare/play/> (see [docs/web.md](docs/web.md)).
 
 This repository contains **none of the original game's data**. There are two
 ways to play:
@@ -13,34 +17,40 @@ ways to play:
   again while you play, like a remaster's classic-graphics button.
   `--our-art` starts with it.
 - Without it: the engine falls back to the open replacement content in
-  [content/](content/): our own ShadowFlare-style art, made from scratch
-  in Blender, with the original's first area (Remote Town and the fields,
-  forests and dungeons round it) laid out with our art.
+  [content/](content/): our own ShadowFlare-style art, sound and music,
+  made from scratch, with the original's first four areas (Remote Town,
+  Cold Svalt Town and others, with the fields, forests and dungeons round
+  them) laid out with our art. Its numbers (monster stats, items,
+  companions) follow the original's; the words, pictures and sounds are ours.
   See [docs/content.md](docs/content.md).
 
 ## Status
 
-A walkable map viewer. The engine loads any level from the original game
+A playable game. The engine loads any level from the original game
 (ground tiles, walls, trees and props) and puts the player character in
 it, animated in all eight directions, and walls and trees block the way.
 Townspeople and monsters stand where the game's scenario files put them,
 and walking into an exit takes you to the next area, following the
 game's own scripts, so the world can be explored on foot.
 Monsters behave as the game's own AI data tells them: they wander, close
-in, back off and strike or cast; click a monster to punch it.
+in, back off and strike or cast. The hero fights with weapons, bows,
+bowguns and spells, and monsters hit back with blows, shots and spells.
 Monster health and attack come from the scenario files. Items come from
 the game's item table (`Item.Ibn`, read with the help of the player's own
 `ShadowFlare.exe`): they lie where the scenarios put them, monsters drop
 gold and items, and what the hero wears shows on them and adds to attack
-and defense. The damage formula and spell effects are still placeholders.
+and defense. Damage follows the original's formula and spells play the
+original's effects (see [docs/magic.md](docs/magic.md)).
 With the original data the scenario scripts run: click a person to talk,
 pick an answer with the mouse or the arrow keys and Enter, and shops,
 healers and the class instructors work as their scripts say. The hero
 becomes a warrior at level 5 and is offered the hunter or wizard by how
 they kill monsters, as in the original; S opens the status window with its
 Change Career button. Heroes learn spells as they level up, as in the
-original (see [docs/magic.md](docs/magic.md)). Sound is not in yet. See [docs/formats.md](docs/formats.md)
-for what has been decoded so far.
+original (see [docs/magic.md](docs/magic.md)). Sound effects and music play from the original's files, or from our own in
+the open content (see [docs/sound.md](docs/sound.md)). Online play is not in
+yet; its menu row is dim. See [docs/formats.md](docs/formats.md) for what has
+been decoded so far.
 
 Controls follow the original manual (see [docs/controls.md](docs/controls.md)):
 hold the left mouse button to walk towards the cursor (or to attack the
@@ -229,9 +239,11 @@ renders a whole map to an image.
 ## License
 
 The engine, tools and the open content in [content/](content/) (our own
-art, maps and text) are under the MIT license; see [LICENSE](LICENSE).
+art, sound, maps and text) are under the MIT license; see [LICENSE](LICENSE).
 stb_image and stb_vorbis are public domain (or MIT). Monocypher is
-BSD-2-Clause or CC0 (third_party/monocypher/LICENSE.txt).
+BSD-2-Clause or CC0 (third_party/monocypher/LICENSE.txt). Third-party credits
+and licenses, including those of the browser build, are in
+[docs/credits.html](docs/credits.html).
 
 The original game is copyrighted and is not covered by this license. Do
 not commit its files, extracted assets or decompiled code to this

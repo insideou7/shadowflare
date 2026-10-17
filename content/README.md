@@ -20,15 +20,20 @@ the scripts in [tools/art](../tools/art) and laid out by
 `tools/art/build_pack.py`, in the style of the original game but drawn
 from scratch, with no original pictures traced or reused. The sounds are
 made the same way: synthesized by our own scripts, with no recording of
-the original's sampled or reused, and the music is our own. Monster stats
-and behaviour (`ai.txt`), the item definitions (`items.txt`) and the
-dogs' names and stats (`partners.txt`) are our own too.
+the original's sampled or reused, and the music is our own. The monsters'
+behaviour and drop lists (`ai.txt`) are ours, but the numbers in the
+monster stats, the item definitions (`items.txt`) and the dogs' stats
+(`partners.txt`) are the original's, copied by the scripts in
+`tools/content`; the names and wording are ours.
 
 The unique weapons' pictures (`System/Game/Pattern/Item0002` and
 `Character/ITEM/00000009`) build their swords, axes, hammers and crossbow
 prods on Quaternius's Medieval Weapons Pack (CC0, public domain; kept in
 [tools/art/quaternius](../tools/art/quaternius)), repainted and reshaped
 per item by `tools/art/uniques.py`.
+The plain swords in `System/Game/Pattern/Item0004` (pictures drawn to stand
+in for the original's items, by `tools/art/item_extras.py`) are built on
+the same models.
 
 ## License
 

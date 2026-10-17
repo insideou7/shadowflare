@@ -80,6 +80,12 @@ int monsterCue(int kind, int slot, int anim) {
 
 }  // namespace
 
+double monsterChartSpeed(int step) {
+    // 0x45a2f0's table.
+    static constexpr double kSteps[10] = {0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0};
+    return kSteps[std::clamp(step, 0, 9)];
+}
+
 void World::tickActors() {
     for (auto& actor : actors) {
         // Scripts show and hide characters through their NET flag, by
@@ -249,7 +255,8 @@ void World::runAiAction(Actor& enemy) {
                 const int wanted = magic ? 7 + s.spellCharts[k] : chart::kEnemyAttack + s.attackCharts[k];
                 c.faceTowards(hero.x - c.x, hero.y - c.y);
                 enemy.aim = std::atan2(hero.y - c.y, hero.x - c.x);
-                c.restart(c.hasChart(wanted) ? wanted : chart::kEnemyAttack);
+                c.restart(c.hasChart(wanted) ? wanted : chart::kEnemyAttack,
+                          monsterChartSpeed(magic ? s.spellSpeeds[k] : s.attackSpeeds[k]));
             }
             // A blow lands, or a spell leaves the hand, at each frame whose
             // cell has status 0x40, so some do it two or three times.
@@ -312,7 +319,7 @@ void World::tickChase(Actor& enemy) {
         enemy.state = State::Chase;
         if (toPlayer <= kMeleeRange && c.hasChart(chart::kEnemyAttack)) {
             c.faceTowards(hero.x - c.x, hero.y - c.y);
-            c.restart(chart::kEnemyAttack);
+            c.restart(chart::kEnemyAttack, monsterChartSpeed(enemy.placement.stats.attackSpeeds[0]));
             enemy.state = State::Attack;
             return;
         }

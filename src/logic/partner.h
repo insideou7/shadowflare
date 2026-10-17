@@ -85,8 +85,10 @@ struct PartnerRecord {
 
     // A monster killed by the hero or the partner, while the partner lives:
     // one experience point, levelling up as the table says, never past
-    // levelCap (0x413640, 0x412e20). True when it gained a level.
-    bool countKill(const PartnerTables& tables, int heroLevel);
+    // levelCap (0x413640, 0x412e20). True when it gained a level. amount is
+    // ours (the Experience Rate cheat): more points per kill, carried across
+    // levels up to the cap.
+    bool countKill(const PartnerTables& tables, int heroLevel, int amount = 1);
 };
 
 // How high a partner can go: min(35, hero level / 3 + 2) (0x41362b).

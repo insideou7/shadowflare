@@ -4,7 +4,9 @@
 #include <array>
 #include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <format>
+#include <sstream>
 
 #include "core/log.h"
 #include "formats/binary_reader.h"
@@ -49,6 +51,17 @@ std::unique_ptr<Skin> Skin::load(std::unique_ptr<FileSystem> pack, SDL_Renderer*
     }
     skin->pack_ = std::move(pack);
     skin->renderer_ = renderer;
+    // item_skin.txt: "icon 0,27 = 0,2" and "ground 7,3 = 7,1" lines.
+    if (const auto items = skin->pack_->read("item_skin.txt")) {
+        std::istringstream lines(std::string(items->begin(), items->end()));
+        std::string line;
+        while (std::getline(lines, line)) {
+            char kind[8];
+            int a, b, c, d;
+            if (std::sscanf(line.c_str(), "%7s %d,%d = %d,%d", kind, &a, &b, &c, &d) != 5) continue;
+            (std::string(kind) == "icon" ? skin->itemIcons_ : skin->itemGrounds_)[{a, b}] = {c, d};
+        }
+    }
     if (!skin->file_.props.empty()) {
         // Trimmed: our props are mostly see-through.
         if (auto sheet = loadSheet(*skin->pack_, skin->file_.props, true)) {
@@ -110,6 +123,23 @@ std::uint64_t Skin::fingerprint() const {
 std::optional<CharacterModel> Skin::character(const std::string& stem) const {
     if (!pack_->exists(stem + ".anim")) return std::nullopt;
     return CharacterModel::load(*pack_, stem);
+}
+
+Skin::ItemPicture Skin::itemPicture(const std::map<std::pair<int, int>, std::pair<int, int>>& table, int a, int b,
+                                    const char* format) {
+    const auto found = table.find({a, b});
+    if (found == table.end()) return {};
+    const SpriteBank* bank = sheet(std::vformat(format, std::make_format_args(found->second.first)));
+    if (!bank || found->second.second < 0 || static_cast<std::size_t>(found->second.second) >= bank->patterns.size()) return {};
+    return {bank, found->second.second};
+}
+
+Skin::ItemPicture Skin::itemIcon(int bank, int pattern) {
+    return itemPicture(itemIcons_, bank, pattern, "System/Game/Pattern/Item{:04d}");
+}
+
+Skin::ItemPicture Skin::itemGround(int folder, int picture) {
+    return itemPicture(itemGrounds_, folder, picture, "Character/ITEM/{:08d}/Pattern");
 }
 
 const SpriteBank* Skin::sheet(const std::string& stem) {
