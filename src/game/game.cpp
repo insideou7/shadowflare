@@ -1165,7 +1165,10 @@ void Game::tickPlayer() {
         // as the blow falls, hit or miss (0x435e60); the rest are the plain
         // attack (0x439140).
         const bool bladed = subtype == 0 || subtype == 1 || subtype == 3;
-        if (player_->frame() >= 4 && !shouted_) {
+        // Both on the swing's strike frame, the one whose cell has status
+        // 0x40 (0x4360b3); frame 4 for a chart without one.
+        const int strike = strikeFrame(chart::kPlayerPunch, 4);
+        if (player_->frame() >= strike && !shouted_) {
             shouted_ = true;
             if (bladed) playSound(heroSex_ == HeroSex::Female ? 0x63 : 0x60, player_->x, player_->y);
         }
@@ -1176,9 +1179,8 @@ void Game::tickPlayer() {
             playSound(weapon ? itemSound(*weapon->def, kItemSwing) : 1, player_->x, player_->y);
         }
         swingTicks_ += 1.5;
-        // The blow lands halfway through the swing (once, as a fast swing
-        // can step past the frame).
-        if (player_->frame() >= 4 && !blowLanded_ && attackTarget_) {
+        // The blow lands (once, as a fast swing can step past the frame).
+        if (player_->frame() >= strike && !blowLanded_ && attackTarget_) {
             blowLanded_ = true;
             Actor& target = actors_[*attackTarget_];
             if (target.alive() && distance(*player_, target.character) <= kMeleeRange * 1.2) strikeEnemy(target);
@@ -1402,7 +1404,7 @@ void Game::tickEnemy(Actor& enemy) {
         enemy.state = State::Chase;
         if (toPlayer <= kMeleeRange && c.hasChart(chart::kEnemyAttack)) {
             c.faceTowards(player_->x - c.x, player_->y - c.y);
-            c.restart(chart::kEnemyAttack);
+            c.restart(chart::kEnemyAttack, monsterChartSpeed(enemy.placement.stats.attackSpeeds[0]));
             enemy.state = State::Attack;
             return;
         }

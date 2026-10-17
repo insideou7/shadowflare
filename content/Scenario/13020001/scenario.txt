@@ -6,10 +6,10 @@ entry=1,2078,8491,1
 town=13900000,200
 exit=4402,1268,4849,1870,13020000,1
 exit=1284,7726,1721,8278,13020002,0
-enemy=5,5277,5344,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,0,attacks=850/0/0,hits=300/0/0,spells=4/1/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,magic_evasion=20
-enemy=5,5866,5454,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,0,attacks=850/0/0,hits=300/0/0,spells=4/1/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,magic_evasion=20
-enemy=5,5284,5938,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,1,attacks=850/0/0,hits=300/0/0,spells=5/2/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,magic_evasion=20
-enemy=5,5791,6051,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,1,attacks=850/0/0,hits=300/0/0,spells=5/2/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,magic_evasion=20
+enemy=5,5277,5344,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,0,attacks=850/0/0,hits=300/0/0,spells=4/1/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,attack_speed=5/4/4,magic_evasion=20
+enemy=5,5866,5454,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,0,attacks=850/0/0,hits=300/0/0,spells=4/1/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,attack_speed=5/4/4,magic_evasion=20
+enemy=5,5284,5938,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,1,attacks=850/0/0,hits=300/0/0,spells=5/2/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,attack_speed=5/4/4,magic_evasion=20
+enemy=5,5791,6051,3,6000,850,320,goblin,402,30,100,300,15000,200,300,50,700,1,attacks=850/0/0,hits=300/0/0,spells=5/2/-1,spell_power=900/800/0,spell_level=10/10/10,spell_hit=210/210/0,attack_speed=5/4/4,magic_evasion=20
 enemy=14,6719,8016,3,15000,1050,640,goblin,2,10,100,300,15000,200,200,50,600,5,attacks=1050/0/0,hits=200/0/0,stun=20/5/0,magic_evasion=20,speed=1500
 glow=1
 enemy=14,5921,7224,3,3000,1050,640,goblin,2,10,100,300,5000,200,200,50,550,5,attacks=1050/0/0,hits=200/0/0,magic_evasion=20,speed=1500

@@ -33,7 +33,7 @@ enemy=15,5953,4302,4,10000,1050,640,goblin,2,10,100,300,10000,200,200,50,750,5,a
 glow=1
 enemy=15,3533,8562,4,8000,1000,640,goblin,2,10,100,300,15000,200,200,50,800,0,attacks=1000/0/0,hits=200/0/0,spells=1/-1/-1,spell_power=1000/0/0,spell_level=10/10/10,spell_hit=210/0/0,magic_evasion=20
 glow=1
-enemy=15,7477,8558,4,8000,1000,640,goblin,2,10,100,300,15000,200,200,50,800,1,attacks=1000/0/0,hits=200/0/0,spells=2/-1/-1,spell_power=1000/0/0,spell_level=10/10/10,spell_hit=210/0/0,magic_evasion=20
+enemy=15,7477,8558,4,8000,1000,640,goblin,2,10,100,300,15000,200,200,50,800,1,attacks=1000/0/0,hits=200/0/0,spells=2/-1/-1,spell_power=1000/0/0,spell_level=10/10/10,spell_hit=210/0/0,spell_speed=3/4/4,magic_evasion=20
 glow=1
 enemy=15,5080,7335,4,8000,1000,640,goblin,2,10,100,300,15000,200,200,50,800,3,attacks=1000/0/0,hits=200/0/0,spells=3/-1/-1,spell_power=800/0/0,spell_level=20/10/10,spell_hit=210/0/0,magic_evasion=20
 glow=1

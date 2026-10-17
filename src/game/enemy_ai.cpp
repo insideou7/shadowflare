@@ -21,6 +21,12 @@ bool isAttack(int action) { return action >= AiControl::kAttack && action < AiCo
 }  // namespace
 
 // Distance between the two collision boxes, 0 when they touch.
+double monsterChartSpeed(int step) {
+    // 0x45a2f0's table.
+    static constexpr double kSteps[10] = {0.3, 0.4, 0.6, 0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0};
+    return kSteps[std::clamp(step, 0, 9)];
+}
+
 double Game::gapToPlayer(const Actor& enemy) const {
     const auto& r = enemy.placement.rect;
     const double ex = enemy.character.x, ey = enemy.character.y;
@@ -157,7 +163,8 @@ void Game::runAiAction(Actor& enemy) {
                 const int wanted = magic ? 7 + s.spellCharts[k] : chart::kEnemyAttack + s.attackCharts[k];
                 c.faceTowards(player_->x - c.x, player_->y - c.y);
                 enemy.aim = std::atan2(player_->y - c.y, player_->x - c.x);
-                c.restart(c.hasChart(wanted) ? wanted : chart::kEnemyAttack);
+                c.restart(c.hasChart(wanted) ? wanted : chart::kEnemyAttack,
+                          monsterChartSpeed(magic ? s.spellSpeeds[k] : s.attackSpeeds[k]));
             }
             // A blow lands, or a spell leaves the hand, at each frame whose
             // cell has status 0x40, so some do it two or three times.

@@ -85,6 +85,11 @@ inline constexpr int kScreenHeight = 480;
 inline constexpr int kTicksPerSecond = 20;
 // The original runs 30 ticks a second, so each engine tick is 1.5 of them.
 inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
+static_assert(Character::kFramesPerTick == kOriginalTicksPerTick);
+
+// Frames a tick of a monster's attack or spell chart at its speed step
+// (ScenarioControl's attackSpeeds and spellSpeeds).
+double monsterChartSpeed(int step);
 
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
