@@ -58,7 +58,7 @@ void Game::fall() {
     mouseHeld_ = false;
     casting_.reset();
     combo_.reset();
-    if (effectModel(kPartingGlow)) spawnEffect(kPartingGlow, player_->x, player_->y).followsPlayer = true;
+    if (world_.effectModel(kPartingGlow)) world_.spawnEffect(kPartingGlow, player_->x, player_->y).followsPlayer = true;
     if (player_->frameCountOf(kDeathChart, kNoDirection) > 0) {
         player_->direction = kNoDirection;
         player_->restart(kDeathChart);

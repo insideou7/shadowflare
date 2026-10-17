@@ -49,6 +49,7 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, SkinLoader skinLoader)
     : renderer_(renderer), data_(data), skinLoader_(std::move(skinLoader)), sprites_(renderer) {
     world_.setHost(this);
+    world_.data = data_;
     // Every level has a ground file; use those to enumerate maps. An open
     // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
@@ -945,9 +946,7 @@ void Game::tick() {
     tickSpells();
     tickTransportGate();
     pickUpItems();
-    for (auto& g : world_.groundItems) {
-        if (g.sprite) g.sprite->tick();
-    }
+    world_.tickGroundItems();
     deliverEvents();  // so a message from this tick counts it, as one shown at once did
     if (messageTicks_ > 0) --messageTicks_;
     for (auto& l : labels_) --l.ticks;
@@ -959,18 +958,6 @@ void Game::tick() {
     }
     updateCamera();
     tickAreaMap();
-}
-
-// Runs the script of each trigger area the player has just stepped into.
-void Game::checkTriggers(bool fire) {
-    if (!player_) return;
-    for (auto& t : world_.triggers) {
-        const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
-        if (fire && inside && !t.inside && world_.script && !world_.pendingScenario) {
-            runScript(t.sentence);
-        }
-        t.inside = inside;
-    }
 }
 
 // Loads another scenario's map and puts the party at one of its entry points.
@@ -1354,7 +1341,7 @@ void Game::strikeEnemy(Actor& enemy) {
         absorbFrom(enemy, damage);
         hurtEnemy(enemy, damage);
     } else {
-        showMiss(enemy.character.x, enemy.character.y);
+        world_.showMiss(enemy.character.x, enemy.character.y);
     }
     // Every blow wears the weapon a little, hit or miss.
     sayBroken(inventory_.wearFromAttacking(world_.random));
@@ -1371,7 +1358,7 @@ void Game::absorbFrom(const Actor& enemy, int damage) {
     if (rate == 0) return;
     const double toHero = std::atan2(player_->y - enemy.character.y, player_->x - enemy.character.x);
     for (int i = 0; i < 5; ++i) {
-        Effect& orb = spawnEffect(kAbsorbOrb, enemy.character.x, enemy.character.y);
+        Effect& orb = world_.spawnEffect(kAbsorbOrb, enemy.character.x, enemy.character.y);
         orb.angle = toHero + (world_.random.next(3000) - 1500) / 1000.0;
         orb.speed = 30;
         orb.turn = 15 * std::numbers::pi / 180;
@@ -1402,7 +1389,7 @@ void Game::strikePlayer(Actor& enemy, int slot) {
     // The blow also catches an ACTIVE companion in front of the monster.
     if (partnerInReach(enemy)) strikePartner(enemy, slot);
     if (world_.random.next(100) >= hitChance(s.hits[k], stats[HeroStats::kEvasion])) {
-        showMiss(player_->x, player_->y);
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     // The blow lands: a thud at the monster, unless Counter Burst killed it
@@ -1473,7 +1460,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
         damage = std::max(1, damage * (100 - magic_.power(kMagicShield, castLevel(kMagicShield))) / 100);
         if (damage >= 20) trainSpell(kMagicShield);
         chargeShield(kMagicShield);
-        spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
+        world_.spawnEffect(11000241, player_->x, player_->y).followsPlayer = true;  // it takes the blow
         playSound(0x3c, player_->x, player_->y);
     }
     // Energy Shield takes blows out of MP while there is any.
@@ -1509,10 +1496,10 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
             if (burst) {
                 if (damage >= 20) trainSpell(kCounterBurst);
                 chargeShield(kCounterBurst);
-                spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
+                world_.spawnEffect(11000251, player_->x, player_->y).followsPlayer = true;
             } else {
                 // Option 20014, towards the monster.
-                spawnEffect(effectModel(kReflectGlow) ? kReflectGlow : 11000251, player_->x, player_->y).followsPlayer = true;
+                world_.spawnEffect(world_.effectModel(kReflectGlow) ? kReflectGlow : 11000251, player_->x, player_->y).followsPlayer = true;
             }
             if (attacker->alive()) hurtEnemy(*attacker, std::max(1, back), true);
         }

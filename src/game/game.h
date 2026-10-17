@@ -599,9 +599,6 @@ private:
     void renderHud();
 
     // Spells (spells.cpp): effects and casts are in the world (world/world.h).
-    // "MISS!!" over whoever an attack or a spell just missed (0x417a60).
-    void showMiss(double x, double y);
-    void stepHop(Effect& e);
     // A monster's spell leaving its hand (0x45b043).
     void castMonsterSpell(Actor& enemy, int slot);
     void monsterSpellHitsPlayer(const Effect& e);
@@ -614,10 +611,6 @@ private:
     void regenerateHero();
     // Whether the spell beat the monster's magic evasion.
     bool spellHits(Actor& enemy, int spell, int level, int power, int hit, int hitOption);
-    const CharacterModel* effectModel(int option);
-    int effectLength(int option, int chart = 0);
-    Effect& spawnEffect(int option, double x, double y, int chart = 0);
-    Effect* findEffect(int id);
     void stepCast(SpellCast& cast);
     void stepEffect(Effect& effect);
     void clearSpells();
@@ -715,7 +708,6 @@ private:
     // pushed back (0x443cb0).
     void stunHero(const Stun& stun);
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
-    int directionFrames(int option, int direction);
     struct RainDrop {
         int age = 0;
         int x = 0, y = 0;  // screen pixels it starts from
@@ -1216,7 +1208,6 @@ private:
     std::pair<double, double> castTarget_;     // where, in world units
     bool castReleased_ = false;
     std::optional<std::size_t> castEnemy_;     // the monster cast at, if any
-    std::map<int, std::unique_ptr<CharacterModel>> effectModels_;  // by OPTION id; null = missing
     double originalTicks_ = 0;  // carried between engine ticks
     int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
     int mineWait_ = 0;                    // ticks before another can be laid

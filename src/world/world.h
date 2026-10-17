@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -24,6 +25,8 @@
 #include "world/world_script.h"
 
 namespace sf {
+
+class FileSystem;
 
 // Simulation runs at a fixed rate, separate from rendering, so game logic
 // can later be matched tick-for-tick against the original executable.
@@ -289,6 +292,14 @@ public:
     void runScript(std::int32_t sentence, std::int32_t character, WorldScript& host);
     void runEvent(std::int32_t event, std::int32_t character, WorldScript& host);
 
+    // Runs the script of each trigger area someone at (x, y) has just
+    // stepped into; with `fire` false it only notes which they are in
+    // (arriving or loading inside one does not set it off).
+    void checkTriggers(double x, double y, bool fire, WorldScript& host);
+
+    // Ground items drawn with an animation chart move it on.
+    void tickGroundItems();
+
     // Objects' animations move while they are shown (0x45ddd0 counts
     // their frames there); pictures change with the states alone.
     void tickObjects();
@@ -325,6 +336,22 @@ public:
     // False, leaving `who` where it was, when it cannot move at all.
     bool tryMove(Character& who, double dx, double dy) const;
 
+    // Effects (OPTION animations: glows, missiles, bursts). New ones wait
+    // in pendingEffects until the tick ends, so the ones being stepped
+    // never move in memory; the reference is only good until the next
+    // spawn.
+    const CharacterModel* effectModel(int option);
+    int effectLength(int option, int chart = 0);
+    // The frames of an effect's first chart in one direction (0x42b860 and
+    // 0x42a300 ask GetMaxFrameCount for the direction it faces).
+    int directionFrames(int option, int direction);
+    Effect& spawnEffect(int option, double x, double y, int chart = 0);
+    Effect* findEffect(int id);
+    // "MISS!!" over whoever an attack or a spell just missed (0x417a60),
+    // and one of the original's ticks of its hop.
+    void showMiss(double x, double y);
+    void stepHop(Effect& e);
+
     // A sound where something happens, heard only once there is a hero.
     void sound(int voice, double x, double y, bool everywhere = false);
     // The monster's death cry, by its kind (0x45bec0).
@@ -358,6 +385,10 @@ public:
     std::vector<Effect> pendingEffects;  // spawned this tick
     int nextEffectId = 1;
     std::vector<Mine> mines;
+    std::map<int, std::unique_ptr<CharacterModel>> effectModels;  // by OPTION id; null = missing
+
+    // Where the game's files are read from (effects' animations).
+    const FileSystem* data = nullptr;
 
     // Every roll the rules make, so a run plays the same each time.
     Random random;

@@ -93,7 +93,7 @@ void Game::loose() {
         for (std::size_t i : b.volleyTargets) {
             if (i >= world_.actors.size() || !world_.actors[i].alive()) continue;
             const Actor& a = world_.actors[i];
-            Effect& e = spawnEffect(9000, a.character.x, a.character.y);
+            Effect& e = world_.spawnEffect(9000, a.character.x, a.character.y);
             e.life = -1;
             Effect::Shot s;
             s.power = std::max(1, stats[HeroStats::kAttack]);
@@ -125,7 +125,7 @@ void Game::loose() {
         for (const BowArrow& arrow : volley.arrows) {
             const double x = player_->x + std::trunc(std::cos(arrow.angle) * kShotStart);
             const double y = player_->y - std::trunc(std::sin(arrow.angle) * kShotStart);
-            Effect& e = spawnEffect(volley.option, x, y);
+            Effect& e = world_.spawnEffect(volley.option, x, y);
             e.life = -1;
             e.angle = -arrow.angle;  // the engine's angles have world y down
             e.speed = def.shotSpeed;
@@ -223,11 +223,11 @@ bool Game::shotStrikes(Effect& e, Actor& enemy) {
     const Effect::Shot& s = *e.shot;
     const auto& st = enemy.placement.stats;
     if (world_.random.next(100) >= hitChance(s.hit, st.evasion)) {
-        showMiss(enemy.character.x, enemy.character.y);
+        world_.showMiss(enemy.character.x, enemy.character.y);
         return false;
     }
     playSound(e.hitSound, e.x, e.y);
-    if (s.hitOption > 0) spawnEffect(s.hitOption, enemy.character.x, enemy.character.y);
+    if (s.hitOption > 0) world_.spawnEffect(s.hitOption, enemy.character.x, enemy.character.y);
     const int damage = heroBlowDamage(magic_, s.power, playerElements(), st.element, st.defense, world_.random.next(3));
     absorbFrom(enemy, damage);
     hurtEnemy(enemy, damage);

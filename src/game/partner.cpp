@@ -392,7 +392,7 @@ void Game::strikePartner(Actor& enemy, int slot) {
     const auto k = static_cast<std::size_t>(std::clamp(slot, 0, 2));
     const PartnerStats& st = partner_->stats;
     if (world_.random.next(100) >= hitChance(s.hits[k], st.evasion)) {
-        showMiss(partner_->character.x, partner_->character.y);
+        world_.showMiss(partner_->character.x, partner_->character.y);
         return;
     }
     hurtPartner(spellDamage(s.attacks[k], s.element, st.element, st.defense, world_.random.next(3), world_.random.next(4)));
@@ -839,8 +839,8 @@ void Game::partnerExplodes() {
     const int element = magic_.spell(kExplosion).element;
     log::info("The companion explodes at {:.0f},{:.0f} (level {})", c.x, c.y, level);
     // Its controller (21031, 0x42f890) plays the fire spray, both charts.
-    spawnEffect(kExplosionSpray, c.x, c.y);
-    spawnEffect(kExplosionSpray, c.x, c.y, 1);
+    world_.spawnEffect(kExplosionSpray, c.x, c.y);
+    world_.spawnEffect(kExplosionSpray, c.x, c.y, 1);
     playSound(0x1d, c.x, c.y);
     playSound(0x17, c.x, c.y);
     for (std::size_t i : monstersIn(c.x - kExplosionReach, c.y - kExplosionReach, c.x + kExplosionReach, c.y + kExplosionReach)) {
@@ -889,9 +889,9 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
         // away when the stun ends (the controller at 0x42d380).
         const int index = static_cast<int>(&enemy - world_.actors.data());
         const double x = enemy.character.x, y = enemy.character.y;
-        spawnEffect(kFreezeStart, x, y).followsActor = index;
+        world_.spawnEffect(kFreezeStart, x, y).followsActor = index;
         playSound(0x77, x, y);  // 0x459690
-        Effect& ice = spawnEffect(kFreezeHold + world_.random.next(4), x, y);
+        Effect& ice = world_.spawnEffect(kFreezeHold + world_.random.next(4), x, y);
         ice.followsActor = index;
         ice.life = ticks;
         ice.then = kFreezeEnd;

@@ -23,31 +23,19 @@ constexpr int kPartnerHitChart = 3;  // the companion's hit chart (partner.cpp)
 // play), anything else a scenario id.
 // The frames of an effect's first chart in one direction (0x42b860 and
 // 0x42a300 ask GetMaxFrameCount for the direction it faces).
-int Game::directionFrames(int option, int direction) {
-    const CharacterModel* model = effectModel(option);
-    if (!model || model->animations.charts.empty()) return effectLength(option);
-    const auto& dirs = model->animations.charts[0].directions;
-    for (int d : {direction, 8, 0}) {
-        if (d >= 0 && static_cast<std::size_t>(d) < dirs.size() && dirs[static_cast<std::size_t>(d)].frameCount > 0) {
-            return dirs[static_cast<std::size_t>(d)].frameCount;
-        }
-    }
-    return effectLength(option);
-}
-
 void Game::fireTrap(const ScriptHost::TrapFire& f) {
     const auto shot = trapShot(f.kind, f.direction, f.angle);
     if (!shot) {
         log::warn("CREATEOPTIONANGLE kind {} is not carried out", f.kind);
         return;
     }
-    Effect& e = spawnEffect(shot->option, f.x, f.y);
+    Effect& e = world_.spawnEffect(shot->option, f.x, f.y);
     e.facing = shot->direction;
     e.height = f.height;
     // The engine's angles have world y down.
     e.angle = -f.angle;
     e.speed = f.speed;
-    e.life = shot->lastsItsAnimation ? directionFrames(shot->option, shot->direction) : -1;
+    e.life = shot->lastsItsAnimation ? world_.directionFrames(shot->option, shot->direction) : -1;
     e.trap = Effect::Trap{*shot, f.kind, f.power, f.fixedDamage, f.stun};
     // Kind 0 is the plain arrow: its flame and frost layers are turned off
     // once it is made (0x42a300), as for a bowgun's.
@@ -115,7 +103,7 @@ void Game::throwShot(Actor& enemy, int slot) {
     }
     const double x = enemy.character.x + std::trunc(std::cos(up) * st.shotStart);
     const double y = enemy.character.y - std::trunc(std::sin(up) * st.shotStart);
-    Effect& e = spawnEffect(shot->option, x, y);
+    Effect& e = world_.spawnEffect(shot->option, x, y);
     e.facing = shot->direction;
     e.height = st.shotHeight;
     e.angle = enemy.aim;
@@ -139,7 +127,7 @@ void Game::throwShot(Actor& enemy, int slot) {
 void Game::shotHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
     if (world_.random.next(100) >= hitChance(e.trap->hit, stats[HeroStats::kEvasion])) {
-        showMiss(player_->x, player_->y);
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
@@ -147,10 +135,10 @@ void Game::shotHitsPlayer(const Effect& e) {
     if (power_.active()) defense = defense * 12 / 10;
     if (spellOn(kEnergyShield)) defense = defense * magic_.power(kEnergyShield, castLevel(kEnergyShield)) / 100;
     if (const int option = scriptEffectOption(monsterShotSpark(e.trap->kind, world_.random.next(4))); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     if (const int option = scriptEffectOption(monsterShotEffect(e.trap->kind)); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     Actor* thrower = static_cast<std::size_t>(e.trap->thrower) < world_.actors.size() ? &world_.actors[static_cast<std::size_t>(e.trap->thrower)] : nullptr;
     const int damage = damageToHero(magic_, e.trap->power, e.trap->element, playerElements(), defense, world_.random.next(3));
@@ -187,7 +175,7 @@ void Game::shotHitsPlayer(const Effect& e) {
 void Game::shotHitsPartner(const Effect& e) {
     const PartnerStats& st = partner_->stats;
     if (world_.random.next(100) >= hitChance(e.trap->hit, st.evasion)) {
-        showMiss(partner_->character.x, partner_->character.y);
+        world_.showMiss(partner_->character.x, partner_->character.y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
@@ -201,7 +189,7 @@ void Game::shotHitsPartner(const Effect& e) {
 void Game::trapHitsPlayer(const Effect& e) {
     const HeroStats stats = playerStats();
     if (world_.random.next(100) >= hitChance(kTrapHit, stats[HeroStats::kEvasion])) {
-        showMiss(player_->x, player_->y);
+        world_.showMiss(player_->x, player_->y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
@@ -213,7 +201,7 @@ void Game::trapHitsPlayer(const Effect& e) {
     }
     damage = std::max(1, damage);
     if (const int option = trapHitOption(e.trap->kind, world_.random.next(4)); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     hurtPlayer(damage, false, nullptr, false);
     if (playerHp_ <= 0 || !player_) return;
@@ -248,7 +236,7 @@ void Game::trapHitsPartner(const Effect& e) {
     Partner& p = *partner_;
     const PartnerStats& st = p.stats;
     if (world_.random.next(100) >= hitChance(kTrapHit, st.evasion)) {
-        showMiss(p.character.x, p.character.y);
+        world_.showMiss(p.character.x, p.character.y);
         return;
     }
     playSound(e.trap->shot.hitSound, e.x, e.y);
@@ -307,10 +295,10 @@ bool Game::tickStun(Character& who, Stun& stun) {
 void Game::trapSplash(const Effect& e, double x, double y, bool onHero) {
     if (!e.trap->stun.splash || world_.random.next(100) >= 20) return;
     const int option = 11000024 + world_.random.next(2);
-    Effect& splash = spawnEffect(option, x, y);
+    Effect& splash = world_.spawnEffect(option, x, y);
     splash.facing = world_.random.next(8);
     splash.followsPlayer = onHero;
-    splash.life = directionFrames(option, splash.facing);
+    splash.life = world_.directionFrames(option, splash.facing);
 }
 
 // CREATEEFFECT and CREATEEFFECTCHAR (0x42b860): the effect plays once
@@ -321,11 +309,11 @@ void Game::createScriptEffect(int number, double x, double y, int height, int di
         log::warn("Script effect {} is not carried out", number);
         return;
     }
-    Effect& e = spawnEffect(option, x, y);
+    Effect& e = world_.spawnEffect(option, x, y);
     e.facing = direction;
     e.height = height;
     e.follows = follows;
-    e.life = directionFrames(option, direction);
+    e.life = world_.directionFrames(option, direction);
 }
 
 // SETTINGRAIN r g b count (0x41fe20): `count` new drops, each a short

@@ -260,6 +260,13 @@ void Game::runScript(std::int32_t sentence, std::int32_t character) {
     world_.runScript(sentence, character, host);
 }
 
+// Runs the script of each trigger area the player has just stepped into.
+void Game::checkTriggers(bool fire) {
+    if (!player_) return;
+    GameScript host(*this, -1);
+    world_.checkTriggers(player_->x, player_->y, fire, host);
+}
+
 void Game::runEvent(std::int32_t event, std::int32_t character) {
     if (!world_.script) return;
     GameScript host(*this, character);

@@ -120,7 +120,7 @@ void Game::tickTransportGate() {
             if (frame == 0) {
                 if (const auto at = transportGateHere()) playSound(0x33, at->first, at->second);
             }
-            if (++frame >= effectLength(kGateOption)) {
+            if (++frame >= world_.effectLength(kGateOption)) {
                 frame = 0;
                 wait = 30 + world_.random.next(60);
             }

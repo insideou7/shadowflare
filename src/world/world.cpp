@@ -2,13 +2,23 @@
 // states, who stands where and moving on the map.
 #include "world/world.h"
 
+#include <format>
 #include <utility>
+
+#include "core/log.h"
 
 #include "logic/movement.h"
 
 namespace sf {
 
 namespace {
+
+// "MISS!!": OPTION 11000011's picture, starting this high over whoever
+// was missed (0x417a60).
+constexpr int kMissOption = 11000011;
+constexpr double kMissHeight = 400.0;
+// What an effect is drawn for when the content has no animation for it.
+constexpr int kMissingLength = 16;
 
 bool inside(const ScenarioControl::Placement& p, double x, double y) {
     return x >= p.x + p.rect[0] && x <= p.x + p.rect[2] && y >= p.y + p.rect[1] && y <= p.y + p.rect[3];
@@ -64,6 +74,22 @@ void World::runEvent(std::int32_t event, std::int32_t character, WorldScript& ho
     for (const auto& t : script->triggers) {
         if (t.event != event || (character != -1 && t.character != character)) continue;
         runScript(t.sentence, t.character, host);
+    }
+}
+
+void World::checkTriggers(double x, double y, bool fire, WorldScript& host) {
+    for (auto& t : triggers) {
+        const bool inside = x >= t.left && x <= t.right && y >= t.top && y <= t.bottom;
+        if (fire && inside && !t.inside && script && !pendingScenario) {
+            runScript(t.sentence, -1, host);
+        }
+        t.inside = inside;
+    }
+}
+
+void World::tickGroundItems() {
+    for (auto& g : groundItems) {
+        if (g.sprite) g.sprite->tick();
     }
 }
 
@@ -143,6 +169,103 @@ bool World::tryMove(Character& who, double dx, double dy) const {
 
 void World::sound(int voice, double x, double y, bool everywhere) {
     if (host_ && host_->hero()) events.sound(voice, x, y, everywhere);
+}
+
+const CharacterModel* World::effectModel(int option) {
+    if (option < 0) return nullptr;  // -1: an unseen area that only hurts; 0 is the trap arrow
+    auto it = effectModels.find(option);
+    if (it == effectModels.end()) {
+        auto model = CharacterModel::load(*data, std::format("Character/OPTION/{:08d}/Animation", option));
+        if (!model) log::warn("No animation for effect {}", option);
+        it = effectModels.emplace(option, model ? std::make_unique<CharacterModel>(std::move(*model)) : nullptr).first;
+    }
+    return it->second.get();
+}
+
+// The most frames any direction of a chart has (GetMaxFrameCount).
+int World::effectLength(int option, int chart) {
+    const CharacterModel* model = effectModel(option);
+    if (!model || chart < 0 || static_cast<std::size_t>(chart) >= model->animations.charts.size()) return kMissingLength;
+    int frames = 0;
+    for (const auto& dir : model->animations.charts[static_cast<std::size_t>(chart)].directions) {
+        frames = std::max(frames, static_cast<int>(dir.frameCount));
+    }
+    return frames > 0 ? frames : kMissingLength;
+}
+
+// New effects wait in pendingEffects until the tick ends, so the ones
+// being stepped never move in memory. The reference is only good until the
+// next spawn.
+Effect& World::spawnEffect(int option, double x, double y, int chart) {
+    Effect e;
+    e.id = nextEffectId++;
+    e.option = option;
+    e.chart = chart;
+    e.x = x;
+    e.y = y;
+    e.life = effectLength(option, chart);
+    pendingEffects.push_back(std::move(e));
+    return pendingEffects.back();
+}
+
+// "MISS!!" pops up over whoever was missed: a still picture, made here
+// rather than by spawnEffect, hopping where it was put (stepHop).
+void World::showMiss(double x, double y) {
+    log::info("Missed at ({:.0f}, {:.0f})", x, y);
+    Effect e;
+    e.id = nextEffectId++;
+    e.option = kMissOption;
+    e.pattern = 0;
+    e.x = x;
+    e.y = y;
+    e.life = -1;
+    e.height = kMissHeight;
+    e.hop = Effect::Hop{};
+    e.hop->floor = kMissHeight;
+    pendingEffects.push_back(std::move(e));
+}
+
+// One of the original's ticks of the hop (0x42c900): up by a tenth of its
+// speed, which falls by 100 a tick. Each time it comes down to where it
+// started it bounces, at 300 and then 200; after the third landing it
+// fades by a tenth a tick and is gone.
+void World::stepHop(Effect& e) {
+    Effect::Hop& h = *e.hop;
+    e.height += h.speed / 10;
+    if (e.height < h.floor) {
+        e.height = h.floor;
+        if (h.landings == 0) h.speed = 300;
+        if (h.landings == 1) h.speed = 200;
+        if (h.landings != 3) ++h.landings;
+    }
+    h.speed -= 100;
+    if (h.landings == 3) {
+        e.light = std::max(0, h.fade);
+        h.fade -= 100;
+        if (h.fade == 0) e.dead = true;
+    }
+    ++e.age;
+}
+
+Effect* World::findEffect(int id) {
+    for (auto* list : {&effects, &pendingEffects}) {
+        for (auto& e : *list) {
+            if (e.id == id && !e.dead) return &e;
+        }
+    }
+    return nullptr;
+}
+
+int World::directionFrames(int option, int direction) {
+    const CharacterModel* model = effectModel(option);
+    if (!model || model->animations.charts.empty()) return effectLength(option);
+    const auto& dirs = model->animations.charts[0].directions;
+    for (int d : {direction, 8, 0}) {
+        if (d >= 0 && static_cast<std::size_t>(d) < dirs.size() && dirs[static_cast<std::size_t>(d)].frameCount > 0) {
+            return dirs[static_cast<std::size_t>(d)].frameCount;
+        }
+    }
+    return effectLength(option);
 }
 
 }  // namespace sf

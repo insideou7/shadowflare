@@ -193,7 +193,7 @@ void Game::comboBlow(const Combo& c) {
         if (!inSwing(c.facing, facingOf(dx, dy), spin ? kAllRound : kComboSpread)) continue;
         const auto& s = enemy.placement.stats;
         if (world_.random.next(100) >= hitChance(playerHit(), s.evasion)) {
-            showMiss(enemy.character.x, enemy.character.y);
+            world_.showMiss(enemy.character.x, enemy.character.y);
             continue;
         }
         const int roll = world_.random.next(3) + (!spin && c.blow == 3 ? 1 : 0);
@@ -239,7 +239,7 @@ bool Game::reviveWithElixir() {
     playerMp_ = playerMaxMp();
     playSound(0x11, player_->x, player_->y);
     if (const int option = scriptEffectOption(kElixirEffect); option > 0) {
-        spawnEffect(option, player_->x, player_->y).followsPlayer = true;
+        world_.spawnEffect(option, player_->x, player_->y).followsPlayer = true;
     }
     log::info("The Elixir brings the hero back");
     return true;
