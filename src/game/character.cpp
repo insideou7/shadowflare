@@ -170,7 +170,7 @@ void Character::tick() {
     if (held) return;
     const auto* dir = currentDirection();
     if (!dir || dir->frameCount <= 0) return;
-    for (progress_ += speed_; progress_ >= 1.0; progress_ -= 1.0) {
+    for (progress_ += speed_ * kFramesPerTick; progress_ >= 1.0; progress_ -= 1.0) {
         const int was = frame_;
         if (model_->animations.charts[chart_].status == 1) {
             frame_ = (frame_ + 1) % dir->frameCount;
