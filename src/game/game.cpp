@@ -1121,6 +1121,7 @@ void Game::tickPlayer() {
     if (heroStun_) {
         if (tickStun(*player_, *heroStun_)) return;
         heroStun_.reset();
+        if (rules_.noCastWhileStunned) casting_.reset();
         player_->held = false;
         player_->grey = false;
         player_->play(chart::kIdle);
