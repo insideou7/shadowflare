@@ -53,14 +53,21 @@ It builds the engine without content (`-DSFE_WEB_PRELOAD_CONTENT=OFF`) and
 packs `content/` with Emscripten's `file_packager` into parts of at most
 45 MB (`SFE_WEB_PART_MB`), files in path order, because GitHub refuses
 files over 100 MB and warns over 50 MB. Each part is a `shadowflare-N.data`
-with a small `shadowflare-N.js` that loads it; the page includes them all
-before the engine, and Emscripten waits for every part before starting.
-The page shows a bar and "x of y MB" while they download, and the total
-size before the game starts.
+with a small `shadowflare-N.js` that loads it. Visiting the page fetches
+only the engine (about 2 MB). The parts are fetched when the player
+presses "Play the open game": the page then injects their loaders, shows
+a bar and "x of y MB", and starts the game once every part is in place.
+Choosing the player's own ShadowFlare folder never downloads the open pack.
+
+The parts are also stored in the browser's Cache Storage, under the build's
+version, so a return visit starts without downloading them again (GitHub
+Pages sets its own short `Cache-Control`, so the HTTP cache alone is not
+relied on). Older versions' caches are deleted. Where Cache Storage is
+unavailable (some private windows) the parts are simply fetched each time.
 
 | File | What it is | Size |
 | --- | --- | --- |
-| `index.html` | the page (from `web/shell.html`) | 6 KB |
+| `index.html` | the page (from `web/shell.html`) | 12 KB |
 | `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 180 KB |
 | `shadowflare.wasm` | the engine | 2 MB |
 | `shadowflare-1.data` … `-3.data` | `content/` in three parts | 45, 45 and 26 MB |
