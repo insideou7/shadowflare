@@ -20,6 +20,15 @@ set(SFE_SAVE_KEY "" CACHE STRING "Secret the offline save key is made from (empt
 # developing. Turn off for release builds.
 option(SFE_SAVE_TOOLS "Build in the plain save tools for development" ON)
 
+# Memory and undefined-behavior checks for our own targets (docs/fuzzing.md):
+# AddressSanitizer and UBSan on GCC and Clang, AddressSanitizer on MSVC.
+option(SFE_SANITIZE "Build with AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+# libFuzzer targets for the data readers (Clang or MSVC; turns SFE_SANITIZE on).
+option(SFE_FUZZ "Build the libFuzzer targets in tests/fuzz" OFF)
+if(SFE_FUZZ)
+    set(SFE_SANITIZE ON)
+endif()
+
 if(EMSCRIPTEN)
     # The format readers report bad data by throwing, and Emscripten turns
     # catching off unless asked. Wasm's own exceptions are the fast kind.
@@ -204,6 +213,43 @@ if(BUILD_TESTING)
     target_link_libraries(world_test PRIVATE sf_world)
     target_compile_definitions(world_test PRIVATE SF_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
     add_test(NAME world COMMAND world_test)
+endif()
+
+# Only our own code is built with the sanitizers: fetched SDL2 and Sentry
+# stay as they are (SDL2's shared library will not link with them).
+if(SFE_SANITIZE AND NOT EMSCRIPTEN)
+    foreach(target sf_formats sf_stb sf_logic shadowflare formats_test logic_test inventory_test open_content_test ground_skin_test)
+        if(NOT TARGET ${target})
+            continue()
+        endif()
+        if(MSVC)
+            target_compile_options(${target} PRIVATE /fsanitize=address /Zi)
+            # MSVC's AddressSanitizer does not work with incremental linking.
+            target_link_options(${target} PRIVATE /INCREMENTAL:NO)
+        else()
+            target_compile_options(${target} PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g)
+            target_link_options(${target} PRIVATE -fsanitize=address,undefined)
+        endif()
+    endforeach()
+endif()
+
+if(SFE_FUZZ)
+    if(NOT (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR MSVC))
+        message(FATAL_ERROR "SFE_FUZZ needs Clang or MSVC (libFuzzer).")
+    endif()
+    add_executable(fuzz_formats tests/fuzz/fuzz_formats.cpp)
+    target_link_libraries(fuzz_formats PRIVATE sf_formats)
+    # The readers get coverage counters so the fuzzer can find new paths;
+    # only the fuzz target itself links libFuzzer's main.
+    if(MSVC)
+        target_compile_options(sf_formats PRIVATE /fsanitize-coverage=inline-8bit-counters /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp)
+        target_compile_options(fuzz_formats PRIVATE /fsanitize=fuzzer /fsanitize=address /Zi)
+        target_link_options(fuzz_formats PRIVATE /INCREMENTAL:NO)
+    else()
+        target_compile_options(sf_formats PRIVATE -fsanitize=fuzzer-no-link)
+        target_compile_options(fuzz_formats PRIVATE -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined -g)
+        target_link_options(fuzz_formats PRIVATE -fsanitize=fuzzer,address,undefined)
+    endif()
 endif()
 
 if(EMSCRIPTEN)
