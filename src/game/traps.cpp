@@ -21,14 +21,6 @@ constexpr int kPartnerHitChart = 3;  // the companion's hit chart (partner.cpp)
 
 // Where a character stands: 0-3 are the players (the hero is 0 in single
 // play), anything else a scenario id.
-std::optional<std::pair<double, double>> Game::characterAt(std::int32_t id) const {
-    if (id >= 0 && id < 4) {
-        if (id == 0 && player_) return std::pair(player_->x, player_->y);
-        return std::nullopt;
-    }
-    return world_.positionOf(id);
-}
-
 // The frames of an effect's first chart in one direction (0x42b860 and
 // 0x42a300 ask GetMaxFrameCount for the direction it faces).
 int Game::directionFrames(int option, int direction) {
@@ -334,25 +326,6 @@ void Game::createScriptEffect(int number, double x, double y, int height, int di
     e.height = height;
     e.follows = follows;
     e.life = directionFrames(option, direction);
-}
-
-// RESSURECT (0x45a140): a dead enemy is back where the script says, at
-// full health, facing `direction`, and counts as alive again.
-void Game::resurrect(std::int32_t enemy, int x, int y, int direction) {
-    Actor* a = world_.actorById(enemy);
-    if (!a || !a->hostile() || a->alive()) return;
-    a->hp = a->maxHp;
-    a->state = Actor::State::Idle;
-    a->action = -1;
-    a->actionTicks = 0;
-    a->event = AiControl::kDecide;
-    a->stunTicks = 0;
-    a->struck = false;
-    a->character.x = x;
-    a->character.y = y;
-    if (direction >= 0 && direction < 8) a->character.direction = direction;
-    a->character.restart(chart::kIdle);
-    log::info("Monster {} is back", enemy);
 }
 
 // SETTINGRAIN r g b count (0x41fe20): `count` new drops, each a short

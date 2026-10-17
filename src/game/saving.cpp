@@ -183,7 +183,7 @@ bool Game::inTown() const {
 }
 
 void Game::autosaveIfInTown() {
-    if (!rules_.autosaveInTown || !settings_.autosave || !autosaveAllowed_ || !inTown()) return;
+    if (!world_.rules.autosaveInTown || !settings_.autosave || !autosaveAllowed_ || !inTown()) return;
     if (fallTicks_ || !player_) return;
     log::info("Autosave on coming into {} \"{}\"", world_.scenarioDir, world_.control.title);
     saveGame(true);

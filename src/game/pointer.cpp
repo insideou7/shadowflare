@@ -293,7 +293,7 @@ void Game::renderHoverName() {
 
 // Ours (Rules::groundItemNames): Alt held, or L to keep them on.
 bool Game::itemNamesShown() const {
-    if (!rules_.groundItemNames || !world_.map || world_.groundItems.empty()) return false;
+    if (!world_.rules.groundItemNames || !world_.map || world_.groundItems.empty()) return false;
     return forceItemNames_ || settings_.itemNames || (SDL_GetModState() & KMOD_ALT) != 0;
 }
 

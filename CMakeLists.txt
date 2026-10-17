@@ -110,6 +110,7 @@ add_library(sf_world STATIC
     src/world/character.cpp
     src/world/world.cpp
     src/world/monsters.cpp
+    src/world/world_script.cpp
 )
 target_link_libraries(sf_world PUBLIC sf_logic)
 

@@ -714,7 +714,7 @@ void Game::renderHelp() {
     int y = panel.y + 34;
     for (const auto& k : kKeys) {
         // Original mode has no item names (Rules::groundItemNames).
-        const bool works = k.works && (k.key != std::string_view("ALT / L") || rules_.groundItemNames);
+        const bool works = k.works && (k.key != std::string_view("ALT / L") || world_.rules.groundItemNames);
         uiText(panel.x + 20, y, k.key, works ? kTitle : kDimmed);
         uiText(panel.x + 140, y, k.what, works ? kLabel : kDimmed);
         y += 14;

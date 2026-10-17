@@ -269,7 +269,7 @@ void Game::dropLoot(const Actor& enemy) {
 }
 
 void Game::dropFromList(int list, double x, double y) {
-    const auto drops = rollDrops(dropTables_, items_, list, world_.random, rules_.dropQualityPerRoll, luck(), playerLevel_);
+    const auto drops = rollDrops(dropTables_, items_, list, world_.random, world_.rules.dropQualityPerRoll, luck(), playerLevel_);
     for (std::size_t i = 0; i < drops.size(); ++i) {
         // Spread around the spot by how many rolls the list has, as the
         // exe does, whether or not each roll gave something.
@@ -562,11 +562,11 @@ bool Game::inventoryClick(int x, int y, bool right) {
             if (index >= 0 && inventory_.bag()[static_cast<std::size_t>(index)].item.def->isGold()) {
                 const auto& placed = inventory_.bag()[static_cast<std::size_t>(index)];
                 openGoldSplit(GoldSplit::From::Bag, placed.x, placed.y, x, y);
-            } else if (rules_.rightClickStores && storageOpen() && index >= 0) {
+            } else if (world_.rules.rightClickStores && storageOpen() && index >= 0) {
                 applyItemRequest(ItemRequest::at(ItemRequest::Kind::StoreFromBag, cx, cy));
-            } else if (rules_.rightClickSells && openShop_ && !storageOpen()) {
+            } else if (world_.rules.rightClickSells && openShop_ && !storageOpen()) {
                 applyItemRequest(ItemRequest::at(ItemRequest::Kind::SellFromBag, cx, cy));
-            } else if (rules_.rightClickEquips && index >= 0 &&
+            } else if (world_.rules.rightClickEquips && index >= 0 &&
                        inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) {
                 applyItemRequest(ItemRequest::at(ItemRequest::Kind::EquipFromBag, cx, cy));
             } else {
@@ -775,7 +775,7 @@ void Game::putInWarehouse() {
         return;
     }
     const ItemDef& held = *hand_->def;
-    if (shops_[kStorage].takeIn(hand_, !rules_.noEmptyGoldInWarehouse)) {
+    if (shops_[kStorage].takeIn(hand_, !world_.rules.noEmptyGoldInWarehouse)) {
         playSound(itemSound(held, kItemPut));
     } else if (hand_) {
         // The original says nothing and keeps the item in the hand.
@@ -905,7 +905,7 @@ void Game::renderGroundItems(int camX, int camY) {
         const SpriteBank* bank =
             def.groundFolder >= 0 ? itemBank(std::format("Character/ITEM/{:08d}/Pattern", def.groundFolder)) : nullptr;
         if (const SpriteTexture* sprite = bank ? sprites_.get(*bank, def.groundPicture, false) : nullptr) {
-            if (glow > 0 && rules_.outlineUnderPointer) drawOutline(*bank, def.groundPicture, sx, sy, kHoverOutline);
+            if (glow > 0 && world_.rules.outlineUnderPointer) drawOutline(*bank, def.groundPicture, sx, sy, kHoverOutline);
             SDL_Rect dst{sx + sprite->originX, sy + sprite->originY, sprite->width, sprite->height};
             SDL_RenderCopy(renderer_, sprite->texture, nullptr, &dst);
             if (glow > 0) {
@@ -1288,12 +1288,12 @@ void Game::applyItemRequest(const ItemRequest& r) {
         case K::UseBelt: useBelt(r.x, r.y); break;
         case K::EquipFromBag: {
             const int index = inventory_.indexAt(r.x, r.y);
-            if (!rules_.rightClickEquips || hand_ || index < 0) break;
+            if (!world_.rules.rightClickEquips || hand_ || index < 0) break;
             if (inventory_.slotFor(*inventory_.bag()[static_cast<std::size_t>(index)].item.def)) equipFromBag(index);
             break;
         }
         case K::UnequipToBag:
-            if (!hand_ && rules_.rightClickEquips) unequipToBag(slot);
+            if (!hand_ && world_.rules.rightClickEquips) unequipToBag(slot);
             break;
         case K::DropHand: dropHand(); break;
         case K::ChooseWeaponSet:
@@ -1315,7 +1315,7 @@ void Game::applyItemRequest(const ItemRequest& r) {
         case K::Buy: buyAt(r.x, r.y); break;
         case K::SellHand: sellHand(); break;
         case K::SellFromBag:
-            if (rules_.rightClickSells) sellFromBag(inventory_.indexAt(r.x, r.y));
+            if (world_.rules.rightClickSells) sellFromBag(inventory_.indexAt(r.x, r.y));
             break;
         case K::StorageClick: {
             if (!storageOpen()) break;
@@ -1332,14 +1332,14 @@ void Game::applyItemRequest(const ItemRequest& r) {
             break;
         }
         case K::StoreFromBag:
-            if (rules_.rightClickStores) storeFromBag(inventory_.indexAt(r.x, r.y));
+            if (world_.rules.rightClickStores) storeFromBag(inventory_.indexAt(r.x, r.y));
             break;
         case K::FromStorage: {
             if (!storageOpen() || hand_) break;
             ShopStock& stock = openStock();
             const int i = stock.indexAt(r.x, r.y);
             if (i < 0 || stock.goods[static_cast<std::size_t>(i)].item.def->isGold()) break;
-            if (rules_.rightClickStores) {
+            if (world_.rules.rightClickStores) {
                 takeFromStorage(i);
             } else if (applyConsumable(*stock.goods[static_cast<std::size_t>(i)].item.def)) {
                 stock.goods.erase(stock.goods.begin() + i);

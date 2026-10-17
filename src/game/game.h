@@ -187,8 +187,8 @@ public:
 
     // Original mode plays by the original game's rules, bugs included
     // (logic/rules.h). Off by default.
-    void setOriginalMode(bool on) { rules_ = on ? Rules::original() : Rules::ours(); }
-    bool originalMode() const { return rules_.originalMode(); }
+    void setOriginalMode(bool on) { world_.rules = on ? Rules::original() : Rules::ours(); }
+    bool originalMode() const { return world_.rules.originalMode(); }
     // The Debug tab's experience rate in percent; 100 in original mode.
     int xpRate() const { return originalMode() ? Settings::kXpRateNormal : settings_.xpRate; }
     // The Debug tab's luck in percent (unique drops); 100 in
@@ -348,6 +348,7 @@ private:
     void monsterStrikes(Actor& monster, int slot) override { strikePlayer(monster, slot); }
     void monsterCasts(Actor& monster, int slot) override { castMonsterSpell(monster, slot); }
     void monsterThrows(Actor& monster, int slot) override { throwShot(monster, slot); }
+    bool heroAlive() const override { return playerHp_ > 0; }
 
     // Talking, shops and the rest of the scenario script (talk.cpp).
     friend class GameScript;
@@ -645,7 +646,6 @@ private:
 
     // Scenario objects (objects.cpp; world/world.h's SceneObject).
     void spawnObjects();
-    void tickObjects();
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -716,8 +716,6 @@ private:
     void stunHero(const Stun& stun);
     void createScriptEffect(int number, double x, double y, int height, int direction, std::int32_t follows);
     int directionFrames(int option, int direction);
-    std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;  // players 0-3 too
-    void resurrect(std::int32_t enemy, int x, int y, int direction);
     struct RainDrop {
         int age = 0;
         int x = 0, y = 0;  // screen pixels it starts from
@@ -984,9 +982,6 @@ private:
     bool warpGateClick(int x, int y, bool right);
     void renderWarpGate();
 
-    // People's scripted actions (C_ACTIONREQ, talk.cpp).
-    void requestAction(const ScriptHost::ActionRequest& r);
-
     // The hero's fall (game_over.cpp). At no health the hero drops
     // (0x435b60): the death sound, the parting glow (option 11000023,
     // controller 0x5212) and chart 4 if their model has one. Its last
@@ -1142,10 +1137,7 @@ private:
     // By path stem (null = failed): [0] the original's, [1] the skin's.
     std::array<std::map<std::string, std::unique_ptr<CharacterModel>>, 2> models_;
     std::map<std::string, std::unique_ptr<SpriteBank>> objectShadows_;  // by path stem; null = missing
-    bool unlockSwitch_ = false;  // SETUNLOCKSW this frame
     std::int32_t heldObject_ = -1;  // --hold
-    double unlockTicks_ = 0;
-    std::optional<std::pair<int, int>> pendingScenario_;  // scenario number, entry
     bool forgetCurrent_ = false;
 
     std::array<std::array<std::optional<CharacterModel>, 2>, 2> playerModels_;  // [art][HeroSex], as models_
@@ -1228,7 +1220,6 @@ private:
     double originalTicks_ = 0;  // carried between engine ticks
     int mineCount_ = mines::kStartCount;  // mines carried (player + 0x328)
     int mineWait_ = 0;                    // ticks before another can be laid
-    Rules rules_;
     std::optional<PartnerTables> partnerTables_;  // none with open content
     PartnerRecord partnerRecord_;
     std::optional<Partner> partner_;
@@ -1280,7 +1271,6 @@ private:
     std::optional<GoldSplit> goldSplit_;
     bool swapWeaponSetsPending_ = false;
     std::optional<int> openShop_;
-    int entryPoint_ = 0;
     std::vector<int> answers_;
     bool startScripts_ = false;  // the scenario's start triggers still have to run
     std::string message_;

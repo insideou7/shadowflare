@@ -32,7 +32,7 @@ Uint8 perMille(int value) { return static_cast<Uint8>(std::clamp(value, 0, 1000)
 
 void Game::spawnObjects() {
     world_.sceneObjects.clear();
-    unlockSwitch_ = false;
+    world_.unlockSwitch = false;
     for (std::size_t i = 0; i < world_.control.placements.size(); ++i) {
         const auto& p = world_.control.placements[i];
         if (p.group != ScenarioControl::Group::Object) continue;
@@ -78,15 +78,6 @@ void Game::spawnObjects() {
     }
 }
 
-// Pictures change with the states alone; only charts move, and only while
-// the object is shown (0x45ddd0 counts its frame there).
-void Game::tickObjects() {
-    for (auto& o : world_.sceneObjects) {
-        if (o.animation && world_.objectState(o, World::kShown)) o.animation->tick();
-    }
-    if (unlockSwitch_) unlockTicks_ += 1.5;
-}
-
 MapObject Game::objectFootprint(const SceneObject& o) const {
     const auto& p = world_.placementOf(o);
     MapObject m;
@@ -102,7 +93,7 @@ void Game::drawSceneObject(const SceneObject& o, bool shadows, int camX, int cam
     // The one under the pointer is drawn brighter (0x40ee70); a chart's
     // brightness is set with the characters'.
     const int glow = hovered(Settings::kObject, o.placement) ? kHoverGlow : 0;
-    const SDL_Color* outline = glow > 0 && rules_.outlineUnderPointer ? &kHoverOutline : nullptr;
+    const SDL_Color* outline = glow > 0 && world_.rules.outlineUnderPointer ? &kHoverOutline : nullptr;
     if (o.animation) {
         if (!shadows) drawCharacter(renderer_, sprites_, *o.animation, camX, camY, shadowAlpha, std::max(1, int{perMille(p.look.opacity)}));
         return;

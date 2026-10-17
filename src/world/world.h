@@ -15,11 +15,13 @@
 #include "logic/ai_select.h"
 #include "logic/inventory.h"
 #include "logic/magic.h"
+#include "logic/rules.h"
 #include "logic/script_runner.h"
 #include "logic/traps.h"
 #include "world/character.h"
 #include "world/map.h"
 #include "world/world_events.h"
+#include "world/world_script.h"
 
 namespace sf {
 
@@ -255,6 +257,8 @@ public:
     // The hero monsters go for and sounds are heard by; null before
     // there is one.
     virtual const Character* hero() const = 0;
+    // Whether the hero still has health (traps aim only at a living one).
+    virtual bool heroAlive() const = 0;
     // A monster's blow lands on, or misses, the hero (and an ACTIVE
     // companion in front of it); its spell leaves its hand; its stone or
     // arrow is thrown. `slot` is the attack's (0-2).
@@ -274,6 +278,21 @@ public:
     // Who holds the heroes; set once, before the first tick.
     void setHost(WorldHost* host) { host_ = host; }
 
+    // The hero, as WorldHost has them; null before there is one.
+    const Character* hero() const { return host_ ? host_->hero() : nullptr; }
+    bool heroAlive() const { return host_ && host_->heroAlive(); }
+
+    // Runs one of the scenario script's sentences, or every one an event
+    // starts (for `character`, or any with -1), with `host` carrying out
+    // what the world cannot by itself. A sentence that leads to another
+    // scenario sets pendingScenario; none run while one is pending.
+    void runScript(std::int32_t sentence, std::int32_t character, WorldScript& host);
+    void runEvent(std::int32_t event, std::int32_t character, WorldScript& host);
+
+    // Objects' animations move while they are shown (0x45ddd0 counts
+    // their frames there); pictures change with the states alone.
+    void tickObjects();
+
     // People and monsters move on a tick: their state flags, the AI of
     // monsters (once there is a hero to go for), scripted actions,
     // animations and the cries their animations call for.
@@ -284,6 +303,8 @@ public:
     const ScenarioControl::Placement* placementById(std::int32_t id) const;
     // Where a character or placement stands, in world units.
     std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
+    // As positionOf, with the players 0-3 too (the hero is 0).
+    std::optional<std::pair<double, double>> characterAt(std::int32_t id) const;
 
     // Scenario objects' three states (the NET flags kStateFlagBases name,
     // until ABSOLUTEOBJECTFLAG fixes them).
@@ -309,6 +330,8 @@ public:
     // The monster's death cry, by its kind (0x45bec0).
     void monsterDeathCry(const Actor& monster);
 
+    // Ours, or the original game's with its bugs (logic/rules.h).
+    Rules rules;
     std::optional<Map> map;
     std::string scenarioDir;  // Scenario/<dir> of the current map, or empty
     ScenarioControl control;
@@ -321,6 +344,12 @@ public:
     ScriptFlags flags;
     std::set<std::int32_t> skippedCommands;  // script commands not carried out, logged once per scenario
     std::map<std::string, ScenarioVisit> visited;  // by Scenario/<dir>
+    // A script's exit to another scenario (number, entry), taken once the
+    // talk it came from is over; and the entry the hero came in by.
+    std::optional<std::pair<int, int>> pendingScenario;
+    int entryPoint = 0;
+    bool unlockSwitch = false;  // SETUNLOCKSW this frame
+    double unlockTicks = 0;
 
     // Spells, shots and mines (game/spells.cpp, archery.cpp, traps.cpp,
     // mines.cpp).

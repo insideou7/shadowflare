@@ -39,6 +39,41 @@ std::optional<std::pair<double, double>> World::positionOf(std::int32_t id) cons
     return std::nullopt;
 }
 
+std::optional<std::pair<double, double>> World::characterAt(std::int32_t id) const {
+    if (id >= 0 && id < 4) {
+        if (const Character* h = hero(); id == 0 && h) return std::pair(h->x, h->y);
+        return std::nullopt;
+    }
+    return positionOf(id);
+}
+
+void World::runScript(std::int32_t sentence, std::int32_t character, WorldScript& host) {
+    if (!script || pendingScenario) return;
+    const std::int32_t outer = host.character();
+    host.setCharacter(character);
+    ScriptRunner runner(*script, flags, &host, character);
+    runner.setRules(rules);
+    if (const auto change = runner.run(sentence)) {
+        pendingScenario.emplace(change->scenario, change->entry);
+    }
+    host.setCharacter(outer);
+}
+
+void World::runEvent(std::int32_t event, std::int32_t character, WorldScript& host) {
+    if (!script) return;
+    for (const auto& t : script->triggers) {
+        if (t.event != event || (character != -1 && t.character != character)) continue;
+        runScript(t.sentence, t.character, host);
+    }
+}
+
+void World::tickObjects() {
+    for (auto& o : sceneObjects) {
+        if (o.animation && objectState(o, kShown)) o.animation->tick();
+    }
+    if (unlockSwitch) unlockTicks += 1.5;
+}
+
 const ScenarioControl::Placement* World::placementById(std::int32_t id) const {
     for (const auto& p : control.placements) {
         if (ScenarioControl::idBase(p.group) + p.id == id) return &p;

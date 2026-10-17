@@ -72,7 +72,7 @@ void Game::tickFall() {
     if (!player_->finished()) return;
     *fallTicks_ += kOriginalTicksPerTick;
     if (*fallTicks_ <= kHoldTicks) return;
-    if (rules_.gameOverWindow) {
+    if (world_.rules.gameOverWindow) {
         gameOverOpen_ = true;
         gameOverChoice_ = 0;
         log::info("Game Over (tick {})", ticks_);
@@ -92,7 +92,7 @@ void Game::wakeInTown() {
     player_->direction = 0;
     player_->restart(chart::kIdle);
     log::info("The player wakes in town (scenario {}, entry {}), {} gold lost", world_.control.town, world_.control.townEntry, lost);
-    pendingScenario_.emplace(world_.control.town, world_.control.townEntry);
+    world_.pendingScenario.emplace(world_.control.town, world_.control.townEntry);
 }
 
 bool Game::heroHasSave() const {

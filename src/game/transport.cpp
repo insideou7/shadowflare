@@ -132,7 +132,7 @@ void Game::tickTransportGate() {
         }
         ++g.age;
     }
-    if (pendingScenario_ || !g.assembled()) return;
+    if (world_.pendingScenario || !g.assembled()) return;
     const int here = scenarioNumber();
     auto onIt = [&](double x, double y) {
         return std::abs(player_->x - x) < kGateHalf + kHeroHalf && std::abs(player_->y - y) < kGateHalf + kHeroHalf;
@@ -141,7 +141,7 @@ void Game::tickTransportGate() {
         if (onIt(g.x, g.y)) {
             if (!g.standing[0]) {
                 log::info("Through the Transport gate to scenario {}", g.town);
-                pendingScenario_.emplace(g.town, kTownEntry);
+                world_.pendingScenario.emplace(g.town, kTownEntry);
                 g.standing[1] = true;  // arriving on the other end does not send them back
             }
             g.standing[0] = true;
@@ -153,7 +153,7 @@ void Game::tickTransportGate() {
         if (end && onIt(end->first, end->second)) {
             if (!g.standing[1]) {
                 log::info("Back through the Transport gate to scenario {}", g.field);
-                pendingScenario_.emplace(g.field, -1);
+                world_.pendingScenario.emplace(g.field, -1);
                 pendingPosition_.emplace(g.x, g.y);
                 // Its owner coming back closes it.
                 transportGate_.reset();

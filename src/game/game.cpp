@@ -140,7 +140,7 @@ void Game::loadScenario(const std::string& dir) {
     world_.control = {};
     world_.script.reset();
     world_.triggers.clear();
-    pendingScenario_.reset();
+    world_.pendingScenario.reset();
     // TEMP and NET flags (out of network play) belong to the scenario
     // (0x4300e0); the others persist.
     std::erase_if(world_.flags, [](const auto& f) { return f.first.first == ScenarioScript::kTemp || f.first.first == ScenarioScript::kNet; });
@@ -547,7 +547,7 @@ void Game::updateCamera() {
 }
 
 double Game::zoom() const {
-    if (fullSize_ || !rules_.zoomOut) return 1.0;
+    if (fullSize_ || !world_.rules.zoomOut) return 1.0;
     return std::clamp(settings_.zoom, Settings::kMinZoom, Settings::kMaxZoom) / 100.0;
 }
 
@@ -578,7 +578,7 @@ SDL_Texture* Game::worldTexture() {
 // Each notch of the scroll wheel zooms a step, about the middle of the
 // view (the hero, when there is one).
 void Game::zoomBy(int notches) {
-    if (!rules_.zoomOut || notches == 0) return;
+    if (!world_.rules.zoomOut || notches == 0) return;
     const int was = settings_.zoom;
     const double middleX = cameraX_ + viewWidth() / 2.0, middleY = cameraY_ + viewHeight() / 2.0;
     settings_.zoom = std::clamp(was + notches * Settings::kZoomStep, Settings::kMinZoom, Settings::kMaxZoom);
@@ -625,7 +625,7 @@ void Game::handleEvent(const SDL_Event& event) {
             // Away from the player zooms in, towards them out (ours; the
             // original has nothing on the wheel).
             const int notches = event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -event.wheel.y : event.wheel.y;
-            if (world_.map && rules_.zoomOut && notches != 0) {
+            if (world_.map && world_.rules.zoomOut && notches != 0) {
                 zoomBy(notches);
                 showMessage(std::format("Zoom {}%", settings_.zoom));
             }
@@ -668,7 +668,7 @@ void Game::handleEvent(const SDL_Event& event) {
                 case SDLK_j: showJudge_ = !showJudge_; break;
                 case SDLK_l:
                     // Ours: keeps the items' names on, as Alt does while held.
-                    if (rules_.groundItemNames) {
+                    if (world_.rules.groundItemNames) {
                         settings_.itemNames = !settings_.itemNames;
                         saveSettings();
                         showMessage(settings_.itemNames ? "Item names on" : "Item names off (hold Alt)");
@@ -789,7 +789,7 @@ void Game::handleEvent(const SDL_Event& event) {
                     double wx, wy;
                     screenToWorld(pixelX(event.button.x), pixelY(event.button.y), wx, wy);
                     std::optional<std::size_t> enemy;
-                    if (rules_.spellsAimAtEnemy) {
+                    if (world_.rules.spellsAimAtEnemy) {
                         if (const auto target = clickTarget(event.button.x, event.button.y, ~0u); target.kind == Settings::kEnemy) {
                             enemy = target.index;
                             wx = world_.actors[target.index].character.x;
@@ -893,8 +893,8 @@ void Game::tick() {
         startScripts_ = false;
         runEvent(ScenarioScript::kOnStart);
     }
-    if (pendingScenario_ && !dialogue_) {
-        const auto [number, entry] = *pendingScenario_;
+    if (world_.pendingScenario && !dialogue_) {
+        const auto [number, entry] = *world_.pendingScenario;
         travel(number, entry);
         updateCamera();
         return;
@@ -913,13 +913,13 @@ void Game::tick() {
     if (dialogue_ || openShop_) return;  // and while the player talks or trades
     tickVisual();
     tickRain();
-    unlockSwitch_ = false;  // SETUNLOCKSW lasts the frame a script sets it (0x443490)
+    world_.unlockSwitch = false;  // SETUNLOCKSW lasts the frame a script sets it (0x443490)
     // Event 5 runs every one of the original's ticks, 30 a second, so
     // traps fire and script counters count at its pace.
-    for (everyTickCarry_ += 30.0 / kTicksPerSecond; everyTickCarry_ >= 1.0 && !pendingScenario_; everyTickCarry_ -= 1.0) {
+    for (everyTickCarry_ += 30.0 / kTicksPerSecond; everyTickCarry_ >= 1.0 && !world_.pendingScenario; everyTickCarry_ -= 1.0) {
         runEvent(ScenarioScript::kEveryTick);
     }
-    tickObjects();
+    world_.tickObjects();
     world_.tickActors();
     if (!player_) return;
     if (fallTicks_) {
@@ -953,8 +953,8 @@ void Game::tick() {
     for (auto& l : labels_) --l.ticks;
     std::erase_if(labels_, [](const Label& l) { return l.ticks <= 0; });
     checkTriggers();
-    if (pendingScenario_) {
-        const auto [number, entry] = *pendingScenario_;
+    if (world_.pendingScenario) {
+        const auto [number, entry] = *world_.pendingScenario;
         travel(number, entry);
     }
     updateCamera();
@@ -966,7 +966,7 @@ void Game::checkTriggers(bool fire) {
     if (!player_) return;
     for (auto& t : world_.triggers) {
         const bool inside = player_->x >= t.left && player_->x <= t.right && player_->y >= t.top && player_->y <= t.bottom;
-        if (fire && inside && !t.inside && world_.script && !pendingScenario_) {
+        if (fire && inside && !t.inside && world_.script && !world_.pendingScenario) {
             runScript(t.sentence);
         }
         t.inside = inside;
@@ -975,7 +975,7 @@ void Game::checkTriggers(bool fire) {
 
 // Loads another scenario's map and puts the party at one of its entry points.
 void Game::changeScenario(int number, int entry) {
-    pendingScenario_.reset();
+    world_.pendingScenario.reset();
     const auto position = std::exchange(pendingPosition_, std::nullopt);
     char dir[32];
     std::snprintf(dir, sizeof dir, "Scenario/%08d", number);
@@ -993,7 +993,7 @@ void Game::changeScenario(int number, int entry) {
         return;
     }
     log::info("Going to {} \"{}\", entry {}", dir, target.title, entry);
-    entryPoint_ = entry;
+    world_.entryPoint = entry;
     loadMap(static_cast<std::size_t>(found - mapNames_.begin()), dir);
     // The player is the first of the four party members.
     for (const auto& e : target.entryPoints) {
@@ -1379,7 +1379,7 @@ void Game::absorbFrom(const Actor& enemy, int damage) {
         orb.life = 90;
     }
     playSound(0x3d, enemy.character.x, enemy.character.y);
-    if (rules_.absorptionHeals && rate > 0 && playerHp_ > 0) {
+    if (world_.rules.absorptionHeals && rate > 0 && playerHp_ > 0) {
         playerHp_ = std::min(playerMaxHp(), playerHp_ + std::max(1, damage * rate / 100));
     }
 }
@@ -1462,7 +1462,7 @@ void Game::hurtPlayer(int damage, bool magic, Actor* attacker, bool flinch) {
     // Shields charge MP each time they work. The original charges the
     // chosen spell's cost at the shield's level; ours the shield's own.
     auto chargeShield = [&](int shield) {
-        const int charged = rules_.shieldsCostTheirOwnMp || spells_.selected < 0 ? shield : spells_.selected;
+        const int charged = world_.rules.shieldsCostTheirOwnMp || spells_.selected < 0 ? shield : spells_.selected;
         playerMp_ -= mpCost(charged, castLevel(shield));
         if (playerMp_ <= 0) {
             playerMp_ = 0;
@@ -1669,7 +1669,7 @@ void Game::renderMap() {
             if (d.character) drawCharacter(renderer_, sprites_, *d.character, camX, camY, shadowAlpha);
             if (!shadows && d.character && player_ && d.character == &*player_) {
                 renderPowerAura(camX, camY);
-                if (unlockSwitch_) renderHeroOverlay(model("Player/Common/UnlockSW"), unlockTicks_, camX, camY);
+                if (world_.unlockSwitch) renderHeroOverlay(model("Player/Common/UnlockSW"), world_.unlockTicks, camX, camY);
             }
             if (d.effect) renderEffect(*d.effect, camX, camY);
         };
@@ -1874,7 +1874,7 @@ void Game::renderIsoGround(int camX, int camY) {
 
 // A bar over each wounded monster; the hero's are on the panel (panel.cpp).
 void Game::renderHealthBars() {
-    if (!rules_.healthBarsOverMonsters) return;
+    if (!world_.rules.healthBarsOverMonsters) return;
     // The one under the pointer shows its health in its name instead.
     const Actor* named = hoverOn_ ? hoveredActor() : nullptr;
     for (const auto& a : world_.actors) {

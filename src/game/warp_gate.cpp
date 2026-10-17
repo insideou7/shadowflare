@@ -133,7 +133,7 @@ void Game::chooseWarpGate(int row) {
     closeMagicWindow();
     walkTarget_.reset();
     attackTarget_.reset();
-    pendingScenario_.emplace(gate->scenario, gate->entry);
+    world_.pendingScenario.emplace(gate->scenario, gate->entry);
 }
 
 bool Game::warpGateClick(int x, int y, bool right) {

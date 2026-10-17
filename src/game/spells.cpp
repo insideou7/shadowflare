@@ -824,7 +824,7 @@ void Game::stepEffect(Effect& e) {
         e.y = player_->y;
     }
     if (e.follows >= 0) {
-        if (const auto at = characterAt(e.follows)) std::tie(e.x, e.y) = *at;
+        if (const auto at = world_.characterAt(e.follows)) std::tie(e.x, e.y) = *at;
     }
     if (e.followsPartner && partner_) {
         e.x = partner_->character.x;

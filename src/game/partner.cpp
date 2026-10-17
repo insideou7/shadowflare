@@ -457,7 +457,7 @@ std::string Game::partnerStatusText(int kind, bool withItems) const {
                           : level >= cap           ? "Experience Limit"
                                                    : std::format("Experience     {:5d}", exp);
     // The original prints defence on the magic evasion line.
-    const int magicEvasion = rules_.partnerStatusShowsMagicEvasion ? s.magicEvasion : s.defense;
+    const int magicEvasion = world_.rules.partnerStatusShowsMagicEvasion ? s.magicEvasion : s.defense;
     return std::format(
         "{}\n"
         "Level          {:5d}\n"
@@ -834,7 +834,7 @@ void Game::orderPartnerExplosion(double x, double y) {
 void Game::partnerExplodes() {
     Partner& p = *partner_;
     const Character& c = p.character;
-    const int ofSpell = rules_.explosionUsesItsOwnLevel ? kExplosion : kElementalStrike;
+    const int ofSpell = world_.rules.explosionUsesItsOwnLevel ? kExplosion : kElementalStrike;
     const int level = std::max(1, castLevel(ofSpell));
     const int element = magic_.spell(kExplosion).element;
     log::info("The companion explodes at {:.0f},{:.0f} (level {})", c.x, c.y, level);
