@@ -79,7 +79,8 @@ Original folders: `Player/Male`, `Player/Female` (body = layer 0),
    5. Body moves off the anchor (knock-back, lunges): the `shift` key
       moves the hips in the model's own space (+x forward).
 4. Re-render the real sprites (`creatures.py --only <anims>`), rebuild
-   `content/`, post the sheet and before/after IoU numbers in the thread,
+   `content/` (build_pack, shrink, trim_sheets, then `retime.py <game>
+   content` for the original's timing), post the sheet and before/after IoU numbers in the thread,
    and follow open-pack-art's "Done means".
 
 ## Numbers so far (2026-10-17)

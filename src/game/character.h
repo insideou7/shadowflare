@@ -85,7 +85,10 @@ public:
     // Looping charts (idle, walk) wrap around; the others stop on their
     // last frame.
     void play(int chart);
-    // `speed` is frames per tick (spells cast faster or slower).
+    // `speed` is frames per original tick (spells cast faster or slower):
+    // the original shows one frame of a chart per tick, 30 a second
+    // (0x4351d7 idle, 0x45a57e a monster's attack), and tick() runs 20 times
+    // a second, so it moves kFramesPerTick times as far.
     void restart(int chart, double speed = 1.0);
     // Shows `frame` of `chart` and holds it there until the next call: for
     // moves whose frame the game works out itself (the Warrior's combos).
@@ -107,6 +110,7 @@ public:
     void faceTowards(double dx, double dy);
 
     void tick();
+    static constexpr double kFramesPerTick = 30.0 / 20.0;  // game.h's kOriginalTicksPerTick
     // The sound cue flags (cell status 0x400, 0x800 and 0x1000) of the
     // frames reached since the last call, which monsters and companions
     // play sounds by (0x45a2a0); clears them.

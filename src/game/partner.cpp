@@ -206,7 +206,10 @@ void Game::tickPartner() {
 
     // A bite or a flinch plays out first.
     if (p.state == State::Bite) {
-        if (!p.struck && c.frame() >= c.frameCount() / 2) {
+        // The teeth meet on the frame whose cell has status 0x40 (0x46019b);
+        // a chart without one bites halfway through.
+        const bool strikes = c.takeStrikes() > 0;
+        if (!p.struck && (c.hasStrikes() ? strikes : c.frame() >= c.frameCount() / 2)) {
             p.struck = true;
             if (p.target && *p.target < actors_.size()) {
                 Actor& enemy = actors_[*p.target];
@@ -302,10 +305,9 @@ void Game::tickPartner() {
         if (boxGap(c, enemy.placement.rect, enemy.character.x, enemy.character.y) <= kBiteReach) {
             c.faceTowards(enemy.character.x - c.x, enemy.character.y - c.y);
             // Attack speed sets how fast the bite plays (0x460015): 0.2 to
-            // 1.1 of the original's frames a tick, 0.6 at 128, which plays
-            // here at the usual speed.
+            // 1.1 of the original's frames a tick, 0.6 at 128.
             const double speed = 0.2 + 0.1 * std::clamp(p.stats.attackSpeed / 32, 0, 9);
-            c.restart(c.hasChart(kBite) ? kBite : chart::kIdle, speed / 0.6);
+            c.restart(c.hasChart(kBite) ? kBite : chart::kIdle, speed);
             p.state = State::Bite;
             p.struck = false;
         } else {

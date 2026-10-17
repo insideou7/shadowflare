@@ -83,7 +83,7 @@ numbered from 0 in the order they appear. Images are PNG with alpha.
 
     sheet=Animation.sheet
     [chart 0 loop]           # loop or once
-    0=0,1,2,3                # direction: one sheet frame per tick (20 a second)
+    0=0,1,2,3                # direction: one sheet frame per original tick (30 a second)
     1=4,5,6,7
 
 Directions are 0 = south, then counter-clockwise on screen: south-east,
@@ -106,7 +106,9 @@ the original (see `layer=` in items.txt). A line is then
 A `!` right after a frame number marks the frame a blow lands on (the
 original's 0x40 flag): the player's melee hit, or a monster's strike, is
 dealt when the body layer reaches it. Without one the player strikes on
-frame 4 (frame 3 for a shot) and a monster halfway through its attack.
+frame 4 (frame 3 for a shot), and a monster or a companion's bite halfway
+through. `tools/art/retime.py` stretches our rendered charts over the
+original's frame counts and marks its strike frames.
 
     [chart 5 once]
     0@20=0,1,2,3,4,5,6,7!,8,9   # the hero's sword thrust lands on frame 7
@@ -192,6 +194,7 @@ original's monster numbers (slot lists are a/b/c, one per attack or spell):
 | `magic_evasion=` | what spells must beat | 0 |
 | `speed=` | per mille of its AI's speeds | 1000 |
 | `stun=` | what it takes off a stun's chance and length, and 1 if its stuns may run past 15 ticks | 0/0/0 |
+| `attack_speed=`, `spell_speed=` | how fast each attack's and spell's chart plays, a step 0-9: 0.3, 0.4, 0.6, 0.8, 1, 1.5, 2, 2.5, 3 or 4 frames a tick | 4/4/4 (1 frame a tick) |
 | `word7=` | 100 halves what Counter Burst reflects onto it | 0 |
 | `shot=` | what one attack throws instead of striking: kind/height/speed/start/attack (see docs/archery.md) | throws nothing |
 
@@ -601,6 +604,22 @@ the model's outline sits where the original picture's does.
 Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the holes in the ground (blood00,
 deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
+
+### Items, windows and gauges
+
+With our art chosen, the windows, gauges and HUD come from the pack's own
+`System/` sheets first; the player's file is used only where the pack has
+no sheet. Item pictures are numbered by the original's item table, so
+`item_skin.txt` at the pack's root says which of ours stands in for each
+original picture:
+
+    icon 0,27 = 0,2         # original bag picture (bank 0, pattern 27) = our Item0000 frame 2
+    ground 7,3 = 7,1        # original ground picture (folder 7, picture 3) = our folder 7 frame 1
+
+`tools/content/item_skin.py <game> content` writes it: an item here with
+the same class and code as an original item lends its pictures to every
+picture that item (and its prefixed variants) uses. A picture with no line
+is drawn from the original's file.
 
 ## The first four areas and the Tower of Ordeal
 

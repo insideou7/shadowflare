@@ -85,6 +85,11 @@ inline constexpr int kScreenHeight = 480;
 inline constexpr int kTicksPerSecond = 20;
 // The original runs 30 ticks a second, so each engine tick is 1.5 of them.
 inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
+static_assert(Character::kFramesPerTick == kOriginalTicksPerTick);
+
+// Frames a tick of a monster's attack or spell chart at its speed step
+// (ScenarioControl's attackSpeeds and spellSpeeds).
+double monsterChartSpeed(int step);
 
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
@@ -544,6 +549,7 @@ private:
     void loadItems();
     void giveStartingKit();
     void spawnGroundItems();
+    void setGroundSprite(GroundItem& g);
     void dropItem(const Item& item, double x, double y);
     void dropLoot(const Actor& enemy);
     // Drops what a drop list gives around (x, y): monsters and
@@ -1459,7 +1465,7 @@ private:
     Inventory inventory_;
     std::optional<Item> hand_;  // picked up in the inventory panel
     std::vector<GroundItem> groundItems_;
-    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_;  // by path stem; null = missing
+    std::map<std::string, std::unique_ptr<SpriteBank>> itemBanks_[2];  // by art (0 original, 1 ours), then path stem; null = missing
     bool showInventory_ = false;
     // The special items window (X), in the item window's place on the
     // right (DAT_0048ce68); the two never show together.
