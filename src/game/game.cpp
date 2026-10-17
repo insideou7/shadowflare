@@ -21,18 +21,10 @@ namespace sf {
 
 namespace {
 
-// Monsters take their health, attack and defense from the scenario file.
-// Blows follow the original's rules (see strikeEnemy and strikePlayer).
-// One with no AI list walks at 20 an original tick, the original's commonest
-// approach speed in Control.aid (the hero walks at 20 too).
-constexpr double kEnemySpeed = 20.0 * kOriginalTicksPerTick;
 // OPTION animations: the flash of Reflection (option 20014) and the orbs of
 // Absorption (option 20013).
 constexpr int kReflectGlow = 11000013, kAbsorbOrb = 11000012;
-constexpr double kMeleeRange = 220.0;      // world units between the two characters' feet
 constexpr double kTalkRange = 320.0;      // close enough to speak to someone
-constexpr double kAggroRange = 1600.0;     // monsters notice the player within this distance
-constexpr double kGiveUpRange = 3200.0;    // and stop chasing beyond this one
 
 double distance(const Character& a, const Character& b) { return std::hypot(a.x - b.x, a.y - b.y); }
 
@@ -56,6 +48,7 @@ bool equalsIgnoreCase(const std::string& a, const std::string& b) {
 
 Game::Game(SDL_Renderer* renderer, const FileSystem* data, const std::string& startMap, SkinLoader skinLoader)
     : renderer_(renderer), data_(data), skinLoader_(std::move(skinLoader)), sprites_(renderer) {
+    world_.setHost(this);
     // Every level has a ground file; use those to enumerate maps. An open
     // content pack has one text file per map instead.
     for (const auto& file : data_->list("Map/Ground")) mapNames_.push_back(stem(file));
@@ -525,21 +518,7 @@ bool Game::tryMove(Character& who, double dx, double dy) {
         who.y += dy;
         return true;
     }
-    if (!sf::tryMove(world_.map->ground(), who.x, who.y, dx, dy)) return false;
-    if (!objectInTheWay(x0, y0, who.x, who.y)) return true;
-    // A closed door or a chest in the way: slide along it as along a wall.
-    for (const auto& [sx, sy] : {std::pair{dx, 0.0}, std::pair{0.0, dy}}) {
-        if (sx == 0 && sy == 0) continue;
-        double x = x0, y = y0;
-        if (sf::tryMove(world_.map->ground(), x, y, sx, sy) && !objectInTheWay(x0, y0, x, y)) {
-            who.x = x;
-            who.y = y;
-            return true;
-        }
-    }
-    who.x = x0;
-    who.y = y0;
-    return false;
+    return world_.tryMove(who, dx, dy);
 }
 
 void Game::walkBy(int screenDx, int screenDy) {
@@ -941,33 +920,7 @@ void Game::tick() {
         runEvent(ScenarioScript::kEveryTick);
     }
     tickObjects();
-    for (auto& actor : world_.actors) {
-        // Scripts show and hide characters through their NET flag, by
-        // SETACTIVE or by setting it themselves.
-        if (const auto f = world_.flags.find({ScenarioScript::kNet, kStateFlagBases[0] + actor.gameId()}); f != world_.flags.end()) {
-            actor.active = f->second != 0;
-        }
-        if (!actor.active) continue;
-        if (actor.hostile() && player_) {
-            if (actor.placement.kind < 0) {
-                // An Enemy Hole never moves or strikes; a blow only stops it a moment.
-                if (actor.state == Actor::State::Hit && (actor.stunTicks -= kOriginalTicksPerTick) <= 0) {
-                    endStun(actor);
-                    actor.state = Actor::State::Idle;
-                }
-            } else if (actor.aiList >= 0) {
-                tickEnemyAi(actor);
-            } else {
-                tickEnemy(actor);
-            }
-        }
-        if (actor.scripted) {
-            tickScriptedAction(actor);
-        } else {
-            actor.character.tick();
-        }
-        monsterCries(actor);
-    }
+    world_.tickActors();
     if (!player_) return;
     if (fallTicks_) {
         tickFall();
@@ -1391,57 +1344,6 @@ void Game::tickPlayer(const HeroInput& in) {
     }
 }
 
-// Placeholder behaviour: notice the player when close, walk up to them,
-// swing, and wander back home when they get away.
-void Game::tickEnemy(Actor& enemy) {
-    using State = Actor::State;
-    Character& c = enemy.character;
-    switch (enemy.state) {
-        case State::Dead: return;
-        case State::Hit:
-            if (enemy.stunTicks > 0 && (enemy.stunTicks -= kOriginalTicksPerTick) <= 0) endStun(enemy);
-            if (!c.finished() || enemy.stunTicks > 0) return;
-            enemy.state = State::Chase;
-            break;
-        case State::Attack:
-            if (c.frame() == c.frameCount() / 2 && distance(c, *player_) <= kMeleeRange * 1.2) {
-                strikePlayer(enemy);
-            }
-            if (!c.finished()) return;
-            enemy.state = State::Chase;
-            break;
-        default: break;
-    }
-
-    const double toPlayer = distance(c, *player_);
-    const bool chasing = enemy.state == State::Chase ? toPlayer < kGiveUpRange : toPlayer < kAggroRange;
-    double tx = enemy.placement.x, ty = enemy.placement.y;
-    if (chasing) {
-        enemy.state = State::Chase;
-        if (toPlayer <= kMeleeRange && c.hasChart(chart::kEnemyAttack)) {
-            c.faceTowards(player_->x - c.x, player_->y - c.y);
-            c.restart(chart::kEnemyAttack);
-            enemy.state = State::Attack;
-            return;
-        }
-        tx = player_->x;
-        ty = player_->y;
-    } else {
-        enemy.state = State::Idle;
-    }
-
-    const double dx = tx - c.x, dy = ty - c.y;
-    const double length = std::hypot(dx, dy);
-    const double stopAt = chasing ? kMeleeRange * 0.8 : 1.0;
-    if (length > stopAt) {
-        const double step = std::min(kEnemySpeed, length - stopAt);
-        c.faceTowards(dx, dy);
-        c.play(tryMove(c, dx / length * step, dy / length * step) ? chart::kWalk : chart::kIdle);
-    } else {
-        c.play(chart::kIdle);
-    }
-}
-
 void Game::strikeEnemy(Actor& enemy) {
     const auto& s = enemy.placement.stats;
     if (world_.random.next(100) < hitChance(playerHit(), s.evasion)) {
@@ -1527,7 +1429,7 @@ void Game::hurtEnemy(Actor& enemy, int damage, bool bySpell, bool byPartner) {
         enemy.stunTicks = 0;
         enemy.character.held = false;
         enemy.character.restart(chart::kEnemyDeath);
-        monsterDeathCry(enemy);
+        world_.monsterDeathCry(enemy);
         log::info("Monster {} defeated", enemy.gameId());
         dropLoot(enemy);
         // The original counts how the hero kills monsters, to offer a class
@@ -1756,7 +1658,7 @@ void Game::renderMap() {
     // pieces by the same footprint.
     std::vector<std::pair<MapObject, const SceneObject*>> scene;
     for (const auto& o : world_.sceneObjects) {
-        if (placementOf(o).look.drawn() && objectState(o, kShown)) scene.emplace_back(objectFootprint(o), &o);
+        if (world_.placementOf(o).look.drawn() && world_.objectState(o, World::kShown)) scene.emplace_back(objectFootprint(o), &o);
     }
     std::ranges::stable_sort(scene, [](const auto& a, const auto& b) { return a.first.depth() < b.first.depth(); });
     for (int pass = 0; pass < 2; ++pass) {

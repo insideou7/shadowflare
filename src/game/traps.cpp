@@ -26,7 +26,7 @@ std::optional<std::pair<double, double>> Game::characterAt(std::int32_t id) cons
         if (id == 0 && player_) return std::pair(player_->x, player_->y);
         return std::nullopt;
     }
-    return positionOf(id);
+    return world_.positionOf(id);
 }
 
 // The frames of an effect's first chart in one direction (0x42b860 and
@@ -339,7 +339,7 @@ void Game::createScriptEffect(int number, double x, double y, int height, int di
 // RESSURECT (0x45a140): a dead enemy is back where the script says, at
 // full health, facing `direction`, and counts as alive again.
 void Game::resurrect(std::int32_t enemy, int x, int y, int direction) {
-    Actor* a = actorById(enemy);
+    Actor* a = world_.actorById(enemy);
     if (!a || !a->hostile() || a->alive()) return;
     a->hp = a->maxHp;
     a->state = Actor::State::Idle;

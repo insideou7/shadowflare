@@ -129,7 +129,7 @@ public:
         return -1;
     }
     void stopCharacter(std::int32_t id, bool stop) override {
-        auto* a = g_.actorById(id);
+        auto* a = g_.world_.actorById(id);
         if (!a) return;
         a->stopped = stop;
         // Either ends a scripted action: they stand again (0x45d480).
@@ -143,21 +143,21 @@ public:
     void toggleCardGame() override { g_.toggleCardGame(); }
     int cardGameResult() const override { return g_.cardGame_.result(); }
     void faceCharacter(std::int32_t id, std::int32_t towards) override {
-        auto* a = g_.actorById(id);
+        auto* a = g_.world_.actorById(id);
         if (!a || !g_.player_) return;
         // 0 turns them to the player.
         double tx = g_.player_->x, ty = g_.player_->y;
-        if (const auto* t = towards ? g_.actorById(towards) : nullptr) {
+        if (const auto* t = towards ? g_.world_.actorById(towards) : nullptr) {
             tx = t->character.x;
             ty = t->character.y;
         }
         a->character.direction = directionTowards(tx - a->character.x, ty - a->character.y);
     }
     void setActive(std::int32_t id, bool active) override {
-        if (auto* a = g_.actorById(id)) a->active = active;
+        if (auto* a = g_.world_.actorById(id)) a->active = active;
     }
     void setObjectStates(std::int32_t id, int shown, int usable, int blocks) override {
-        if (auto* o = g_.sceneObject(id)) o->fixed = std::array{shown, usable, blocks};
+        if (auto* o = g_.world_.sceneObject(id)) o->fixed = std::array{shown, usable, blocks};
     }
     bool workingObject(std::int32_t id) const override { return g_.workingObject(id); }
     void setUnlockSwitch(bool on) override { g_.unlockSwitch_ = on; }
@@ -187,7 +187,7 @@ public:
     }
     std::string partnerStatus(int kind) const override { return g_.partnerStatusText(kind); }
     std::optional<bool> enemyAlive(std::int32_t id) const override {
-        if (const auto* a = g_.actorById(id)) return a->hostile() ? std::optional(a->alive()) : std::nullopt;
+        if (const auto* a = g_.world_.actorById(id)) return a->hostile() ? std::optional(a->alive()) : std::nullopt;
         // A monster the engine could not spawn still counts, as alive.
         for (const auto& p : g_.world_.control.placements) {
             if (p.group == ScenarioControl::Group::Enemy && ScenarioControl::idBase(p.group) + p.id == id) return true;
@@ -235,8 +235,8 @@ public:
     }
     bool nearestPlayer(std::int32_t character, int min, int max, int& player, int& x, int& y) const override {
         // Single play: the hero is the only player (0x430b30).
-        const auto p = g_.placementById(character);
-        const auto at = g_.positionOf(character);
+        const auto p = g_.world_.placementById(character);
+        const auto at = g_.world_.positionOf(character);
         if (!p || !at || !g_.player_ || g_.playerHp_ <= 0) return false;
         const JudgeRect rect{p->rect[0], p->rect[1], p->rect[2], p->rect[3]};
         const int gap = rectGap(static_cast<int>(g_.player_->x), static_cast<int>(g_.player_->y), kHeroJudge, static_cast<int>(at->first),
@@ -248,8 +248,8 @@ public:
         return true;
     }
     int playerDistance(std::int32_t character) const override {
-        const auto p = g_.placementById(character);
-        const auto at = g_.positionOf(character);
+        const auto p = g_.world_.placementById(character);
+        const auto at = g_.world_.positionOf(character);
         if (!p || !at || !g_.player_) return -1;
         const JudgeRect rect{p->rect[0], p->rect[1], p->rect[2], p->rect[3]};
         return rectGap(static_cast<int>(g_.player_->x), static_cast<int>(g_.player_->y), kHeroJudge, static_cast<int>(at->first),
@@ -263,7 +263,7 @@ public:
         }
     }
     std::optional<int> objectOpacity(std::int32_t object) const override {
-        const auto p = g_.placementById(object);
+        const auto p = g_.world_.placementById(object);
         if (!p || p->group != ScenarioControl::Group::Object) return std::nullopt;
         return p->look.opacity;
     }
@@ -302,30 +302,6 @@ private:
     std::int32_t character_;
 };
 
-const Actor* Game::actorById(std::int32_t id) const {
-    for (const auto& a : world_.actors) {
-        if (a.gameId() == id) return &a;
-    }
-    return nullptr;
-}
-
-Actor* Game::actorById(std::int32_t id) { return const_cast<Actor*>(std::as_const(*this).actorById(id)); }
-
-std::optional<std::pair<double, double>> Game::positionOf(std::int32_t id) const {
-    if (const auto* a = actorById(id)) return std::pair(a->character.x, a->character.y);
-    for (const auto& p : world_.control.placements) {
-        if (ScenarioControl::idBase(p.group) + p.id == id) return std::pair(double(p.x), double(p.y));
-    }
-    return std::nullopt;
-}
-
-const ScenarioControl::Placement* Game::placementById(std::int32_t id) const {
-    for (const auto& p : world_.control.placements) {
-        if (ScenarioControl::idBase(p.group) + p.id == id) return &p;
-    }
-    return nullptr;
-}
-
 std::optional<std::size_t> Game::objectAt(float screenX, float screenY) const {
     return objectAt(screenX, screenY, true);
 }
@@ -344,8 +320,8 @@ std::optional<std::size_t> Game::objectAt(float screenX, float screenY, bool tal
         if (wx < p.x + p.rect[0] || wx > p.x + p.rect[2] || wy < p.y + p.rect[1] || wy > p.y + p.rect[3]) continue;
         const std::int32_t id = ScenarioControl::idBase(p.group) + p.id;
         // Only what is shown and usable answers a click (0x45e080).
-        const auto* o = sceneObject(id);
-        if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) continue;
+        const auto* o = world_.sceneObject(id);
+        if (o && (!world_.objectState(*o, World::kShown) || !world_.objectState(*o, World::kUsable))) continue;
         if (!talks) return i;
         for (const auto& t : world_.script->triggers) {
             if (t.event == ScenarioScript::kOnTalk && t.character == id) return i;
@@ -362,7 +338,7 @@ void Game::showLabel(const ScriptHost::Label& label) {
 
 void Game::renderLabels() {
     for (const auto& l : labels_) {
-        const auto at = positionOf(l.label.character);
+        const auto at = world_.positionOf(l.label.character);
         if (!at) continue;
         int sx, sy;
         worldToScreen(static_cast<int>(at->first), static_cast<int>(at->second), sx, sy);
@@ -517,8 +493,8 @@ bool Game::applyTalkRequest(const TalkRequest& r) {
             if (!player_ || dialogue_ || index >= world_.control.placements.size()) return false;
             const auto& p = world_.control.placements[index];
             if (p.group != ScenarioControl::Group::Object) return false;
-            const auto* o = sceneObject(ScenarioControl::idBase(p.group) + p.id);
-            if (o && (!objectState(*o, kShown) || !objectState(*o, kUsable))) return false;
+            const auto* o = world_.sceneObject(ScenarioControl::idBase(p.group) + p.id);
+            if (o && (!world_.objectState(*o, World::kShown) || !world_.objectState(*o, World::kUsable))) return false;
             objectTarget_ = index;
             attackTarget_.reset();
             return true;
@@ -615,7 +591,7 @@ void Game::fontText(const SpriteBank& bank, const SpriteTexture& half, int x, in
 SDL_Rect Game::dialogueBox() {
     const auto& d = *dialogue_;
     int ax = kScreenWidth / 2, ay = kScreenHeight / 2;
-    if (const auto* a = actorById(d.speaker)) {
+    if (const auto* a = world_.actorById(d.speaker)) {
         worldToScreen(static_cast<int>(a->character.x), static_cast<int>(a->character.y), ax, ay);
         const SDL_FPoint at = onScreen(ax, ay - 110);
         ax = static_cast<int>(at.x);
@@ -722,7 +698,7 @@ void Game::renderDialogue() {
             blit(c[0], {0, n - 1, n, 1}, {box.x, box.y + n, n, box.h - 2 * n});      // left
             blit(c[2], {0, n - 1, n, 1}, {right, box.y + n, n, box.h - 2 * n});      // right
         }
-        if (const SpriteTexture* t = sprites_.get(*balloon, 4, false); t && actorById(d.speaker)) {
+        if (const SpriteTexture* t = sprites_.get(*balloon, 4, false); t && world_.actorById(d.speaker)) {
             const SDL_Rect dst{box.x + box.w / 2 - t->width / 2, box.y + box.h - 4, t->width, t->height};
             SDL_RenderCopy(renderer_, t->texture, nullptr, &dst);
         }
@@ -993,7 +969,7 @@ void Game::renderShop() {
 // and objects take the command through their own code, which no scenario
 // uses.
 void Game::requestAction(const ScriptHost::ActionRequest& r) {
-    Actor* a = actorById(r.character);
+    Actor* a = world_.actorById(r.character);
     if (!a || a->hostile()) return;
     if (r.action <= 1) {
         a->scripted.reset();
@@ -1008,34 +984,6 @@ void Game::requestAction(const ScriptHost::ActionRequest& r) {
     a->scripted = Actor::ScriptedAction{chart, r.loop, r.from, r.to};
     log::info("{} plays action {} (chart {}, {} frames){}", r.character, r.action, chart, a->character.frameCount(), r.loop ? ", looping" : "");
     a->character.restart(chart);
-}
-
-// A scripted action's frame: played once it ends on its last frame and the
-// person stands; looping, the frame after `to` (or the last) is `from` (or
-// the first) again (0x45d850).
-void Game::tickScriptedAction(Actor& a) {
-    auto& s = *a.scripted;
-    Character& c = a.character;
-    if (c.chart() != s.chart) {
-        a.scripted.reset();
-        return;
-    }
-    const int last = c.frameCount() - 1;
-    if (s.loop) {
-        const int end = s.to == -1 ? last : std::min(s.to, last);
-        if (c.frame() >= end) {
-            c.setFrame(s.from == -1 ? 0 : s.from);
-            return;
-        }
-        c.tick();
-        return;
-    }
-    if (c.frame() >= last) {
-        a.scripted.reset();
-        c.play(chart::kIdle);
-        return;
-    }
-    c.tick();
 }
 
 void Game::openTrade(int shop) {

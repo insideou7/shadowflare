@@ -75,69 +75,7 @@ std::optional<VoiceBank> readBank(const FileSystem& data, const std::string& pat
     }
 }
 
-// Each monster kind's (Character/ENEMY folder's) death cry, -1 for none
-// (0x45bec0 reads it from DAT_004815d8).
-constexpr int kDeathCry[] = {-1,  105, 104, 107, 106, 104, -1, -1,  114, 111, 118, 118, 117,
-                             114, 133, 130, 148, 148, 142, -1, -1, 151, 111, 114, 136};
-
-// The sounds monsters' animations call for (0x45a2a0): a frame with cue
-// flag 0x400, 0x800 or 0x1000 (slot 0-2) plays the kind's sound for that
-// slot and animation (DAT_00480a20), or else the one every kind shares
-// (DAT_004809a8: 86 on the death animation, nothing else). Animations: 0
-// stand, 1 walk, 2 hit, 3 death, 4-6 blows, 7-9 spells. Only the kinds
-// that have any are listed.
-struct MonsterCue {
-    int kind, slot;
-    std::array<int, 10> voice;
-};
-constexpr int N = -1;
-constexpr MonsterCue kMonsterCues[] = {
-    {3, 0, {N, N, N, N, N, N, N, 91, 91, N}},
-    {3, 1, {90, 90, 90, 90, 90, 90, 90, 90, 90, N}},
-    {4, 0, {N, 92, N, 87, N, N, N, N, N, N}},
-    {4, 1, {89, 89, 89, 89, 89, 89, 89, 89, 89, N}},
-    {7, 0, {N, 108, N, N, N, N, N, N, N, N}},
-    {8, 0, {N, N, N, N, 113, 112, N, 112, N, 110}},
-    {9, 0, {N, N, N, N, N, N, N, N, N, 110}},
-    {12, 0, {N, N, N, N, 116, N, N, 115, 115, N}},
-    {13, 0, {N, N, N, N, 113, 112, N, N, N, N}},
-    {14, 0, {N, N, N, N, 131, N, N, N, N, N}},
-    {15, 0, {N, N, N, N, 129, N, N, 129, N, N}},
-    {16, 0, {N, N, N, N, 146, 146, N, N, N, N}},
-    {16, 1, {N, N, N, N, N, 147, N, N, N, N}},
-    {17, 0, {N, N, N, N, 123, N, N, 124, 124, N}},
-    {18, 0, {N, N, N, N, 140, N, N, 141, N, N}},
-    {19, 0, {N, N, N, N, 3, 3, N, N, N, N}},
-    {20, 0, {N, 108, N, N, 3, 3, N, N, N, N}},
-    {21, 0, {N, N, N, N, 155, N, N, 155, N, N}},
-    {22, 0, {N, N, N, N, N, N, N, N, N, 110}},
-    {23, 0, {N, N, N, N, 147, N, N, 106, N, N}},
-    {24, 0, {90, 90, N, N, 134, N, N, 134, 135, N}},
-};
-constexpr int kSharedDeathCue = 86;
-
-int monsterCue(int kind, int slot, int anim) {
-    if (anim < 0 || anim >= 10) return -1;
-    for (const auto& c : kMonsterCues) {
-        if (c.kind == kind && c.slot == slot && c.voice[static_cast<std::size_t>(anim)] >= 0) return c.voice[static_cast<std::size_t>(anim)];
-    }
-    return anim == chart::kEnemyDeath ? kSharedDeathCue : -1;
-}
-
 }  // namespace
-
-void Game::monsterCries(Actor& enemy) {
-    const int cues = enemy.character.takeCues();
-    if (cues == 0) return;
-    for (int slot = 0; slot < 3; ++slot) {
-        if (cues & (0x400 << slot)) playSound(monsterCue(enemy.placement.kind, slot, enemy.character.chart()), enemy.character.x, enemy.character.y);
-    }
-}
-
-void Game::monsterDeathCry(const Actor& enemy) {
-    const int kind = enemy.placement.kind;
-    if (kind >= 0 && kind < static_cast<int>(std::size(kDeathCry))) playSound(kDeathCry[kind], enemy.character.x, enemy.character.y);
-}
 
 // Footsteps: one as the hero sets off, then every 12 of the original's
 // ticks walking or 8 running (0x4351f0, 0x435530).
@@ -161,9 +99,7 @@ void Game::loadSounds() {
     mixer_.load(Mixer::kSoundBank, std::move(*bank));
 }
 
-void Game::playSound(int voice, double x, double y, bool everywhere) {
-    if (player_) world_.events.sound(voice, x, y, everywhere);
-}
+void Game::playSound(int voice, double x, double y, bool everywhere) { world_.sound(voice, x, y, everywhere); }
 
 void Game::playSound(int voice) { world_.events.sound(voice); }
 

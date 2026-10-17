@@ -85,11 +85,7 @@ using TexturePtr = std::unique_ptr<SDL_Texture, TextureFree>;
 inline constexpr int kScreenWidth = 640;
 inline constexpr int kScreenHeight = 480;
 
-// Simulation runs at a fixed rate, separate from rendering, so game logic
-// can later be matched tick-for-tick against the original executable.
-inline constexpr int kTicksPerSecond = 20;
-// The original runs 30 ticks a second, so each engine tick is 1.5 of them.
-inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
+// kTicksPerSecond and kOriginalTicksPerTick are in world/world.h.
 
 // Top of the companion's health gauge, as in the original.
 inline constexpr int kPartnerGaugeY = 395;
@@ -111,7 +107,7 @@ inline constexpr int kBeltLeft = 357, kBeltTop = 413, kBeltBottomLeft = 405, kBe
 
 // For now the game is a map viewer with a walking player: it loads a level
 // from the original data and lets you walk around it.
-class Game {
+class Game : private WorldHost {
 public:
     // Loads a skin: the original's maps and characters drawn with an open
     // content pack's art where it has some. Called the first time our art
@@ -347,6 +343,12 @@ public:
     bool loadDataOpen() const { return loadData_.has_value(); }
 
 private:
+    // What the world asks of the hero's side (world/world.h).
+    const Character* hero() const override { return player_ ? &*player_ : nullptr; }
+    void monsterStrikes(Actor& monster, int slot) override { strikePlayer(monster, slot); }
+    void monsterCasts(Actor& monster, int slot) override { castMonsterSpell(monster, slot); }
+    void monsterThrows(Actor& monster, int slot) override { throwShot(monster, slot); }
+
     // Talking, shops and the rest of the scenario script (talk.cpp).
     friend class GameScript;
     struct Dialogue {
@@ -384,9 +386,6 @@ private:
     };
     void showLabel(const ScriptHost::Label& label);
     void renderLabels();
-    // Where a character or a map object is, in world units.
-    std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
-    const ScenarioControl::Placement* placementById(std::int32_t id) const;
     // A map object with a talk script (the warehouse) under the mouse,
     // as an index into world_.control.placements.
     std::optional<std::size_t> objectAt(float screenX, float screenY) const;
@@ -423,8 +422,6 @@ private:
     // always, the others once a script sets EXSTRG n.
     bool giantPageOpen(int page) const;
     std::optional<std::size_t> personAt(float screenX, float screenY) const;
-    Actor* actorById(std::int32_t id);
-    const Actor* actorById(std::int32_t id) const;
     void talkTo(Actor& person);
 
     void loadMap(std::size_t index, const std::string& scenarioDir = {});
@@ -473,12 +470,6 @@ private:
     HeroInput sampleHeroInput() const;
     void tickPlayer(const HeroInput& in);
     void swing();
-    void tickEnemy(Actor& enemy);
-    // Monster behaviour from Control.aid (enemy_ai.cpp).
-    void tickEnemyAi(Actor& enemy);
-    bool chooseAiAction(Actor& enemy, int event);
-    void runAiAction(Actor& enemy);
-    double gapToPlayer(const Actor& enemy) const;
     // A blow from the player or from a monster: it may miss, otherwise it
     // does the original's damage.
     void strikeEnemy(Actor& enemy);
@@ -653,20 +644,8 @@ private:
     void renderHeroOverlay(const CharacterModel* model, double ticks, int camX, int camY);
 
     // Scenario objects (objects.cpp; world/world.h's SceneObject).
-    enum ObjectState { kShown = 0, kUsable = 1, kBlocks = 2 };
     void spawnObjects();
     void tickObjects();
-    bool objectState(const SceneObject& o, ObjectState which) const;
-    SceneObject* sceneObject(std::int32_t id);
-    const SceneObject* sceneObject(std::int32_t id) const;
-    const ScenarioControl::Placement& placementOf(const SceneObject& o) const { return world_.control.placements[o.placement]; }
-    // Whether a step from one world position to another walks into an
-    // object that stands in the way (0x414990); starting inside one does
-    // not trap anyone.
-    bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
-    // Whether a box at a spot meets an object that stands in the way, as a
-    // shot's does (0x45e1e0: status bit 0, which is that state).
-    bool boxMeetsObject(double x, double y, const JudgeRect& box) const;
     // Where the object sorts among the map's pieces, as MapObject::depth.
     MapObject objectFootprint(const SceneObject& o) const;
     void drawSceneObject(const SceneObject& o, bool shadows, int camX, int camY, int shadowAlpha);
@@ -788,10 +767,6 @@ private:
     // (0x4275a0).
     void tickMusic();
     void loadMusic(const std::string& path);
-    // The sounds a monster's animation called for this tick, and its death
-    // cry (0x45a2a0, 0x45bec0).
-    void monsterCries(Actor& enemy);
-    void monsterDeathCry(const Actor& enemy);
     void heroSteps(bool walking, bool running);
     double stepTicks_ = -1;  // original ticks since the hero set off, -1 standing
     bool stepRunning_ = false;
@@ -876,7 +851,6 @@ private:
     bool partnerCanStand(double x, double y) const;
     void stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int attackerElement = -1,
                    StunKind kind = StunKind::Plain);
-    void endStun(Actor& enemy);
     void renderPartnerGauge();
     bool partnerGaugeClick(int x, int y);
     // The game panel along the bottom of the screen (panel.cpp).
@@ -1012,7 +986,6 @@ private:
 
     // People's scripted actions (C_ACTIONREQ, talk.cpp).
     void requestAction(const ScriptHost::ActionRequest& r);
-    void tickScriptedAction(Actor& a);
 
     // The hero's fall (game_over.cpp). At no health the hero drops
     // (0x435b60): the death sound, the parting glow (option 11000023,

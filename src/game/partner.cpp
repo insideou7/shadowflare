@@ -898,12 +898,6 @@ void Game::stunEnemy(Actor& enemy, int chance, int length, bool uncapped, int at
     }
 }
 
-void Game::endStun(Actor& enemy) {
-    enemy.stunTicks = 0;
-    if (enemy.stunKind == StunKind::Stone) enemy.character.grey = enemy.character.held = false;
-    enemy.stunKind = StunKind::Plain;
-}
-
 // Running to an item it was sent for, then handing it to the hero
 // (0x4624e0): it gives up when the item is gone or the hero is far away.
 bool Game::tickPartnerFetch(double toHero) {

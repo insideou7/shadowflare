@@ -23,6 +23,15 @@
 
 namespace sf {
 
+// Simulation runs at a fixed rate, separate from rendering, so game logic
+// can later be matched tick-for-tick against the original executable.
+inline constexpr int kTicksPerSecond = 20;
+// The original runs 30 ticks a second, so each engine tick is 1.5 of them.
+inline constexpr double kOriginalTicksPerTick = 30.0 / kTicksPerSecond;
+inline constexpr double kMeleeRange = 220.0;   // world units between the two characters' feet
+inline constexpr double kAggroRange = 1600.0;  // monsters notice the hero within this distance
+inline constexpr double kGiveUpRange = 3200.0; // and stop chasing beyond this one
+
 // People and monsters placed by the map's scenario file.
 struct Actor {
     enum class State { Idle, Chase, Attack, Hit, Dead };
@@ -60,6 +69,8 @@ struct Actor {
     std::int32_t gameId() const { return ScenarioControl::idBase(placement.group) + placement.id; }
     bool hostile() const { return placement.group == ScenarioControl::Group::Enemy; }
     bool alive() const { return state != State::Dead; }
+    // A stun wears off: Stone's grey and hold go with it.
+    void endStun();
 };
 
 // An area whose script runs when the player walks into it, such as an
@@ -235,6 +246,23 @@ struct ScenarioVisit {
     ScriptFlags flags;  // its TEMP and NET ones
 };
 
+// What a world asks of whoever holds the heroes. For now that is Game,
+// which keeps the hero and their stats; step 4 of the world split moves
+// heroes into the world itself (docs/online.md).
+class WorldHost {
+public:
+    virtual ~WorldHost() = default;
+    // The hero monsters go for and sounds are heard by; null before
+    // there is one.
+    virtual const Character* hero() const = 0;
+    // A monster's blow lands on, or misses, the hero (and an ACTIVE
+    // companion in front of it); its spell leaves its hand; its stone or
+    // arrow is thrown. `slot` is the attack's (0-2).
+    virtual void monsterStrikes(Actor& monster, int slot) = 0;
+    virtual void monsterCasts(Actor& monster, int slot) = 0;
+    virtual void monsterThrows(Actor& monster, int slot) = 0;
+};
+
 // One area of the game without a window (docs/online.md, the world split
 // step 3): its map, the people and monsters in it, the items on its
 // ground, its objects, story flags and scripts, and the spells, shots and
@@ -243,6 +271,44 @@ struct ScenarioVisit {
 // move it on move over from Game a piece at a time.
 class World {
 public:
+    // Who holds the heroes; set once, before the first tick.
+    void setHost(WorldHost* host) { host_ = host; }
+
+    // People and monsters move on a tick: their state flags, the AI of
+    // monsters (once there is a hero to go for), scripted actions,
+    // animations and the cries their animations call for.
+    void tickActors();
+
+    Actor* actorById(std::int32_t id);
+    const Actor* actorById(std::int32_t id) const;
+    const ScenarioControl::Placement* placementById(std::int32_t id) const;
+    // Where a character or placement stands, in world units.
+    std::optional<std::pair<double, double>> positionOf(std::int32_t id) const;
+
+    // Scenario objects' three states (the NET flags kStateFlagBases name,
+    // until ABSOLUTEOBJECTFLAG fixes them).
+    enum ObjectState { kShown = 0, kUsable = 1, kBlocks = 2 };
+    bool objectState(const SceneObject& o, ObjectState which) const;
+    SceneObject* sceneObject(std::int32_t id);
+    const SceneObject* sceneObject(std::int32_t id) const;
+    const ScenarioControl::Placement& placementOf(const SceneObject& o) const { return control.placements[o.placement]; }
+    // Whether a step from one world position to another walks into an
+    // object that stands in the way (0x414990); starting inside one does
+    // not trap anyone.
+    bool objectInTheWay(double fromX, double fromY, double toX, double toY) const;
+    // Whether a box at a spot meets an object that stands in the way, as a
+    // shot's does (0x45e1e0: status bit 0, which is that state).
+    bool boxMeetsObject(double x, double y, const JudgeRect& box) const;
+    // A step on the map's walkable ground that objects in the way stop;
+    // against a closed door or chest it slides along, as along a wall.
+    // False, leaving `who` where it was, when it cannot move at all.
+    bool tryMove(Character& who, double dx, double dy) const;
+
+    // A sound where something happens, heard only once there is a hero.
+    void sound(int voice, double x, double y, bool everywhere = false);
+    // The monster's death cry, by its kind (0x45bec0).
+    void monsterDeathCry(const Actor& monster);
+
     std::optional<Map> map;
     std::string scenarioDir;  // Scenario/<dir> of the current map, or empty
     ScenarioControl control;
@@ -268,6 +334,19 @@ public:
     Random random;
     // What the rules tell the player this tick (sounds, messages).
     WorldEvents events;
+
+private:
+    // Monster behaviour (world/monsters.cpp): the game's own AI lists
+    // (Control.aid), or a simple chase for monsters without one.
+    void tickMonsterAi(Actor& monster);
+    bool chooseAiAction(Actor& monster, int event);
+    void runAiAction(Actor& monster);
+    void tickChase(Actor& monster);
+    double gapToHero(const Actor& monster) const;
+    void tickScriptedAction(Actor& person);
+    void monsterCries(Actor& monster);
+
+    WorldHost* host_ = nullptr;
 };
 
 }  // namespace sf

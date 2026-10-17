@@ -237,7 +237,7 @@ bool Game::shotStrikes(Effect& e, Actor& enemy) {
 void Game::moveShot(Effect& e, const JudgeRect& box, bool walls) {
     walls = walls && world_.map;
     const auto blocked = [&](double x, double y) {
-        return shotMeetsWall(world_.map->ground(), static_cast<int>(x), static_cast<int>(y), box) || boxMeetsObject(x, y, box);
+        return shotMeetsWall(world_.map->ground(), static_cast<int>(x), static_cast<int>(y), box) || world_.boxMeetsObject(x, y, box);
     };
     if (walls && blocked(e.x, e.y)) e.dead = true;
     if (e.speed > 0) {
