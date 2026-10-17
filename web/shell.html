@@ -61,16 +61,15 @@
   const statusLine = document.getElementById('status');
   const bar = document.getElementById('bar');
   // Set by tools/build_web.sh for the website: the content pack's size in
-  // MB, and its parts (script names, with the build's version). The pack is
-  // only fetched when the player asks for the open game, and kept in the
-  // browser's Cache Storage under that version so a return visit does not
-  // download it again. Empty when the content is linked into the engine.
+  // MB, and its parts (script names; sfVersions has each file's version).
+  // The pack is only fetched when the player asks for the open game, and
+  // each part is kept in the browser's Cache Storage under its version, so
+  // a return visit downloads only the parts that changed. Empty when the
+  // content is linked into the engine.
   let dataMB = 0;
   let packParts = [];
-  let packVersion = '';
-  function sfContentPack(packMB, version, parts) {
+  function sfContentPack(packMB, parts) {
     dataMB = packMB;
-    packVersion = version;
     packParts = parts;
     const note = document.getElementById('size-note');
     note.textContent = 'The open game downloads ' + packMB + ' MB when you press play, once; '
@@ -111,15 +110,16 @@
 
   // A fetch of a part comes from Cache Storage when this version of it is
   // there; otherwise it goes to the network and is stored for next time.
-  // Older versions are dropped. Falls back to a plain fetch without the
-  // Cache API (private windows, blocked storage) or when storing fails.
+  // Versions no part has any more are dropped. Falls back to a plain fetch
+  // without the Cache API (private windows, blocked storage) or when storing
+  // fails.
   function useContentCache() {
-    if (!window.caches || !packVersion) return;
-    const name = 'shadowflare-content-' + packVersion;
+    if (!window.caches || !packParts.length) return;
+    const name = 'shadowflare-content';
     const plainFetch = window.fetch.bind(window);
     window.fetch = async function (input, init) {
       const url = typeof input === 'string' ? input : input.url;
-      if (!/shadowflare-\d+\.data/.test(url)) return plainFetch(input, init);
+      if (!/shadowflare-[^/?]+\.data/.test(url)) return plainFetch(input, init);
       try {
         const cache = await caches.open(name);
         const hit = await cache.match(url);
@@ -131,9 +131,19 @@
         return plainFetch(input, init);
       }
     };
+    const current = packParts.map(function (src) {
+      return new URL(src.replace(/\.js$/, '.data') + '?v=' + sfVersions[src.replace(/\.js$/, '.data')], location.href).href;
+    });
     caches.keys().then(function (names) {
-      names.filter(function (n) { return n.startsWith('shadowflare-content-') && n !== name; })
+      // The cache of the one-version-at-a-time builds.
+      names.filter(function (n) { return n.startsWith('shadowflare-content-'); })
            .forEach(function (n) { caches.delete(n); });
+    }).catch(function () {});
+    caches.open(name).then(function (cache) {
+      return cache.keys().then(function (requests) {
+        requests.filter(function (r) { return !current.includes(r.url); })
+                .forEach(function (r) { cache.delete(r); });
+      });
     }).catch(function () {});
   }
 
@@ -152,7 +162,7 @@
       };
       packParts.forEach(function (src) {
         const script = document.createElement('script');
-        script.src = src;
+        script.src = src + '?v=' + sfVersions[src];
         script.onerror = function () { reject(new Error('could not load ' + src)); };
         document.body.appendChild(script);
       });
