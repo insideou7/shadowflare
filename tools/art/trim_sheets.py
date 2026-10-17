@@ -26,6 +26,7 @@ from PIL import Image
 FOLDERS = ("Character/ENEMY", "Character/PEOPLE", "Character/PARTNER", "Player")
 PACKED = ("Map/props.sheet",)  # packed, frames kept whole
 WIDTH = 2048  # the packed sheet's width
+MAX_SIDE = 16384  # the longest side of a picture the game loads (kMaxSize in open_content.cpp)
 
 
 def trim(sheet_path, keep_frames=False):
@@ -74,17 +75,22 @@ def trim(sheet_path, keep_frames=False):
     if used >= 0.8 * (im.width * im.height if keep_frames else sum(w * h for (_, _, w, h) in cuts)):
         return False
 
-    # Shelves, tallest first.
-    width = max(WIDTH, max(b[2] - b[0] for b in cuts.values()))
+    # Shelves, tallest first. A sheet taller than the game reads
+    # (MAX_SIDE) is packed wider instead.
     order = sorted(cuts, key=lambda k: -(cuts[k][3] - cuts[k][1]))
-    placed, px, py, shelf = {}, 0, 0, 0
-    for key in order:
-        bx0, by0, bx1, by1 = cuts[key]
-        if px + bx1 - bx0 > width:
-            px, py, shelf = 0, py + shelf, 0
-        placed[key] = (px, py)
-        px += bx1 - bx0
-        shelf = max(shelf, by1 - by0)
+    width = max(WIDTH, max(b[2] - b[0] for b in cuts.values()))
+    while True:
+        placed, px, py, shelf = {}, 0, 0, 0
+        for key in order:
+            bx0, by0, bx1, by1 = cuts[key]
+            if px + bx1 - bx0 > width:
+                px, py, shelf = 0, py + shelf, 0
+            placed[key] = (px, py)
+            px += bx1 - bx0
+            shelf = max(shelf, by1 - by0)
+        if py + shelf <= MAX_SIDE or width >= MAX_SIDE:
+            break
+        width *= 2
     out = Image.new(im.mode, (width, max(1, py + shelf)), 0)
     if im.mode == "P":
         out.putpalette(im.getpalette())
