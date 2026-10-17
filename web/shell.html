@@ -18,6 +18,8 @@
   button.quiet { background: transparent; color: var(--muted); border: 1px solid #3a3127; }
   label.check { display: block; margin-top: .5rem; font-size: .9rem; color: var(--muted); }
   #status { min-height: 1.5em; color: var(--accent); }
+  #bar { display: block; width: 100%; height: .5rem; margin: .25rem 0; accent-color: var(--accent); }
+  a { color: var(--accent); }
   #canvas { display: none; position: fixed; inset: 0; margin: auto; background: #000; outline: none;
             width: min(100vw, calc(100vh * 4 / 3)); height: min(100vh, calc(100vw * 3 / 4)); image-rendering: pixelated; }
   body.playing #start { display: none; }
@@ -46,20 +48,45 @@
   </div>
 
   <p id="status">Loading…</p>
-  <p class="muted">Saves are kept in this browser. Esc opens the settings in the game.</p>
+  <progress id="bar" max="1" value="0"></progress>
+  <p class="muted" id="size-note" hidden></p>
+  <p class="muted">Saves are kept in this browser only: clearing its site data deletes them, and
+    closing the tab right after saving (F10) can lose that save. Esc opens the settings in the game.</p>
+  <p class="muted"><a href="../">About this project</a> · <a href="../credits.html">Credits and licenses</a>
+    · Not affiliated with the makers of the original ShadowFlare.</p>
 </div>
 <canvas id="canvas" tabindex="-1" oncontextmenu="event.preventDefault()"></canvas>
 
 <script>
   const statusLine = document.getElementById('status');
+  const bar = document.getElementById('bar');
+  // Sizes in MB, set by tools/build_web.sh for the website: the whole
+  // download, and the content pack's part of it.
+  let dataMB = 0;
+  function sfDownloadSize(mb, packMB) {
+    dataMB = packMB;
+    const note = document.getElementById('size-note');
+    note.textContent = 'The open game is a ' + mb + ' MB download.';
+    note.hidden = false;
+  }
   var Module = {
     canvas: document.getElementById('canvas'),
     print: function (text) { console.log(text); },
     printErr: function (text) { console.warn(text); },
     setStatus: function (text) {
-      // "Downloading data... (12/58)" while the open pack comes down.
+      // "Downloading data... (12345/67890)" in bytes while the open pack
+      // comes down. With the pack in parts, the total grows as each part
+      // starts, so the size from the build is used when it is bigger.
       const m = text.match(/\((\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)\)/);
-      statusLine.textContent = m ? 'Downloading the game… ' + Math.round(100 * m[1] / m[2]) + '%' : text;
+      if (m) {
+        const mb = 1024 * 1024;
+        const total = Math.max(m[2] / mb, dataMB);
+        const done = Math.min(m[1] / mb, total);
+        bar.value = done / total;
+        statusLine.textContent = 'Downloading the game… ' + Math.round(done) + ' of ' + Math.round(total) + ' MB';
+      } else {
+        statusLine.textContent = text;
+      }
     },
     onRuntimeInitialized: function () { ready(); },
     // The engine asks for this when the player quits.
@@ -72,6 +99,7 @@
 
   function ready() {
     statusLine.textContent = '';
+    bar.hidden = true;
     document.getElementById('play-open').disabled = false;
     document.getElementById('picker').disabled = false;
     document.getElementById('pick-label').classList.remove('disabled');

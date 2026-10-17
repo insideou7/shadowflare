@@ -1,6 +1,10 @@
 # ShadowFlare engine
 
 An open source reimplementation of the ShadowFlare engine in C++20 and SDL2.
+It is not affiliated with or endorsed by the makers of the original game.
+
+Play the open game in your browser at
+<https://insideou7.github.io/shadowflare/play/> (see [docs/web.md](docs/web.md)).
 
 This repository contains **none of the original game's data**. There are two
 ways to play:
@@ -218,7 +222,9 @@ renders a whole map to an image.
 
 The engine, tools and the open content in [content/](content/) (our own
 art, sound, maps and text) are under the MIT license; see [LICENSE](LICENSE).
-stb_image and stb_vorbis are public domain (or MIT).
+stb_image and stb_vorbis are public domain (or MIT). Third-party credits and
+licenses, including those of the browser build, are in
+[docs/credits.html](docs/credits.html).
 
 The original game is copyrighted and is not covered by this license. Do
 not commit its files, extracted assets or decompiled code to this
