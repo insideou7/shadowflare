@@ -4552,11 +4552,12 @@ def pose(rig, animation, t, frames):
 #   reach: how far past its landing place the swinging foot reaches before
 #     it comes down.
 #   arm: how far the arms swing; elbow: how far they bend.
+#   blade: where the sword points (degrees above level, out to the right).
 GAITS = {
-    "walk": dict(cycle=4.0, duty=0.56, ahead=0.0, crouch=0.035, bob=0.035, lift=0.17, heel=0.32, toe=0.75, width=0.10,
-                 sway=0.025, lean=0.13, twist=0.13, arm=0.42, elbow=0.30, kick=1.0, reach=0.0, phase=HERO_WALK_PHASE),
-    "run": dict(cycle=5.6, duty=0.33, ahead=-0.25, crouch=0.10, bob=0.05, lift=0.45, heel=0.22, toe=0.95, width=0.07,
-                sway=0.02, lean=0.50, twist=0.20, arm=0.6, elbow=1.6, kick=1.8, reach=0.35, phase=0.0),
+    "walk": dict(cycle=4.0, duty=0.56, ahead=0.0, crouch=0.12, bob=0.035, lift=0.17, heel=0.32, toe=0.75, width=0.10,
+                 sway=0.025, lean=0.13, twist=0.13, arm=0.28, elbow=0.30, kick=1.0, reach=0.0, blade=(-12, 12), phase=HERO_WALK_PHASE),
+    "run": dict(cycle=5.6, duty=0.33, ahead=-0.25, crouch=0.10, bob=0.10, lift=0.45, heel=0.22, toe=0.95, width=0.07,
+                sway=0.02, lean=0.50, twist=0.20, arm=0.6, elbow=1.1, kick=1.8, reach=0.35, blade=(25, 8), phase=0.0),
 }
 # The heroine's walk: feet nearer one line, more sway, a shorter step (her
 # feet slide a little, as the original's do) so she does not stride like
@@ -4599,6 +4600,9 @@ def leg_ik(rig, side, hip, target):
     return roll, h, k
 
 
+_GAIT_SINK = {}
+
+
 def gait(rig, animation, t):
     """Poses the hero or heroine walking or running at t in [0, 1): each
     foot plants, rolls from heel to ball and stays put on the ground while
@@ -4636,28 +4640,51 @@ def gait(rig, animation, t):
         lift = g["lift"] / scale * math.sin(math.pi * min(1.0, u / 0.9) ** (1 / g["kick"])) ** 1.5
         return x, pitch, lift
 
-    p_left = (t + g["phase"]) % 1.0
-    phases = {"l": p_left, "r": (p_left + 0.5) % 1.0}
-    hips = rig.rest["hips"].copy()
-    hips.z -= (g["crouch"] + g["bob"] * (1 + (1 if run else -1) * math.cos(4 * math.pi * (p_left - duty / 2))) / 2) / scale
-    hips.y += g["sway"] / scale * math.cos(2 * math.pi * (p_left - duty / 2))
-    targets, pitches = {}, {}
-    for side, sign in (("l", 1), ("r", -1)):
-        x, pitch, lift = foot(phases[side], side)
-        heel, ball = rig.feet[side]
-        pivot = heel if pitch < 0 else ball
-        rest_ankle = Vector((x, sign * g["width"] / scale, -min(heel.z, ball.z)))
-        ground = rest_ankle + Vector((pivot.x, 0, pivot.z))
-        targets[side] = ground - Euler((0, pitch, 0)).to_matrix() @ Vector((pivot.x, 0, pivot.z)) + Vector((0, 0, lift))
-        pitches[side] = pitch
-    # Sink the hips where a standing leg could not reach its foot.
-    for side in ("l", "r"):
-        if phases[side] < duty:
-            hip = hips + rig.rest[f"leg_{side}"]
-            d = targets[side] - hip
-            flat = math.hypot(d.x, d.y)
-            if d.length > reach and flat < reach:
-                hips.z -= (-d.z) - math.sqrt(reach * reach - flat * flat)
+    def place(t):
+        """Hips (before sinking them) and each foot's ankle target and pitch at t."""
+        p_left = (t + g["phase"]) % 1.0
+        phases = {"l": p_left, "r": (p_left + 0.5) % 1.0}
+        hips = rig.rest["hips"].copy()
+        hips.z -= (g["crouch"] + g["bob"] * (1 + (1 if run else -1) * math.cos(4 * math.pi * (p_left - duty / 2))) / 2) / scale
+        hips.y += g["sway"] / scale * math.cos(2 * math.pi * (p_left - duty / 2))
+        targets, pitches = {}, {}
+        for side, sign in (("l", 1), ("r", -1)):
+            x, pitch, lift = foot(phases[side], side)
+            heel, ball = rig.feet[side]
+            pivot = heel if pitch < 0 else ball
+            rest_ankle = Vector((x, sign * g["width"] / scale, -min(heel.z, ball.z)))
+            ground = rest_ankle + Vector((pivot.x, 0, pivot.z))
+            targets[side] = ground - Euler((0, pitch, 0)).to_matrix() @ Vector((pivot.x, 0, pivot.z)) + Vector((0, 0, lift))
+            pitches[side] = pitch
+        return p_left, phases, hips, targets, pitches
+
+    def sink(t):
+        """How far the hips must come down at t for both legs to reach their
+        feet (the swinging one too, as it reaches out to land)."""
+        _, phases, hips, targets, _ = place(t)
+        need = 0.0
+        for side in ("l", "r"):
+            if phases[side] < duty or phases[side] > 1 - 0.25 * (1 - duty):
+                d = targets[side] - (hips + rig.rest[f"leg_{side}"])
+                flat = math.hypot(d.x, d.y)
+                if d.length > reach and flat < reach:
+                    need = max(need, -d.z - math.sqrt(reach * reach - flat * flat))
+        return need
+
+    # The sink, eased over the cycle (the most needed nearby, then
+    # averaged) so the hips never drop in one frame.
+    key = (id(rig), animation)
+    if key not in _GAIT_SINK:
+        n = 120
+        raw = [sink(i / n) for i in range(n)]
+        w = 12
+        peak = [max(raw[(i + j) % n] for j in range(-w, w + 1)) for i in range(n)]
+        _GAIT_SINK[key] = [sum(peak[(i + j) % n] for j in range(-w, w + 1)) / (2 * w + 1) for i in range(n)]
+    curve = _GAIT_SINK[key]
+    u = (t % 1.0) * len(curve)
+    i = int(u)
+    p_left, phases, hips, targets, pitches = place(t)
+    hips.z -= curve[i % len(curve)] + (curve[(i + 1) % len(curve)] - curve[i % len(curve)]) * (u - i)
     r = {}
     for side in ("l", "r"):
         q = leg_ik(rig, side, hips + rig.rest[f"leg_{side}"], targets[side])
@@ -4673,26 +4700,42 @@ def gait(rig, animation, t):
     r["spine"] = (0, lean + 0.02 * bounce, twist * w)
     r["head"] = (0, -lean * 0.6, -twist * 0.8 * w)
     if run:
-        # Against the lean, so they swing about hanging straight down.
-        r["arm_l"] = (0.22, -0.8 * lean - 0.1 + 0.55 * arm * w, 0)
-        r["elbow_l"] = (0, -g["elbow"], 0.9)
-        r["arm_r"] = (-0.15, -0.8 * lean - arm * w, 0)
+        # The shield arm hangs nearly straight, so the shield rides at his
+        # hip on the far side, as the original's does; the sword arm is
+        # held out in front, bent, and pumps a little.
+        r["arm_l"] = (0.18, -lean + 0.35 * arm * w, 0)
+        r["elbow_l"] = (0, -0.35, 0)
+        r["arm_r"] = (-0.12, -lean - 0.35 - 0.5 * arm * w, 0)
         r["elbow_r"] = (0, -g["elbow"], 0)
-        r["weapon"] = (0, math.radians(95), 0)
     elif heroine:
         r["arm_l"] = (0.22, -0.20 + 0.6 * arm * w, 0)
         r["elbow_l"] = (0, -0.45, 0.9)
         r["arm_r"] = (-0.14, -0.15 - arm * w, 0)
         r["elbow_r"] = (0, -g["elbow"] - 0.15 * max(0.0, -w), 0)
-        r["weapon"] = (0, math.radians(70), 0)
     else:
-        r["arm_l"] = (0.16, -0.15 + 0.6 * arm * w, 0)
-        r["elbow_l"] = (0, -0.35, 1.2)
-        r["arm_r"] = (-0.10, -0.20 - arm * w, 0)
-        r["elbow_r"] = (0, -g["elbow"] - 0.2 * max(0.0, -w), 0)
-        r["weapon"] = (0, math.radians(70), 0)
+        # Hands down by his sides, as the original's walks: the arms hang
+        # against the lean (which would carry them back) and swing a little.
+        r["arm_l"] = (-0.06, -lean + 0.8 * arm * w, 0)
+        r["elbow_l"] = (0, -0.12 - 0.15 * max(0.0, -w), 0)
+        r["arm_r"] = (0.06, -lean - arm * w, 0)
+        r["elbow_r"] = (0, -0.12 - 0.15 * max(0.0, w), 0)
     rig.pose(r)
     rig.joints["hips"].location = hips
+    aim_weapon(rig, g["blade"])
+
+
+def aim_weapon(rig, blade):
+    """Turns the weapon in the hand so the blade points `blade` = (degrees
+    above level, degrees out to the right) ahead of the body, whatever the
+    arm does: the original's player carries his sword pointing ahead as he
+    walks and runs."""
+    up, out = (math.radians(a) for a in blade)
+    bpy.context.view_layer.update()
+    want = Vector((math.cos(up) * math.cos(out), -math.cos(up) * math.sin(out), math.sin(up)))
+    root = rig.joints["root"].matrix_world.to_3x3().normalized()
+    parent = root.inverted() @ rig.joints["elbow_r"].matrix_world.to_3x3().normalized()
+    turn = want.to_track_quat("X", "Z").to_matrix()
+    rig.joints["weapon"].rotation_euler = (parent.inverted() @ turn).to_euler()
 
 
 def hero_guard(animation, s, c):
