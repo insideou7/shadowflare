@@ -549,6 +549,7 @@ private:
     void loadItems();
     void giveStartingKit();
     void spawnGroundItems();
+    void setGroundSprite(GroundItem& g);
     void dropItem(const Item& item, double x, double y);
     void dropLoot(const Actor& enemy);
     // Drops what a drop list gives around (x, y): monsters and

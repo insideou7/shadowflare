@@ -605,6 +605,22 @@ Nearly every piece of the original's maps is covered. Still drawn from the
 original: blood, bodies and the holes in the ground (blood00,
 deadbody00, 00d_blood, the bones and blood of jimen_x00, map03_a), the beds in the fort (ex_obj) and the bones on stakes (hone).
 
+### Items, windows and gauges
+
+With our art chosen, the windows, gauges and HUD come from the pack's own
+`System/` sheets first; the player's file is used only where the pack has
+no sheet. Item pictures are numbered by the original's item table, so
+`item_skin.txt` at the pack's root says which of ours stands in for each
+original picture:
+
+    icon 0,27 = 0,2         # original bag picture (bank 0, pattern 27) = our Item0000 frame 2
+    ground 7,3 = 7,1        # original ground picture (folder 7, picture 3) = our folder 7 frame 1
+
+`tools/content/item_skin.py <game> content` writes it: an item here with
+the same class and code as an original item lends its pictures to every
+picture that item (and its prefixed variants) uses. A picture with no line
+is drawn from the original's file.
+
 ## The first four areas and the Tower of Ordeal
 
 The pack's maps are the original's first four areas and its Tower of
