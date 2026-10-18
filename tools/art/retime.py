@@ -18,7 +18,7 @@ and deaths last as long as the original's and land when they do:
   our strike pose (the frame marked "!", else halfway through a monster's
   attack or a companion's bite, where the engine strikes without a mark)
   is put on the original's first strike frame;
-- a loop already rendered at the original's frame count (the player's
+- a player's loop already rendered at the original's frame count (the
   walk and run, drawn for one frame a tick) is left as it is;
 - every other chart (idle and walk loops, whose pace goes with the
   render, and charts the original lacks) is stretched by 1.5 so it plays
@@ -177,7 +177,7 @@ def retime(chart, original, folder_kind):
         big, strikes = original
         anchor = marked[0] if marked else (n // 2 if chart.number in HALFWAY.get(folder_kind, ()) else None)
         at = strikes[0] if strikes and anchor is not None else None
-    elif chart.loop and original is not None and original[0] == n:
+    elif chart.loop and original is not None and original[0] == n and folder_kind in PLAYERS:
         big = n  # a loop rendered one frame a tick at the original's length (the player's walk and run)
         anchor = at = None
         strikes = marked
