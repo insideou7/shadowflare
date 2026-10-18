@@ -57,7 +57,7 @@ except ImportError:
     bpy = None
 
 # Original chart per animation, as build_pack.py maps them.
-PLAYER = {"idle": 0, "walk": 1, "hit": 3, "attack": 5, "shoot": 10, "heal": 11, "cast": 13}
+PLAYER = {"idle": 0, "walk": 1, "run": 2, "hit": 3, "attack": 5, "shoot": 10, "heal": 11, "cast": 13}
 ENEMY = {"idle": 0, "walk": 1, "hit": 2, "death": 3, "attack": 4, "cast": 7}
 SIZE = 240  # canvas, pixels
 # The original's animation layers that make the bare body: the player's

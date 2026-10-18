@@ -89,8 +89,9 @@ Original folders: `Player/Male`, `Player/Female` (body = layer 0),
 |-----------|-------|--------|-------|
 | hero, heroine | camera pitch | 41.8 degrees | unchanged: the original fits the map's 41.8 (measured 36.7 and 41.0) |
 | hero, heroine | facing | diagonals skewed 11.3 degrees to the 15:10 diamond | even 45 degree steps, like the original (`facing(d, rig)`) |
-| hero | walk IoU | 0.41 | 0.46 (phase +3 of 10 frames, `HERO_WALK_PHASE`) |
-| heroine | walk IoU | 0.41 | 0.46 |
+| hero | walk IoU | 0.41 | 0.46 (phase +3 of 10 frames); 0.51 after the gait rework (20 frames, planted feet, `GAITS` in creatures.py) |
+| heroine | walk IoU | 0.41 | 0.46; 0.54 after the gait rework |
+| hero, heroine | run (chart 2) | none (the walk played fast) | 14 frames like the original's; IoU 0.32 hero, 0.49 heroine |
 | hero | hit IoU | 0.22 (4 frames) | 0.62 (11 frames, 4 held fitted poses, knock-back) |
 | heroine | hit IoU | 0.17 | 0.52 (her own `HEROINE_HIT`) |
 | hero, heroine | attack sword/shield arms | fitted with the old facing | re-fitted with match_attack.py (sword IoU 0.106 -> 0.118) |
