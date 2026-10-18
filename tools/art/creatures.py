@@ -4555,7 +4555,7 @@ def pose(rig, animation, t, frames):
 #   blade: where the sword points (degrees above level, out to the right).
 GAITS = {
     "walk": dict(cycle=4.0, duty=0.56, ahead=0.0, crouch=0.12, bob=0.035, lift=0.17, heel=0.32, toe=0.75, width=0.10,
-                 sway=0.025, lean=0.13, twist=0.13, arm=0.28, elbow=0.30, kick=1.0, reach=0.0, blade=(-12, 12), phase=HERO_WALK_PHASE),
+                 sway=0.025, lean=0.13, twist=0.13, arm=0.28, elbow=0.30, kick=1.0, reach=0.0, blade=(-10, 20), phase=HERO_WALK_PHASE),
     "run": dict(cycle=5.6, duty=0.33, ahead=-0.25, crouch=0.10, bob=0.10, lift=0.45, heel=0.22, toe=0.95, width=0.07,
                 sway=0.02, lean=0.50, twist=0.20, arm=0.6, elbow=1.1, kick=1.8, reach=0.35, blade=(25, 8), phase=0.0),
 }
@@ -4717,7 +4717,7 @@ def gait(rig, animation, t):
         # against the lean (which would carry them back) and swing a little.
         r["arm_l"] = (-0.06, -lean + 0.8 * arm * w, 0)
         r["elbow_l"] = (0, -0.12 - 0.15 * max(0.0, -w), 0)
-        r["arm_r"] = (0.06, -lean - arm * w, 0)
+        r["arm_r"] = (-0.10, -lean - arm * w, 0)
         r["elbow_r"] = (0, -0.12 - 0.15 * max(0.0, w), 0)
     rig.pose(r)
     rig.joints["hips"].location = hips
