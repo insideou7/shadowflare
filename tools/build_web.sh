@@ -8,12 +8,12 @@
 # Needs the Emscripten SDK on PATH (source emsdk_env.sh first). If Emscripten
 # cannot download its SDL2 port, set EMCC_LOCAL_PORTS=sdl2=<SDL clone>.
 #
-# content/ is packed into several shadowflare-N.data files, each under
-# SFE_WEB_PART_MB (45 MB by default), because GitHub refuses files over
-# 100 MB and warns over 50 MB. The page loads them all together.
-#
-# Every rebuild that changes content/ adds about the whole pack (~124 MB) to
-# git history when docs/play/ is committed, so commit it on release days only.
+# content/ is packed into several shadowflare-<part>.data files (see
+# tools/web_parts.py), none over SFE_WEB_PART_MB (45 MB by default), because
+# GitHub refuses files over 100 MB and warns over 50 MB. The page loads them
+# all together. The packing is deterministic, so a part whose files did not
+# change is byte for byte the same and git stores it once: committing a
+# rebuild adds only the parts that changed.
 set -euo pipefail
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
@@ -31,50 +31,30 @@ emcmake cmake -S "$repo" -B "$build" -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=
     -DSFE_WEB_PRELOAD_CONTENT=OFF >/dev/null
 cmake --build "$build" --target shadowflare -j"$(nproc 2>/dev/null || echo 4)"
 
-# 2. content/ in parts: files in path order, a new part when the next file
-# would pass the limit. Each part gets a .data file and a small .js loader.
+# 2. content/ in parts (tools/web_parts.py says which files go in which: the
+# scripts and text, each act's maps and monsters, and the shared rest), so a
+# change to content/ rebuilds only the parts it touches. Each part gets a
+# .data file and a small .js loader, named for the part.
 stage=$build/site
 rm -rf "$stage"
 mkdir -p "$stage"
-python3 - "$repo" "$stage" "$part_mb" <<'EOF'
-import os, sys
-repo, stage, part_mb = sys.argv[1], sys.argv[2], int(sys.argv[3])
-limit = part_mb * 1024 * 1024
-files = []
-for root, dirs, names in os.walk(os.path.join(repo, 'content')):
-    dirs.sort()
-    for name in sorted(names):
-        path = os.path.join(root, name)
-        files.append((os.path.relpath(path, repo).replace(os.sep, '/'), os.path.getsize(path)))
-parts, size = [[]], 0
-for rel, n in files:
-    if n > limit:
-        sys.exit(f'{rel} is bigger than {part_mb} MB on its own')
-    if size + n > limit and parts[-1]:
-        parts.append([])
-        size = 0
-    parts[-1].append(rel)
-    size += n
-for i, part in enumerate(parts, 1):
-    with open(os.path.join(stage, f'part{i}.list'), 'w') as f:
-        f.write('\n'.join(part) + '\n')
-EOF
-parts=()
-for list in "$stage"/part*.list; do
-    n=${list##*/part}; n=${n%.list}
+mapfile -t parts < <(python3 "$repo/tools/web_parts.py" "$repo" "$stage" "$part_mb")
+for n in "${parts[@]}"; do
     args=()
-    while IFS= read -r rel; do args+=("$rel@/$rel"); done < "$list"
+    while IFS= read -r rel; do args+=("$rel@/$rel"); done < "$stage/$n.list"
     (cd "$repo" && python3 "$packager" "$stage/shadowflare-$n.data" --preload "${args[@]}" \
         --js-output="$stage/shadowflare-$n.js" --no-node --quiet)
-    rm "$list"
-    parts+=("$n")
+    rm "$stage/$n.list"
 done
-IFS=$'\n' parts=($(sort -n <<<"${parts[*]}")); unset IFS
 
-# 3. The page: the engine's script gets a version (a hash of every file) so
-# browsers fetch fresh files after a rebuild instead of mixing old and new ones.
+# 3. The page. Every file is fetched with ?v=<hash of that file>, so a browser
+# that has an old copy fetches fresh files after a rebuild, and keeps the
+# parts that did not change.
 cp "$build/shadowflare.js" "$build/shadowflare.wasm" "$stage/"
-version=$(cat "$stage"/*.data "$stage"/*.js "$stage"/*.wasm | sha256sum | cut -c1-10)
+versions=
+for f in "$stage"/shadowflare*; do
+    versions+="${versions:+, }'${f##*/}': '$(sha256sum "$f" | cut -c1-10)'"
+done
 bytes=$(cat "$stage"/*.data "$stage"/*.wasm "$stage"/*.js | wc -c)
 mb=$(( (bytes + 1048575) / 1048576 ))
 data_mb=$(( ($(cat "$stage"/*.data | wc -c) + 1048575) / 1048576 ))
@@ -82,21 +62,23 @@ data_mb=$(( ($(cat "$stage"/*.data | wc -c) + 1048575) / 1048576 ))
 # player presses play, so the visit itself only fetches the engine.
 list=
 for n in "${parts[@]}"; do
-    list+="${list:+, }'shadowflare-$n.js?v=$version'"
+    list+="${list:+, }'shadowflare-$n.js'"
 done
-tags="<script>Module.locateFile = function (path) { return path + '?v=$version'; };
-  sfContentPack($data_mb, '$version', [$list]);</script>"
-python3 - "$build/shadowflare.html" "$stage/index.html" "$version" "$tags" <<'EOF'
+tags="<script>var sfVersions = {$versions};
+  Module.locateFile = function (path) { return path + '?v=' + sfVersions[path]; };
+  sfContentPack($data_mb, [$list]);</script>"
+engine=$(sha256sum "$stage/shadowflare.js" | cut -c1-10)
+python3 - "$build/shadowflare.html" "$stage/index.html" "$tags" "$engine" <<'EOF'
 import re, sys
-src, dst, version, tags = sys.argv[1:]
+src, dst, tags, engine = sys.argv[1:]
 html = open(src, encoding='utf-8').read()
 # Emscripten minifies the page, so find its script tag loosely.
 main = re.compile(r'<script\b[^>]*\bsrc=["\']?shadowflare\.js["\']?[^>]*>')
 found = main.findall(html)
 assert len(found) == 1, 'no single shadowflare.js script tag in the page'
-tag = found[0].replace('shadowflare.js', f'shadowflare.js?v={version}', 1)
+tag = found[0].replace('shadowflare.js', f'shadowflare.js?v={engine}', 1)
 if 'src=shadowflare' in tag:  # unquoted after minifying; quote it
-    tag = tag.replace(f'src=shadowflare.js?v={version}', f'src="shadowflare.js?v={version}"')
+    tag = tag.replace(f'src=shadowflare.js?v={engine}', f'src="shadowflare.js?v={engine}"')
 html = main.sub(lambda m: tags + '\n' + tag, html, count=1)
 open(dst, 'w', encoding='utf-8').write(html)
 EOF
@@ -105,7 +87,7 @@ EOF
 mkdir -p "$out"
 rm -f "$out"/index.html "$out"/shadowflare*.js "$out"/shadowflare*.wasm "$out"/shadowflare*.data
 cp "$stage"/index.html "$stage"/*.js "$stage"/*.wasm "$stage"/*.data "$out/"
-echo "docs/play/: ${#parts[@]} data parts, $mb MB in all, version $version"
+echo "docs/play/: ${#parts[@]} data parts, $mb MB in all"
 ls -l "$out"
 
 if [ "${1:-}" = "--serve" ]; then

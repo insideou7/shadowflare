@@ -50,36 +50,51 @@ downloads send no CORS headers.
     tools/build_web.sh --serve    # then serve docs/ at http://localhost:8000/play/
 
 It builds the engine without content (`-DSFE_WEB_PRELOAD_CONTENT=OFF`) and
-packs `content/` with Emscripten's `file_packager` into parts of at most
-45 MB (`SFE_WEB_PART_MB`), files in path order, because GitHub refuses
-files over 100 MB and warns over 50 MB. Each part is a `shadowflare-N.data`
-with a small `shadowflare-N.js` that loads it. Visiting the page fetches
-only the engine (about 2 MB). The parts are fetched when the player
-presses "Play the open game": the page then injects their loaders, shows
-a bar and "x of y MB", and starts the game once every part is in place.
-Choosing the player's own ShadowFlare folder never downloads the open pack.
+packs `content/` with Emscripten's `file_packager` into parts, none over
+45 MB (`SFE_WEB_PART_MB`), because GitHub refuses files over 100 MB and warns
+over 50 MB. `tools/web_parts.py` chooses the parts so that a change to
+`content/` touches as few of them as possible:
 
-The parts are also stored in the browser's Cache Storage, under the build's
+| Part | What is in it |
+| --- | --- |
+| `text` | the scenarios' scripts and the pack's text files at its root (changes most, about 5 MB) |
+| `maps-act1` … `maps-act4`, `maps-tower` | each map's data and area picture, for the act whose scenarios use the map first |
+| `enemies-act1` … `enemies-act4` | each monster kind's pictures, for the act it first appears in |
+| `common` | the rest: shared sheets, the interface, the player, the people, monsters no scenario places |
+
+A part that would pass the limit is split in path order (`-2`, `-3`). Each
+part is a `shadowflare-<part>.data` with a small `shadowflare-<part>.js` that
+loads it. Visiting the page fetches only the engine (about 2 MB). The parts
+are fetched when the player presses "Play the open game": the page then
+injects their loaders, shows a bar and "x of y MB", and starts the game once
+every part is in place. Choosing the player's own ShadowFlare folder never
+downloads the open pack.
+
+The parts are also stored in the browser's Cache Storage, each under its own
 version, so a return visit starts without downloading them again (GitHub
 Pages sets its own short `Cache-Control`, so the HTTP cache alone is not
-relied on). Older versions' caches are deleted. Where Cache Storage is
+relied on). Parts no build has any more are deleted. Where Cache Storage is
 unavailable (some private windows) the parts are simply fetched each time.
 
 | File | What it is | Size |
 | --- | --- | --- |
-| `index.html` | the page (from `web/shell.html`) | 12 KB |
+| `index.html` | the page (from `web/shell.html`) | 9 KB |
 | `shadowflare.js` | Emscripten's loader, with `web/pre.js` in it | 180 KB |
 | `shadowflare.wasm` | the engine | 2 MB |
-| `shadowflare-1.data` … `-3.data` | `content/` in three parts | 45, 45 and 26 MB |
-| `shadowflare-1.js` … `-3.js` | each part's loader | 30-100 KB |
+| `shadowflare-<part>.data` | a part of `content/` | 1 to 37 MB |
+| `shadowflare-<part>.js` | that part's loader | 7-80 KB |
 
-Every file is fetched with `?v=<hash of all files>`, so a browser that has
+Every file is fetched with `?v=<hash of that file>`, so a browser that has
 an old copy fetches fresh files after a rebuild instead of mixing old and
-new ones.
+new ones, and keeps the files that did not change.
 
-Every rebuild that changes `content/` adds the whole pack (about 124 MB)
-to git history once committed, so rebuild and commit `docs/play/` on
-release days only, not for every content change.
+Packing is deterministic: a part whose files did not change is byte for byte
+the same, and git stores it once. Committing a rebuild adds only the parts
+that changed (a script edit: the `text` part, about 5 MB, and the engine if
+it changed), not the whole pack. A new map or monster only touches its
+act's part. Changing a shared sheet or the interface rebuilds `common`
+(about 37 MB). The first rebuild after the packing scheme changes adds the
+whole pack once.
 
 ## The page
 
@@ -102,6 +117,20 @@ reading the folder again. **Forget my saved files** deletes them.
 
 Folder pickers work in Chrome, Edge, Firefox and Safari on computers; phones
 cannot pick folders.
+
+## Crash reports (Sentry)
+
+The page can send browser crash reports to Sentry, but only if the player says yes
+in the notice on the start page. Until then nothing from Sentry is requested. The
+answer is kept in `localStorage` (`sfCrashReports`: `on` or `off`) and can be
+changed on the same page. When on, the page loads Sentry's loader script and
+initializes it with `release` set to `shadowflare-web@<engine hash>` (the `?v=` of
+`shadowflare.js`, or `dev` for an unbuilt page), no default PII, and tracing and
+session replay at 0. Saves and original game files are never sent. The key in the
+loader URL is public by design; in Sentry, set Allowed Domains to
+`insideou7.github.io` and add rate limits to that key. `docs/play/index.html` was
+patched by hand to match `web/shell.html`; the next `tools/build_web.sh` run emits
+the same code.
 
 ## Saves and settings
 
@@ -132,7 +161,7 @@ page.
 
 In Chromium 1194 (Playwright, software WebGL):
 
-- `docs/play/` from `tools/build_web.sh` served locally: the three parts
+- `docs/play/` from `tools/build_web.sh` served locally: the parts
   download with the bar, then the title screen, and Remote Town and area
   13000000 started with `--map`.
 

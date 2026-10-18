@@ -22,6 +22,9 @@
   a { color: var(--accent); }
   #canvas { display: none; position: fixed; inset: 0; margin: auto; background: #000; outline: none;
             width: min(100vw, calc(100vh * 4 / 3)); height: min(100vh, calc(100vw * 3 / 4)); image-rendering: pixelated; }
+  #reports { margin: 1rem 0; }
+  #reports .row { margin-top: .5rem; }
+  #reports button + button { margin-left: .5rem; }
   body.playing #start { display: none; }
   body.playing #canvas { display: block; }
 </style>
@@ -47,6 +50,21 @@
     <p class="muted">Your files stay on this computer. They are never uploaded anywhere.</p>
   </div>
 
+  <div class="choice" id="reports" hidden>
+    <p>Send crash reports to help us fix bugs?</p>
+    <p class="muted">If you say yes, the game's errors and your browser and system type are sent to
+      Sentry (a crash reporting service) when something breaks. Your saves, your ShadowFlare files and
+      personal details are never sent, and nothing is sent unless you say yes. You can turn this off
+      here at any time.</p>
+    <div class="row" id="reports-ask">
+      <button id="reports-yes">Yes, send crash reports</button>
+      <button id="reports-no" class="quiet">No thanks</button>
+    </div>
+    <div class="row" id="reports-state" hidden>
+      <span id="reports-text"></span> <button id="reports-toggle" class="quiet"></button>
+    </div>
+  </div>
+
   <p id="status">Loading…</p>
   <progress id="bar" max="1" value="0"></progress>
   <p class="muted" id="size-note" hidden></p>
@@ -61,16 +79,15 @@
   const statusLine = document.getElementById('status');
   const bar = document.getElementById('bar');
   // Set by tools/build_web.sh for the website: the content pack's size in
-  // MB, and its parts (script names, with the build's version). The pack is
-  // only fetched when the player asks for the open game, and kept in the
-  // browser's Cache Storage under that version so a return visit does not
-  // download it again. Empty when the content is linked into the engine.
+  // MB, and its parts (script names; sfVersions has each file's version).
+  // The pack is only fetched when the player asks for the open game, and
+  // each part is kept in the browser's Cache Storage under its version, so
+  // a return visit downloads only the parts that changed. Empty when the
+  // content is linked into the engine.
   let dataMB = 0;
   let packParts = [];
-  let packVersion = '';
-  function sfContentPack(packMB, version, parts) {
+  function sfContentPack(packMB, parts) {
     dataMB = packMB;
-    packVersion = version;
     packParts = parts;
     const note = document.getElementById('size-note');
     note.textContent = 'The open game downloads ' + packMB + ' MB when you press play, once; '
@@ -106,20 +123,80 @@
   window.addEventListener('pagehide', function () { if (Module.sf) Module.sf.syncSaves(); });
   window.onerror = function (message) { statusLine.textContent = 'Something went wrong: ' + message; };
 
+
+  // Crash reports (Sentry) are opt-in. Nothing from Sentry is requested
+  // until the player says yes; the answer is kept in localStorage.
+  const sentryLoader = 'https://js.sentry-cdn.com/7721089006b65ec521af519ee4ba02a1.min.js';
+  const reportsKey = 'sfCrashReports';
+  function reportsChoice() {
+    try { return localStorage.getItem(reportsKey); } catch (e) { return null; }
+  }
+  function setReportsChoice(value) {
+    try { localStorage.setItem(reportsKey, value); } catch (e) { /* choice lasts for this visit only */ }
+  }
+  window.sentryOnLoad = function () {
+    // The build's engine hash when published (tools/build_web.sh), else "dev".
+    const hash = (typeof sfVersions !== 'undefined' && sfVersions['shadowflare.js']) || 'dev';
+    Sentry.init({
+      release: 'shadowflare-web@' + hash,
+      sendDefaultPii: false,
+      tracesSampleRate: 0,
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
+    });
+  };
+  function loadSentry() {
+    if (window.sfSentryRequested) return;
+    window.sfSentryRequested = true;
+    const tag = document.createElement('script');
+    tag.src = sentryLoader;
+    tag.crossOrigin = 'anonymous';
+    document.head.appendChild(tag);
+  }
+  function showReportsChoice() {
+    const choice = reportsChoice();
+    document.getElementById('reports').hidden = false;
+    document.getElementById('reports-ask').hidden = choice !== null;
+    document.getElementById('reports-state').hidden = choice === null;
+    if (choice !== null) {
+      document.getElementById('reports-text').textContent = 'Crash reports are ' + (choice === 'on' ? 'on.' : 'off.');
+      document.getElementById('reports-toggle').textContent = choice === 'on' ? 'Turn off' : 'Turn on';
+    }
+  }
+  function answerReports(on) {
+    setReportsChoice(on ? 'on' : 'off');
+    if (on) loadSentry();
+    showReportsChoice();
+  }
+  document.getElementById('reports-yes').onclick = function () { answerReports(true); };
+  document.getElementById('reports-no').onclick = function () { answerReports(false); };
+  document.getElementById('reports-toggle').onclick = function () {
+    if (reportsChoice() === 'on') {
+      // The loader is already running in this page; a reload drops it.
+      setReportsChoice('off');
+      location.reload();
+    } else {
+      answerReports(true);
+    }
+  };
+  if (reportsChoice() === 'on') loadSentry();
+  showReportsChoice();
+
   let contentLoading = false;
   let contentLoaded = false;
 
   // A fetch of a part comes from Cache Storage when this version of it is
   // there; otherwise it goes to the network and is stored for next time.
-  // Older versions are dropped. Falls back to a plain fetch without the
-  // Cache API (private windows, blocked storage) or when storing fails.
+  // Versions no part has any more are dropped. Falls back to a plain fetch
+  // without the Cache API (private windows, blocked storage) or when storing
+  // fails.
   function useContentCache() {
-    if (!window.caches || !packVersion) return;
-    const name = 'shadowflare-content-' + packVersion;
+    if (!window.caches || !packParts.length) return;
+    const name = 'shadowflare-content';
     const plainFetch = window.fetch.bind(window);
     window.fetch = async function (input, init) {
       const url = typeof input === 'string' ? input : input.url;
-      if (!/shadowflare-\d+\.data/.test(url)) return plainFetch(input, init);
+      if (!/shadowflare-[^/?]+\.data/.test(url)) return plainFetch(input, init);
       try {
         const cache = await caches.open(name);
         const hit = await cache.match(url);
@@ -131,9 +208,19 @@
         return plainFetch(input, init);
       }
     };
+    const current = packParts.map(function (src) {
+      return new URL(src.replace(/\.js$/, '.data') + '?v=' + sfVersions[src.replace(/\.js$/, '.data')], location.href).href;
+    });
     caches.keys().then(function (names) {
-      names.filter(function (n) { return n.startsWith('shadowflare-content-') && n !== name; })
+      // The cache of the one-version-at-a-time builds.
+      names.filter(function (n) { return n.startsWith('shadowflare-content-'); })
            .forEach(function (n) { caches.delete(n); });
+    }).catch(function () {});
+    caches.open(name).then(function (cache) {
+      return cache.keys().then(function (requests) {
+        requests.filter(function (r) { return !current.includes(r.url); })
+                .forEach(function (r) { cache.delete(r); });
+      });
     }).catch(function () {});
   }
 
@@ -152,7 +239,7 @@
       };
       packParts.forEach(function (src) {
         const script = document.createElement('script');
-        script.src = src;
+        script.src = src + '?v=' + sfVersions[src];
         script.onerror = function () { reject(new Error('could not load ' + src)); };
         document.body.appendChild(script);
       });
